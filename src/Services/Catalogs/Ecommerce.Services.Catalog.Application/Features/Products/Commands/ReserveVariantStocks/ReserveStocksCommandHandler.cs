@@ -2,20 +2,21 @@ using BuildingBlocks.Shared.Commons;
 using BuildingBlocks.Shared.Enums;
 using BuildingBlocks.Shared.InfrastructureInterfaces.InMemoryBus;
 using BuildingBlocks.Shared.InfrastructureInterfaces.Persistence.EFCore;
+using Ecommerce.Services.Catalog.Application.Commons.Repositories;
 using Ecommerce.Services.Catalog.Application.Features.Products.Dtos;
 using Ecommerce.Services.Catalog.Domain.Products;
 
 namespace Ecommerce.Services.Catalog.Application.Features.Products.Commands.ReserveVariantStock;
 
-public class ReserveStocksCommandHandler(IEfUnitOfWork unitOfWork) : ICommandHandler<ReserveStocksCommand, ReserveVariantResponse >
+public class ReserveStocksCommandHandler(IEfUnitOfWork unitOfWork, IVariantRepository variantRepository) : ICommandHandler<ReserveStocksCommand, ReserveVariantResponse >
 {
-    private readonly IGenericEfRepository<ProductVariant, Guid> _variantRepository = unitOfWork.Repository<ProductVariant, Guid>();
     public async Task<Result<ReserveVariantResponse>> Handle(ReserveStocksCommand request, CancellationToken cancellationToken)
     {
+        await unitOfWork.BeginTransactionAsync(cancellationToken);
         try
         {
             var variantIds = request.VariantStockDtos.Select(x => x.VariantId).ToList();
-            var variants = await _variantRepository.GetAllAsync(v => variantIds.Contains(v.Id),  cancellationToken: cancellationToken);
+            var variants = await variantRepository.GetVariantsForUpdateAsync(variantIds, cancellationToken);
             
             var variantsDict =  variants.ToDictionary(x => x.Id, x => x);
 
@@ -31,6 +32,7 @@ public class ReserveStocksCommandHandler(IEfUnitOfWork unitOfWork) : ICommandHan
                     Quantity = variantDto.Quantity,
                     AvailableStocks = variant.AvailableStocks
                 };
+                
                 response.VariantStocks.Add(newVariantStockInfo);
 
                 if (variantDto.Quantity > variant.AvailableStocks)
@@ -49,11 +51,13 @@ public class ReserveStocksCommandHandler(IEfUnitOfWork unitOfWork) : ICommandHan
                 }
 
                 await unitOfWork.SaveChangesAsync(cancellationToken);
+                await unitOfWork.CommitAsync(cancellationToken);
             }
             return Result<ReserveVariantResponse>.Success(response);
         }
         catch (Exception ex)
         {
+            await unitOfWork.RollbackAsync(cancellationToken);
             return Result<ReserveVariantResponse>.Failure("Có lỗi xảy ra khi đặt hàng");
         }
     }
