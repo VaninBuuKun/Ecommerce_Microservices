@@ -32,7 +32,7 @@ public class GetProductsQueryHandler(
         catch (Exception ex)
         {
             logger.LogError(ex, "Có lỗi xảy ra khi lấy danh sách sản phẩm");
-            return Result<IEnumerable<ProductResponse>>.Failure("Có lỗi xảy ra");
+            return Result<IEnumerable<ProductResponse>>.ValidationFailure("Có lỗi xảy ra");
         }
     }
 

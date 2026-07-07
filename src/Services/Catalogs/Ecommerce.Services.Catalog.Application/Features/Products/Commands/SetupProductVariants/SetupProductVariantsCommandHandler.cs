@@ -87,7 +87,7 @@ public class SetupProductVariantsCommandHandler(
         catch (Exception ex)
         {
             logger.LogError(ex, "Error occurred while setting up variants for product {ProductId}", command.ProductId);
-            return Result<ProductResponse>.Failure("Error occurred while setting up product variants.");
+            return Result<ProductResponse>.ValidationFailure("Error occurred while setting up product variants.");
         }
     }
 }

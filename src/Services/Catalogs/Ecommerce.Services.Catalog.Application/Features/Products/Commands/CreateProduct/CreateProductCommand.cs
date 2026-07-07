@@ -40,7 +40,7 @@ public class CreateProductCommandHandler(
         catch (Exception ex)
         {
             logger.LogError(ex, "Có lỗi xảy ra khi thêm sản phẩm: {Name}", command.Name);
-            return Result<ProductResponse>.Failure("Có lỗi xảy ra khi thêm sản phẩm");
+            return Result<ProductResponse>.ValidationFailure("Có lỗi xảy ra khi thêm sản phẩm");
         }
     }
 }

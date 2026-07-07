@@ -15,7 +15,10 @@ public static class ErrorCodeExtensions
             EErrorCode.SuccessCreated => EHttpStatusCode.Created,
             
             //400
-            EErrorCode.InvalidArgument => EHttpStatusCode.BadRequest,           
+            EErrorCode.InvalidArgument => EHttpStatusCode.BadRequest,
+            
+            //400
+            EErrorCode.RecordAlreadyExists => EHttpStatusCode.BadRequest,
             
             // 401
             EErrorCode.Unauthorized => EHttpStatusCode.Unauthorized,    

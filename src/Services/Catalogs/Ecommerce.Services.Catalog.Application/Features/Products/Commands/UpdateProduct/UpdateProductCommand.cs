@@ -45,7 +45,7 @@ public class UpdateProductCommandHandler(
         catch (Exception ex)
         {
             logger.LogError(ex, "Có lỗi xảy ra khi cập nhật sản phẩm {Id}", command.Id);
-            return Result<ProductResponse>.Failure($"Có lỗi xảy ra khi cập nhật sản phẩm {command.Id}");
+            return Result<ProductResponse>.ValidationFailure($"Có lỗi xảy ra khi cập nhật sản phẩm {command.Id}");
         }
     }
 }

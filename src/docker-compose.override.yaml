@@ -1,27 +1,26 @@
-
 services:
   product_db:
     container_name: ecommerce_product_db
     restart: always
-    
+
     environment:
       - MYSQL_ROOT_PASSWORD=123456
-      - MYSQL_DATABASE=ProductCatalogDb       
-      - MYSQL_USER=db_user                
-      - MYSQL_PASSWORD=123456            
-    
+      - MYSQL_DATABASE=ProductCatalogDb
+      - MYSQL_USER=db_user
+      - MYSQL_PASSWORD=123456
+
     ports:
       - "3308:3306"
     volumes:
       - mysql_product_data:/var/lib/mysql
-  
+
   cart_db:
     restart: always
     ports:
       - "6379:6379"
     volumes:
       - redis_cart_data:/data
-    
+
     #lệnh này ghì đè lệnh khởi động mặc định của container 
     #-> ghi nhớ các lệnh trước đó để thực hiện lại, vì khi stop sẽ mất hết dữ liệu do lưu trên Ram.
     command: redis-server --appendonly yes
@@ -47,7 +46,7 @@ services:
     environment:
       - RABBITMQ_DEFAULT_USER=guest
       - RABBITMQ_DEFAULT_PASS=guest
-  
+
   identity_db:
     container_name: ecommerce_identity_db
     restart: always
@@ -60,6 +59,18 @@ services:
     volumes:
       - postgres_identity_data:/var/lib/postgresql/data
 
+  payment_db:
+    container_name: ecommerce_payment_db
+    restart: always
+    environment:
+      - POSTGRES_USER=db_user
+      - POSTGRES_PASSWORD=123456
+      - POSTGRES_DB=PaymentDb
+    ports:
+      - "5435:5432"
+    volumes:
+      - postgres_payment_data:/var/lib/postgresql/data
+
 volumes:
   mysql_product_data:
     driver: local
@@ -68,4 +79,6 @@ volumes:
   redis_cart_data:
     driver: local
   postgres_identity_data:
+    driver: local
+  postgres_payment_data:
     driver: local

@@ -9,5 +9,6 @@ public enum EErrorCode
     Unauthorized,
     NotFound,
     ValidationErrors,
+    RecordAlreadyExists,
     InternalServerError
 }

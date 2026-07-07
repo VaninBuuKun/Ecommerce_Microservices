@@ -30,7 +30,7 @@ public class CreateOrderCommandHandler(
 
             if (!cartResult.IsSuccess)
             {
-                return  Result<CustomerOrderResponse>.Failure(cartResult.Errors);
+                return  Result<CustomerOrderResponse>.ValidationFailure(cartResult.Errors);
             }
             
             var cartResponse = cartResult.Value;

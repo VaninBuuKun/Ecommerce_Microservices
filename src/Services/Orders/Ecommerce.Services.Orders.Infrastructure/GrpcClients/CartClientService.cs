@@ -38,7 +38,7 @@ public class CartClientService(CartGrpc.CartGrpcClient client) : ICartService
         }
         catch (Grpc.Core.RpcException ex)
         {
-            return Result<CartDto>.Failure($"Error fetching cart: {ex.Status.Detail}");
+            return Result<CartDto>.ValidationFailure($"Error fetching cart: {ex.Status.Detail}");
         }
     }
 }

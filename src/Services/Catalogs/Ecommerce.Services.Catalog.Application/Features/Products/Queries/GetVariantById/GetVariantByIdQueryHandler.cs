@@ -27,7 +27,7 @@ public class GetVariantByIdQueryHandler(IEfUnitOfWork unitOfWork, IMapper mapper
         }
         catch (Exception ex)
         {
-            return Result<VariantDto>.Failure(ex.Message);
+            return Result<VariantDto>.ValidationFailure(ex.Message);
         }
     }
 }

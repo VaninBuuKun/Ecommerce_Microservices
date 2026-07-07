@@ -71,6 +71,6 @@ public class Result<T>
     // public static Result<T> Failure(string message, int statusCode) => 
     //     new() { IsSuccess = false, Message = message, ErrorCode = statusCode};
     
-    public static Result<T> Failure(object errors) => 
+    public static Result<T> ValidationFailure(object errors) => 
         new() { IsSuccess = false, Message = "Dữ liệu không hợp lệ", Errors = errors, ErrorCode = EErrorCode.ValidationErrors };
 }

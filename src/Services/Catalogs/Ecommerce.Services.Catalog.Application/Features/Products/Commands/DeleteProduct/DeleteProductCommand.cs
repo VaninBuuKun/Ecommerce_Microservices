@@ -36,7 +36,7 @@ public class DeleteProductCommandHandler(
         catch (Exception ex)
         {
             logger.LogError(ex, "Có lỗi xảy ra khi xóa sản phẩm {Id}", command.Id);
-            return Result<Product>.Failure($"Có lỗi xảy ra khi xóa sản phẩm {command.Id}");
+            return Result<Product>.ValidationFailure($"Có lỗi xảy ra khi xóa sản phẩm {command.Id}");
         }
     }
 }

@@ -58,7 +58,7 @@ public class ReserveStocksCommandHandler(IEfUnitOfWork unitOfWork, IVariantRepos
         catch (Exception ex)
         {
             await unitOfWork.RollbackAsync(cancellationToken);
-            return Result<ReserveVariantResponse>.Failure("Có lỗi xảy ra khi đặt hàng");
+            return Result<ReserveVariantResponse>.ValidationFailure("Có lỗi xảy ra khi đặt hàng");
         }
     }
 }
