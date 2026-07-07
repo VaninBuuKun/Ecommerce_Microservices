@@ -13,7 +13,7 @@ namespace Ecommerce.Services.Orders.Api.Controllers;
 [Tags("Orders")]
 public class OrdersController(ICurrentUserService currentUserService) : CleanV1CustomController
 {
-    public long UserId => currentUserService.userId;
+    private long UserId => currentUserService.UserId;
     
     /// <summary>
     /// Lấy danh sách lịch sử mua hàng theo mã khách hàng (CustomerId)
@@ -28,8 +28,7 @@ public class OrdersController(ICurrentUserService currentUserService) : CleanV1C
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<IActionResult> GetOrdersByCustomer(long customerId, CancellationToken cancellationToken)
     {
-        var targetCustomerId = currentUserService.userId != 0 ? currentUserService.userId : customerId;
-        var result = await _sender.SendAsync(new GetCustomerOrdersQuery(targetCustomerId), cancellationToken);
+        var result = await _sender.SendAsync(new GetCustomerOrdersQuery(UserId), cancellationToken);
 
         return result.IsSuccess 
             ? Ok(result) 

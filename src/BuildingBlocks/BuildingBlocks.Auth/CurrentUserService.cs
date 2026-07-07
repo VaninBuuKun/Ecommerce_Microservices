@@ -17,11 +17,11 @@ public class CurrentUserService(IHttpContextAccessor accessor) : ICurrentUserSer
         }
     }
 
-    public string Email
+    public string? Email
     {
         get
         {
-            var userIdClaim = accessor.HttpContext.User.FindFirst(ClaimTypes.Email).Value;
+            var email = accessor.HttpContext.User.FindFirst(ClaimTypes.Email).Value;
 
             return email;
         }

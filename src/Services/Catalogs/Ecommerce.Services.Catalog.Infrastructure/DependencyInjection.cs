@@ -1,7 +1,8 @@
 using BuildingBlocks.EfCore.Persistence.Commons;
+using BuildingBlocks.Messaging;
 using BuildingBlocks.Shared.InfrastructureInterfaces.Persistence.EFCore;
 using Ecommerce.Services.Catalog.Infrastructure.Persistence;
-using Ecommerce.Services.Orders.Application.Services;
+using MassTransit;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -23,6 +24,10 @@ public static class DependencyInjection
             ));
 
         services.AddScoped<IEfUnitOfWork, EfUnitOfWork<ProductDbContext>>();
+        services.AddMasstransitEventBus(configuration, config =>
+        {
+            config.AddConsumers(typeof(DependencyInjection).Assembly);
+        });
 
         return services;
     }

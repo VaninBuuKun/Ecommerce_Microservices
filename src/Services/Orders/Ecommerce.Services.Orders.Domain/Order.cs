@@ -8,7 +8,7 @@ namespace Ecommerce.Services.Orders.Domain;
 public sealed class Order : AggregateRoot<Guid>, IDateTracking
 {   
     public long CustomerId { get; }
-    public OrderStatus Status { get;  }
+    public OrderStatus Status { get; private set; }
     public ICollection<OrderItem> OrderItems { get; set; } = new List<OrderItem>();
 
     public DateTimeOffset CreatedDate { get; set; }
@@ -21,7 +21,7 @@ public sealed class Order : AggregateRoot<Guid>, IDateTracking
     public Order(long customerId)
     {
         CustomerId = customerId;
-        Status = OrderStatus.AwaitingPayment;
+        Status = OrderStatus.Confirmed;
         TotalPrice = 0;
     }
 
@@ -52,9 +52,18 @@ public sealed class Order : AggregateRoot<Guid>, IDateTracking
     }
 
     private decimal CalculateTotalPrice() => OrderItems.Sum(item => item.UnitPrice * item.Quantity);
+
+    public void UpdateOrderStatus(OrderStatus newStatus)
+    {
+        Status = newStatus;
+    }
 }
 
 public enum OrderStatus
 {
-    AwaitingPayment = 1,
+    PaymentAwaiting, //Chờ thanh toán đối với thanh toán khác tiền mặt
+    Confirmed, //Thanh toán hoàn tất (nếu tiền mặt thì vào đây luôn), Chuẩn bị hàng luôn
+    Delivered, //<=> Completed
+    Cancelled, //Shop hết hàng | Người dùng chủ động hủy.
+    Failed
 }

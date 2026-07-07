@@ -39,10 +39,18 @@ public class ProductVariant : EntityTrackingBase<Guid>
         Price = newPrice;
     }
 
-    public void UpdateStock(int newStock)
+    public void ReserveStock(int stock)
     {
-        Check(new ProductStocksCannotBeNegativeRule(newStock));
-        AvailableStocks = newStock;
+        Check(new ProductStocksCannotBeNegativeRule(stock));
+        ReservedStocks += stock;
+        AvailableStocks -= stock;
+    }
+    
+    public void ReleaseStock(int stock)
+    {
+        Check(new ProductStocksCannotBeNegativeRule(stock));
+        ReservedStocks -= stock;
+        AvailableStocks += stock;
     }
 
     public void AddOption(ProductVariantOption option)

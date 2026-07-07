@@ -3,6 +3,7 @@ using BuildingBlocks.Shared.Commons;
 using BuildingBlocks.Shared.Enums;
 using BuildingBlocks.Shared.InfrastructureInterfaces.Messaging;
 using BuildingBlocks.Shared.InfrastructureInterfaces.Persistence.EFCore;
+using Ecommerce.Services.Carts.Contracts.Dtos;
 using Ecommerce.Services.Orders.Application.Features.Orders.Dtos;
 using Ecommerce.Services.Orders.Application.Services;
 using Ecommerce.Services.Orders.Contracts.Events;
@@ -68,14 +69,23 @@ public class CreateOrderCommandHandler(
             
             var orderCreatedEvent = new OrderCreatedEvent
             {
-                Id = order.Id,
+                OrderId = order.Id,
                 CreatedAt = DateTime.UtcNow,
-                CustomerId = customerId
+                CustomerId = customerId,
+                OrderItems = order.OrderItems.Select(item => new OrderItemData
+                {
+                    VariantId = item.VariantId,
+                    UnitPrice = item.UnitPrice,
+                    Quantity = item.Quantity
+                }).ToList(),
+                TotalAmount = 0
             };
+            
             await publisher.PublishAsync(orderCreatedEvent, cancellationToken);
             
-            
             await unitOfWork.SaveChangesAsync(cancellationToken);
+            
+            
 
             logger.LogInformation("Tạo đơn hàng thành công: {OrderId}", order.Id);
             

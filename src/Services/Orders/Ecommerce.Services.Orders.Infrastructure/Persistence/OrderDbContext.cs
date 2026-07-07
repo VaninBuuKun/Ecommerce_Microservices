@@ -1,6 +1,7 @@
 using BuildingBlocks.EfCore.Persistence.Commons;
 using BuildingBlocks.Shared.InfrastructureInterfaces.InMemoryBus;
 using Ecommerce.Services.Orders.Domain;
+using Ecommerce.Services.Orders.Infrastructure.Sagas;
 using Microsoft.EntityFrameworkCore;
 using MassTransit;
 
@@ -19,6 +20,14 @@ public class OrderDbContext(DbContextOptions<OrderDbContext> options, IInMemoryB
         modelBuilder.AddOutboxStateEntity();
         modelBuilder.AddOutboxMessageEntity();
         modelBuilder.AddInboxStateEntity();
+        
+        modelBuilder.Entity<OrderSagaState>(entity =>
+        {
+            entity.HasKey(x => x.CorrelationId); // Khóa chính
+            entity.Property(x => x.TotalAmount).HasColumnType("decimal(18,2)");
+            entity.Property(x => x.FailureReason).HasMaxLength(255).IsRequired(false);
+        });
+
         
         modelBuilder.Entity<Order>(entity =>
         {

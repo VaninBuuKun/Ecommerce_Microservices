@@ -11,6 +11,8 @@ public static class DependencyInjection
     {
         var identityUrl = configuration.GetSection("IdentityUrl").Value;
         
+        services.AddHttpContextAccessor(); 
+        
         services.AddAuthentication(options =>
         {
             options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;

@@ -11,14 +11,18 @@
     </ItemGroup>
 
     <ItemGroup>
-      <Folder Include="Configurations\" />
       <Folder Include="Cors\" />
       <Folder Include="Extensions\" />
-      <Folder Include="MinimalApi\" />
     </ItemGroup>
 
     <ItemGroup>
       <ProjectReference Include="..\BuildingBlocks.Shared\BuildingBlocks.Shared.csproj" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <PackageReference Include="Microsoft.OpenApi" Version="1.6.17" />
+        <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="9.0.0" />
+        <PackageReference Include="Scalar.AspNetCore" Version="2.0.7" />
     </ItemGroup>
 
 </Project>

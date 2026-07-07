@@ -1,0 +1,60 @@
+using BuildingBlocks.Shared.Commons;
+using BuildingBlocks.Shared.Enums;
+using BuildingBlocks.Shared.InfrastructureInterfaces.InMemoryBus;
+using BuildingBlocks.Shared.InfrastructureInterfaces.Persistence.EFCore;
+using Ecommerce.Services.Catalog.Application.Features.Products.Dtos;
+using Ecommerce.Services.Catalog.Domain.Products;
+
+namespace Ecommerce.Services.Catalog.Application.Features.Products.Commands.ReserveVariantStock;
+
+public class ReserveStocksCommandHandler(IEfUnitOfWork unitOfWork) : ICommandHandler<ReserveStocksCommand, ReserveVariantResponse >
+{
+    private readonly IGenericEfRepository<ProductVariant, Guid> _variantRepository = unitOfWork.Repository<ProductVariant, Guid>();
+    public async Task<Result<ReserveVariantResponse>> Handle(ReserveStocksCommand request, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var variantIds = request.VariantStockDtos.Select(x => x.VariantId).ToList();
+            var variants = await _variantRepository.GetAllAsync(v => variantIds.Contains(v.Id),  cancellationToken: cancellationToken);
+            
+            var variantsDict =  variants.ToDictionary(x => x.Id, x => x);
+
+            var response = new ReserveVariantResponse();
+
+            foreach (var variantDto in request.VariantStockDtos)
+            {
+                var variant = variantsDict[variantDto.VariantId];
+
+                var newVariantStockInfo = new VariantStockInfo
+                {
+                    VariantId = variant.Id,
+                    Quantity = variantDto.Quantity,
+                    AvailableStocks = variant.AvailableStocks
+                };
+                response.VariantStocks.Add(newVariantStockInfo);
+
+                if (variantDto.Quantity > variant.AvailableStocks)
+                {
+                    response.IsSuccess = false;
+                }
+            }
+
+            if (response.IsSuccess)
+            {
+                foreach (var variantDto in request.VariantStockDtos)
+                {
+                    var variant = variantsDict[variantDto.VariantId];
+
+                    variant.ReserveStock(variantDto.Quantity);
+                }
+
+                await unitOfWork.SaveChangesAsync(cancellationToken);
+            }
+            return Result<ReserveVariantResponse>.Success(response);
+        }
+        catch (Exception ex)
+        {
+            return Result<ReserveVariantResponse>.Failure("Có lỗi xảy ra khi đặt hàng");
+        }
+    }
+}

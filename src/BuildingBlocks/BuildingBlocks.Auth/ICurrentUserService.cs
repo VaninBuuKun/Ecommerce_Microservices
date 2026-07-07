@@ -1,8 +1,8 @@
 namespace BuildingBlocks.Auth;
 
-public class ICurrentUserService
+public interface ICurrentUserService
 {
-    public string? email;
-    public long userId;
-    public bool isAuthenticated;
+    public string? Email { get; }
+    public long UserId { get; }
+    public bool IsAuthenticated { get; }
 }

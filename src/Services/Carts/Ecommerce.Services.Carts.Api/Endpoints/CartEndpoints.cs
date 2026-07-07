@@ -50,7 +50,7 @@ public static class CartEndpoints
     // 1. LẤY GIỎ HÀNG
     private static async Task<IResult> GetCart(ISender sender, ICurrentUserService userService)
     {
-        var result = await sender.Send(new GetCartQuery(userService.userId));
+        var result = await sender.Send(new GetCartQuery(userService.UserId));
         
         return result.IsSuccess 
             ? Results.Json(result.Value, statusCode: result.GetHttpStatusCode()) 
@@ -60,7 +60,7 @@ public static class CartEndpoints
     // 2. THÊM SẢN PHẨM VÀO GIỎ
     private static async Task<IResult> AddItem([FromBody] CartItemRequest cartItem, ISender sender, ICurrentUserService userService)
     {
-        var result = await sender.Send(new AddItemToCartCommand(userService.userId, cartItem.VariantId, cartItem.Quantity));
+        var result = await sender.Send(new AddItemToCartCommand(userService.UserId, cartItem.VariantId, cartItem.Quantity));
 
         return result.IsSuccess
             ? Results.Json(result.Value, statusCode: result.GetHttpStatusCode())
@@ -70,7 +70,7 @@ public static class CartEndpoints
     // 3. CẬP NHẬT SỐ LƯỢNG SẢN PHẨM
     private static async Task<IResult> UpdateQuantity(Guid productId, [FromBody] CartItemRequest cartItem, ISender sender, ICurrentUserService userService)
     {
-        var result = await sender.Send(new UpdateQuantityCommand(userService.userId, productId, cartItem.Quantity));
+        var result = await sender.Send(new UpdateQuantityCommand(userService.UserId, productId, cartItem.Quantity));
         
         return Results.Content(result.Message, statusCode: result.GetHttpStatusCode);
     }
@@ -78,7 +78,7 @@ public static class CartEndpoints
     // 4. XÓA SẢN PHẨM KHỎI GIỎ
     private static async Task<IResult> RemoveItem(Guid productId, ISender sender, ICurrentUserService userService)
     {
-        var result = await sender.Send(new RemoveItemFromCartCommand(userService.userId, productId));
+        var result = await sender.Send(new RemoveItemFromCartCommand(userService.UserId, productId));
         
         return Results.Content(result.Message, statusCode: result.GetHttpStatusCode);
     }
@@ -86,7 +86,7 @@ public static class CartEndpoints
     // 5. XÓA TOÀN BỘ GIỎ HÀNG
     private static async Task<IResult> ClearCart(ISender sender, ICurrentUserService userService)
     {
-        var result = await sender.Send(new RemoveCartCommand(userService.userId));
+        var result = await sender.Send(new RemoveCartCommand(userService.UserId));
         
         return Results.Content(result.Message, statusCode: result.GetHttpStatusCode);
     }

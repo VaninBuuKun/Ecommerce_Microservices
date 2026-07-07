@@ -1,3 +1,4 @@
+using BuildingBlocks.Auth;
 using BuildingBlocks.Logging;
 using BuildingBlocks.EfCore;
 using BuildingBlocks.Web.Extensions;
@@ -23,6 +24,7 @@ builder.Services.AddApplicationServices();
 builder.AddCustomSerilog("Product Services");
 builder.Services.AddBuildingBlocksInfrastructure(builder.Configuration);
 builder.Services.AddBuildingBlocksWeb();
+builder.Services.AddBuildingBlocsAuth(builder.Configuration);
 
 var app = builder.Build();
 if (app.Environment.IsDevelopment())

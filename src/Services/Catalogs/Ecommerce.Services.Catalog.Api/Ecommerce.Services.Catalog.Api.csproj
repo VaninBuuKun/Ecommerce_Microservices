@@ -16,6 +16,7 @@
     </ItemGroup>
 
     <ItemGroup>
+      <ProjectReference Include="..\..\..\BuildingBlocks\BuildingBlocks.Auth\BuildingBlocks.Auth.csproj" />
       <ProjectReference Include="..\Ecommerce.Services.Catalog.Application\Ecommerce.Services.Catalog.Application.csproj" />
       <ProjectReference Include="..\Ecommerce.Services.Catalog.Infrastructure\Ecommerce.Services.Catalog.Infrastructure.csproj" />
       <ProjectReference Include="..\..\..\BuildingBlocks\BuildingBlocks.Grpc\BuildingBlocks.Grpc.csproj" />

@@ -1,9 +1,11 @@
+using System.Reflection;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Configuration;
 using Ecommerce.Services.Orders.Infrastructure.Persistence;
 using BuildingBlocks.Shared.InfrastructureInterfaces.Persistence.EFCore;
 using BuildingBlocks.EfCore.Persistence.Commons;
 using BuildingBlocks.Messaging;
+using Ecommerce.Services.Orders.Infrastructure.Sagas;
 using MassTransit;
 using Microsoft.EntityFrameworkCore;
 
@@ -20,6 +22,14 @@ public static class DependencyInjection
 
         services.AddMasstransitEventBus(configuration, config =>
         {
+            config.AddConsumers(Assembly.GetExecutingAssembly());
+            config.AddSagaStateMachine<OrderStateMachine, OrderSagaState>()
+                .EntityFrameworkRepository(r =>
+                {
+                    r.ConcurrencyMode = ConcurrencyMode.Optimistic;
+                    r.ExistingDbContext<OrderDbContext>();
+                });
+
             config.AddEntityFrameworkOutbox<OrderDbContext>(o =>
             {
                 o.UsePostgres();
