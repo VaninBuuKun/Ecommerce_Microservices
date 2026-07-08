@@ -53,3 +53,6 @@ Log/
 .dockerignore
 Docs/
 QueryDb/
+
+appsettings.*.json
+!appsettings.json

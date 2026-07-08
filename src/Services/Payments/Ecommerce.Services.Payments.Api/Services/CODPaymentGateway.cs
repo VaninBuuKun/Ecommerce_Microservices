@@ -8,9 +8,11 @@ namespace Ecommerce.Services.Payments.Api.Services;
 
 public class CODPaymentGateway(IEfUnitOfWork unitOfWork) : IPaymentGateway
 {
+    public string GatewayName => "cod";
     
     private readonly IGenericEfRepository<Payment, Guid> _paymentRepository = unitOfWork.Repository<Payment, Guid>();
-    
+    private IPaymentGateway _paymentGatewayImplementation;
+
     public async Task<CreatePaymentResult> CreatePaymentAsync(CreatePaymentInput input, CancellationToken ct = default)
     {
         var payment = new Payment
@@ -30,4 +32,10 @@ public class CODPaymentGateway(IEfUnitOfWork unitOfWork) : IPaymentGateway
             Success = true
         };
     }
+
+    public Task<bool> VerifyCallbackAsync(Dictionary<string, string> callbackParams)
+    {
+        return Task.FromResult(true);
+    }
+    
 }

@@ -7,8 +7,21 @@ namespace Ecommerce.Services.Payments.Api.Controllers;
 
 [ApiController]
 [Route("api/[controller]s")]
-public class PaymentController(IPaymentMethodService paymentMethodService) : ControllerBase
+public class PaymentController(IPaymentMethodService paymentMethodService, IPaymentService paymentService) : ControllerBase
 {
+    [HttpPost]
+    public async Task<IActionResult> CreatePayment([FromBody] CreatePaymentRequest paymentRequest)
+    {
+        var result = await paymentService.ProcessPayment(paymentRequest);
+
+        if (result.IsSuccess)
+        {
+            return Ok(result.Value);
+        }
+
+        return StatusCode(result.GetHttpStatusCode(), result.Message);
+    }
+    
     [HttpGet("methods")]
     public async Task<IActionResult> GetPaymentMethods()
     {
@@ -16,7 +29,7 @@ public class PaymentController(IPaymentMethodService paymentMethodService) : Con
 
         if (result.IsSuccess)
         {
-            return Ok(result);
+            return Ok(result.Value);
         }
 
         return StatusCode(result.GetHttpStatusCode(), result.Message);
@@ -29,7 +42,7 @@ public class PaymentController(IPaymentMethodService paymentMethodService) : Con
 
         if (result.IsSuccess)
         {
-            return Ok(result);
+            return Ok(result.Value);
         }
 
         return StatusCode(result.GetHttpStatusCode(), result.Message);

@@ -2,12 +2,13 @@ using BuildingBlocks.Shared.Commons;
 using BuildingBlocks.Shared.InfrastructureInterfaces.Persistence.EFCore;
 using Ecommerce.Services.Payments.Api.Models.Dtos;
 using Ecommerce.Services.Payments.Api.Models.Entities;
+using Ecommerce.Services.Payments.Api.Models.Enums;
 using Ecommerce.Services.Payments.Api.Models.Interfaces;
 using MapsterMapper;
 
 namespace Ecommerce.Services.Payments.Api.Services;
 
-public class PaymentService(IEfUnitOfWork unitOfWork, IMapper mapper) : IPaymentService
+public class PaymentService(IEfUnitOfWork unitOfWork, IMapper mapper, PaymentGatewayFactory factory) : IPaymentService
 {
     private readonly IGenericEfRepository<PaymentMethod, long> _paymentMethodRepository = unitOfWork.Repository<PaymentMethod, long>();
 
@@ -23,12 +24,19 @@ public class PaymentService(IEfUnitOfWork unitOfWork, IMapper mapper) : IPayment
                 ErrorMessage = $"Payment method '{paymentRequest.MethodProvider}' not found."
             });
         }
-
-        IPaymentGateway? gateway = existingMethod.ProviderName switch
+        
+        var payment = new Payment
         {
-            "cod" => new CODPaymentGateway(unitOfWork),
-            _ => null
+            Amount = paymentRequest.Amount,
+            TargetId = paymentRequest.TargetId,
+            Status = PaymentStatus.Pending,
+            Type = paymentRequest.PaymentType,
+            MethodId = existingMethod.Id,
         };
+
+        
+
+        IPaymentGateway gateway = factory.GetPaymentGateway(paymentRequest.MethodProvider);
 
         if (gateway == null)
         {
@@ -43,6 +51,10 @@ public class PaymentService(IEfUnitOfWork unitOfWork, IMapper mapper) : IPayment
         input.MethodId = existingMethod.Id;
 
         var paymentResult = await gateway.CreatePaymentAsync(input);
+        
+        unitOfWork.Repository<Payment, Guid>().Add(payment);
+        await unitOfWork.SaveChangesAsync();
+        
         return Result<CreatePaymentResult>.Success(paymentResult);
     }
 }
