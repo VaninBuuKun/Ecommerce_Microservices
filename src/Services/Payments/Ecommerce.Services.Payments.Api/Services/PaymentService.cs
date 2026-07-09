@@ -4,24 +4,36 @@ using Ecommerce.Services.Payments.Api.Models.Dtos;
 using Ecommerce.Services.Payments.Api.Models.Entities;
 using Ecommerce.Services.Payments.Api.Models.Enums;
 using Ecommerce.Services.Payments.Api.Models.Interfaces;
-using MapsterMapper;
 
 namespace Ecommerce.Services.Payments.Api.Services;
 
-public class PaymentService(IEfUnitOfWork unitOfWork, IMapper mapper, PaymentGatewayFactory factory) : IPaymentService
+public class PaymentService(IEfUnitOfWork unitOfWork, PaymentGatewayFactory factory) : IPaymentService
 {
     private readonly IGenericEfRepository<PaymentMethod, long> _paymentMethodRepository = unitOfWork.Repository<PaymentMethod, long>();
+    private readonly IGenericEfRepository<Payment, Guid> _paymentRepository = unitOfWork.Repository<Payment, Guid>();
 
     public async Task<Result<CreatePaymentResult>> ProcessPayment(CreatePaymentRequest paymentRequest)
     {
+        // 1. Kiểm tra phương thức thanh toán có tồn tại không
         var existingMethod = await _paymentMethodRepository.FirstOrDefaultAsync(
             predicate: pm => pm.ProviderName == paymentRequest.MethodProvider);
-        if (existingMethod == null)
+            
+        if (existingMethod == null || !existingMethod.IsActive)
         {
-            return Result<CreatePaymentResult>.Success(new CreatePaymentResult()
+            return Result<CreatePaymentResult>.Success(new CreatePaymentResult
             {
                 Success = false,
-                ErrorMessage = $"Payment method '{paymentRequest.MethodProvider}' not found."
+                ErrorMessage = $"Payment method '{paymentRequest.MethodProvider}' is not available."
+            });
+        }
+        
+        var gateway = factory.GetPaymentGateway(paymentRequest.MethodProvider);
+        if (gateway == null)
+        {
+            return Result<CreatePaymentResult>.Success(new CreatePaymentResult
+            {
+                Success = false,
+                ErrorMessage = $"Payment gateway for '{paymentRequest.MethodProvider}' is not supported."
             });
         }
         
@@ -34,27 +46,23 @@ public class PaymentService(IEfUnitOfWork unitOfWork, IMapper mapper, PaymentGat
             MethodId = existingMethod.Id,
         };
 
-        
-
-        IPaymentGateway gateway = factory.GetPaymentGateway(paymentRequest.MethodProvider);
-
-        if (gateway == null)
-        {
-            return Result<CreatePaymentResult>.Success(new CreatePaymentResult()
-            {
-                Success = false,
-                ErrorMessage = $"Payment gateway for provider '{paymentRequest.MethodProvider}' not implemented."
-            });
-        }
-        
-        var input = mapper.Map<CreatePaymentInput>(paymentRequest);
-        input.MethodId = existingMethod.Id;
-
-        var paymentResult = await gateway.CreatePaymentAsync(input);
-        
-        unitOfWork.Repository<Payment, Guid>().Add(payment);
+        _paymentRepository.Add(payment);
         await unitOfWork.SaveChangesAsync();
         
+        var paymentResult = await gateway.CreatePaymentAsync(payment);
+        
+        if (paymentResult.Success)
+        {
+            payment.PaymentUrl = paymentResult.PaymentUrl;
+            await unitOfWork.SaveChangesAsync();
+        }
+        else
+        {
+            payment.Status = PaymentStatus.Failed;
+            payment.ErrorMessage = paymentResult.ErrorMessage;
+            await unitOfWork.SaveChangesAsync();
+        }
+
         return Result<CreatePaymentResult>.Success(paymentResult);
     }
 }

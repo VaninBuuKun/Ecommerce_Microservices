@@ -14,5 +14,6 @@ public class Payment : EntityTrackingBase<Guid>
     
     public PaymentMethod Method { get; set; }
     public string? ErrorMessage { get; set; }
-    
+    public string? GatewayTransactionId { get; set; }
+    public string? PaymentUrl { get; set; }
 }

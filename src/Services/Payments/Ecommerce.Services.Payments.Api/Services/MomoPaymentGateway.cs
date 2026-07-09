@@ -1,4 +1,5 @@
 using Ecommerce.Services.Payments.Api.Models.Dtos;
+using Ecommerce.Services.Payments.Api.Models.Entities;
 using Ecommerce.Services.Payments.Api.Models.Interfaces;
 using Ecommerce.Services.Payments.Api.Models.Settings;
 using Microsoft.Extensions.Options;
@@ -15,11 +16,11 @@ public class MomoPaymentGateway(IOptions<MomoSettings> settings, IHttpClientFact
     private readonly HttpClient _httpClient = httpClientFactory.CreateClient();
 
     public string GatewayName => "momo";
-    public async Task<CreatePaymentResult> CreatePaymentAsync(CreatePaymentInput input, CancellationToken ct = default)
+    public async Task<CreatePaymentResult> CreatePaymentAsync(Payment payment, CancellationToken ct = default)
     {
         var requestId = Guid.NewGuid().ToString();
-        var orderId = input.TargetId.ToString("N");
-        var amountLong = (long)input.Amount;
+        var orderId = payment.TargetId.ToString("N");
+        var amountLong = (long)payment.Amount;
         var amountStr = amountLong.ToString();
         var ipnUrl = _settings.IpnUrl;
         var redirectUrl = _settings.RedirectUrl;
@@ -77,7 +78,6 @@ public class MomoPaymentGateway(IOptions<MomoSettings> settings, IHttpClientFact
             {
                 Success = true,
                 ErrorMessage = null,
-                GatewayTransactionId = momoResponse.OrderId,
                 PaymentUrl = momoResponse.PayUrl
             };
         }

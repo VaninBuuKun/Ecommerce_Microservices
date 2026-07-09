@@ -11,6 +11,7 @@ using Ecommerce.Services.Payments.Api.Models.Interfaces;
 using Ecommerce.Services.Payments.Api.Models.Settings;
 using Ecommerce.Services.Payments.Api.Persistances;
 using Ecommerce.Services.Payments.Api.Services;
+using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.EntityFrameworkCore;
 using Scalar.AspNetCore;
 
@@ -23,7 +24,7 @@ builder.Services.AddControllers()
         options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
     });
 var connectionString = builder.Configuration.GetConnectionString("Database");
-
+builder.Services.AddHttpContextAccessor();
 builder.Services.AddDbContext<PaymentDbContext>(options =>
     options.UseNpgsql(connectionString));
 builder.Services.AddScoped<IPaymentMethodService, PaymentMethodService>();
@@ -31,9 +32,20 @@ builder.Services.AddScoped<IPaymentService, PaymentService>();
 builder.Services.AddScoped<IEfUnitOfWork, EfUnitOfWork<PaymentDbContext>>();
 builder.Services.AddScoped<PaymentGatewayFactory>();
 builder.Services.AddScoped<IPaymentGateway, MomoPaymentGateway>();
-builder.Services.AddScoped<IPaymentGateway, CODPaymentGateway>();
+builder.Services.AddScoped<IPaymentGateway, VNPayPaymentGateway>();
 builder.Services.AddHttpClient();
 builder.Services.Configure<MomoSettings>(builder.Configuration.GetSection("Momo"));
+builder.Services.Configure<VNPaySettings>(builder.Configuration.GetSection("VNPay"));
+builder.Services.Configure<ForwardedHeadersOptions>(options =>
+{
+    //XForwardedFor: Chứa ip client, XForwardedProto chứa giao thức sử dụng (http, https)
+    options.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
+    
+    //Mục tiêu là: chỉ tin trường x-forwarded-for từ proxy có ip trong whilist thôi.
+    //Clear: cho môi trường dev kiểu các proxy có ip thay đổi do docker compose up, docker compose down
+    options.KnownNetworks.Clear();
+    options.KnownProxies.Clear();
+});
 
 
 
