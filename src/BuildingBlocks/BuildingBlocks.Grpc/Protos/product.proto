@@ -6,8 +6,8 @@ package product;
 
 service ProductGrpc {
   rpc GetVariantById(GetVariantByIdRequest) returns (GetVariantByIdResponse);
-//  rpc ValidateProducts(ValidateProductsRequest) returns (ValidateProductsResponse);
   rpc GetVariantsByIds(GetVariantsByIdsRequest) returns (GetVariantsByIdsResponse);
+  rpc ReserveStock(ReserveStockRequest) returns (ReserveStockResponse);
 }
 
 
@@ -26,10 +26,10 @@ message GetVariantsByIdsRequest {
   repeated string variantIds = 1;
 }
 message GetVariantsByIdsResponse {
-  repeated VariantGrpcDto Variants = 1;
+  repeated RpcVariantDto Variants = 1;
 }
 
-message VariantGrpcDto {
+message RpcVariantDto {
   string variantId = 1;
   string productId = 2;
   string productName = 3;
@@ -38,37 +38,29 @@ message VariantGrpcDto {
   int32 availableStocks = 6;
 }
 
+message ReserveStockRequest {
+  repeated RpcReserveStockItemDto items = 1;
+}
 
-////ValidateProducts
-//message ValidateProductsRequest {
-//  repeated ValidateProductItemDto items = 1; 
-//}
-//
-//message ValidateProductItemDto {
-//  string id = 1;
-//  string price = 2;
-//  int32 quantity = 3;
-//}
-//
-//message ValidateProductsResponse {
-//  bool isValid = 1;
-//  repeated ProductValidatedItemDto items = 3;
-//}
-//
-//message ProductValidatedItemDto {
-//  string id = 1;
-//  string price = 2;
-//  int32  quantity = 3;
-//  string name = 4;
-//  ProductValidatedErrorStatus errorStatus = 5;
-//}
-//
-//enum ProductValidatedErrorStatus {
-//  None = 0;
-//  NotFound = 1;
-//  OutOfStock = 2;
-//  PriceChanged = 3;
-//}
+message RpcReserveStockItemDto {
+  string variantId = 1;
+  int32 quantity = 2;
+}
+
+message ReserveStockResponse {
+  bool isSuccess = 1;
+  repeated RpcReservedStockItemDto items = 2;
+  string errorMessage = 3;
+}
+
+message RpcReservedStockItemDto {
+  string variantId = 1;
+  int32 quantity = 2;
+  int32 availableStocks = 3;
+  string productName = 4;
+  string variantName = 5;
+  string unitPrice = 6;
+}
 
 
 

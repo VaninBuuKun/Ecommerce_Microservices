@@ -26,6 +26,9 @@ public class OrderDbContext(DbContextOptions<OrderDbContext> options, IInMemoryB
             entity.HasKey(x => x.CorrelationId); // Khóa chính
             entity.Property(x => x.TotalAmount).HasColumnType("decimal(18,2)");
             entity.Property(x => x.FailureReason).HasMaxLength(255).IsRequired(false);
+            entity.Property(x => x.ShippingAddress).HasMaxLength(500);
+            entity.Property(x => x.PaymentUrl).IsRequired(false);
+            entity.Property(x => x.SerializedVariantIds).IsRequired().HasDefaultValue("");
         });
 
         
@@ -35,6 +38,8 @@ public class OrderDbContext(DbContextOptions<OrderDbContext> options, IInMemoryB
             entity.Property(o => o.CustomerId).IsRequired();
             entity.Property(o => o.TotalPrice).HasColumnType("decimal(18,2)");
             entity.Property(o => o.Status).HasConversion<int>();
+            entity.Property(o => o.ShippingAddress).HasMaxLength(500);
+            entity.Property(o => o.PaymentUrl).IsRequired(false);
             
             entity.HasMany(o => o.OrderItems)
                   .WithOne(i => i.Order)

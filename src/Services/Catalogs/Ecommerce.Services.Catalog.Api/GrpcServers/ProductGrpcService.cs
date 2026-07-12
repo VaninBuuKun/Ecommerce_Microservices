@@ -1,6 +1,8 @@
 using BuildingBlocks.Grpc.Extensions;
 using BuildingBlocks.Grpc.Services;
 using BuildingBlocks.Shared.Extensions;
+using Ecommerce.Services.Catalog.Application.Features.Products.Commands.ReserveVariantStock;
+using Ecommerce.Services.Catalog.Application.Features.Products.Dtos;
 using Ecommerce.Services.Catalog.Application.Features.Products.Queries;
 using Ecommerce.Services.Catalog.Application.Features.Products.Queries.GetVariantById;
 using Grpc.Core;
@@ -33,10 +35,10 @@ public class ProductGrpcService(ISender sender, ILogger<ProductGrpcService> logg
         return response;
     }
     
+    //Hỗ trợ cho việc lấy full thông tin cho cart
     public override async Task<GetVariantsByIdsResponse> GetVariantsByIds(GetVariantsByIdsRequest request, ServerCallContext context)
     {
         var variantIds = request.VariantIds.Select(id => Guid.Parse(id)).ToList();
-        logger.LogInformation($"Getting variants with variant IDs {string.Join(", ", variantIds)}");
         var result = await sender.Send(new GetVariantsByIdsQuery(variantIds));
 
         if (!result.IsSuccess)
@@ -48,11 +50,9 @@ public class ProductGrpcService(ISender sender, ILogger<ProductGrpcService> logg
 
         var variants = result.Value;
         
-        logger.LogInformation($"Getting variants {variants}", variants);
-        
         foreach (var variantDto in variants)
         {
-            var variant = new VariantGrpcDto();
+            var variant = new RpcVariantDto();
             variant.UnitPrice = variantDto.Price.ToGrpcString();
             variant.ProductName = variantDto.ProductName;
             variant.ProductId = variantDto.ProductId.ToString();
@@ -61,6 +61,49 @@ public class ProductGrpcService(ISender sender, ILogger<ProductGrpcService> logg
             variant.VariantName = variantDto.VariantName;
             response.Variants.Add(variant);
         }
+        return response;
+    }
+
+    public override async Task<ReserveStockResponse> ReserveStock(ReserveStockRequest request, ServerCallContext context)
+    {
+        logger.LogInformation("Nhận yêu cầu giữ kho gRPC cho {Count} sản phẩm", request.Items.Count);
+        
+        var variantDtos = request.Items.Select(x => new VariantStockDto
+        {
+            VariantId = Guid.Parse(x.VariantId),
+            Quantity = x.Quantity
+        }).ToList();
+        
+        var result = await sender.Send(new ReserveStocksCommand(variantDtos));
+        
+        if (!result.IsSuccess)
+        {
+            return new ReserveStockResponse
+            {
+                IsSuccess = false,
+                ErrorMessage = result.Message ?? "Lỗi giữ kho sản phẩm"
+            };
+        }
+        
+        var appResponse = result.Value;
+        var response = new ReserveStockResponse
+        {
+            IsSuccess = appResponse.IsSuccess
+        };
+        
+        foreach (var item in appResponse.VariantStocks)
+        {
+            response.Items.Add(new RpcReservedStockItemDto()
+            {
+                VariantId = item.VariantId.ToString(),
+                Quantity = item.Quantity,
+                AvailableStocks = item.AvailableStocks,
+                ProductName = item.ProductName,
+                VariantName = item.VariantName,
+                UnitPrice = item.UnitPrice.ToGrpcString()
+            });
+        }
+        
         return response;
     }
 }

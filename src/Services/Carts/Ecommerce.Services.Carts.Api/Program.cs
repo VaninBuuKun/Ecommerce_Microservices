@@ -24,6 +24,7 @@ builder.Services.AddHttpContextAccessor();
 builder.AddCustomSerilog("Cart Api");
 builder.Services.AddCustomCaching(builder.Configuration.GetConnectionString("Redis") ?? throw new InvalidOperationException("RedisConnectionString is missing."));
 builder.Services.AddBuildingBlocksWeb();
+builder.Services.AddMasstransitEventBus(builder.Configuration);
 builder.Services.AddBuildingBlocksApplication(typeof(Program).Assembly);
 
 //Grpc

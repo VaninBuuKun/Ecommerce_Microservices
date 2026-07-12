@@ -30,7 +30,10 @@ public class ReserveStocksCommandHandler(IEfUnitOfWork unitOfWork, IVariantRepos
                 {
                     VariantId = variant.Id,
                     Quantity = variantDto.Quantity,
-                    AvailableStocks = variant.AvailableStocks
+                    AvailableStocks = variant.AvailableStocks,
+                    ProductName = variant.Product?.Name ?? string.Empty,
+                    VariantName = variant.GetVariantName() ?? string.Empty,
+                    UnitPrice = variant.Price
                 };
                 
                 response.VariantStocks.Add(newVariantStockInfo);

@@ -6,4 +6,5 @@ public class CartItem
 {
     public Guid ProductVariantId  {get; set;}
     public int Quantity {get; set;}
+    public bool IsSelected {get; set;}
 }

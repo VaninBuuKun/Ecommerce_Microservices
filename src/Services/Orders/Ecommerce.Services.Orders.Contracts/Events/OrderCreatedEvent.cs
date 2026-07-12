@@ -10,5 +10,7 @@ public record OrderCreatedEvent : IIntegrationEvent
     public DateTime CreatedAt { get; set; }
     public long CustomerId { get; set; }
     public long TotalAmount { get; set; }
+    public long PaymentMethodId { get; set; }
+    public string ShippingAddress { get; set; } = string.Empty;
     public List<OrderItemData> OrderItems { get; set; } = new List<OrderItemData>();
 }

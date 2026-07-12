@@ -4,16 +4,19 @@ using BuildingBlocks.Shared.Enums;
 using BuildingBlocks.Shared.InfrastructureInterfaces.Messaging;
 using BuildingBlocks.Shared.InfrastructureInterfaces.Persistence.EFCore;
 using Ecommerce.Services.Carts.Contracts.Dtos;
+using Ecommerce.Services.Orders.Application.Commons.Dtos.Catalogs;
 using Ecommerce.Services.Orders.Application.Features.Orders.Dtos;
 using Ecommerce.Services.Orders.Application.Services;
 using Ecommerce.Services.Orders.Contracts.Events;
 using Ecommerce.Services.Orders.Domain;
 using MapsterMapper;
 using Microsoft.Extensions.Logging;
-
 namespace Ecommerce.Services.Orders.Application.Features.Commands.CreateOrder;
+
 public class CreateOrderCommandHandler(
     ICartService cartService,
+    IProductService productService,
+    IPaymentService paymentService,
     IEfUnitOfWork unitOfWork,
     IEventPublisher publisher,
     ILogger<CreateOrderCommandHandler> logger, IMapper mapper)
@@ -24,76 +27,92 @@ public class CreateOrderCommandHandler(
         var customerId = command.CustomerId;
         try
         {
-            logger.LogInformation("Bắt đầu tạo đơn hàng (checkout) cho khách hàng: {CustomerId}", customerId);
-
+            logger.LogInformation("Bắt đầu tạo đơn hàng cho khách hàng: {CustomerId}", customerId);
+            
             var cartResult = await cartService.GetCartByCustomerId(customerId);
 
             if (!cartResult.IsSuccess)
             {
-                return  Result<CustomerOrderResponse>.ValidationFailure(cartResult.Errors);
+                return Result<CustomerOrderResponse>.Failure(cartResult);
             }
             
             var cartResponse = cartResult.Value;
 
             if (cartResponse == null || cartResponse.Items.Count == 0)
             {
-                return Result<CustomerOrderResponse>.Failure("Giỏ hàng trống, không thể thanh toán", EErrorCode.ValidationErrors);
-            }
-
-            var errors = new List<string>();
-            
-            foreach (var cartItem in cartResponse.Items)
-            {
-                if (cartItem.AvailableStocks < cartItem.Quantity)
-                {
-                    errors.Add($"Sản phẩm {cartItem.ProductName} - {cartItem.VariantName} chỉ còn {cartItem.AvailableStocks} sản phẩm trong kho, không đủ để đặt hàng");
-                }
-            }
-
-            if (errors.Any())
-            {
-                return Result<CustomerOrderResponse>.Failure("Hàng không đủ", EErrorCode.ValidationErrors, errors);
+                return Result<CustomerOrderResponse>.Failure("Giỏ hàng trống, không thể thanh toán", EErrorCode.InvalidInput);
             }
             
-            // 3. Tạo Order mới
-            var order = new Order(customerId);
+            var selectedItems = cartResponse.Items
+                .Where(item => item.IsSelected)
+                .ToList();
 
-            foreach (var cartItem in cartResponse.Items)
+            if (selectedItems.Count == 0)
             {
-                order.AddItem(cartItem.VariantId, cartItem.ProductName, cartItem.VariantName, cartItem.UnitPrice, cartItem.Quantity);
+                return Result<CustomerOrderResponse>.Failure("Không có sản phẩm nào được chọn để thanh toán", EErrorCode.InvalidInput);
+            }
+            
+            var reserveItems = selectedItems.Select
+                (x => new ReserveStockItemDto(x.VariantId, x.Quantity)).ToList();
+            
+            var reserveResult = await productService.ReserveStockAsync(reserveItems, cancellationToken);
+
+            
+            if (!reserveResult.IsSuccess)
+            {
+                return Result<CustomerOrderResponse>.Failure(reserveResult);
             }
 
-            // 4. Lưu đơn hàng vào Database
+            var reserveData = reserveResult.Value;
+
+            if (!reserveData.IsValid)
+            {
+                return Result<CustomerOrderResponse>.Failure(reserveData.ErrorMessage ?? "Không đủ tồn kho để đặt hàng", EErrorCode.InvalidInput);
+            }
+            
+            var order = new Order(customerId, command.PaymentMethodId, command.ShippingAddress);
+
+            foreach (var item in reserveData.Items)
+            {
+                order.AddItem(item.VariantId, item.ProductName, item.VariantName, item.UnitPrice, item.Quantity);
+            }
+            
             var orderRepo = unitOfWork.Repository<Order, Guid>();
             orderRepo.Add(order);
+            
+            await unitOfWork.SaveChangesAsync(cancellationToken);
+            
+            
+            var paymentResult = await paymentService.CreatePaymentAsync(order.Id, order.TotalPrice, command.PaymentMethodId, cancellationToken);
+            if (!paymentResult.IsSuccess)
+            {
+                return Result<CustomerOrderResponse>.Failure(paymentResult);
+            }
+
+            var paymentUrl = paymentResult.Value;
+            if (!string.IsNullOrEmpty(paymentUrl))
+            {
+                order.SetPaymentUrl(paymentUrl);
+                await unitOfWork.SaveChangesAsync(cancellationToken);
+            }
             
             var orderCreatedEvent = new OrderCreatedEvent
             {
                 OrderId = order.Id,
                 CreatedAt = DateTime.UtcNow,
                 CustomerId = customerId,
+                PaymentMethodId = command.PaymentMethodId,
+                ShippingAddress = command.ShippingAddress,
                 OrderItems = order.OrderItems.Select(item => new OrderItemData
                 {
                     VariantId = item.VariantId,
                     UnitPrice = item.UnitPrice,
                     Quantity = item.Quantity
                 }).ToList(),
-                TotalAmount = 0
+                TotalAmount = (long)order.TotalPrice
             };
             
             await publisher.PublishAsync(orderCreatedEvent, cancellationToken);
-            
-            await unitOfWork.SaveChangesAsync(cancellationToken);
-            
-            
-
-            logger.LogInformation("Tạo đơn hàng thành công: {OrderId}", order.Id);
-            
-            
-            
-
-            // await publishEndpoint.Publish(orderCreatedEvent, cancellationToken);
-            logger.LogInformation("Đã phát sự kiện OrderCreatedEvent cho đơn hàng: {OrderId}", order.Id);
             
             var response = mapper.Map<CustomerOrderResponse>(order);
             
@@ -106,7 +125,3 @@ public class CreateOrderCommandHandler(
         }
     }
 }
-
-//Bạn là AI agents nào, có phải copilot không? Trả lời tôi đi?
-//ý là bạn có thuộc copilot không hay codeX?
-//Trả lời? 

@@ -39,9 +39,15 @@ builder.Services.AddGrpcClient<CartGrpc.CartGrpcClient>(o =>
 {
     o.Address = new Uri(builder.Configuration["Services:CartGrpcUrl"] ?? throw new InvalidOperationException("CartGrpcUrl is missing."));
 });
+builder.Services.AddGrpcClient<PaymentGrpc.PaymentGrpcClient>(o =>
+{
+    o.Address = new Uri(builder.Configuration["Services:PaymentGrpcUrl"] ?? throw new InvalidOperationException("PaymentGrpcUrl is missing."));
+});
 
 
 builder.Services.AddScoped<ICartService, CartClientService>();
+builder.Services.AddScoped<IProductService, ProductClientService>();
+builder.Services.AddScoped<IPaymentService, PaymentClientService>();
 
 var app = builder.Build();
 

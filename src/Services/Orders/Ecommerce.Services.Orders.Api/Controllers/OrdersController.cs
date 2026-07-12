@@ -36,20 +36,30 @@ public class OrdersController(ICurrentUserService currentUserService) : CleanV1C
     }
 
     /// <summary>
-    /// Thực hiện thanh toán giỏ hàng và tạo đơn hàng
+    /// Thực hiện thanh toán các sản phẩm được chọn từ giỏ hàng và tạo đơn hàng
     /// </summary>
-    /// <param name="customerId">Mã khách hàng</param>
+    /// <param name="request">Thông tin thanh toán đơn hàng</param>
     /// <param name="cancellationToken">Token hủy yêu cầu</param>
-    /// <returns>Mã đơn hàng vừa tạo</returns>
+    /// <returns>Mã đơn hàng và thông tin thanh toán</returns>
+    /// <response code="200">Tạo đơn hàng thành công</response>
+    /// <response code="400">Dữ liệu đầu vào không hợp lệ</response>
     [HttpPost("checkout")]
-    [ProducesResponseType(typeof(Guid), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(CustomerOrderResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    public async Task<IActionResult> Checkout(int customerId, CancellationToken cancellationToken)
+    public async Task<IActionResult> Checkout([FromBody] CreateOrderRequest request, CancellationToken cancellationToken)
     {
-        var result = await _sender.SendAsync(new CreateOrderCommand(UserId), cancellationToken);
+        var command = new CreateOrderCommand(UserId, request.SelectedVariantIds, request.PaymentMethodId, request.ShippingAddress);
+        var result = await _sender.SendAsync(command, cancellationToken);
 
         return result.IsSuccess 
             ? Ok(result) 
             : StatusCode(result.GetHttpStatusCode(), result);
     }
+}
+
+public class CreateOrderRequest
+{
+    public List<Guid> SelectedVariantIds { get; set; } = new();
+    public long PaymentMethodId { get; set; }
+    public string ShippingAddress { get; set; } = string.Empty;
 }

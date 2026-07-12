@@ -4,6 +4,7 @@ using Ecommerce.Services.Carts.Api.Features.Carts.Commands.AddItemToCart;
 using Ecommerce.Services.Carts.Api.Features.Carts.Commands.RemoveItemFromCart;
 using Ecommerce.Services.Carts.Api.Features.Carts.Commands.UpdateQuantity;
 using Ecommerce.Services.Carts.Api.Features.Carts.Commands.RemoveCart;
+using Ecommerce.Services.Carts.Api.Features.Carts.Commands.UpdateSelectState;
 using MediatR;
 using Microsoft.AspNetCore.Mvc;
 using BuildingBlocks.Auth;
@@ -28,11 +29,16 @@ public static class CartEndpoints
         group.MapPost("/items", AddItem)
             .WithName("AddItem")
             .WithSummary("Thêm sản phẩm vào giỏ");
- 
+  
         // PUT /api/carts/items/{productId}
         group.MapPut("/items/{productId}", UpdateQuantity)
             .WithName("UpdateQuantity")
             .WithSummary("Cập nhật số lượng sản phẩm");
+
+        // PUT /api/carts/items/{variantId}/select
+        group.MapPut("/items/{variantId}/select", UpdateSelectState)
+            .WithName("UpdateSelectState")
+            .WithSummary("Cập nhật trạng thái chọn mua sản phẩm");
         
         // DELETE /api/carts/items/{productId}
         group.MapDelete("/items/{productId}", RemoveItem)
@@ -72,7 +78,15 @@ public static class CartEndpoints
     {
         var result = await sender.Send(new UpdateQuantityCommand(userService.UserId, productId, cartItem.Quantity));
         
-        return Results.Content(result.Message, statusCode: result.GetHttpStatusCode);
+        return Results.Content(result.Message, statusCode: result.GetHttpStatusCode());
+    }
+
+    // 3.5. CẬP NHẬT TRẠNG THÁI CHỌN SẢN PHẨM
+    private static async Task<IResult> UpdateSelectState(Guid variantId, [FromBody] UpdateSelectStateRequest request, ISender sender, ICurrentUserService userService)
+    {
+        var result = await sender.Send(new UpdateSelectStateCommand(userService.UserId, variantId, request.IsSelected));
+        
+        return Results.Content(result.Message, statusCode: result.GetHttpStatusCode());
     }
     
     // 4. XÓA SẢN PHẨM KHỎI GIỎ
@@ -80,7 +94,7 @@ public static class CartEndpoints
     {
         var result = await sender.Send(new RemoveItemFromCartCommand(userService.UserId, productId));
         
-        return Results.Content(result.Message, statusCode: result.GetHttpStatusCode);
+        return Results.Content(result.Message, statusCode: result.GetHttpStatusCode());
     }
     
     // 5. XÓA TOÀN BỘ GIỎ HÀNG
@@ -88,6 +102,6 @@ public static class CartEndpoints
     {
         var result = await sender.Send(new RemoveCartCommand(userService.UserId));
         
-        return Results.Content(result.Message, statusCode: result.GetHttpStatusCode);
+        return Results.Content(result.Message, statusCode: result.GetHttpStatusCode());
     }
 }

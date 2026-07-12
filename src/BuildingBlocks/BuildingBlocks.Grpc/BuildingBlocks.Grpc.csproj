@@ -18,6 +18,7 @@
         <!-- Chỉ định file .proto để tự sinh cả Client và Server C# code -->
         <Protobuf Include="Protos\product.proto" GrpcServices="Both" />
         <Protobuf Include="Protos\cart.proto" GrpcServices="Both" />
+        <Protobuf Include="Protos\payment.proto" GrpcServices="Both" />
     </ItemGroup>
 
     <ItemGroup>

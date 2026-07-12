@@ -10,6 +10,10 @@ public class OrderSagaState : SagaStateMachineInstance
     public string CurrentState { get; set; }
     public long CustomerId { get; set; }
     public decimal TotalAmount { get; set; }
+    public long PaymentMethodId { get; set; }
+    public string ShippingAddress { get; set; } = string.Empty;
+    public string? PaymentUrl { get; set; }
+    public string SerializedVariantIds { get; set; } = string.Empty;
     
     public string FailureReason { get; set; }
 }

@@ -5,6 +5,7 @@ public enum EErrorCode
     Success,
     SuccessCreated,
     InvalidArgument,
+    InvalidInput,
     Forbidden,
     Unauthorized,
     NotFound,

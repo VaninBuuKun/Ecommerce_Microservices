@@ -12,16 +12,13 @@ message GetCartByIdRequest {
   int64 customer_id = 1;
 }
 
-message CartItemDto {
+message RpcCartItemDto {
   string variantId = 1;
-  string productName = 3;
-  string variantName = 4;
-  string unitPrice = 5;
-  int32 availableStocks = 6;
   int32 quantity = 7;
+  bool isSelected = 8;
 } 
 
 message GetCartByIdResponse {
   int64 customer_id = 1;
-  repeated CartItemDto items = 2;
+  repeated RpcCartItemDto items = 2;
 }

@@ -9,4 +9,5 @@ public class CartItemResponse
     public string ProductName { get; set; }
     public string  VariantName  { get; set; }
     public int AvailableStocks { get; set; } 
+    public bool IsSelected { get; set; }
 }

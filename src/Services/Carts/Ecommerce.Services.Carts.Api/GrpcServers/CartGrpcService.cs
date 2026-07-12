@@ -1,6 +1,8 @@
 using BuildingBlocks.Auth;
+using BuildingBlocks.Grpc.Extensions;
 using BuildingBlocks.Grpc.Services;
 using BuildingBlocks.Shared.Extensions;
+using Ecommerce.Services.Carts.Api.Features.Carts.Queries.GetBasicCart;
 using Ecommerce.Services.Carts.Api.Features.Carts.Queries.GetCart;
 using Grpc.Core;
 using MapsterMapper;
@@ -12,28 +14,25 @@ public class CartGrpcService(ISender sender, IMapper mapper) : CartGrpc.CartGrpc
 {
     public override async Task<GetCartByIdResponse> GetCartByCustomerId(GetCartByIdRequest request, ServerCallContext context)
     {
-        var result = await sender.Send(new GetCartQuery(request.CustomerId));
+        var result = await sender.Send(new GetBasicCartQuery(request.CustomerId));
         if (!result.IsSuccess)
         {
-            throw new RpcException(new Status(StatusCode.Internal, result.Message ?? "Error fetching cart"));
+            throw result.ToRpcException();
         }
         
-        var cartResponse = result.Value;
+        var cart = result.Value;
         var response = new GetCartByIdResponse
         {
-            CustomerId = cartResponse.CustomerId
+            CustomerId = cart.CustomerId
         };
-        // Duyệt qua từng item và add thủ công vào RepeatedField gRPC
-        foreach (var item in cartResponse.Items)
+        
+        foreach (var item in cart.Items)
         {
-            response.Items.Add(new CartItemDto
+            response.Items.Add(new RpcCartItemDto()
             {
                 VariantId = item.ProductVariantId.ToString(),
-                ProductName = item.ProductName ?? string.Empty,
-                VariantName = item.VariantName ?? string.Empty,
-                UnitPrice = item.UnitPrice.ToGrpcString(),
-                AvailableStocks = item.AvailableStocks,
-                Quantity = item.Quantity
+                Quantity = item.Quantity,
+                IsSelected = item.IsSelected
             });
         }
         return response;

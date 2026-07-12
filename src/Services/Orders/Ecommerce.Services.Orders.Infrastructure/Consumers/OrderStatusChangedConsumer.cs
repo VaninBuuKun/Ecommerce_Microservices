@@ -15,13 +15,18 @@ public class OrderStatusChangedConsumer(ISender sender) : IConsumer<OrderStatusC
         {
             case "Cancelled":
                 orderStatus = OrderStatus.Cancelled;
-                // Handle order cancellation logic here
                 break;
             case "Delivered":
                 orderStatus = OrderStatus.Delivered;
                 break;
+            case "PaymentAwaiting":
+                orderStatus = OrderStatus.PaymentAwaiting;
+                break;
+            case "Confirmed":
+                orderStatus = OrderStatus.Confirmed;
+                break;
         }
         
-        await sender.Send(new UpdateOrderStatusCommand(context.Message.OrderId, orderStatus), context.CancellationToken);
+        await sender.Send(new UpdateOrderStatusCommand(context.Message.OrderId, orderStatus, context.Message.PaymentUrl), context.CancellationToken);
     }
 }

@@ -9,6 +9,10 @@ public class CustomerOrderResponse
     public DateTimeOffset OrderDate { get; set; }
     public DateTimeOffset? LastModifiedDate { get; set; }
     
+    public long PaymentMethodId { get; set; }
+    public string ShippingAddress { get; set; } = string.Empty;
+    public string? PaymentUrl { get; set; }
+    
     public ICollection<CustomerOrderItemDto> OrderItems { get; set; } = new List<CustomerOrderItemDto>();
     
 }

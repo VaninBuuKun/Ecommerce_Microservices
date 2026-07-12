@@ -14,7 +14,6 @@ public class PaymentService(IEfUnitOfWork unitOfWork, PaymentGatewayFactory fact
 
     public async Task<Result<CreatePaymentResult>> ProcessPayment(CreatePaymentRequest paymentRequest)
     {
-        // 1. Kiểm tra phương thức thanh toán có tồn tại không
         var existingMethod = await _paymentMethodRepository.FirstOrDefaultAsync(
             predicate: pm => pm.ProviderName == paymentRequest.MethodProvider);
             

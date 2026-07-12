@@ -3,4 +3,4 @@ using Ecommerce.Services.Orders.Domain;
 
 namespace Ecommerce.Services.Orders.Application.Features.Orders.Commands.UpdateOrderStatus;
 
-public record UpdateOrderStatusCommand(Guid OrderId, OrderStatus Status): ICommand;
+public record UpdateOrderStatusCommand(Guid OrderId, OrderStatus Status, string? PaymentUrl = null): ICommand;

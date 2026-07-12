@@ -11,8 +11,9 @@ using Ecommerce.Services.Payments.Api.Models.Interfaces;
 using Ecommerce.Services.Payments.Api.Models.Settings;
 using Ecommerce.Services.Payments.Api.Persistances;
 using Ecommerce.Services.Payments.Api.Services;
-using Microsoft.AspNetCore.HttpOverrides;
+using BuildingBlocks.Messaging;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.HttpOverrides;
 using Scalar.AspNetCore;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -23,6 +24,7 @@ builder.Services.AddControllers()
     {
         options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
     });
+builder.Services.AddGrpc();
 var connectionString = builder.Configuration.GetConnectionString("Database");
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddDbContext<PaymentDbContext>(options =>
@@ -51,6 +53,7 @@ builder.Services.Configure<ForwardedHeadersOptions>(options =>
 
 //BuildingBlocks
 builder.Services.AddBuildingBlocksWeb();
+builder.Services.AddMasstransitEventBus(builder.Configuration);
 builder.Services.AddBuildingBlocksInfrastructure(builder.Configuration);
 builder.Services.AddBuildingBlocsAuth(builder.Configuration);
 builder.Services.AddBuildingBlocksApplication(Assembly.GetExecutingAssembly());
@@ -66,5 +69,6 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
+app.MapGrpcService<Ecommerce.Services.Payments.Api.GrpcServers.PaymentGrpcService>();
 app.MapControllers();
 app.Run();
