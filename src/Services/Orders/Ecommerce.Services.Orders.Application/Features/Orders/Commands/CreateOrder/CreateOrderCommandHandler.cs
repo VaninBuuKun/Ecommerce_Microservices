@@ -70,7 +70,7 @@ public class CreateOrderCommandHandler(
                 return Result<CustomerOrderResponse>.Failure(reserveData.ErrorMessage ?? "Không đủ tồn kho để đặt hàng", EErrorCode.InvalidInput);
             }
             
-            var order = new Order(customerId, command.PaymentMethodId, command.ShippingAddress);
+            var order = new Order(customerId, command.ShippingAddress);
 
             foreach (var item in reserveData.Items)
             {
@@ -80,28 +80,20 @@ public class CreateOrderCommandHandler(
             var orderRepo = unitOfWork.Repository<Order, Guid>();
             orderRepo.Add(order);
             
-            await unitOfWork.SaveChangesAsync(cancellationToken);
             
-            
-            var paymentResult = await paymentService.CreatePaymentAsync(order.Id, order.TotalPrice, command.PaymentMethodId, cancellationToken);
+            var paymentResult = await paymentService.CreatePaymentAsync(order.Id, order.TotalPrice, command.PaymentProvider, cancellationToken);
             if (!paymentResult.IsSuccess)
             {
                 return Result<CustomerOrderResponse>.Failure(paymentResult);
             }
 
             var paymentUrl = paymentResult.Value;
-            if (!string.IsNullOrEmpty(paymentUrl))
-            {
-                order.SetPaymentUrl(paymentUrl);
-                await unitOfWork.SaveChangesAsync(cancellationToken);
-            }
             
             var orderCreatedEvent = new OrderCreatedEvent
             {
                 OrderId = order.Id,
                 CreatedAt = DateTime.UtcNow,
                 CustomerId = customerId,
-                PaymentMethodId = command.PaymentMethodId,
                 ShippingAddress = command.ShippingAddress,
                 OrderItems = order.OrderItems.Select(item => new OrderItemData
                 {
@@ -109,10 +101,11 @@ public class CreateOrderCommandHandler(
                     UnitPrice = item.UnitPrice,
                     Quantity = item.Quantity
                 }).ToList(),
-                TotalAmount = (long)order.TotalPrice
+                TotalAmount = order.TotalPrice
             };
-            
             await publisher.PublishAsync(orderCreatedEvent, cancellationToken);
+            
+            await unitOfWork.SaveChangesAsync(cancellationToken);
             
             var response = mapper.Map<CustomerOrderResponse>(order);
             

@@ -56,6 +56,8 @@ public class ReserveStocksCommandHandler(IEfUnitOfWork unitOfWork, IVariantRepos
                 await unitOfWork.SaveChangesAsync(cancellationToken);
                 await unitOfWork.CommitAsync(cancellationToken);
             }
+            else response.ErrorMessage = "Không đủ hàng để đặt. Hãy điều chỉnh lại giỏ hàng sao cho phù hợp.";
+            
             return Result<ReserveVariantResponse>.Success(response);
         }
         catch (Exception ex)

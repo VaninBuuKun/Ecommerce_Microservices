@@ -6,6 +6,8 @@ using Ecommerce.Services.Catalog.Infrastructure;
 using Ecommerce.Services.Catalog.Application.Features.Products.Queries.GetProducts;
 using Ecommerce.Services.Catalog.Api.GrpcServers;
 using Ecommerce.Services.Catalog.Application;
+using Ecommerce.Services.Catalog.Application.Commons.Repositories;
+using Ecommerce.Services.Catalog.Infrastructure.Repositories;
 using Scalar.AspNetCore;
 using Serilog;
 
@@ -19,6 +21,7 @@ builder.Services.AddGrpc();
 //Layers
 builder.Services.AddInfrastructure(builder.Configuration);
 builder.Services.AddApplicationServices();
+builder.Services.AddScoped<IVariantRepository, VariantRepository>();
 
 //BuildingBlocks
 builder.AddCustomSerilog("Product Services");

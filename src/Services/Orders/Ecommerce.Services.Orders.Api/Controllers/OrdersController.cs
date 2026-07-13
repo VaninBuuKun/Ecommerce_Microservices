@@ -46,20 +46,12 @@ public class OrdersController(ICurrentUserService currentUserService) : CleanV1C
     [HttpPost("checkout")]
     [ProducesResponseType(typeof(CustomerOrderResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    public async Task<IActionResult> Checkout([FromBody] CreateOrderRequest request, CancellationToken cancellationToken)
+    public async Task<IActionResult> Checkout([FromBody] CreateOrderCommand request, CancellationToken cancellationToken)
     {
-        var command = new CreateOrderCommand(UserId, request.SelectedVariantIds, request.PaymentMethodId, request.ShippingAddress);
-        var result = await _sender.SendAsync(command, cancellationToken);
+        var result = await _sender.SendAsync(request with{CustomerId = UserId}, cancellationToken);
 
         return result.IsSuccess 
             ? Ok(result) 
             : StatusCode(result.GetHttpStatusCode(), result);
     }
-}
-
-public class CreateOrderRequest
-{
-    public List<Guid> SelectedVariantIds { get; set; } = new();
-    public long PaymentMethodId { get; set; }
-    public string ShippingAddress { get; set; } = string.Empty;
 }

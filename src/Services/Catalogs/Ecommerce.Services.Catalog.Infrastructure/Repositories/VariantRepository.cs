@@ -19,6 +19,10 @@ public class VariantRepository(ProductDbContext context) : GenericEfRepository<P
         //Thể theo thứ tự.
         return await context.ProductVariants
             .FromSqlRaw(sql, parameterValues)
+            .Include(x => x.Product)
+            .Include(x => x.Options)
+            .ThenInclude(o => o.OptionValue)
+            .ThenInclude(ov => ov.Option)
             .ToListAsync(cancellationToken);
     }
 }

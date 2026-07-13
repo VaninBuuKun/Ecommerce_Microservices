@@ -23,11 +23,6 @@ public class UpdateOrderStatusCommandHandler(IEfUnitOfWork unitOfWork) : Command
             }
             
             order.UpdateOrderStatus(command.Status);
-            if (command.PaymentUrl != null)
-            {
-                order.SetPaymentUrl(command.PaymentUrl);
-            }
-            
             await unitOfWork.SaveChangesAsync(cancellationToken);
             
             return Result.Success();

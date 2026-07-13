@@ -7,5 +7,5 @@ namespace Ecommerce.Services.Orders.Application.Services;
 
 public interface IPaymentService
 {
-    Task<Result<string?>> CreatePaymentAsync(Guid orderId, decimal amount, long paymentMethodId, CancellationToken cancellationToken = default);
+    Task<Result<string?>> CreatePaymentAsync(Guid orderId, decimal amount, string paymentProvider, CancellationToken cancellationToken = default);
 }

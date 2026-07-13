@@ -4,6 +4,7 @@ using BuildingBlocks.Shared.Enums;
 using BuildingBlocks.Shared.InfrastructureInterfaces.Persistence.EFCore;
 using Ecommerce.Services.Catalog.Application.Features.Products.Dtos;
 using Ecommerce.Services.Catalog.Domain.Products;
+using Ecommerce.Services.Catalog.Domain.Products.Specifications;
 using MapsterMapper;
 
 namespace Ecommerce.Services.Catalog.Application.Features.Products.Queries.GetVariantById;
@@ -14,8 +15,9 @@ public class GetVariantByIdQueryHandler(IEfUnitOfWork unitOfWork, IMapper mapper
     {
         try
         {
+            var spec = new VariantByIdWithProductAndOptionsSpec(query.VariantId);
             var variant = await unitOfWork.Repository<ProductVariant, Guid>()
-                .GetByIdAsync(query.VariantId, cancellationToken, v => v.Product);
+                .FirstOrDefaultAsync(spec, cancellationToken);
 
             if (variant == null)
             {

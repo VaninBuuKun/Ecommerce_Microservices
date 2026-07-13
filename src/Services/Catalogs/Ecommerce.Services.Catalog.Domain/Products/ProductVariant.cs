@@ -19,7 +19,7 @@ public class ProductVariant : EntityTrackingBase<Guid>
 
     private ProductVariant() { }
 
-    public ProductVariant(Guid productId, string? sku, decimal price, int availableStocks)
+    internal ProductVariant(Guid productId, string? sku, decimal price, int availableStocks)
     {
         Check(new ProductPriceMustBePositiveRule(price));
         Check(new ProductStocksCannotBeNegativeRule(availableStocks));
@@ -37,6 +37,15 @@ public class ProductVariant : EntityTrackingBase<Guid>
     {
         Check(new ProductPriceMustBePositiveRule(newPrice));
         Price = newPrice;
+    }
+
+    public void UpdateDetails(string? sku, decimal price, int availableStocks)
+    {
+        Check(new ProductPriceMustBePositiveRule(price));
+        Check(new ProductStocksCannotBeNegativeRule(availableStocks));
+        Sku = sku;
+        Price = price;
+        AvailableStocks = availableStocks;
     }
 
     public void ReserveStock(int stock)

@@ -39,7 +39,6 @@ public class OrderDbContext(DbContextOptions<OrderDbContext> options, IInMemoryB
             entity.Property(o => o.TotalPrice).HasColumnType("decimal(18,2)");
             entity.Property(o => o.Status).HasConversion<int>();
             entity.Property(o => o.ShippingAddress).HasMaxLength(500);
-            entity.Property(o => o.PaymentUrl).IsRequired(false);
             
             entity.HasMany(o => o.OrderItems)
                   .WithOne(i => i.Order)

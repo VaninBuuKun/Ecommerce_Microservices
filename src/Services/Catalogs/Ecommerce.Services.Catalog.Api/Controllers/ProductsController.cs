@@ -3,11 +3,18 @@ using Ecommerce.Services.Catalog.Application.Features.Products.Commands.CreatePr
 using Ecommerce.Services.Catalog.Application.Features.Products.Commands.DeleteProduct;
 using Ecommerce.Services.Catalog.Application.Features.Products.Commands.UpdateProduct;
 using Ecommerce.Services.Catalog.Application.Features.Products.Commands.SetupProductVariants;
+using Ecommerce.Services.Catalog.Application.Features.Products.Commands.CreateProductVariant;
+using Ecommerce.Services.Catalog.Application.Features.Products.Commands.UpdateProductVariant;
+using Ecommerce.Services.Catalog.Application.Features.Products.Commands.DeleteProductVariant;
+using Ecommerce.Services.Catalog.Application.Features.Products.Commands.UpdateProductOption;
+using Ecommerce.Services.Catalog.Application.Features.Products.Commands.UpdateProductOptionValue;
 using Ecommerce.Services.Catalog.Application.Features.Products.Queries.GetProductById;
 using Ecommerce.Services.Catalog.Application.Features.Products.Queries.GetProducts;
+using Ecommerce.Services.Catalog.Application.Features.Products.Queries.GetVariantById;
 using MediatR;
 using Microsoft.AspNetCore.Mvc;
 using System;
+using System.Collections.Generic;
 using System.Threading.Tasks;
 
 namespace Ecommerce.Services.Catalog.Api.Controllers;
@@ -99,4 +106,98 @@ public class ProductsController(ISender sender) : ControllerBase
         
         return StatusCode(result.GetHttpStatusCode(), result.Message);
     }
+
+    [HttpGet("variants/{id}")]
+    public async Task<IActionResult> GetProductVariant(Guid id)
+    {
+        var result = await sender.Send(new GetVariantByIdQuery(id));
+
+        if (result.IsSuccess)
+        {
+            return Ok(result.Value);
+        }
+
+        return StatusCode(result.GetHttpStatusCode(), result.Message);
+    }
+
+    [HttpPost("{productId}/variants")]
+    public async Task<IActionResult> AddProductVariant(Guid productId, [FromBody] CreateProductVariantRequest request)
+    {
+        var result = await sender.Send(new CreateProductVariantCommand(
+            productId,
+            request.Sku,
+            request.Price,
+            request.AvailableStocks,
+            request.OptionValueIds
+        ));
+
+        if (result.IsSuccess)
+        {
+            return Ok(result.Value);
+        }
+
+        return StatusCode(result.GetHttpStatusCode(), result.Message);
+    }
+
+    [HttpPut("variants/{id}")]
+    public async Task<IActionResult> UpdateProductVariant(Guid id, [FromBody] UpdateProductVariantRequest request)
+    {
+        var result = await sender.Send(new UpdateProductVariantCommand(
+            id,
+            request.Sku,
+            request.Price,
+            request.AvailableStocks
+        ));
+
+        if (result.IsSuccess)
+        {
+            return Ok(result.Value);
+        }
+
+        return StatusCode(result.GetHttpStatusCode(), result.Message);
+    }
+
+    [HttpDelete("variants/{id}")]
+    public async Task<IActionResult> DeleteProductVariant(Guid id)
+    {
+        var result = await sender.Send(new DeleteProductVariantCommand(id));
+
+        if (result.IsSuccess)
+        {
+            return Ok(result.Value);
+        }
+
+        return StatusCode(result.GetHttpStatusCode(), result.Message);
+    }
+
+    [HttpPut("options/{id}")]
+    public async Task<IActionResult> UpdateProductOption(Guid id, [FromBody] UpdateProductOptionRequest request)
+    {
+        var result = await sender.Send(new UpdateProductOptionCommand(id, request.Name));
+
+        if (result.IsSuccess)
+        {
+            return Ok(result.Value);
+        }
+
+        return StatusCode(result.GetHttpStatusCode(), result.Message);
+    }
+
+    [HttpPut("option-values/{id}")]
+    public async Task<IActionResult> UpdateProductOptionValue(Guid id, [FromBody] UpdateProductOptionValueRequest request)
+    {
+        var result = await sender.Send(new UpdateProductOptionValueCommand(id, request.Value));
+
+        if (result.IsSuccess)
+        {
+            return Ok(result.Value);
+        }
+
+        return StatusCode(result.GetHttpStatusCode(), result.Message);
+    }
 }
+
+public record CreateProductVariantRequest(string? Sku, decimal Price, int AvailableStocks, List<Guid> OptionValueIds);
+public record UpdateProductVariantRequest(string? Sku, decimal Price, int AvailableStocks);
+public record UpdateProductOptionRequest(string Name);
+public record UpdateProductOptionValueRequest(string Value);

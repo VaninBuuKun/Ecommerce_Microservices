@@ -9,7 +9,7 @@ service PaymentGrpc {
 message CreatePaymentGrpcRequest {
   string targetId = 1;
   string amount = 2;
-  int64 paymentMethodId = 3;
+  string paymentProvider = 3;
 }
 
 message CreatePaymentGrpcResponse {

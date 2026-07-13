@@ -81,14 +81,15 @@ public class ProductGrpcService(ISender sender, ILogger<ProductGrpcService> logg
             return new ReserveStockResponse
             {
                 IsSuccess = false,
-                ErrorMessage = result.Message ?? "Lỗi giữ kho sản phẩm"
+                ErrorMessage = result.Value.ErrorMessage
             };
         }
         
         var appResponse = result.Value;
         var response = new ReserveStockResponse
         {
-            IsSuccess = appResponse.IsSuccess
+            IsSuccess = appResponse.IsSuccess,
+            ErrorMessage = appResponse.ErrorMessage
         };
         
         foreach (var item in appResponse.VariantStocks)

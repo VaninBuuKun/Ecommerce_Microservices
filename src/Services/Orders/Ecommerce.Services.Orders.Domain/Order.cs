@@ -14,28 +14,18 @@ public sealed class Order : AggregateRoot<Guid>, IDateTracking
     public DateTimeOffset CreatedDate { get; set; }
     public DateTimeOffset? LastModifiedDate { get; set; }
     
-    public long PaymentMethodId { get; private set; }
     public string ShippingAddress { get; private set; } = string.Empty;
-    public string? PaymentUrl { get; private set; }
-
     private Order() {}
     
     public decimal TotalPrice { get; private set; }
     
-    public Order(long customerId, long paymentMethodId, string shippingAddress)
+    public Order(long customerId, string shippingAddress)
     {
         CustomerId = customerId;
-        PaymentMethodId = paymentMethodId;
         ShippingAddress = shippingAddress;
         Status = OrderStatus.PaymentAwaiting;
         TotalPrice = 0;
     }
-
-    public void SetPaymentUrl(string url)
-    {
-        PaymentUrl = url;
-    }
-
     public void AddItem(Guid vanriantId, string productName, string variantName, decimal unitPrice, int quantity)
     {
         Check(new OrderItemPriceMustBePositiveRule(unitPrice));

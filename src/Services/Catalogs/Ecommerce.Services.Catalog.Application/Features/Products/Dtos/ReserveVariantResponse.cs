@@ -14,4 +14,5 @@ public class ReserveVariantResponse
 {
     public bool IsSuccess { get; set; } = true;
     public List<VariantStockInfo> VariantStocks { get; set; } = new();
+    public string ErrorMessage { get; set; } = string.Empty;
 }

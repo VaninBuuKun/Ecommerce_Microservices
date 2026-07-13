@@ -22,6 +22,7 @@ public static class DependencyInjection
                 connectionString, 
                 serverVersion
             ));
+        
 
         services.AddScoped<IEfUnitOfWork, EfUnitOfWork<ProductDbContext>>();
         services.AddMasstransitEventBus(configuration, config =>

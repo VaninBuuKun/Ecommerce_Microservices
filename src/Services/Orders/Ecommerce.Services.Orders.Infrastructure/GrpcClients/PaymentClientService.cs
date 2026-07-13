@@ -2,6 +2,7 @@ using System;
 using System.Globalization;
 using System.Threading;
 using System.Threading.Tasks;
+using BuildingBlocks.Grpc.Extensions;
 using BuildingBlocks.Grpc.Services;
 using BuildingBlocks.Shared.Commons;
 using Ecommerce.Services.Orders.Application.Services;
@@ -10,7 +11,7 @@ namespace Ecommerce.Services.Orders.Infrastructure.GrpcClients;
 
 public class PaymentClientService(PaymentGrpc.PaymentGrpcClient client) : IPaymentService
 {
-    public async Task<Result<string?>> CreatePaymentAsync(Guid orderId, decimal amount, long paymentMethodId, CancellationToken cancellationToken = default)
+    public async Task<Result<string?>> CreatePaymentAsync(Guid orderId, decimal amount, string paymentProvider, CancellationToken cancellationToken = default)
     {
         try
         {
@@ -18,7 +19,7 @@ public class PaymentClientService(PaymentGrpc.PaymentGrpcClient client) : IPayme
             {
                 TargetId = orderId.ToString(),
                 Amount = amount.ToString(CultureInfo.InvariantCulture),
-                PaymentMethodId = paymentMethodId
+                PaymentProvider = paymentProvider
             };
 
             var response = await client.CreatePaymentAsync(request, cancellationToken: cancellationToken);
@@ -32,7 +33,7 @@ public class PaymentClientService(PaymentGrpc.PaymentGrpcClient client) : IPayme
         }
         catch (Grpc.Core.RpcException ex)
         {
-            return Result<string?>.ValidationFailure($"Error creating payment: {ex.Status.Detail}");
+            return ex.ToResultFailure<string?>();
         }
         catch (Exception ex)
         {

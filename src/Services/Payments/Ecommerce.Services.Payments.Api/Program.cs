@@ -34,6 +34,7 @@ builder.Services.AddScoped<IPaymentService, PaymentService>();
 builder.Services.AddScoped<IEfUnitOfWork, EfUnitOfWork<PaymentDbContext>>();
 builder.Services.AddScoped<PaymentGatewayFactory>();
 builder.Services.AddScoped<IPaymentGateway, MomoPaymentGateway>();
+builder.Services.AddScoped<IPaymentGateway, CODPaymentGateway>();
 builder.Services.AddScoped<IPaymentGateway, VNPayPaymentGateway>();
 builder.Services.AddHttpClient();
 builder.Services.Configure<MomoSettings>(builder.Configuration.GetSection("Momo"));

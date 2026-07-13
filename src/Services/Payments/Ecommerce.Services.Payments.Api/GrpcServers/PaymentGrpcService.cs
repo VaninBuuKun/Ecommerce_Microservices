@@ -22,14 +22,13 @@ public class PaymentGrpcService(
     {
         try
         {
-            
             var amount = decimal.Parse(request.Amount, CultureInfo.InvariantCulture);
             var paymentRequest = new CreatePaymentRequest
             {
                 TargetId = Guid.Parse(request.TargetId),
                 Amount = amount,
                 Currency = "VND",
-                MethodProvider = paymentMethod.ProviderName,
+                MethodProvider = request.PaymentProvider,
                 PaymentType = PaymentType.Purchase
             };
 
