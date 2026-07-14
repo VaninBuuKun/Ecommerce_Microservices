@@ -8,6 +8,7 @@ using Ecommerce.Services.Carts.Api.Features.Carts.Commands.UpdateSelectState;
 using MediatR;
 using Microsoft.AspNetCore.Mvc;
 using BuildingBlocks.Auth;
+using Serilog;
 
 namespace Ecommerce.Services.Carts.Api.Endpoints;
 
@@ -57,17 +58,17 @@ public static class CartEndpoints
     private static async Task<IResult> GetCart(ISender sender, ICurrentUserService userService)
     {
         var result = await sender.Send(new GetCartQuery(userService.UserId));
-        
         return result.IsSuccess 
-            ? Results.Json(result.Value, statusCode: result.GetHttpStatusCode()) 
-            : Results.Content(result.Message, statusCode: result.GetHttpStatusCode());
+                ? Results.Json(result.Value, statusCode: result.GetHttpStatusCode()) 
+                : Results.Content(result.Message, statusCode: result.GetHttpStatusCode());
     }
 
     // 2. THÊM SẢN PHẨM VÀO GIỎ
     private static async Task<IResult> AddItem([FromBody] CartItemRequest cartItem, ISender sender, ICurrentUserService userService)
     {
         var result = await sender.Send(new AddItemToCartCommand(userService.UserId, cartItem.VariantId, cartItem.Quantity));
-
+        
+        Log.Information("User {UserId} added product {VariantId} with quantity {Quantity} to cart", userService.UserId, cartItem.VariantId, cartItem.Quantity);
         return result.IsSuccess
             ? Results.Json(result.Value, statusCode: result.GetHttpStatusCode())
             : Results.Content(result.Message, statusCode: result.GetHttpStatusCode());

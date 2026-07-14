@@ -12,32 +12,42 @@ using Scalar.AspNetCore;
 using Serilog;
 
 var builder = WebApplication.CreateBuilder(args);
-
-//MyDI
-builder.Services.AddControllers();
-builder.Services.AddOpenApi();
-builder.Services.AddGrpc();
+builder.AddCustomSerilog("catalogApi");
+try
+{
+    //MyDI
+    builder.Services.AddControllers();
+    builder.Services.AddOpenApi();
+    builder.Services.AddGrpc();
 
 //Layers
-builder.Services.AddInfrastructure(builder.Configuration);
-builder.Services.AddApplicationServices();
-builder.Services.AddScoped<IVariantRepository, VariantRepository>();
+    builder.Services.AddInfrastructure(builder.Configuration);
+    builder.Services.AddApplicationServices();
+    builder.Services.AddScoped<IVariantRepository, VariantRepository>();
 
 //BuildingBlocks
-builder.AddCustomSerilog("Product Services");
-builder.Services.AddBuildingBlocksInfrastructure(builder.Configuration);
-builder.Services.AddBuildingBlocksWeb();
-builder.Services.AddBuildingBlocsAuth(builder.Configuration);
+    
+    builder.Services.AddBuildingBlocksInfrastructure(builder.Configuration);
+    builder.Services.AddBuildingBlocksWeb();
+    builder.Services.AddBuildingBlocsAuth(builder.Configuration);
 
-var app = builder.Build();
-if (app.Environment.IsDevelopment())
-{
-    app.MapOpenApi();
-    app.MapScalarApiReference();
+    var app = builder.Build();
+    if (app.Environment.IsDevelopment())
+    {
+        app.MapOpenApi();
+        app.MapScalarApiReference();
+    }
+
+    app.UseHttpsRedirection();
+    app.UseSerilogRequestLogging();
+    app.MapGrpcService<ProductGrpcService>();
+    app.MapControllers();
+    app.Run();
 }
-
-app.UseHttpsRedirection();
-app.UseSerilogRequestLogging();
-app.MapGrpcService<ProductGrpcService>();
-app.MapControllers();
-app.Run();
+catch (Exception ex) {
+    Log.Error(ex, "Catalog Service failed to start");
+}
+finally{
+    Log.Information("Catalog Service is shutting down...");
+    Log.CloseAndFlush();
+}

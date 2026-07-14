@@ -14,51 +14,63 @@ using Mapster;
 using MapsterMapper;
 using Microsoft.OpenApi.Models;
 using Scalar.AspNetCore;
+using Serilog;
 
 var builder = WebApplication.CreateBuilder(args);
-//MyDI
-builder.Services.AddScoped<IProductService, ProductClientService>();
-builder.Services.AddHttpContextAccessor();
+builder.AddCustomSerilog("CartApi");
+try
+{
+    //MyDI
+    builder.Services.AddScoped<IProductService, ProductClientService>();
+    builder.Services.AddHttpContextAccessor();
 
 //BuildingBlocks
-builder.AddCustomSerilog("Cart Api");
-builder.Services.AddCustomCaching(builder.Configuration.GetConnectionString("Redis") ?? throw new InvalidOperationException("RedisConnectionString is missing."));
-builder.Services.AddBuildingBlocksWeb();
-builder.Services.AddMasstransitEventBus(builder.Configuration);
-builder.Services.AddBuildingBlocksApplication(typeof(Program).Assembly);
+    builder.Services.AddCustomCaching(builder.Configuration.GetConnectionString("Redis") ?? throw new InvalidOperationException("RedisConnectionString is missing."));
+    builder.Services.AddBuildingBlocksWeb();
+    builder.Services.AddMasstransitEventBus(builder.Configuration);
+    builder.Services.AddBuildingBlocksApplication(typeof(Program).Assembly);
 
 //Grpc
-AppContext.SetSwitch("System.Net.Http.SocketsHttpHandler.Http2UnencryptedSupport", true);
-builder.Services.AddGrpcClient<ProductGrpc.ProductGrpcClient>(o =>
-{
-    o.Address = new Uri(builder.Configuration["Services:ProductGrpcUrl"]);
-});
-builder.Services.AddGrpc();
+    AppContext.SetSwitch("System.Net.Http.SocketsHttpHandler.Http2UnencryptedSupport", true);
+    builder.Services.AddGrpcClient<ProductGrpc.ProductGrpcClient>(o =>
+    {
+        o.Address = new Uri(builder.Configuration["Services:ProductGrpcUrl"]);
+    });
+    builder.Services.AddGrpc();
 
-builder.Services.AddBuildingBlocksApplication(typeof(Program).Assembly);
+    builder.Services.AddBuildingBlocksApplication(typeof(Program).Assembly);
 
-builder.Services.AddBuildingBlocsAuth(builder.Configuration);
-var app = builder.Build();
+    builder.Services.AddBuildingBlocsAuth(builder.Configuration);
+    var app = builder.Build();
 
-if (app.Environment.IsDevelopment())
-{
-    app.MapOpenApi();
-    app.MapScalarApiReference();
+    if (app.Environment.IsDevelopment())
+    {
+        app.MapOpenApi();
+        app.MapScalarApiReference();
+    }
+
+    app.UseAuthentication();
+    app.UseAuthorization();
+
+    app.AddMappingEndpoints();
+
+    app.MapGrpcService<CartGrpcService>();
+
+    app.MapGet("/health", () =>
+    {
+        var instanceName = Environment.GetEnvironmentVariable("INSTANCE_NAME") ?? "Unknown-Instance";
+        return Results.Ok($"Cart {instanceName} OK");
+    });
+
+    app.UseHttpsRedirection();
+
+    app.Run();
+
 }
-
-app.UseAuthentication();
-app.UseAuthorization();
-
-app.AddMappingEndpoints();
-
-app.MapGrpcService<CartGrpcService>();
-
-app.MapGet("/health", () =>
-{
-    var instanceName = Environment.GetEnvironmentVariable("INSTANCE_NAME") ?? "Unknown-Instance";
-    return Results.Ok($"Cart {instanceName} OK");
-});
-
-app.UseHttpsRedirection();
-
-app.Run();
+catch (Exception ex) {
+    Log.Error(ex, "Identity Service failed to start");
+}
+finally{
+    Log.Information("Identity Service is shutting down...");
+    Log.CloseAndFlush();
+}

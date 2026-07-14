@@ -71,6 +71,29 @@ services:
     volumes:
       - postgres_payment_data:/var/lib/postgresql/data
 
+  elasticsearch:
+    container_name: ecommerce_elasticsearch
+    restart: always
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=false
+      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+    ports:
+      - "9200:9200"
+      - "9300:9300"
+    volumes:
+      - elasticsearch_data:/usr/share/elasticsearch/data
+
+  kibana:
+    container_name: ecommerce_kibana
+    restart: always
+    environment:
+      - ELASTICSEARCH_HOSTS=http://elasticsearch:9200
+    ports:
+      - "5601:5601"
+    depends_on:
+      - elasticsearch
+
 volumes:
   mysql_product_data:
     driver: local
@@ -81,4 +104,6 @@ volumes:
   postgres_identity_data:
     driver: local
   postgres_payment_data:
+    driver: local
+  elasticsearch_data:
     driver: local
