@@ -19,7 +19,7 @@ public class MomoPaymentGateway(IOptions<MomoSettings> settings, IHttpClientFact
     public async Task<CreatePaymentResult> CreatePaymentAsync(Payment payment, CancellationToken ct = default)
     {
         var requestId = Guid.NewGuid().ToString();
-        var orderId = payment.TargetId.ToString("N");
+        var orderId = payment.OrderId.ToString("N");
         var amountLong = (long)payment.Amount;
         var amountStr = amountLong.ToString();
         var ipnUrl = _settings.IpnUrl;

@@ -5,6 +5,7 @@ namespace Ecommerce.Services.Catalog.Domain.Products;
 
 public class Product : AggregateRoot<Guid>
 {
+    public long ShopId { get; private set; }
     public string Name { get; private set; }
     public string Description { get; private set; }
     public ProductStatus Status { get; private set; }
@@ -20,11 +21,12 @@ public class Product : AggregateRoot<Guid>
 
     private Product() { Name = null!; Description = null!; } // EF Core
 
-    private Product(string name, string description)
+    private Product(long shopId, string name, string description)
     {
         Check(new ProductNameCannotBeEmptyRule(name));
 
         Id = Guid.NewGuid();
+        ShopId = shopId;
         Name = name;
         Description = description;
         Status = ProductStatus.Draft;
@@ -37,7 +39,7 @@ public class Product : AggregateRoot<Guid>
         Check(new ProductNameCannotBeEmptyRule(name));
         Name = name;
         Description = description;
-    }
+    }   
 
     // ========== Options & Option Values ==========
 
@@ -150,8 +152,8 @@ public class Product : AggregateRoot<Guid>
 
     // ========== Factory Methods ==========
 
-    public static Product CreateNewProduct(string name, string description)
+    public static Product CreateNewProduct(long shopId, string name, string description)
     {
-        return new Product(name, description);
+        return new Product(shopId, name, description);
     }
 }

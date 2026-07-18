@@ -11,22 +11,22 @@ using Microsoft.Extensions.Logging;
 
 namespace Ecommerce.Services.Orders.Application.Features.Queries.GetCustomerOrders;
 
-public record GetCustomerOrdersQuery(long CustomerId) : IQuery<List<CustomerOrderResponse>>;
+public record GetSubOrdersQuery(long CustomerId) : IQuery<List<CustomerOrderResponse>>;
 
-public class GetCustomerOrdersQueryHandler(
+public class GetSubOrdersQueryHandler(
     IEfUnitOfWork unitOfWork,
-    ILogger<GetCustomerOrdersQueryHandler> logger, IMapper mapper)
-    : QueryHandler<GetCustomerOrdersQuery, List<CustomerOrderResponse>>
+    ILogger<GetSubOrdersQueryHandler> logger, IMapper mapper)
+    : QueryHandler<GetSubOrdersQuery, List<CustomerOrderResponse>>
 {
-    protected override async Task<Result<List<CustomerOrderResponse>>> HandleQueryAsync(GetCustomerOrdersQuery query, CancellationToken cancellationToken)
+    protected override async Task<Result<List<CustomerOrderResponse>>> HandleQueryAsync(GetSubOrdersQuery query, CancellationToken cancellationToken)
     {
         var customerId = query.CustomerId;
         logger.LogInformation("Getting orders for customer: {CustomerId}", customerId);
 
-        var orderRepo = unitOfWork.Repository<Order, Guid>();
+        var subOrderRepo = unitOfWork.Repository<SubOrder, Guid>();
 
         // Fetch orders using repository method, without calling AsQueryable()
-        var orders = await orderRepo.GetAllAsync(
+        var orders = await subOrderRepo.GetAllAsync(
             predicate: o => o.CustomerId == customerId,
             orderBy: q => q.OrderByDescending(o => o.CreatedDate),
             cancellationToken: cancellationToken,

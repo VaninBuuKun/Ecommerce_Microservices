@@ -28,6 +28,7 @@ public class ProductClientService(ProductGrpc.ProductGrpcClient client) : IProdu
             var response = await client.ReserveStockAsync(request, cancellationToken: cancellationToken);
 
             var itemDetails = response.Items.Select(x => new ReservedStockItemDetailDto(
+                x.ShopId,
                 Guid.Parse(x.VariantId),
                 x.Quantity,
                 x.AvailableStocks,

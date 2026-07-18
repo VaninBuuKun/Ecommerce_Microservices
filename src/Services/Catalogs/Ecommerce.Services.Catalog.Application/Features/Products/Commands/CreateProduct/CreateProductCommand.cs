@@ -12,7 +12,7 @@ using System.Threading.Tasks;
 
 namespace Ecommerce.Services.Catalog.Application.Features.Products.Commands.CreateProduct;
 
-public record CreateProductCommand(string Name, string Description) : ICommand<ProductResponse>;
+public record CreateProductCommand(long ShopId, string Name, string Description) : ICommand<ProductResponse>;
 
 public class CreateProductCommandHandler(
     IEfUnitOfWork unitOfWork,
@@ -26,6 +26,7 @@ public class CreateProductCommandHandler(
         try
         {
             var product = Product.CreateNewProduct(
+                command.ShopId,
                 command.Name,
                 command.Description
             );

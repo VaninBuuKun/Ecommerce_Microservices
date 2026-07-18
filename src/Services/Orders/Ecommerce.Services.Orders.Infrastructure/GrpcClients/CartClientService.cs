@@ -43,4 +43,28 @@ public class CartClientService(CartGrpc.CartGrpcClient client) : ICartService
             return Result<CartDto>.Failure($"Error retrieving cart: {ex.Message}", EErrorCode.InternalServerError);
         }
     }
+
+    public async Task<Result> ClearCart(long customerId, List<Guid> variantIds)
+    {
+        try
+        {
+            var request = new ClearCartRequest { CustomerId = customerId };
+            request.VariantIds.AddRange(variantIds.Select(id => id.ToString()));
+            
+            var response = await client.ClearCartAsync(request);
+            if (!response.IsSuccess)
+            {
+                return Result.Failure(response.ErrorMessage, EErrorCode.InternalServerError);
+            }
+            return Result.Success();
+        }
+        catch (RpcException ex)
+        {
+            return ex.ToResultFailure();
+        }
+        catch (Exception ex)
+        {
+            return Result.Failure($"Error clearing cart: {ex.Message}", EErrorCode.InternalServerError);
+        }
+    }
 };

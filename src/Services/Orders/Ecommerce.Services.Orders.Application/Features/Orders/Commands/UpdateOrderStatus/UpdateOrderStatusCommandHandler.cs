@@ -7,22 +7,22 @@ using Mapster;
 
 namespace Ecommerce.Services.Orders.Application.Features.Orders.Commands.UpdateOrderStatus;
 
-public class UpdateOrderStatusCommandHandler(IEfUnitOfWork unitOfWork) : CommandHandler<UpdateOrderStatusCommand>
+public class UpdateOrderStatusCommandHandler(IEfUnitOfWork unitOfWork) : CommandHandler<UpdateSubOrderStatusCommand>
 {
-    private readonly IGenericEfRepository<Order, Guid> _orderRepository = unitOfWork.Repository<Order, Guid>();
+    private readonly IGenericEfRepository<SubOrder, Guid> _orderRepository = unitOfWork.Repository<SubOrder, Guid>();
     
-    protected override async Task<Result> HandleCommandAsync(UpdateOrderStatusCommand command, CancellationToken cancellationToken)
+    protected override async Task<Result> HandleCommandAsync(UpdateSubOrderStatusCommand command, CancellationToken cancellationToken)
     {
         try
         {
-            var order = await _orderRepository.GetByIdAsync(command.OrderId, cancellationToken);
+            var order = await _orderRepository.GetByIdAsync(command.SubOrderId, cancellationToken);
 
             if (order == null)
             {
                 return Result.Failure("Đơn hàng không tồn tại", EErrorCode.NotFound);
             }
             
-            order.UpdateOrderStatus(command.Status);
+            order.UpdateSubOrderStatus(command.Status);
             await unitOfWork.SaveChangesAsync(cancellationToken);
             
             return Result.Success();

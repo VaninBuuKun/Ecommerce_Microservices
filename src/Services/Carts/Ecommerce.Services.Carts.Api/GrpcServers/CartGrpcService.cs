@@ -37,4 +37,24 @@ public class CartGrpcService(ISender sender, IMapper mapper) : CartGrpc.CartGrpc
         }
         return response;
     }
+
+    public override async Task<ClearCartResponse> ClearCart(ClearCartRequest request, ServerCallContext context)
+    {
+        var variantIds = request.VariantIds.Select(id => Guid.Parse(id)).ToList();
+        var result = await sender.Send(new Ecommerce.Services.Carts.Api.Features.Carts.Commands.ClearCart.ClearCartCommand(request.CustomerId, variantIds));
+        
+        if (!result.IsSuccess)
+        {
+            return new ClearCartResponse
+            {
+                IsSuccess = false,
+                ErrorMessage = result.Message
+            };
+        }
+
+        return new ClearCartResponse
+        {
+            IsSuccess = true
+        };
+    }
 }

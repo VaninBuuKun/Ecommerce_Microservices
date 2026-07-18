@@ -2,69 +2,86 @@ using System.ComponentModel.DataAnnotations.Schema;
 using BuildingBlocks.Shared.Domains;
 using BuildingBlocks.Shared.Domains.Interfaces;
 using Ecommerce.Services.Orders.Domain.Rules;
+using MediatR;
 
 namespace Ecommerce.Services.Orders.Domain;
 
 public sealed class Order : AggregateRoot<Guid>, IDateTracking
 {   
-    public long CustomerId { get; }
-    public OrderStatus Status { get; private set; }
-    public ICollection<OrderItem> OrderItems { get; set; } = new List<OrderItem>();
+    public long CustomerId { get; private set; }
+    public ICollection<SubOrder> SubOrderItems { get; private set; } = new List<SubOrder>();
 
     public DateTimeOffset CreatedDate { get; set; }
     public DateTimeOffset? LastModifiedDate { get; set; }
     
-    public string ShippingAddress { get; private set; } = string.Empty;
+    public long SubTotal { get; private set; } //Tính theo sum(unitprice * quantity)
+    public long ShippingFee { get; private set; }
+    public long TotalDiscount { get; private set; }
+    public long GrandTotal { get; private set; }
+    
+    public string ShippingAddress { get; private set; } = string.Empty; //Địa điểm giao
+    
+    public IReadOnlyCollection<SubOrder> GetSubOrders() => SubOrderItems.ToList().AsReadOnly();
+    
+    
     private Order() {}
     
-    public decimal TotalPrice { get; private set; }
-    
-    public Order(long customerId, string shippingAddress)
+    [NotMapped]
+    public bool IsOnlinePayment { get; private set; } //Xác định hình thức thanh toán, true: online, false: offline
+
+    public Order(long customerId, string shippingAddress, bool isOnlinePayment)
     {
         CustomerId = customerId;
         ShippingAddress = shippingAddress;
-        Status = OrderStatus.PaymentAwaiting;
-        TotalPrice = 0;
-    }
-    public void AddItem(Guid vanriantId, string productName, string variantName, decimal unitPrice, int quantity)
-    {
-        Check(new OrderItemPriceMustBePositiveRule(unitPrice));
-        Check(new OrderItemQuantityMustBePositiveRule(quantity));
-        
-        var existingItem = OrderItems.SingleOrDefault(item => item.VariantId == vanriantId);
 
-        if (existingItem != null)
+        IsOnlinePayment = isOnlinePayment;
+    }
+    
+    private SubOrder CreateSubOrder(long shopId)
+    {
+        var existsingSubOrder = SubOrderItems.SingleOrDefault(o => o.ShopId == shopId);
+
+        if (existsingSubOrder != null)
         {
-            throw new InvalidOperationException($"Variant with ID {vanriantId} is duplocated");
+            throw new InvalidOperationException($"SubOrder for shop with ID {shopId} already exists.");
         }
         
-        var item = new OrderItem
+        var subOrder = new SubOrder(shopId, CustomerId, IsOnlinePayment);
+        
+        SubOrderItems.Add(subOrder);
+        return subOrder;
+    }
+
+    public OrderItem AddOrderItem(long ShopId, Guid VariantId, string ProductName, string VariantName, decimal unitPrice, int quantity)
+    {
+        var subOrder = SubOrderItems.SingleOrDefault(o => o.ShopId == ShopId) ?? CreateSubOrder(ShopId);
+        
+        var orderItem = new OrderItem
         {
             OrderId = this.Id,
-            ProductName = productName,
+            ProductName = ProductName,
             UnitPrice = unitPrice,
             Quantity = quantity,
-            VariantId = vanriantId,
-            VariantName = variantName
+            VariantId = VariantId,
+            VariantName = VariantName
         };
+        
+        subOrder.AddOrderItem(orderItem);
+        CalculateSubTotal();
+        CalculateShippingFee();
+        CalculateTotalDiscount();
+        CalculateGrandTotal();
 
-        OrderItems.Add(item);
-        TotalPrice = CalculateTotalPrice();
+        return orderItem;
     }
+    
 
-    private decimal CalculateTotalPrice() => OrderItems.Sum(item => item.UnitPrice * item.Quantity);
-
-    public void UpdateOrderStatus(OrderStatus newStatus)
-    {
-        Status = newStatus;
-    }
+    private decimal CalculateSubTotal() => SubOrderItems.Sum(item => item.SubTotal);
+    private decimal CalculateGrandTotal() => SubOrderItems.Sum(item => item.GrandTotal);
+    private decimal CalculateTotalDiscount() => SubOrderItems.Sum(item => item.SellerDiscount + item.PlatformDiscount);
+    private decimal CalculateShippingFee() => SubOrderItems.Sum(item => item.ShippingFee);
+    
 }
 
-public enum OrderStatus
-{
-    PaymentAwaiting, //Chờ thanh toán đối với thanh toán khác tiền mặt
-    Confirmed, //Thanh toán hoàn tất (nếu tiền mặt thì vào đây luôn), Chuẩn bị hàng luôn
-    Delivered, //<=> Completed
-    Cancelled, //Shop hết hàng | Người dùng chủ động hủy.
-    Failed
-}
+
+//Awaiting Payment, Cancelled, status cha có thể dùng.

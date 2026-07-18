@@ -25,7 +25,7 @@ public class CreateOrderCommandHandler(
     protected override async Task<Result<CustomerOrderResponse>> HandleCommandAsync(CreateOrderCommand command, CancellationToken cancellationToken)
     {
         var customerId = command.CustomerId;
-        try
+            try
         {
             logger.LogInformation("Bắt đầu tạo đơn hàng cho khách hàng: {CustomerId}", customerId);
             
@@ -70,45 +70,60 @@ public class CreateOrderCommandHandler(
                 return Result<CustomerOrderResponse>.Failure(reserveData.ErrorMessage ?? "Không đủ tồn kho để đặt hàng", EErrorCode.InvalidInput);
             }
             
-            var order = new Order(customerId, command.ShippingAddress);
+            var orderRepo = unitOfWork.Repository<Order, Guid>();
+            
+            bool isOnlinePayment = command.PaymentProvider != "cod";
+            
+            var order = new Order(customerId, command.ShippingAddress, isOnlinePayment);
+            orderRepo.Add(order);
 
-            foreach (var item in reserveData.Items)
+            foreach (var itemDetailDto in reserveData.Items)
             {
-                order.AddItem(item.VariantId, item.ProductName, item.VariantName, item.UnitPrice, item.Quantity);
+                order.AddOrderItem(itemDetailDto.ShopId, itemDetailDto.VariantId, itemDetailDto.ProductName, itemDetailDto.VariantName, itemDetailDto.UnitPrice, itemDetailDto.Quantity);
             }
             
-            var orderRepo = unitOfWork.Repository<Order, Guid>();
-            orderRepo.Add(order);
-            
-            
-            var paymentResult = await paymentService.CreatePaymentAsync(order.Id, order.TotalPrice, command.PaymentProvider, cancellationToken);
+            var paymentResult = await paymentService.CreatePaymentAsync(order.Id, order.GrandTotal, command.PaymentProvider, cancellationToken);
             if (!paymentResult.IsSuccess)
             {
                 return Result<CustomerOrderResponse>.Failure(paymentResult);
             }
-
-            var paymentUrl = paymentResult.Value;
             
-            var orderCreatedEvent = new OrderCreatedEvent
+            var listSubOrderCreatedEvents = order.GetSubOrders().Select(subOrder => new SubOrderCreatedEvent
             {
-                OrderId = order.Id,
+                SubOrderId = subOrder.Id,
                 CreatedAt = DateTime.UtcNow,
-                CustomerId = customerId,
-                ShippingAddress = command.ShippingAddress,
-                OrderItems = order.OrderItems.Select(item => new OrderItemData
+                CustomerId = subOrder.CustomerId,
+                TotalAmount = subOrder.SubTotal,
+                ShippingAddress = order.ShippingAddress,
+                PaymentProvider = command.PaymentProvider,
+                OrderItems = subOrder.OrderItems.Select(item => new OrderItemData
                 {
                     VariantId = item.VariantId,
                     UnitPrice = item.UnitPrice,
                     Quantity = item.Quantity
-                }).ToList(),
-                TotalAmount = order.TotalPrice
-            };
-            await publisher.PublishAsync(orderCreatedEvent, cancellationToken);
+                }).ToList()
+            }).ToList();
+
+            foreach (var @event in listSubOrderCreatedEvents)
+            {
+                await publisher.PublishAsync(@event, cancellationToken);
+            }
+
+            var paymentUrl = paymentResult.Value;
             
             await unitOfWork.SaveChangesAsync(cancellationToken);
             
+            
+            var selectedVariantIds = selectedItems.Select(x => x.VariantId).ToList();
+            var clearCartResult = await cartService.ClearCart(customerId, selectedVariantIds);
+            if (!clearCartResult.IsSuccess)
+            {
+                logger.LogWarning("Không thể tự động xóa giỏ hàng cho khách hàng {CustomerId} sau khi tạo đơn: {Error}", customerId, clearCartResult.Errors);
+            }
+            
             var response = mapper.Map<CustomerOrderResponse>(order);
             
+            response.PaymentUrl = paymentUrl;
             return Result<CustomerOrderResponse>.Success(response);
         }
         catch (Exception ex)

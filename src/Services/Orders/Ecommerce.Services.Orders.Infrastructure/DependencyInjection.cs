@@ -23,7 +23,7 @@ public static class DependencyInjection
         services.AddMasstransitEventBus(configuration, config =>
         {
             config.AddConsumers(Assembly.GetExecutingAssembly());
-            config.AddSagaStateMachine<OrderStateMachine, OrderSagaState>()
+            config.AddSagaStateMachine<SubOrderStateMachine, SubOrderSagaState>()
                 .EntityFrameworkRepository(r =>
                 {
                     r.ConcurrencyMode = ConcurrencyMode.Optimistic;

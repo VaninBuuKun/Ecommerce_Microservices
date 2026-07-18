@@ -19,7 +19,7 @@ public class VNPayPaymentGateway(IOptions<VNPaySettings> options, IHttpContextAc
     public Task<CreatePaymentResult> CreatePaymentAsync(Payment payment, CancellationToken ct = default)
     {
         var createDate = DateTime.Now.ToString("yyyyMMddHHmmss");
-        var txnRef = payment.TargetId.ToString("N");
+        var txnRef = payment.OrderId.ToString("N");
         var expireDate = DateTime.Now.AddMinutes(15).ToString("yyyyMMddHHmmss");
         var clientIp = HttpContext?.Connection?.RemoteIpAddress?.ToString() ?? "127.0.0.1";
         if (clientIp == "::1") clientIp = "127.0.0.1";
@@ -33,7 +33,7 @@ public class VNPayPaymentGateway(IOptions<VNPaySettings> options, IHttpContextAc
             { "vnp_CurrCode", "VND" },
             { "vnp_IpAddr", clientIp},
             { "vnp_Locale", "vn" },
-            { "vnp_OrderInfo", $"Thanh toan don hang {payment.TargetId}" },
+            { "vnp_OrderInfo", $"Thanh toan don hang {payment.OrderId}" },
             { "vnp_OrderType", "other" },
             { "vnp_ReturnUrl", settings.RedirectUrl },
             { "vnp_TxnRef", txnRef },

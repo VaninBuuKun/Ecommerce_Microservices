@@ -4,7 +4,6 @@ using Ecommerce.Services.Orders.Contracts.Events;
 using Ecommerce.Services.Payments.Api.Models.Entities;
 using Ecommerce.Services.Payments.Api.Models.Enums;
 using Ecommerce.Services.Payments.Api.Services;
-using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Ecommerce.Services.Payments.Api.Controllers;
@@ -28,7 +27,7 @@ public class WebhooksController(
             var stringData = momoData.ToDictionary(k => k.Key, v => v.Value?.ToString() ?? "");
         
             var payment = await unitOfWork.Repository<Payment, Guid>()
-                .FirstOrDefaultAsync(p => p.TargetId == Guid.Parse(stringData["orderId"]));
+                .FirstOrDefaultAsync(p => p.OrderId == Guid.Parse(stringData["orderId"]));
         
             if (payment == null)
             {
@@ -64,12 +63,12 @@ public class WebhooksController(
                 payment.Status = PaymentStatus.Failed;
                 payment.ErrorMessage = stringData.GetValueOrDefault("message", "Unknown error");
                 
-                // Publish event thanh toán thất bại cho saga, release stock
-                await publisher.PublishAsync(new PaymentFailedEvent 
-                { 
-                    OrderId = orderId, 
-                    Reason = payment.ErrorMessage 
-                });
+                // // Publish event thanh toán thất bại cho saga, release stock
+                // await publisher.PublishAsync(new PaymentFailedEvent 
+                // { 
+                //     OriginalOrderId = orderId, 
+                //     Reason = payment.ErrorMessage 
+                // });
             }
             
             await unitOfWork.SaveChangesAsync();
@@ -104,7 +103,7 @@ public class WebhooksController(
             var orderId = Guid.Parse(txnRef);
             
             var payment = await unitOfWork.Repository<Payment, Guid>()
-                .FirstOrDefaultAsync(p => p.TargetId == orderId);
+                .FirstOrDefaultAsync(p => p.OrderId == orderId);
                 
             if (payment == null)
             {
@@ -142,7 +141,7 @@ public class WebhooksController(
                 // Publish event thanh toán thất bại cho saga, release stock
                 await publisher.PublishAsync(new PaymentFailedEvent 
                 { 
-                    OrderId = orderId, 
+                    OriginalOrderId = orderId, 
                     Reason = payment.ErrorMessage 
                 });
             }

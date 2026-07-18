@@ -52,6 +52,7 @@ public class ProductsController(ISender sender) : ControllerBase
     public async Task<IActionResult> AddProduct(ProductRequest request)
     {
         var result = await sender.Send(new CreateProductCommand(
+            request.ShopId,
             request.Name,
             request.Description
         ));

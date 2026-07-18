@@ -4,13 +4,15 @@ using Ecommerce.Services.Carts.Contracts.Dtos;
 
 namespace Ecommerce.Services.Orders.Contracts.Events;
 
-public record OrderCreatedEvent : IIntegrationEvent
+public record SubOrderCreatedEvent : IIntegrationEvent
 {
+    public Guid SubOrderId { get; set; }
     public Guid OrderId { get; set; }
     public DateTime CreatedAt { get; set; }
     public long CustomerId { get; set; }
+    public long ShopId { get; set; }
     public decimal TotalAmount { get; set; }
-    public long PaymentMethodId { get; set; }
     public string ShippingAddress { get; set; } = string.Empty;
+    public string PaymentProvider { get; set; }
     public List<OrderItemData> OrderItems { get; set; } = new List<OrderItemData>();
 }

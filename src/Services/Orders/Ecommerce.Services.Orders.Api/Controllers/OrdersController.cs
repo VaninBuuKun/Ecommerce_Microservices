@@ -28,7 +28,7 @@ public class OrdersController(ICurrentUserService currentUserService) : CleanV1C
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<IActionResult> GetOrdersByCustomer(long customerId, CancellationToken cancellationToken)
     {
-        var result = await _sender.SendAsync(new GetCustomerOrdersQuery(UserId), cancellationToken);
+        var result = await _sender.SendAsync(new GetSubOrdersQuery(UserId), cancellationToken);
 
         return result.IsSuccess 
             ? Ok(result) 

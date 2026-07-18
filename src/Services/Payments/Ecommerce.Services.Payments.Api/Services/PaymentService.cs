@@ -39,9 +39,8 @@ public class PaymentService(IEfUnitOfWork unitOfWork, PaymentGatewayFactory fact
         var payment = new Payment
         {
             Amount = paymentRequest.Amount,
-            TargetId = paymentRequest.TargetId,
-            Status = PaymentStatus.Pending,
-            Type = paymentRequest.PaymentType,
+            OrderId = paymentRequest.OrderId,
+            Status = PaymentStatus.UnPaid,
             MethodId = existingMethod.Id,
         };
 

@@ -1,6 +1,7 @@
 using Ecommerce.Services.Catalog.Application.Features.Products.Commands.ReleaseVariantStocks;
 using Ecommerce.Services.Catalog.Application.Features.Products.Dtos;
 using Ecommerce.Services.Orders.Contracts.Events;
+using Ecommerce.Services.Orders.Contracts.Requests;
 using MassTransit;
 using MediatR;
 

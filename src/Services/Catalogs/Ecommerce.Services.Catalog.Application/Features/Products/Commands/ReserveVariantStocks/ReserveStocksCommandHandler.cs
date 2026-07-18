@@ -28,6 +28,7 @@ public class ReserveStocksCommandHandler(IEfUnitOfWork unitOfWork, IVariantRepos
 
                 var newVariantStockInfo = new VariantStockInfo
                 {
+                    ShopId = variant.Product.ShopId,
                     VariantId = variant.Id,
                     Quantity = variantDto.Quantity,
                     AvailableStocks = variant.AvailableStocks,

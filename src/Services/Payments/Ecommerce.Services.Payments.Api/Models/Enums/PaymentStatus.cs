@@ -2,8 +2,7 @@ namespace Ecommerce.Services.Payments.Api.Models.Enums;
 
 public enum PaymentStatus
 {
-    Pending,
+    UnPaid,
     Paid,
-    Failed,
-    Refunded
+    Failed
 }

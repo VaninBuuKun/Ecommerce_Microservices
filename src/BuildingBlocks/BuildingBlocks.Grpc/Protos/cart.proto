@@ -6,6 +6,7 @@ package cart;
 
 service CartGrpc {
   rpc GetCartByCustomerId(GetCartByIdRequest) returns (GetCartByIdResponse);
+  rpc ClearCart(ClearCartRequest) returns (ClearCartResponse);
 }
 
 message GetCartByIdRequest {
@@ -21,4 +22,14 @@ message RpcCartItemDto {
 message GetCartByIdResponse {
   int64 customer_id = 1;
   repeated RpcCartItemDto items = 2;
+}
+
+message ClearCartRequest {
+  int64 customer_id = 1;
+  repeated string variant_ids = 2;
+}
+
+message ClearCartResponse {
+  bool is_success = 1;
+  string error_message = 2;
 }

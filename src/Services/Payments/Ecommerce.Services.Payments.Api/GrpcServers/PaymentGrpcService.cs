@@ -25,7 +25,7 @@ public class PaymentGrpcService(
             var amount = decimal.Parse(request.Amount, CultureInfo.InvariantCulture);
             var paymentRequest = new CreatePaymentRequest
             {
-                TargetId = Guid.Parse(request.TargetId),
+                OrderId = Guid.Parse(request.TargetId),
                 Amount = amount,
                 Currency = "VND",
                 MethodProvider = request.PaymentProvider,

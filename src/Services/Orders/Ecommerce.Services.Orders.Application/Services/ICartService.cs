@@ -7,4 +7,5 @@ namespace Ecommerce.Services.Orders.Application.Services;
 public interface ICartService
 {
     Task<Result<CartDto>> GetCartByCustomerId(long customerId);
+    Task<Result> ClearCart(long customerId, List<Guid> variantIds);
 }

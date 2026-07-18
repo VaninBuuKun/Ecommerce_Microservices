@@ -54,12 +54,13 @@ message ReserveStockResponse {
 }
 
 message RpcReservedStockItemDto {
-  string variantId = 1;
-  int32 quantity = 2;
-  int32 availableStocks = 3;
-  string productName = 4;
-  string variantName = 5;
-  string unitPrice = 6;
+  int64 shopId = 1;
+  string variantId = 2;
+  int32 quantity = 3;
+  int32 availableStocks = 4;
+  string productName = 5;
+  string variantName = 6;
+  string unitPrice = 7;
 }
 
 

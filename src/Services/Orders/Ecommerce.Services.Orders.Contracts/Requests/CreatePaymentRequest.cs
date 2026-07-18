@@ -1,8 +1,8 @@
 using System;
 
-namespace Ecommerce.Services.Orders.Contracts.Events;
+namespace Ecommerce.Services.Orders.Contracts.Requests;
 
-public class CreatePaymentCommand
+public class CreatePaymentRequest
 {
     public Guid OrderId { get; set; }
     public decimal Amount { get; set; }

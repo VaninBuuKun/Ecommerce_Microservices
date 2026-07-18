@@ -5,16 +5,17 @@ using BuildingBlocks.Shared.InfrastructureInterfaces.Caching;
 using Ecommerce.Services.Carts.Api.Models.Constansts;
 using Ecommerce.Services.Carts.Api.Models.Entities;
 using Ecommerce.Services.Orders.Contracts.Events;
+using Ecommerce.Services.Orders.Contracts.Requests;
 using MassTransit;
 using Microsoft.Extensions.Logging;
 
 namespace Ecommerce.Services.Carts.Api.Consumers;
 
-public class RemoveCartItemsConsumer(ICacheService cacheService, ILogger<RemoveCartItemsConsumer> logger) : IConsumer<RemoveCartItemsCommand>
+public class RemoveCartItemsConsumer(ICacheService cacheService, ILogger<RemoveCartItemsConsumer> logger) : IConsumer<RemoveCartItemsRequest>
 {
     private static readonly TimeSpan CartExpiry = TimeSpan.FromDays(7);
 
-    public async Task Consume(ConsumeContext<RemoveCartItemsCommand> context)
+    public async Task Consume(ConsumeContext<RemoveCartItemsRequest> context)
     {
         var customerId = context.Message.CustomerId;
         var variantIds = context.Message.VariantIds;
