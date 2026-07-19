@@ -20,16 +20,22 @@ try
     builder.Services.AddOpenApi();
     builder.Services.AddGrpc();
 
-//Layers
     builder.Services.AddInfrastructure(builder.Configuration);
     builder.Services.AddApplicationServices();
     builder.Services.AddScoped<IVariantRepository, VariantRepository>();
+    builder.Services.AddScoped<Ecommerce.Services.Catalog.Application.Commons.Interfaces.ISellerService, Ecommerce.Services.Catalog.Infrastructure.GrpcClients.SellerClientService>();
 
 //BuildingBlocks
     
     builder.Services.AddBuildingBlocksInfrastructure(builder.Configuration);
     builder.Services.AddBuildingBlocksWeb();
     builder.Services.AddBuildingBlocsAuth(builder.Configuration);
+
+    AppContext.SetSwitch("System.Net.Http.SocketsHttpHandler.Http2UnencryptedSupport", true);
+    builder.Services.AddGrpcClient<BuildingBlocks.Grpc.Services.SellerGrpc.SellerGrpcClient>(o =>
+    {
+        o.Address = new Uri(builder.Configuration["Services:SellerGrpcUrl"] ?? "http://localhost:5043");
+    });
 
     var app = builder.Build();
     if (app.Environment.IsDevelopment())

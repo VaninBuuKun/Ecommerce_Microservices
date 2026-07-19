@@ -39,26 +39,20 @@ public sealed class Order : AggregateRoot<Guid>, IDateTracking
     
     private SubOrder CreateSubOrder(long shopId)
     {
-        var existsingSubOrder = SubOrderItems.SingleOrDefault(o => o.ShopId == shopId);
-
-        if (existsingSubOrder != null)
-        {
-            throw new InvalidOperationException($"SubOrder for shop with ID {shopId} already exists.");
-        }
-        
-        var subOrder = new SubOrder(shopId, CustomerId, IsOnlinePayment);
+        var subOrder = new SubOrder(CustomerId, shopId, IsOnlinePayment);
         
         SubOrderItems.Add(subOrder);
         return subOrder;
     }
 
-    public OrderItem AddOrderItem(long ShopId, Guid VariantId, string ProductName, string VariantName, decimal unitPrice, int quantity)
+    public SubOrderItem AddOrderItem(long ShopId, Guid VariantId, string ProductName, string VariantName, decimal unitPrice, int quantity)
     {
         var subOrder = SubOrderItems.SingleOrDefault(o => o.ShopId == ShopId) ?? CreateSubOrder(ShopId);
         
-        var orderItem = new OrderItem
+        
+        var orderItem = new SubOrderItem
         {
-            OrderId = this.Id,
+            SubOrderId = subOrder.Id,
             ProductName = ProductName,
             UnitPrice = unitPrice,
             Quantity = quantity,
@@ -76,11 +70,25 @@ public sealed class Order : AggregateRoot<Guid>, IDateTracking
     }
     
 
-    private decimal CalculateSubTotal() => SubOrderItems.Sum(item => item.SubTotal);
-    private decimal CalculateGrandTotal() => SubOrderItems.Sum(item => item.GrandTotal);
-    private decimal CalculateTotalDiscount() => SubOrderItems.Sum(item => item.SellerDiscount + item.PlatformDiscount);
-    private decimal CalculateShippingFee() => SubOrderItems.Sum(item => item.ShippingFee);
-    
+    private void CalculateSubTotal() 
+    {
+        SubTotal = SubOrderItems.Sum(item => item.SubTotal);
+    }
+
+    private void CalculateGrandTotal() 
+    {
+        GrandTotal = SubOrderItems.Sum(item => item.GrandTotal);
+    }
+
+    private void CalculateTotalDiscount() 
+    {
+        TotalDiscount = SubOrderItems.Sum(item => item.SellerDiscount + item.PlatformDiscount);
+    }
+
+    private void CalculateShippingFee() 
+    {
+        ShippingFee = SubOrderItems.Sum(item => item.ShippingFee);
+    }
 }
 
 

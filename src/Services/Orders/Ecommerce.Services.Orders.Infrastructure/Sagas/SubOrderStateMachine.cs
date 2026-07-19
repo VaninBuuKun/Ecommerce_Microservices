@@ -28,6 +28,7 @@ public class SubOrderStateMachine : MassTransitStateMachine<SubOrderSagaState>
         Event(() => SubOrderConfirmed, x => x.CorrelateById(context => context.Message.SubOrderId));
         Event(() => SubOrderRejected, x => x.CorrelateById(context => context.Message.SubOrderId));
         Event(() => SubOrderShipped, x => x.CorrelateById(context => context.Message.SubOrderId));
+        Event(() => SubOrderDelivered, x => x.CorrelateById(context => context.Message.SubOrderId));
         Event(() => SubOrderCompleted, x => x.CorrelateById(context => context.Message.SubOrderId));
 
         Initially(

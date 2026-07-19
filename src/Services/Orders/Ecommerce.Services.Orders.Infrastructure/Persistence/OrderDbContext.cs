@@ -13,7 +13,7 @@ public class OrderDbContext(DbContextOptions<OrderDbContext> options, IInMemoryB
     public DbSet<SubOrderSagaState> SubOrderSagaStates { get; set; }
     public DbSet<Order> Orders { get; set; }
     public DbSet<SubOrder> SubOrders { get; set; }
-    public DbSet<OrderItem> OrderItems { get; set; }
+    public DbSet<SubOrderItem> OrderItems { get; set; }
     public DbSet<ShippingAddress> ShippingAddresses { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -61,13 +61,13 @@ public class OrderDbContext(DbContextOptions<OrderDbContext> options, IInMemoryB
             entity.Property(s => s.GrandTotal).HasColumnType("bigint");
             
             // Khai báo mối quan hệ 1-N với OrderItem thông qua Shadow FK "SubOrderId" tự sinh dưới bảng OrderItem
-            entity.HasMany(s => s.OrderItems)
-                  .WithOne()
-                  .HasForeignKey("SubOrderId")
+            entity.HasMany(s => s.SubOrderItems)
+                  .WithOne(i => i.SubOrder)
+                  .HasForeignKey(i => i.SubOrderId)
                   .OnDelete(DeleteBehavior.Cascade);
         });
 
-        modelBuilder.Entity<OrderItem>(entity =>
+        modelBuilder.Entity<SubOrderItem>(entity =>
         {
             entity.HasKey(i => i.Id);
             entity.Property(i => i.ProductName).IsRequired().HasMaxLength(255);

@@ -7,6 +7,7 @@ public enum EErrorCode
     InvalidArgument,
     InvalidInput,
     Forbidden,
+    Conflict,
     Unauthorized,
     NotFound,
     ValidationErrors,

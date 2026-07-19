@@ -30,6 +30,14 @@ public static class DependencyInjection
             config.AddConsumers(typeof(DependencyInjection).Assembly);
         });
 
+        // Đăng ký Grpc Client gọi sang Seller Service
+        services.AddGrpcClient<BuildingBlocks.Grpc.Services.SellerGrpc.SellerGrpcClient>(o =>
+        {
+            o.Address = new Uri(configuration["GrpcSettings:SellerUrl"] ?? "http://localhost:5004");
+        });
+
+        services.AddScoped<Ecommerce.Services.Catalog.Application.Commons.Interfaces.ISellerService, Ecommerce.Services.Catalog.Infrastructure.GrpcClients.SellerClientService>();
+
         return services;
     }
 }

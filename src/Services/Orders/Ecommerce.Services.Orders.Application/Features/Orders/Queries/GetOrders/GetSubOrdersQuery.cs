@@ -30,7 +30,7 @@ public class GetSubOrdersQueryHandler(
             predicate: o => o.CustomerId == customerId,
             orderBy: q => q.OrderByDescending(o => o.CreatedDate),
             cancellationToken: cancellationToken,
-            includes: o => o.OrderItems
+            includes: o => o.SubOrderItems
         );
         
         var response = mapper.Map<List<CustomerOrderResponse>>(orders);

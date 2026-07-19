@@ -1,0 +1,34 @@
+syntax = "proto3";
+
+option csharp_namespace = "BuildingBlocks.Grpc.Services";
+
+package seller;
+
+service SellerGrpc {
+  rpc ValidateShopOwner(ValidateShopOwnerRequest) returns (ValidateShopOwnerResponse);
+  rpc GetShopsByIds(GetShopsByIdsRequest) returns (GetShopsByIdsResponse);
+}
+
+message ValidateShopOwnerRequest {
+  int64 shop_id = 1;
+  int64 user_id = 2;
+}
+
+message ValidateShopOwnerResponse {
+  bool is_owner = 1;
+  string shop_name = 2;
+  bool is_active = 3;
+}
+
+message GetShopsByIdsRequest {
+  repeated int64 shop_ids = 1;
+}
+
+message ShopGrpcModel {
+  int64 shop_id = 1;
+  string name = 2;
+}
+
+message GetShopsByIdsResponse {
+  repeated ShopGrpcModel shops = 1;
+}

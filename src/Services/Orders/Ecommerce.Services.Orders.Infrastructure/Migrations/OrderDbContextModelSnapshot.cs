@@ -34,6 +34,9 @@ namespace Ecommerce.Services.Orders.Infrastructure.Migrations
                     b.Property<long>("CustomerId")
                         .HasColumnType("bigint");
 
+                    b.Property<long>("GrandTotal")
+                        .HasColumnType("bigint");
+
                     b.Property<DateTimeOffset?>("LastModifiedDate")
                         .HasColumnType("timestamp with time zone");
 
@@ -42,18 +45,120 @@ namespace Ecommerce.Services.Orders.Infrastructure.Migrations
                         .HasMaxLength(500)
                         .HasColumnType("character varying(500)");
 
-                    b.Property<int>("Status")
-                        .HasColumnType("integer");
+                    b.Property<long>("ShippingFee")
+                        .HasColumnType("bigint");
 
-                    b.Property<decimal>("TotalPrice")
-                        .HasColumnType("decimal(18,2)");
+                    b.Property<long>("SubTotal")
+                        .HasColumnType("bigint");
+
+                    b.Property<long>("TotalDiscount")
+                        .HasColumnType("bigint");
 
                     b.HasKey("Id");
 
                     b.ToTable("Orders");
                 });
 
-            modelBuilder.Entity("Ecommerce.Services.Orders.Domain.OrderItem", b =>
+            modelBuilder.Entity("Ecommerce.Services.Orders.Domain.ShippingAddress", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("AddressLine")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)");
+
+                    b.Property<DateTimeOffset>("CreatedDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<long>("CustomerId")
+                        .HasColumnType("bigint");
+
+                    b.Property<string>("District")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<bool>("IsDefault")
+                        .HasColumnType("boolean");
+
+                    b.Property<DateTimeOffset?>("LastModifiedDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Phone")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<string>("Province")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<string>("RecipientName")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<string>("Ward")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("ShippingAddresses");
+                });
+
+            modelBuilder.Entity("Ecommerce.Services.Orders.Domain.SubOrder", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset>("CreatedDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<long>("CustomerId")
+                        .HasColumnType("bigint");
+
+                    b.Property<long>("GrandTotal")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTimeOffset?>("LastModifiedDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("OrderId")
+                        .HasColumnType("uuid");
+
+                    b.Property<long>("PlatformDiscount")
+                        .HasColumnType("bigint");
+
+                    b.Property<long>("SellerDiscount")
+                        .HasColumnType("bigint");
+
+                    b.Property<long>("ShippingFee")
+                        .HasColumnType("bigint");
+
+                    b.Property<long>("ShopId")
+                        .HasColumnType("bigint");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("integer");
+
+                    b.Property<long>("SubTotal")
+                        .HasColumnType("bigint");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("OrderId");
+
+                    b.ToTable("SubOrders");
+                });
+
+            modelBuilder.Entity("Ecommerce.Services.Orders.Domain.SubOrderItem", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
@@ -65,9 +170,6 @@ namespace Ecommerce.Services.Orders.Infrastructure.Migrations
                     b.Property<DateTimeOffset?>("LastModifiedDate")
                         .HasColumnType("timestamp with time zone");
 
-                    b.Property<Guid>("OrderId")
-                        .HasColumnType("uuid");
-
                     b.Property<string>("ProductName")
                         .IsRequired()
                         .HasMaxLength(255)
@@ -75,6 +177,9 @@ namespace Ecommerce.Services.Orders.Infrastructure.Migrations
 
                     b.Property<int>("Quantity")
                         .HasColumnType("integer");
+
+                    b.Property<Guid>("SubOrderId")
+                        .HasColumnType("uuid");
 
                     b.Property<decimal>("UnitPrice")
                         .HasColumnType("decimal(18,2)");
@@ -88,12 +193,12 @@ namespace Ecommerce.Services.Orders.Infrastructure.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("OrderId");
+                    b.HasIndex("SubOrderId");
 
                     b.ToTable("OrderItems");
                 });
 
-            modelBuilder.Entity("Ecommerce.Services.Orders.Infrastructure.Sagas.OrderSagaState", b =>
+            modelBuilder.Entity("Ecommerce.Services.Orders.Infrastructure.Sagas.SubOrderSagaState", b =>
                 {
                     b.Property<Guid>("CorrelationId")
                         .ValueGeneratedOnAdd()
@@ -103,36 +208,22 @@ namespace Ecommerce.Services.Orders.Infrastructure.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
-                    b.Property<long>("CustomerId")
-                        .HasColumnType("bigint");
-
                     b.Property<string>("FailureReason")
                         .HasMaxLength(255)
                         .HasColumnType("character varying(255)");
 
-                    b.Property<long>("PaymentMethodId")
+                    b.Property<Guid>("OrderId")
+                        .HasColumnType("uuid");
+
+                    b.Property<long>("ShopId")
                         .HasColumnType("bigint");
-
-                    b.Property<string>("PaymentUrl")
-                        .HasColumnType("text");
-
-                    b.Property<string>("SerializedVariantIds")
-                        .IsRequired()
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("text")
-                        .HasDefaultValue("");
-
-                    b.Property<string>("ShippingAddress")
-                        .IsRequired()
-                        .HasMaxLength(500)
-                        .HasColumnType("character varying(500)");
 
                     b.Property<decimal>("TotalAmount")
                         .HasColumnType("decimal(18,2)");
 
                     b.HasKey("CorrelationId");
 
-                    b.ToTable("OrderSagaState");
+                    b.ToTable("SubOrderSagaStates");
                 });
 
             modelBuilder.Entity("MassTransit.EntityFrameworkCoreIntegration.InboxState", b =>
@@ -303,15 +394,26 @@ namespace Ecommerce.Services.Orders.Infrastructure.Migrations
                     b.ToTable("OutboxState");
                 });
 
-            modelBuilder.Entity("Ecommerce.Services.Orders.Domain.OrderItem", b =>
+            modelBuilder.Entity("Ecommerce.Services.Orders.Domain.SubOrder", b =>
                 {
                     b.HasOne("Ecommerce.Services.Orders.Domain.Order", "Order")
-                        .WithMany("OrderItems")
+                        .WithMany("SubOrderItems")
                         .HasForeignKey("OrderId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
                     b.Navigation("Order");
+                });
+
+            modelBuilder.Entity("Ecommerce.Services.Orders.Domain.SubOrderItem", b =>
+                {
+                    b.HasOne("Ecommerce.Services.Orders.Domain.SubOrder", "SubOrder")
+                        .WithMany("SubOrderItems")
+                        .HasForeignKey("SubOrderId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("SubOrder");
                 });
 
             modelBuilder.Entity("MassTransit.EntityFrameworkCoreIntegration.OutboxMessage", b =>
@@ -328,7 +430,12 @@ namespace Ecommerce.Services.Orders.Infrastructure.Migrations
 
             modelBuilder.Entity("Ecommerce.Services.Orders.Domain.Order", b =>
                 {
-                    b.Navigation("OrderItems");
+                    b.Navigation("SubOrderItems");
+                });
+
+            modelBuilder.Entity("Ecommerce.Services.Orders.Domain.SubOrder", b =>
+                {
+                    b.Navigation("SubOrderItems");
                 });
 #pragma warning restore 612, 618
         }

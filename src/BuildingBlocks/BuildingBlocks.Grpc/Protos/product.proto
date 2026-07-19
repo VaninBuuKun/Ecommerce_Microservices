@@ -19,6 +19,7 @@ message  GetVariantByIdRequest {
 message  GetVariantByIdResponse {
   string variantId = 1;
   int32 availableStocks = 2;
+  int64 shopId = 3;
 }
 
 //
@@ -36,6 +37,7 @@ message RpcVariantDto {
   string variantName = 4;
   string unitPrice = 5;
   int32 availableStocks = 6;
+  int64 shopId = 7;
 }
 
 message ReserveStockRequest {

@@ -8,6 +8,8 @@ using Ecommerce.Services.Carts.Api.Models.Entities;
 using Ecommerce.Services.Carts.Api.Models.Interfaces;
 using Microsoft.Extensions.Logging;
 
+using BuildingBlocks.Grpc.Services;
+
 namespace Ecommerce.Services.Carts.Api.Features.Carts.Commands.AddItemToCart;
 
 public record AddItemToCartCommand(long CustomerId, Guid ProductVariantId, int Quantity) : ICommand<CartItem>;
@@ -15,6 +17,7 @@ public record AddItemToCartCommand(long CustomerId, Guid ProductVariantId, int Q
 public class AddItemToCartCommandHandler(
     ICacheService cacheService,
     IProductService productService,
+    ISellerService sellerService,
     ILogger<AddItemToCartCommandHandler> logger)
     : ICommandHandler<AddItemToCartCommand, CartItem>
 {
@@ -32,6 +35,7 @@ public class AddItemToCartCommandHandler(
 
             if (itemResponse is not null)
             {
+                // Nếu sản phẩm đã tồn tại trong giỏ hàng, chỉ cần cập nhật thêm số lượng
                 itemResponse.Quantity += request.Quantity;
             }
             else
@@ -43,9 +47,21 @@ public class AddItemToCartCommandHandler(
                 {
                     return Result<CartItem>.Failure(productResult.Message ?? "Có lỗi xảy ra", productResult.ErrorCode);
                 }
-                
 
                 var product = productResult.Value!;
+
+                // Gọi thông qua Interface trừu tượng ISellerService
+                var isOwnerResult = await sellerService.ValidateShopOwnerAsync(product.ShopId, customerId);
+                if (!isOwnerResult.IsSuccess)
+                {
+                    return Result<CartItem>.Failure(isOwnerResult.Message ?? "Lỗi xác thực cửa hàng.", isOwnerResult.ErrorCode);
+                }
+
+                if (isOwnerResult.Value)
+                {
+                    logger.LogWarning("AddToCart: Chủ shop {UserId} không được phép tự mua hàng của chính mình (Shop {ShopId}).", customerId, product.ShopId);
+                    return Result<CartItem>.Failure("Bạn không thể thêm sản phẩm của chính cửa hàng mình vào giỏ hàng.", EErrorCode.Forbidden);
+                }
 
                 itemResponse = new CartItem
                 {
@@ -54,7 +70,6 @@ public class AddItemToCartCommandHandler(
                 };
                 cart.Items.Add(itemResponse);
             }
-            
 
             await cacheService.SetAsync(key, cart, CartExpiry, cancellationToken);
 

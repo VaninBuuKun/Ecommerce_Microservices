@@ -15,6 +15,7 @@ namespace Ecommerce.Services.Carts.Api.Features.Carts.Queries.GetCart;
 public class GetCartQueryHandler(
     ICacheService cacheService,
     IProductService productService,
+    ISellerService sellerService,
     ILogger<GetCartQueryHandler> logger, IMapper mapper)
     : IQueryHandler<GetCartQuery, CartResponse>
 {
@@ -27,7 +28,6 @@ public class GetCartQueryHandler(
                 CartCacheKey.GetCartCacheKey(customerId), 
                 cancellationToken);
 
-            
             if (cart == null)
             {
                 cart = new Cart(customerId);
@@ -43,31 +43,54 @@ public class GetCartQueryHandler(
                 return Result<CartResponse>.Success(new CartResponse()
                 {
                     CustomerId = customerId,
-                    Items = []
+                    ShopGroups = []
                 });
             }
+
             var variantIds = cart.Items.Select(i => i.ProductVariantId.ToString()).ToList();
-            
             var listProductResult = await productService.GetProductVariantListAsync(variantIds);
             
-            // Sử dụng {sanpham} thay vì @sanpham
-            logger.LogInformation("Lấy danh sách sản phẩm trong giỏ hàng: {sanpham}", listProductResult.Value);
+            if (!listProductResult.IsSuccess)
+            {
+                return Result<CartResponse>.Failure(listProductResult.Message ?? "Lỗi khi lấy thông tin sản phẩm", listProductResult.ErrorCode);
+            }
 
             var ListProductDto = listProductResult.Value;
             var productDist = ListProductDto.ToDictionary(p => p.VariantId);
             
+            // Map flat items list
+            var flatItems = mapper.Map<List<CartItemResponse>>(cart.Items);
+            foreach (var item in flatItems)
+            {
+                if (productDist.TryGetValue(item.ProductVariantId, out var productInfo))
+                {
+                    mapper.Map(productInfo, item);
+                }
+            }
+
+            // Lấy danh sách ShopId duy nhất trong giỏ hàng
+            var shopIds = flatItems.Select(i => i.ShopId).Distinct().ToList();
+
+            // Gọi sang Seller Service để lấy danh sách tên Shop tương ứng
+            var shopNamesResult = await sellerService.GetShopNamesAsync(shopIds);
+            var shopNamesDict = shopNamesResult.IsSuccess ? shopNamesResult.Value : new Dictionary<long, string>();
+
+            // Gom nhóm các Cart Item theo ShopId
+            var shopGroups = flatItems
+                .GroupBy(i => i.ShopId)
+                .Select(g => new ShopCartGroupResponse
+                {
+                    ShopId = g.Key,
+                    ShopName = shopNamesDict.TryGetValue(g.Key, out var name) ? name : $"Cửa hàng #{g.Key}",
+                    Items = g.ToList()
+                })
+                .ToList();
+
             var cartResponse = new CartResponse()
             {
                 CustomerId = customerId,
+                ShopGroups = shopGroups
             };
-
-            cartResponse.Items = mapper.Map<List<CartItemResponse>>(cart.Items);
-
-            foreach (var item in  cartResponse.Items)
-            {
-                mapper.Map(productDist[item.ProductVariantId], item);
-            }
-            //A->B
             
             return Result<CartResponse>.Success(cartResponse);
         }

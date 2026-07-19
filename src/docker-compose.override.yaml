@@ -71,6 +71,18 @@ services:
     volumes:
       - postgres_payment_data:/var/lib/postgresql/data
 
+  seller_db:
+    container_name: ecommerce_seller_db
+    restart: always
+    environment:
+      - POSTGRES_USER=db_user
+      - POSTGRES_PASSWORD=123456
+      - POSTGRES_DB=SellerDb
+    ports:
+      - "5436:5432"
+    volumes:
+      - postgres_seller_data:/var/lib/postgresql/data
+
   elasticsearch:
     container_name: ecommerce_elasticsearch
     restart: always
@@ -104,6 +116,8 @@ volumes:
   postgres_identity_data:
     driver: local
   postgres_payment_data:
+    driver: local
+  postgres_seller_data:
     driver: local
   elasticsearch_data:
     driver: local

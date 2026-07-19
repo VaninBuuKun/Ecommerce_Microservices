@@ -36,6 +36,9 @@ namespace Ecommerce.Services.Catalog.Infrastructure.Migrations
                         .IsRequired()
                         .HasColumnType("longtext");
 
+                    b.Property<long>("ShopId")
+                        .HasColumnType("bigint");
+
                     b.Property<string>("Status")
                         .IsRequired()
                         .HasMaxLength(20)

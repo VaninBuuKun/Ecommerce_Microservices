@@ -17,6 +17,8 @@ using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 
+using Microsoft.AspNetCore.Authorization;
+
 namespace Ecommerce.Services.Catalog.Api.Controllers;
 
 [ApiController]
@@ -49,6 +51,7 @@ public class ProductsController(ISender sender) : ControllerBase
     }
 
     [HttpPost]
+    [Authorize]
     public async Task<IActionResult> AddProduct(ProductRequest request)
     {
         var result = await sender.Send(new CreateProductCommand(

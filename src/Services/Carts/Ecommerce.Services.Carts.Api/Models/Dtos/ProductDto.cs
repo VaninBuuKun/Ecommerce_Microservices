@@ -4,8 +4,9 @@ public class ProductDto
 {
     public Guid ProductId { get; set; }
     public Guid VariantId { get; set; }
-    public string ProductName { get; set; }
-    public string VariantName { get; set; }
+    public long ShopId { get; set; }
+    public string ProductName { get; set; } = string.Empty;
+    public string VariantName { get; set; } = string.Empty;
     public decimal UnitPrice { get; set; }
     public decimal AvailableStocks { get; set; }
 }

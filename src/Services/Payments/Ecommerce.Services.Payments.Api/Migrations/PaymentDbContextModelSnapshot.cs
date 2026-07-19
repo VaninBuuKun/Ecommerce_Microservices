@@ -46,16 +46,13 @@ namespace Ecommerce.Services.Payments.Api.Migrations
                     b.Property<long>("MethodId")
                         .HasColumnType("bigint");
 
+                    b.Property<Guid>("OrderId")
+                        .HasColumnType("uuid");
+
                     b.Property<string>("PaymentUrl")
                         .HasColumnType("text");
 
                     b.Property<int>("Status")
-                        .HasColumnType("integer");
-
-                    b.Property<Guid>("TargetId")
-                        .HasColumnType("uuid");
-
-                    b.Property<int>("Type")
                         .HasColumnType("integer");
 
                     b.HasKey("Id");

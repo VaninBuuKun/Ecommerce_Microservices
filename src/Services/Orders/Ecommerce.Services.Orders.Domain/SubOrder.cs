@@ -16,12 +16,14 @@ public class SubOrder : EntityTrackingBase<Guid>
     public long GrandTotal { get; private set; }
     
     public SubOrderStatus Status { get; private set; }
-    public ICollection<OrderItem> OrderItems { get; set; } = new List<OrderItem>();
+    public ICollection<SubOrderItem> SubOrderItems { get; set; } = new List<SubOrderItem>();
 
     public DateTimeOffset CreatedDate { get; set; }
     public DateTimeOffset? LastModifiedDate { get; set; }
     
     public Order Order { get; private set; }
+
+    private SubOrder() {}
     
     public SubOrder(long customerId, long shopId, bool isOnlinePayment)
     {
@@ -31,25 +33,33 @@ public class SubOrder : EntityTrackingBase<Guid>
         Status = isOnlinePayment ? SubOrderStatus.AwaitingPayment : SubOrderStatus.AwaitingConfirmation;
     }
 
-    public void AddOrderItem(OrderItem orderItem)
+    public void AddOrderItem(SubOrderItem subOrderItem)
     {
-        var existingItem = OrderItems.SingleOrDefault(item => item.VariantId == orderItem.VariantId);
+        var existingItem = SubOrderItems.SingleOrDefault(item => item.VariantId == subOrderItem.VariantId);
 
         if (existingItem != null)
         {
-            throw new InvalidOperationException($"Order item with variant ID {orderItem.VariantId} already exists in the sub-order.");
+            throw new InvalidOperationException($"Order item with variant ID {subOrderItem.VariantId} already exists in the sub-order.");
         }
         
-        OrderItems.Add(orderItem);
+        SubOrderItems.Add(subOrderItem);
+
+        CalculateSubTotal();
+        CalculateGrandTotal();
     }
 
     public void UpdateSubOrderStatus(SubOrderStatus subOrderStatus)
     {
         Status = subOrderStatus;
     }
-
-    public decimal CalculateSubTotal()
+    
+    private void CalculateSubTotal() 
     {
-        return OrderItems.Sum(item => item.UnitPrice * item.Quantity);
+        SubTotal = (long)SubOrderItems.Sum(item => item.Quantity * item.UnitPrice);
+    }
+
+    private void CalculateGrandTotal() 
+    {
+        GrandTotal = SubTotal + ShippingFee - SellerDiscount - PlatformDiscount;
     }
 }

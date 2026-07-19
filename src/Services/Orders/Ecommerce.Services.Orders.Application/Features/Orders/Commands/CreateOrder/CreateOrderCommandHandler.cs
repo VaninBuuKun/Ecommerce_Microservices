@@ -96,7 +96,7 @@ public class CreateOrderCommandHandler(
                 TotalAmount = subOrder.SubTotal,
                 ShippingAddress = order.ShippingAddress,
                 PaymentProvider = command.PaymentProvider,
-                OrderItems = subOrder.OrderItems.Select(item => new OrderItemData
+                OrderItems = subOrder.SubOrderItems.Select(item => new OrderItemData
                 {
                     VariantId = item.VariantId,
                     UnitPrice = item.UnitPrice,

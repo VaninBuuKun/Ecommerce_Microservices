@@ -7,6 +7,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\..\..\BuildingBlocks\BuildingBlocks.Grpc\BuildingBlocks.Grpc.csproj" />
     <ProjectReference Include="..\..\Orders\Ecommerce.Services.Orders.Contracts\Ecommerce.Services.Orders.Contracts.csproj" />
     <ProjectReference Include="..\Ecommerce.Services.Catalog.Application\Ecommerce.Services.Catalog.Application.csproj" />
     <ProjectReference Include="..\Ecommerce.Services.Catalog.Domain\Ecommerce.Services.Catalog.Domain.csproj" />

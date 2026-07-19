@@ -22,6 +22,7 @@ try
 {
     //MyDI
     builder.Services.AddScoped<IProductService, ProductClientService>();
+    builder.Services.AddScoped<ISellerService, SellerClientService>();
     builder.Services.AddHttpContextAccessor();
 
 //BuildingBlocks
@@ -35,6 +36,10 @@ try
     builder.Services.AddGrpcClient<ProductGrpc.ProductGrpcClient>(o =>
     {
         o.Address = new Uri(builder.Configuration["Services:ProductGrpcUrl"]);
+    });
+    builder.Services.AddGrpcClient<SellerGrpc.SellerGrpcClient>(o =>
+    {
+        o.Address = new Uri(builder.Configuration["Services:SellerGrpcUrl"] ?? "http://localhost:5043");
     });
     builder.Services.AddGrpc();
 

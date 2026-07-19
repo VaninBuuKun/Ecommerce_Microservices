@@ -31,6 +31,7 @@ public class ProductGrpcService(ISender sender, ILogger<ProductGrpcService> logg
 
         response.VariantId = variant.Id.ToString();
         response.AvailableStocks = variant.AvailableStocks;
+        response.ShopId = variant.ShopId;
 
         return response;
     }
@@ -59,6 +60,7 @@ public class ProductGrpcService(ISender sender, ILogger<ProductGrpcService> logg
             variant.AvailableStocks = variantDto.AvailableStocks;
             variant.VariantId = variantDto.Id.ToString();
             variant.VariantName = variantDto.VariantName;
+            variant.ShopId = variantDto.ShopId;
             response.Variants.Add(variant);
         }
         return response;
@@ -96,6 +98,7 @@ public class ProductGrpcService(ISender sender, ILogger<ProductGrpcService> logg
         {
             response.Items.Add(new RpcReservedStockItemDto()
             {
+                ShopId = item.ShopId,
                 VariantId = item.VariantId.ToString(),
                 Quantity = item.Quantity,
                 AvailableStocks = item.AvailableStocks,
