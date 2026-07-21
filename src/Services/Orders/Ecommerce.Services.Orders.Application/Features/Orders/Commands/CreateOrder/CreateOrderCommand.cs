@@ -8,5 +8,8 @@ namespace Ecommerce.Services.Orders.Application.Features.Commands.CreateOrder;
 public record CreateOrderCommand(
     long CustomerId,
     string PaymentProvider,
-    string ShippingAddress
+    string ShippingAddress,
+    string RecipientName,
+    string RecipientPhone,
+    string RecipientWardId
 ) : ICommand<CustomerOrderResponse>;

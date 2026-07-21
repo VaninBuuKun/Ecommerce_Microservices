@@ -74,7 +74,7 @@ public class CreateOrderCommandHandler(
             
             bool isOnlinePayment = command.PaymentProvider != "cod";
             
-            var order = new Order(customerId, command.ShippingAddress, isOnlinePayment);
+            var order = new Order(customerId, command.ShippingAddress, isOnlinePayment, command.RecipientName, command.RecipientPhone, command.RecipientWardId);
             orderRepo.Add(order);
 
             foreach (var itemDetailDto in reserveData.Items)
@@ -93,8 +93,12 @@ public class CreateOrderCommandHandler(
                 SubOrderId = subOrder.Id,
                 CreatedAt = DateTime.UtcNow,
                 CustomerId = subOrder.CustomerId,
+                ShopId = subOrder.ShopId,
                 TotalAmount = subOrder.SubTotal,
                 ShippingAddress = order.ShippingAddress,
+                RecipientName = order.RecipientName,
+                RecipientPhone = order.RecipientPhone,
+                RecipientWardId = order.RecipientWardId,
                 PaymentProvider = command.PaymentProvider,
                 OrderItems = subOrder.SubOrderItems.Select(item => new OrderItemData
                 {

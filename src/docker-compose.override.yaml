@@ -83,6 +83,18 @@ services:
     volumes:
       - postgres_seller_data:/var/lib/postgresql/data
 
+  shipping_db:
+    container_name: ecommerce_shipping_db
+    restart: always
+    environment:
+      - POSTGRES_USER=db_user
+      - POSTGRES_PASSWORD=123456
+      - POSTGRES_DB=ShippingDb
+    ports:
+      - "5437:5432"
+    volumes:
+      - postgres_shipping_data:/var/lib/postgresql/data
+
   elasticsearch:
     container_name: ecommerce_elasticsearch
     restart: always
@@ -118,6 +130,8 @@ volumes:
   postgres_payment_data:
     driver: local
   postgres_seller_data:
+    driver: local
+  postgres_shipping_data:
     driver: local
   elasticsearch_data:
     driver: local

@@ -79,6 +79,9 @@ EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "QueryDb", "QueryDb", "{9D57CF15-9990-498E-87D2-C313CD4FBCCB}"
 	ProjectSection(SolutionItems) = preProject
 		QueryDb\OrderServices.sql = QueryDb\OrderServices.sql
+		QueryDb\Catalog.sql = QueryDb\Catalog.sql
+		QueryDb\SellerService.sql = QueryDb\SellerService.sql
+		QueryDb\Shipping.sql = QueryDb\Shipping.sql
 	EndProjectSection
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Identity", "Identity", "{FFF8B124-DA0A-4225-8888-6E5327A517E7}"
@@ -92,6 +95,141 @@ EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Payments", "Payments", "{DA171040-2998-47F0-8C3D-DFFF2AAF8101}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Ecommerce.Services.Payments.Api", "src\Services\Payments\Ecommerce.Services.Payments.Api\Ecommerce.Services.Payments.Api.csproj", "{FC02E955-5E21-4927-B434-BB3F0C1B0866}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "docs", "docs", "{2C269E02-79FF-48E3-A3A7-B23F482A4E2D}"
+	ProjectSection(SolutionItems) = preProject
+		Docs\docs\AI-rcm-service\ai-recommendation-architecture.md = Docs\docs\AI-rcm-service\ai-recommendation-architecture.md
+		Docs\docs\AI-rcm-service\ai-recommendation-sequence-diagram.md = Docs\docs\AI-rcm-service\ai-recommendation-sequence-diagram.md
+		Docs\docs\AI-rcm-service\ai-recommendation-simple.md = Docs\docs\AI-rcm-service\ai-recommendation-simple.md
+		Docs\docs\AI-rcm-service\ai-recommendation.plantuml = Docs\docs\AI-rcm-service\ai-recommendation.plantuml
+		Docs\docs\AI-rcm-service\architure.png = Docs\docs\AI-rcm-service\architure.png
+		Docs\docs\AI-rcm-service\README.md = Docs\docs\AI-rcm-service\README.md
+		Docs\docs\AI-rcm-service\sequence.png = Docs\docs\AI-rcm-service\sequence.png
+		Docs\docs\api-docs\API_Auth_Profile_FOR_FRONTEND-V1.md = Docs\docs\api-docs\API_Auth_Profile_FOR_FRONTEND-V1.md
+		Docs\docs\api-docs\API_CMS_SubscriptionPlan_FOR_FRONTEND-V1.md = Docs\docs\api-docs\API_CMS_SubscriptionPlan_FOR_FRONTEND-V1.md
+		Docs\docs\api-docs\API_CMS_Subscription_FOR_FRONTEND-V1.md = Docs\docs\api-docs\API_CMS_Subscription_FOR_FRONTEND-V1.md
+		Docs\docs\api-docs\API_CONTENT_CREATOR_COMPLETE_FLOW.md = Docs\docs\api-docs\API_CONTENT_CREATOR_COMPLETE_FLOW.md
+		Docs\docs\cache-doc\CACHE_BUG_FIX_SUMMARY.md = Docs\docs\cache-doc\CACHE_BUG_FIX_SUMMARY.md
+		Docs\docs\cache-doc\CACHE_OPTIMIZATION_NO_DOUBLE_WRITE.md = Docs\docs\cache-doc\CACHE_OPTIMIZATION_NO_DOUBLE_WRITE.md
+		Docs\docs\cache-doc\CACHE_WRITE_PATTERN_EXPLAINED.md = Docs\docs\cache-doc\CACHE_WRITE_PATTERN_EXPLAINED.md
+		Docs\docs\cache-doc\CRITICAL_FIX_SUBSCRIPTION_CACHE_OVERWRITE.md = Docs\docs\cache-doc\CRITICAL_FIX_SUBSCRIPTION_CACHE_OVERWRITE.md
+		Docs\docs\cache-doc\REFRESH_TOKEN_USERPROFILEID_FIX.md = Docs\docs\cache-doc\REFRESH_TOKEN_USERPROFILEID_FIX.md
+		Docs\docs\cache-doc\USERID_VS_USERPROFILEID_PATTERN.md = Docs\docs\cache-doc\USERID_VS_USERPROFILEID_PATTERN.md
+		Docs\docs\cache-doc\USERPROFILEID_CACHE_FIX_SUMMARY.md = Docs\docs\cache-doc\USERPROFILEID_CACHE_FIX_SUMMARY.md
+		Docs\docs\content-services\1.png = Docs\docs\content-services\1.png
+		Docs\docs\content-services\ContentService.png = Docs\docs\content-services\ContentService.png
+		Docs\docs\content-services\PODCAST_SUBSCRIPTION_CHECK.md = Docs\docs\content-services\PODCAST_SUBSCRIPTION_CHECK.md
+		Docs\docs\content-services\SUBSCRIPTION_CHECK_SUMMARY.md = Docs\docs\content-services\SUBSCRIPTION_CHECK_SUMMARY.md
+		Docs\docs\content-services\Upload.png = Docs\docs\content-services\Upload.png
+		Docs\docs\content-services\user_apply_creator.png = Docs\docs\content-services\user_apply_creator.png
+		Docs\docs\content-services\user_apply_creator_final.png = Docs\docs\content-services\user_apply_creator_final.png
+		Docs\docs\logging\CORRELATION_ID_AND_HEALTH_CHECKS.md = Docs\docs\logging\CORRELATION_ID_AND_HEALTH_CHECKS.md
+		Docs\docs\logging\CORRELATION_ID_DEEP_DIVE.md = Docs\docs\logging\CORRELATION_ID_DEEP_DIVE.md
+		Docs\docs\logging\CORRELATION_ID_FLOW_DIAGRAMS.md = Docs\docs\logging\CORRELATION_ID_FLOW_DIAGRAMS.md
+		Docs\docs\logging\logging-system-documentation.md = Docs\docs\logging\logging-system-documentation.md
+		Docs\docs\logging\logging-tracing-distribution-sequence.png = Docs\docs\logging\logging-tracing-distribution-sequence.png
+		Docs\docs\logging\login-tracing-flow.md = Docs\docs\logging\login-tracing-flow.md
+		Docs\docs\logging\service-configuration-summary.md = Docs\docs\logging\service-configuration-summary.md
+		Docs\docs\masstransit-doc\concepts\CONSUMERS.MD = Docs\docs\masstransit-doc\concepts\CONSUMERS.MD
+		Docs\docs\masstransit-doc\concepts\EXCEPTIONS.MD = Docs\docs\masstransit-doc\concepts\EXCEPTIONS.MD
+		Docs\docs\masstransit-doc\concepts\MEDIATOR.md = Docs\docs\masstransit-doc\concepts\MEDIATOR.md
+		Docs\docs\masstransit-doc\concepts\MESSAGES.MD = Docs\docs\masstransit-doc\concepts\MESSAGES.MD
+		Docs\docs\masstransit-doc\concepts\PRODUCERS.md = Docs\docs\masstransit-doc\concepts\PRODUCERS.md
+		Docs\docs\masstransit-doc\concepts\REQUESTS.md = Docs\docs\masstransit-doc\concepts\REQUESTS.md
+		Docs\docs\masstransit-doc\concepts\ROUTING-SLIPS.md = Docs\docs\masstransit-doc\concepts\ROUTING-SLIPS.md
+		Docs\docs\masstransit-doc\concepts\TESTING.md = Docs\docs\masstransit-doc\concepts\TESTING.md
+		Docs\docs\masstransit-doc\configurations\CONSUMERS.md = Docs\docs\masstransit-doc\configurations\CONSUMERS.md
+		Docs\docs\masstransit-doc\configurations\MIDDLEWARE-FILTERS.md = Docs\docs\masstransit-doc\configurations\MIDDLEWARE-FILTERS.md
+		Docs\docs\masstransit-doc\configurations\MIDDLEWARE-OVERVIEW.md = Docs\docs\masstransit-doc\configurations\MIDDLEWARE-OVERVIEW.md
+		Docs\docs\masstransit-doc\configurations\MIDDLEWARE-SCOPED-FILTERS.md = Docs\docs\masstransit-doc\configurations\MIDDLEWARE-SCOPED-FILTERS.md
+		Docs\docs\masstransit-doc\configurations\MIDDLEWARE-TRANSACTION-FILTERS.md = Docs\docs\masstransit-doc\configurations\MIDDLEWARE-TRANSACTION-FILTERS.md
+		Docs\docs\masstransit-doc\configurations\MIDDLEWARE-TRANSACTION-OUTBOX.md = Docs\docs\masstransit-doc\configurations\MIDDLEWARE-TRANSACTION-OUTBOX.md
+		Docs\docs\masstransit-doc\configurations\OVERVIEW.md = Docs\docs\masstransit-doc\configurations\OVERVIEW.md
+		Docs\docs\masstransit-doc\configurations\PERSISTENCE-EF-CORE.md = Docs\docs\masstransit-doc\configurations\PERSISTENCE-EF-CORE.md
+		Docs\docs\masstransit-doc\configurations\SAGA-CUSTOM.md = Docs\docs\masstransit-doc\configurations\SAGA-CUSTOM.md
+		Docs\docs\masstransit-doc\configurations\SAGA-EVENT.md = Docs\docs\masstransit-doc\configurations\SAGA-EVENT.md
+		Docs\docs\masstransit-doc\configurations\SAGA-OVERVIEW.md = Docs\docs\masstransit-doc\configurations\SAGA-OVERVIEW.md
+		Docs\docs\masstransit-doc\configurations\SAGA-REGISTRATION.md = Docs\docs\masstransit-doc\configurations\SAGA-REGISTRATION.md
+		Docs\docs\masstransit-doc\configurations\SAGA-REQUEST.md = Docs\docs\masstransit-doc\configurations\SAGA-REQUEST.md
+		Docs\docs\masstransit-doc\configurations\SAGA-STATE.md = Docs\docs\masstransit-doc\configurations\SAGA-STATE.md
+		Docs\docs\masstransit-doc\configurations\TRANSPORT-RABBITMQ.md = Docs\docs\masstransit-doc\configurations\TRANSPORT-RABBITMQ.md
+		Docs\docs\masstransit-doc\ENTITY_FRAMEWORK_OUTBOX_SETUP.md = Docs\docs\masstransit-doc\ENTITY_FRAMEWORK_OUTBOX_SETUP.md
+		Docs\docs\masstransit-doc\pattern\CLAIM-CHECK.md = Docs\docs\masstransit-doc\pattern\CLAIM-CHECK.md
+		Docs\docs\masstransit-doc\pattern\DURATION-FEATURE.md = Docs\docs\masstransit-doc\pattern\DURATION-FEATURE.md
+		Docs\docs\masstransit-doc\pattern\IN-MEMORY-OUTBOX.md = Docs\docs\masstransit-doc\pattern\IN-MEMORY-OUTBOX.md
+		Docs\docs\masstransit-doc\pattern\JOB-CONSUMER.md = Docs\docs\masstransit-doc\pattern\JOB-CONSUMER.md
+		Docs\docs\masstransit-doc\pattern\NEW-ID.md = Docs\docs\masstransit-doc\pattern\NEW-ID.md
+		Docs\docs\masstransit-doc\pattern\ROUTING-SLIPS.md = Docs\docs\masstransit-doc\pattern\ROUTING-SLIPS.md
+		Docs\docs\masstransit-doc\pattern\ROUTING-TRIP.md = Docs\docs\masstransit-doc\pattern\ROUTING-TRIP.md
+		Docs\docs\masstransit-doc\pattern\SAGA-CONSUMER.md = Docs\docs\masstransit-doc\pattern\SAGA-CONSUMER.md
+		Docs\docs\masstransit-doc\pattern\SAGA-GUIDENCE.md = Docs\docs\masstransit-doc\pattern\SAGA-GUIDENCE.md
+		Docs\docs\masstransit-doc\pattern\SAGA-OVERVIEW.md = Docs\docs\masstransit-doc\pattern\SAGA-OVERVIEW.md
+		Docs\docs\masstransit-doc\pattern\SAGA-PERSISTENCE.md = Docs\docs\masstransit-doc\pattern\SAGA-PERSISTENCE.md
+		Docs\docs\masstransit-doc\pattern\SAGA-STATE-MACHINE.md = Docs\docs\masstransit-doc\pattern\SAGA-STATE-MACHINE.md
+		Docs\docs\masstransit-doc\pattern\TRANSACTIONAL-OUTBOX.md = Docs\docs\masstransit-doc\pattern\TRANSACTIONAL-OUTBOX.md
+		Docs\docs\outbox-pattern-doc\FINAL_IPUSERAGENT_SOLUTION.md = Docs\docs\outbox-pattern-doc\FINAL_IPUSERAGENT_SOLUTION.md
+		Docs\docs\outbox-pattern-doc\OUTBOX_EVENT_INTEGRATION.md = Docs\docs\outbox-pattern-doc\OUTBOX_EVENT_INTEGRATION.md
+		Docs\docs\payment-integration\MOMO-payment-sequence.png = Docs\docs\payment-integration\MOMO-payment-sequence.png
+		Docs\docs\payment-integration\PAYMENT_METHOD_SEEDING.md = Docs\docs\payment-integration\PAYMENT_METHOD_SEEDING.md
+		Docs\docs\payment-integration\PAYMENT_SEEDING_REFACTOR.md = Docs\docs\payment-integration\PAYMENT_SEEDING_REFACTOR.md
+		Docs\docs\register-subscription-payment\CACHE_SYNC_DOCUMENTATION_UPDATE.md = Docs\docs\register-subscription-payment\CACHE_SYNC_DOCUMENTATION_UPDATE.md
+		Docs\docs\register-subscription-payment\CACHE_SYNC_VISUAL_COMPARISON.md = Docs\docs\register-subscription-payment\CACHE_SYNC_VISUAL_COMPARISON.md
+		Docs\docs\register-subscription-payment\SEQUENCE_DIAGRAMS_INDEX.md = Docs\docs\register-subscription-payment\SEQUENCE_DIAGRAMS_INDEX.md
+		Docs\docs\register-subscription-payment\SEQUENCE_DIAGRAM_COMPACT.md = Docs\docs\register-subscription-payment\SEQUENCE_DIAGRAM_COMPACT.md
+		Docs\docs\register-subscription-payment\SEQUENCE_DIAGRAM_MINIMAL.md = Docs\docs\register-subscription-payment\SEQUENCE_DIAGRAM_MINIMAL.md
+		Docs\docs\register-subscription-payment\SUBSCRIPTION_CACHE_INTEGRATION.md = Docs\docs\register-subscription-payment\SUBSCRIPTION_CACHE_INTEGRATION.md
+		Docs\docs\register-subscription-payment\SUBSCRIPTION_SYSTEM_COMPLETE_DOCUMENTATION.md = Docs\docs\register-subscription-payment\SUBSCRIPTION_SYSTEM_COMPLETE_DOCUMENTATION.md
+		Docs\docs\register-subscription-payment\SUBSCRIPTION_SYSTEM_DOCUMENTATION_INDEX.md = Docs\docs\register-subscription-payment\SUBSCRIPTION_SYSTEM_DOCUMENTATION_INDEX.md
+		Docs\docs\register-subscription-payment\SUBSCRIPTION_SYSTEM_QUICK_REFERENCE.md = Docs\docs\register-subscription-payment\SUBSCRIPTION_SYSTEM_QUICK_REFERENCE.md
+		Docs\docs\register-user\flow-chart-register.png = Docs\docs\register-user\flow-chart-register.png
+		Docs\docs\register-user\otp-cache-redis-structure.png = Docs\docs\register-user\otp-cache-redis-structure.png
+		Docs\docs\register-user\REGISTRATION_FLOW_DIAGRAMS.md = Docs\docs\register-user\REGISTRATION_FLOW_DIAGRAMS.md
+		Docs\docs\register-user\sequence-diagram-register-happycase.png = Docs\docs\register-user\sequence-diagram-register-happycase.png
+		Docs\docs\register-user\sequence-diagram-register-rollbackcase.png = Docs\docs\register-user\sequence-diagram-register-rollbackcase.png
+		Docs\docs\register-user\UPDATED_REGISTRATION_WORKFLOW.md = Docs\docs\register-user\UPDATED_REGISTRATION_WORKFLOW.md
+		Docs\docs\user-activity-log\USER_ACTIVITY_LOGGING_IMPLEMENTATION.md = Docs\docs\user-activity-log\USER_ACTIVITY_LOGGING_IMPLEMENTATION.md
+		Docs\docs\user-create-admin\COMPLETE_FIX_SUMMARY.md = Docs\docs\user-create-admin\COMPLETE_FIX_SUMMARY.md
+		Docs\docs\user-create-admin\USERID_NULLABLE_FIX.md = Docs\docs\user-create-admin\USERID_NULLABLE_FIX.md
+		Docs\docs\user-management\CONCURRENCY_RETRY_FIX.md = Docs\docs\user-management\CONCURRENCY_RETRY_FIX.md
+		Docs\docs\analysis-register-subscription-outbox.md = Docs\docs\analysis-register-subscription-outbox.md
+		Docs\docs\CHANGES-SUMMARY-2025-10-31.md = Docs\docs\CHANGES-SUMMARY-2025-10-31.md
+		Docs\docs\content-creator-registration-sequence.md = Docs\docs\content-creator-registration-sequence.md
+		Docs\docs\CREATOR_APPROVAL_COMPLETE_FLOW.md = Docs\docs\CREATOR_APPROVAL_COMPLETE_FLOW.md
+		Docs\docs\DIAGRAMS-UPDATE-v2.1.md = Docs\docs\DIAGRAMS-UPDATE-v2.1.md
+		Docs\docs\FINAL-CHANGES-SUMMARY.md = Docs\docs\FINAL-CHANGES-SUMMARY.md
+		Docs\docs\graph-diagram-microservice-structure-v1.png = Docs\docs\graph-diagram-microservice-structure-v1.png
+		Docs\docs\OUTBOX-FIX-SUMMARY.md = Docs\docs\OUTBOX-FIX-SUMMARY.md
+		Docs\docs\register-subscription-flow-comparison.ts = Docs\docs\register-subscription-flow-comparison.ts
+		Docs\docs\RPC-FAILURE-HANDLING.md = Docs\docs\RPC-FAILURE-HANDLING.md
+		Docs\docs\S3_ENDPOINTS_INVENTORY.md = Docs\docs\S3_ENDPOINTS_INVENTORY.md
+		Docs\docs\S3_MIDDLEWARE_FIX_LOG.md = Docs\docs\S3_MIDDLEWARE_FIX_LOG.md
+		Docs\docs\S3_QUICK_REFERENCE.md = Docs\docs\S3_QUICK_REFERENCE.md
+		Docs\docs\S3_TRANSFORMATION_INDEX.md = Docs\docs\S3_TRANSFORMATION_INDEX.md
+		Docs\docs\S3_URL_TRANSFORMATION_GUIDE.md = Docs\docs\S3_URL_TRANSFORMATION_GUIDE.md
+		Docs\docs\S3_URL_TRANSFORMATION_SUMMARY.md = Docs\docs\S3_URL_TRANSFORMATION_SUMMARY.md
+		Docs\docs\SAGA_ARCHITECTURE_DIAGRAMS.md = Docs\docs\SAGA_ARCHITECTURE_DIAGRAMS.md
+		Docs\docs\SAGA_ARCHITECTURE_GUIDE.md = Docs\docs\SAGA_ARCHITECTURE_GUIDE.md
+		Docs\docs\SAGA_DOCUMENTATION_INDEX.md = Docs\docs\SAGA_DOCUMENTATION_INDEX.md
+		Docs\docs\SAGA-REQUESTPAYMENT-REMOVAL.md = Docs\docs\SAGA-REQUESTPAYMENT-REMOVAL.md
+		Docs\docs\SWAGGER_CSS_XML_FIX.md = Docs\docs\SWAGGER_CSS_XML_FIX.md
+		Docs\docs\USER_UPDATE_APIS_COMPLETE.md = Docs\docs\USER_UPDATE_APIS_COMPLETE.md
+		Docs\docs\VERIFICATION-CHECKLIST.md = Docs\docs\VERIFICATION-CHECKLIST.md
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "ghi chú", "ghi chú", "{1DE83C2C-DC0F-471E-89BA-FBB152035C6B}"
+	ProjectSection(SolutionItems) = preProject
+		Docs\ghi chú\notes = Docs\ghi chú\notes
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Sellers", "Sellers", "{282ACC7C-7978-43A8-9E5C-BE0175F95266}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Ecommerce.Services.Sellers.Api", "src\Services\Sellers\Ecommerce.Services.Sellers.Api\Ecommerce.Services.Sellers.Api.csproj", "{9965A177-F972-4B95-8409-41E2882E9322}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Ecommerce.Services.Sellers.Contracts", "src\Services\Sellers\Ecommerce.Services.Sellers.Contracts\Ecommerce.Services.Sellers.Contracts.csproj", "{F2DABA83-0CE3-4395-8A80-F440261018C0}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Shippings", "Shippings", "{6749F3DD-1C18-D3B8-E069-BA7AB59F77E1}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Ecommerce.Services.Shippings.Api", "src\Services\Shippings\Ecommerce.Services.Shippings.Api\Ecommerce.Services.Shippings.Api.csproj", "{9EA0D126-B801-4255-B44A-5C7F5DBD0EF1}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -403,6 +541,42 @@ Global
 		{FC02E955-5E21-4927-B434-BB3F0C1B0866}.Release|x64.Build.0 = Release|Any CPU
 		{FC02E955-5E21-4927-B434-BB3F0C1B0866}.Release|x86.ActiveCfg = Release|Any CPU
 		{FC02E955-5E21-4927-B434-BB3F0C1B0866}.Release|x86.Build.0 = Release|Any CPU
+		{9965A177-F972-4B95-8409-41E2882E9322}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{9965A177-F972-4B95-8409-41E2882E9322}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{9965A177-F972-4B95-8409-41E2882E9322}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{9965A177-F972-4B95-8409-41E2882E9322}.Debug|x64.Build.0 = Debug|Any CPU
+		{9965A177-F972-4B95-8409-41E2882E9322}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{9965A177-F972-4B95-8409-41E2882E9322}.Debug|x86.Build.0 = Debug|Any CPU
+		{9965A177-F972-4B95-8409-41E2882E9322}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{9965A177-F972-4B95-8409-41E2882E9322}.Release|Any CPU.Build.0 = Release|Any CPU
+		{9965A177-F972-4B95-8409-41E2882E9322}.Release|x64.ActiveCfg = Release|Any CPU
+		{9965A177-F972-4B95-8409-41E2882E9322}.Release|x64.Build.0 = Release|Any CPU
+		{9965A177-F972-4B95-8409-41E2882E9322}.Release|x86.ActiveCfg = Release|Any CPU
+		{9965A177-F972-4B95-8409-41E2882E9322}.Release|x86.Build.0 = Release|Any CPU
+		{F2DABA83-0CE3-4395-8A80-F440261018C0}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F2DABA83-0CE3-4395-8A80-F440261018C0}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F2DABA83-0CE3-4395-8A80-F440261018C0}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{F2DABA83-0CE3-4395-8A80-F440261018C0}.Debug|x64.Build.0 = Debug|Any CPU
+		{F2DABA83-0CE3-4395-8A80-F440261018C0}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{F2DABA83-0CE3-4395-8A80-F440261018C0}.Debug|x86.Build.0 = Debug|Any CPU
+		{F2DABA83-0CE3-4395-8A80-F440261018C0}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F2DABA83-0CE3-4395-8A80-F440261018C0}.Release|Any CPU.Build.0 = Release|Any CPU
+		{F2DABA83-0CE3-4395-8A80-F440261018C0}.Release|x64.ActiveCfg = Release|Any CPU
+		{F2DABA83-0CE3-4395-8A80-F440261018C0}.Release|x64.Build.0 = Release|Any CPU
+		{F2DABA83-0CE3-4395-8A80-F440261018C0}.Release|x86.ActiveCfg = Release|Any CPU
+		{F2DABA83-0CE3-4395-8A80-F440261018C0}.Release|x86.Build.0 = Release|Any CPU
+		{9EA0D126-B801-4255-B44A-5C7F5DBD0EF1}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{9EA0D126-B801-4255-B44A-5C7F5DBD0EF1}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{9EA0D126-B801-4255-B44A-5C7F5DBD0EF1}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{9EA0D126-B801-4255-B44A-5C7F5DBD0EF1}.Debug|x64.Build.0 = Debug|Any CPU
+		{9EA0D126-B801-4255-B44A-5C7F5DBD0EF1}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{9EA0D126-B801-4255-B44A-5C7F5DBD0EF1}.Debug|x86.Build.0 = Debug|Any CPU
+		{9EA0D126-B801-4255-B44A-5C7F5DBD0EF1}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{9EA0D126-B801-4255-B44A-5C7F5DBD0EF1}.Release|Any CPU.Build.0 = Release|Any CPU
+		{9EA0D126-B801-4255-B44A-5C7F5DBD0EF1}.Release|x64.ActiveCfg = Release|Any CPU
+		{9EA0D126-B801-4255-B44A-5C7F5DBD0EF1}.Release|x64.Build.0 = Release|Any CPU
+		{9EA0D126-B801-4255-B44A-5C7F5DBD0EF1}.Release|x86.ActiveCfg = Release|Any CPU
+		{9EA0D126-B801-4255-B44A-5C7F5DBD0EF1}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -441,5 +615,12 @@ Global
 		{B86C7B09-8EFB-4000-94D8-367571149A19} = {3128A9F2-A7A2-2E48-E60D-3543DBA4F26A}
 		{DA171040-2998-47F0-8C3D-DFFF2AAF8101} = {1CCA764A-C052-4010-B92E-BE066A0A5B0D}
 		{FC02E955-5E21-4927-B434-BB3F0C1B0866} = {DA171040-2998-47F0-8C3D-DFFF2AAF8101}
+		{2C269E02-79FF-48E3-A3A7-B23F482A4E2D} = {3AEEC034-B061-4B35-848F-475FFAF246B2}
+		{1DE83C2C-DC0F-471E-89BA-FBB152035C6B} = {3AEEC034-B061-4B35-848F-475FFAF246B2}
+		{282ACC7C-7978-43A8-9E5C-BE0175F95266} = {1CCA764A-C052-4010-B92E-BE066A0A5B0D}
+		{9965A177-F972-4B95-8409-41E2882E9322} = {282ACC7C-7978-43A8-9E5C-BE0175F95266}
+		{F2DABA83-0CE3-4395-8A80-F440261018C0} = {282ACC7C-7978-43A8-9E5C-BE0175F95266}
+		{6749F3DD-1C18-D3B8-E069-BA7AB59F77E1} = {1CCA764A-C052-4010-B92E-BE066A0A5B0D}
+		{9EA0D126-B801-4255-B44A-5C7F5DBD0EF1} = {6749F3DD-1C18-D3B8-E069-BA7AB59F77E1}
 	EndGlobalSection
 EndGlobal

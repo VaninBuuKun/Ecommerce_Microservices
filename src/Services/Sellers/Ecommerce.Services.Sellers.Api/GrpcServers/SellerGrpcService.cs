@@ -49,4 +49,24 @@ public class SellerGrpcService(IEfUnitOfWork unitOfWork) : SellerGrpc.SellerGrpc
 
         return response;
     }
+
+    public override async Task<GetShopShippingInfoResponse> GetShopShippingInfo(GetShopShippingInfoRequest request, ServerCallContext context)
+    {
+        var shop = await _shopRepository.FirstOrDefaultAsync(s => s.Id == request.ShopId);
+        if (shop == null)
+        {
+            throw new RpcException(new Status(StatusCode.NotFound, $"Shop with ID {request.ShopId} not found."));
+        }
+
+        return new GetShopShippingInfoResponse
+        {
+            ShopId = shop.Id,
+            ShopName = shop.Name,
+            Phone = shop.PickUpAddress?.Phone ?? string.Empty,
+            AddressLine = shop.PickUpAddress?.AddressLine ?? string.Empty,
+            WardCode = shop.PickUpAddress?.WardCode ?? string.Empty,
+            DistrictId = shop.PickUpAddress?.DistrictId ?? 0,
+            ProvinceId = shop.PickUpAddress?.ProvinceId ?? 0
+        };
+    }
 }

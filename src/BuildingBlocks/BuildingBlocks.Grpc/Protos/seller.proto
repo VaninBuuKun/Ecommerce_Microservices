@@ -7,6 +7,7 @@ package seller;
 service SellerGrpc {
   rpc ValidateShopOwner(ValidateShopOwnerRequest) returns (ValidateShopOwnerResponse);
   rpc GetShopsByIds(GetShopsByIdsRequest) returns (GetShopsByIdsResponse);
+  rpc GetShopShippingInfo(GetShopShippingInfoRequest) returns (GetShopShippingInfoResponse);
 }
 
 message ValidateShopOwnerRequest {
@@ -31,4 +32,18 @@ message ShopGrpcModel {
 
 message GetShopsByIdsResponse {
   repeated ShopGrpcModel shops = 1;
+}
+
+message GetShopShippingInfoRequest {
+  int64 shop_id = 1;
+}
+
+message GetShopShippingInfoResponse {
+  int64 shop_id = 1;
+  string shop_name = 2;
+  string phone = 3;
+  string address_line = 4;
+  string ward_code = 5;
+  int32 district_id = 6;
+  int32 province_id = 7;
 }

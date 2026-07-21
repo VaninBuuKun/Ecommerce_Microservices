@@ -1,0 +1,26 @@
+using System;
+using BuildingBlocks.Shared.Domains;
+using Ecommerce.Services.Shippings.Api.Models.Enums;
+
+namespace Ecommerce.Services.Shippings.Api.Models.Entities;
+
+public class Shipment : EntityTrackingBase<Guid>
+{
+    public Guid SubOrderId { get; set; }
+    public Guid OrderId { get; set; }
+    public string? WaybillCode { get; set; }
+    public string CarrierName { get; set; } = "GHN";
+    public decimal ShippingFee { get; set; }
+    public ShipmentStatus Status { get; set; } = ShipmentStatus.Created;
+    
+    public string SenderAddress { get; set; } = string.Empty;
+    public string RecipientAddress { get; set; } = string.Empty;
+    
+    public double Weight { get; set; } // in grams
+    public double Height { get; set; } // in cm
+    public double Width { get; set; }  // in cm
+    public double Length { get; set; } // in cm
+
+    public string? FailureReason { get; set; }
+    public string? TrackingLogs { get; set; } // JSON format of delivery stages
+}

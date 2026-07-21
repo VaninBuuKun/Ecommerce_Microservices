@@ -11,4 +11,10 @@ public class SubOrderSagaState : SagaStateMachineInstance
     public long ShopId { get; set; }
     public decimal TotalAmount { get; set; }
     public string FailureReason { get; set; }
+    public string? ItemsJson { get; set; }
+    public string ShippingAddress { get; set; } = string.Empty;
+    public string RecipientName { get; set; } = string.Empty;
+    public string RecipientPhone { get; set; } = string.Empty;
+    public string RecipientWardId { get; set; } = string.Empty;
 }
+

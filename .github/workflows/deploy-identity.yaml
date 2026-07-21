@@ -1,0 +1,29 @@
+name: 🚀 Deploy Identity Service (VMware)
+
+on:
+  push:
+    branches:
+      - main  # Trigger khi bạn merge/push code vào nhánh main
+
+jobs:
+  deploy:
+    runs-on: self-hosted  # Chạy trực tiếp trên máy ảo VMware của bạn
+    
+    steps:
+      - name: 📂 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 🐳 Build and Run Containers
+        run: |
+          cd src
+          # Chạy docker compose build và restart service
+          docker compose -f docker-compose.identity-test.yaml up --build -d
+
+      - name: 🧹 Cleanup unused Docker Images
+        run: |
+          docker image prune -f
+
+      - name: 📊 Check status
+        run: |
+          cd src
+          docker compose -f docker-compose.identity-test.yaml ps

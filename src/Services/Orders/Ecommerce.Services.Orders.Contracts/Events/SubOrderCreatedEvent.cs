@@ -13,6 +13,9 @@ public record SubOrderCreatedEvent : IIntegrationEvent
     public long ShopId { get; set; }
     public decimal TotalAmount { get; set; }
     public string ShippingAddress { get; set; } = string.Empty;
+    public string RecipientName { get; set; } = string.Empty;
+    public string RecipientPhone { get; set; } = string.Empty;
+    public string RecipientWardId { get; set; } = string.Empty;
     public string PaymentProvider { get; set; }
     public List<OrderItemData> OrderItems { get; set; } = new List<OrderItemData>();
 }

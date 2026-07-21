@@ -1,0 +1,36 @@
+services:
+  identity_db:
+    container_name: ecommerce_identity_db_test
+    image: postgres:16-alpine
+    restart: always
+    environment:
+      - POSTGRES_USER=db_user
+      - POSTGRES_PASSWORD=123456
+      - POSTGRES_DB=IdentityDb
+    ports:
+      - "5434:5432"
+    volumes:
+      - postgres_identity_test_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U db_user -d IdentityDb"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  identity-service:
+    container_name: ecommerce_identity_service_test
+    build:
+      context: ../  # Trỏ ra ngoài thư mục src/ để lấy được cả BuildingBlocks và Services
+      dockerfile: Services/Identity/Identity.Api/Dockerfile
+    restart: always
+    ports:
+      - "5001:8080" # Map cổng 5001 ngoài máy vào cổng 8080 của container
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ConnectionStrings__Database=Host=identity_db;Port=5432;Database=IdentityDb;Username=db_user;Password=123456;
+    depends_on:
+      identity_db:
+        condition: service_healthy
+
+volumes:
+  postgres_identity_test_data:

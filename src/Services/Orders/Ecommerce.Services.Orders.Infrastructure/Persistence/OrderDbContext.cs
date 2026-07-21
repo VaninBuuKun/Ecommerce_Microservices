@@ -29,6 +29,8 @@ public class OrderDbContext(DbContextOptions<OrderDbContext> options, IInMemoryB
             entity.HasKey(x => x.CorrelationId);
             entity.Property(x => x.TotalAmount).HasColumnType("decimal(18,2)");
             entity.Property(x => x.FailureReason).HasMaxLength(255).IsRequired(false);
+            entity.Property(x => x.ItemsJson).IsRequired(false);
+            entity.Property(x => x.ShippingAddress).HasMaxLength(500).IsRequired(false);
         });
         
         modelBuilder.Entity<Order>(entity =>
