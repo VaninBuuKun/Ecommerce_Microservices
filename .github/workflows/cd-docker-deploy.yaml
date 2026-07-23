@@ -1,12 +1,15 @@
-name: 🚀 CD - Docker Build & Deploy
+name: 🚀 CI/CD - Pull Request & Deploy
 
 on:
+  pull_request:
+    branches: [ main ] # Kích hoạt chạy thử khi có Pull Request hướng về nhánh main
+  
   push:
-    branches: [ main ]
+    branches: [ main ] # Hoặc chạy khi đã merge thành công vào main để deploy
 
 jobs:
   build:
-    name: 🐳 Build Docker Images
+    name: 🐳 Build & Test Docker Images
     runs-on: ubuntu-latest
 
     steps:
@@ -18,13 +21,13 @@ jobs:
 
       - name: 🏗️ Verify Docker Build for all services
         run: |
-          # Chạy lệnh build thử toàn bộ services để đảm bảo không lỗi Dockerfile
           docker compose -f src/docker-compose.prod.yaml build
 
-  # JOB 2: Deploy to Server (Chạy trực tiếp trên VPS của bạn khi JOB 1 thành công)
+  # JOB 2: Chỉ thực hiện deploy thật khi code ĐÃ ĐƯỢC MERGE vào nhánh main
   deploy:
-    name: 🚀 Deploy to VMware VPS
-    needs: build  # Chỉ chạy khi job "build" ở trên thành công
+    name: 🚀 Deploy to VPS Singapore
+    needs: build
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: self-hosted
 
     steps:
@@ -34,11 +37,10 @@ jobs:
       - name: 🚀 Start/Update Containers
         run: |
           cd src
-          # Build lại và khởi chạy tất cả services
           docker compose -f docker-compose.prod.yaml up --build -d
 
       - name: 🧹 Cleanup unused Docker Images
-        continue-on-error: true
+        continue-on-error: true 
         run: |
           docker image prune -f
 

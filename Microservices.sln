@@ -231,6 +231,14 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Shippings", "Shippings", "{
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Ecommerce.Services.Shippings.Api", "src\Services\Shippings\Ecommerce.Services.Shippings.Api\Ecommerce.Services.Shippings.Api.csproj", "{9EA0D126-B801-4255-B44A-5C7F5DBD0EF1}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = ".github", ".github", "{175030A3-FCEC-496B-B6C1-D5BB9786D821}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "workflows", "workflows", "{DD565378-BF66-4A09-9993-C94CF3800138}"
+	ProjectSection(SolutionItems) = preProject
+		.github\workflows\cd-docker-deploy.yaml = .github\workflows\cd-docker-deploy.yaml
+		.github\workflows\ci-build-solution.yaml = .github\workflows\ci-build-solution.yaml
+	EndProjectSection
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -622,5 +630,6 @@ Global
 		{F2DABA83-0CE3-4395-8A80-F440261018C0} = {282ACC7C-7978-43A8-9E5C-BE0175F95266}
 		{6749F3DD-1C18-D3B8-E069-BA7AB59F77E1} = {1CCA764A-C052-4010-B92E-BE066A0A5B0D}
 		{9EA0D126-B801-4255-B44A-5C7F5DBD0EF1} = {6749F3DD-1C18-D3B8-E069-BA7AB59F77E1}
+		{DD565378-BF66-4A09-9993-C94CF3800138} = {175030A3-FCEC-496B-B6C1-D5BB9786D821}
 	EndGlobalSection
 EndGlobal

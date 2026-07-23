@@ -17,6 +17,7 @@ using Microsoft.AspNetCore.HttpOverrides;
 using Scalar.AspNetCore;
 using Serilog;
 using Serilog.Core;
+using MassTransit;
 
 var builder = WebApplication.CreateBuilder(args);
 builder.AddCustomSerilog("paymentApi");
@@ -59,7 +60,14 @@ try
 
     //BuildingBlocks
     builder.Services.AddBuildingBlocksWeb();
-    builder.Services.AddMasstransitEventBus(builder.Configuration);
+    builder.Services.AddMasstransitEventBus(builder.Configuration, config =>
+    {
+        config.AddEntityFrameworkOutbox<PaymentDbContext>(o =>
+        {
+            o.UsePostgres();
+            o.UseBusOutbox();
+        });
+    });
     builder.Services.AddBuildingBlocksInfrastructure(builder.Configuration);
     builder.Services.AddBuildingBlocsAuth(builder.Configuration);
     builder.Services.AddBuildingBlocksApplication(Assembly.GetExecutingAssembly());

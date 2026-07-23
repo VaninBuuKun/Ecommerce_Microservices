@@ -63,12 +63,12 @@ public class WebhooksController(
                 payment.Status = PaymentStatus.Failed;
                 payment.ErrorMessage = stringData.GetValueOrDefault("message", "Unknown error");
                 
-                // // Publish event thanh toán thất bại cho saga, release stock
-                // await publisher.PublishAsync(new PaymentFailedEvent 
-                // { 
-                //     OriginalOrderId = orderId, 
-                //     Reason = payment.ErrorMessage 
-                // });
+                // Publish event thanh toán thất bại cho saga, release stock
+                await publisher.PublishAsync(new PaymentFailedEvent 
+                { 
+                    OriginalOrderId = orderId, 
+                    Reason = payment.ErrorMessage 
+                });
             }
             
             await unitOfWork.SaveChangesAsync();

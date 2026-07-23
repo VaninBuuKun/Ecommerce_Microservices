@@ -48,9 +48,31 @@ public class SubOrder : EntityTrackingBase<Guid>
         CalculateGrandTotal();
     }
 
-    public void UpdateSubOrderStatus(SubOrderStatus subOrderStatus)
+    // ========== Status Transition Rules ==========
+    
+    private static readonly Dictionary<SubOrderStatus, HashSet<SubOrderStatus>> AllowedTransitions = new()
     {
-        Status = subOrderStatus;
+        [SubOrderStatus.AwaitingPayment] = new() { SubOrderStatus.AwaitingConfirmation, SubOrderStatus.Cancelled },
+        [SubOrderStatus.AwaitingConfirmation] = new() { SubOrderStatus.Processing, SubOrderStatus.Cancelled },
+        [SubOrderStatus.Processing] = new() { SubOrderStatus.Shipping, SubOrderStatus.Cancelled },
+        [SubOrderStatus.Shipping] = new() { SubOrderStatus.Delivered, SubOrderStatus.Cancelled },
+        [SubOrderStatus.Delivered] = new() { SubOrderStatus.Completed },
+        [SubOrderStatus.Completed] = new(),
+        [SubOrderStatus.Cancelled] = new(),
+    };
+
+    public void UpdateSubOrderStatus(SubOrderStatus newStatus)
+    {
+        if (Status == newStatus) return;
+
+        if (!AllowedTransitions.TryGetValue(Status, out var allowed) || !allowed.Contains(newStatus))
+        {
+            throw new InvalidOperationException(
+                $"Không thể chuyển trạng thái đơn hàng từ '{Status}' sang '{newStatus}'. " +
+                $"Các trạng thái hợp lệ: [{string.Join(", ", allowed ?? new HashSet<SubOrderStatus>())}]");
+        }
+
+        Status = newStatus;
     }
     
     private void CalculateSubTotal() 

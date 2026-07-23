@@ -62,6 +62,11 @@ try
     builder.Services.AddMasstransitEventBus(builder.Configuration, config =>
     {
         config.AddConsumers(Assembly.GetExecutingAssembly());
+        config.AddEntityFrameworkOutbox<ShippingDbContext>(o =>
+        {
+            o.UsePostgres();
+            o.UseBusOutbox();
+        });
     });
 
     builder.Services.AddBuildingBlocksInfrastructure(builder.Configuration);

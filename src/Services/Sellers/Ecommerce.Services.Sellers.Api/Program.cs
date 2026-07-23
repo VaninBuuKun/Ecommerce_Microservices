@@ -14,6 +14,7 @@ using Ecommerce.Services.Sellers.Api.Persistances;
 using Microsoft.EntityFrameworkCore;
 using Scalar.AspNetCore;
 using Serilog;
+using MassTransit;
 
 try
 {
@@ -40,7 +41,14 @@ try
 
     // Cấu hình Building Blocks
     builder.Services.AddBuildingBlocksWeb();
-    builder.Services.AddMasstransitEventBus(builder.Configuration);
+    builder.Services.AddMasstransitEventBus(builder.Configuration, config =>
+    {
+        config.AddEntityFrameworkOutbox<SellerDbContext>(o =>
+        {
+            o.UsePostgres();
+            o.UseBusOutbox();
+        });
+    });
     builder.Services.AddBuildingBlocksInfrastructure(builder.Configuration);
     builder.Services.AddBuildingBlocsAuth(builder.Configuration);
     builder.Services.AddBuildingBlocksApplication(Assembly.GetExecutingAssembly());

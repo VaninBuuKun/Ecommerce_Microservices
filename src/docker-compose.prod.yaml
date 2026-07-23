@@ -306,7 +306,7 @@ services:
       dockerfile: src/ApiGateway/Ecommerce.ApiGateway/Dockerfile
     restart: always
     ports:
-      - "80:8080"  # Expose port 80 cho client gọi vào gateway công cộng
+      - "5000:8080"  # Đổi sang port 5000 vì nginx host đã chiếm dụng port 80
     environment:
       - ASPNETCORE_ENVIRONMENT=Production
       - ASPNETCORE_URLS=http://+:8080
