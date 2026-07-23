@@ -1,0 +1,339 @@
+services:
+  # ==========================================
+  # DATABASES & INFRASTRUCTURE
+  # ==========================================
+  product_db:
+    container_name: ecommerce_product_db
+    image: mysql:8.4
+    restart: always
+    environment:
+      - MYSQL_ROOT_PASSWORD=123456
+      - MYSQL_DATABASE=ProductCatalogDb
+      - MYSQL_USER=db_user
+      - MYSQL_PASSWORD=123456
+    ports:
+      - "3308:3306"
+    volumes:
+      - mysql_product_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  cart_db:
+    container_name: ecommerce_cart_db
+    image: redis:7.4
+    restart: always
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_cart_data:/data
+    command: redis-server --appendonly yes
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  order_db:
+    container_name: ecommerce_order_db
+    image: postgres:16-alpine
+    restart: always
+    environment:
+      - POSTGRES_USER=db_user
+      - POSTGRES_PASSWORD=123456
+      - POSTGRES_DB=OrderDb
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres_order_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U db_user -d OrderDb"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  identity_db:
+    container_name: ecommerce_identity_db
+    image: postgres:16-alpine
+    restart: always
+    environment:
+      - POSTGRES_USER=db_user
+      - POSTGRES_PASSWORD=123456
+      - POSTGRES_DB=IdentityDb
+    ports:
+      - "5434:5432"
+    volumes:
+      - postgres_identity_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U db_user -d IdentityDb"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  payment_db:
+    container_name: ecommerce_payment_db
+    image: postgres:16-alpine
+    restart: always
+    environment:
+      - POSTGRES_USER=db_user
+      - POSTGRES_PASSWORD=123456
+      - POSTGRES_DB=PaymentDb
+    ports:
+      - "5435:5432"
+    volumes:
+      - postgres_payment_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U db_user -d PaymentDb"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  seller_db:
+    container_name: ecommerce_seller_db
+    image: postgres:16-alpine
+    restart: always
+    environment:
+      - POSTGRES_USER=db_user
+      - POSTGRES_PASSWORD=123456
+      - POSTGRES_DB=SellerDb
+    ports:
+      - "5436:5432"
+    volumes:
+      - postgres_seller_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U db_user -d SellerDb"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  shipping_db:
+    container_name: ecommerce_shipping_db
+    image: postgres:16-alpine
+    restart: always
+    environment:
+      - POSTGRES_USER=db_user
+      - POSTGRES_PASSWORD=123456
+      - POSTGRES_DB=ShippingDb
+    ports:
+      - "5437:5432"
+    volumes:
+      - postgres_shipping_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U db_user -d ShippingDb"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  rabbitmq:
+    container_name: ecommerce_rabbitmq
+    image: rabbitmq:3-management
+    restart: always
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    environment:
+      - RABBITMQ_DEFAULT_USER=guest
+      - RABBITMQ_DEFAULT_PASS=guest
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "check_port_connectivity"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  elasticsearch:
+    container_name: ecommerce_elasticsearch
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.12.0
+    restart: always
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=false
+      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+    ports:
+      - "9200:9200"
+    volumes:
+      - elasticsearch_data:/usr/share/elasticsearch/data
+
+  kibana:
+    container_name: ecommerce_kibana
+    image: docker.elastic.co/kibana/kibana:8.12.0
+    restart: always
+    environment:
+      - ELASTICSEARCH_HOSTS=http://elasticsearch:9200
+    ports:
+      - "5601:5601"
+    depends_on:
+      - elasticsearch
+
+  # ==========================================
+  # APPLICATION SERVICES
+  # ==========================================
+  identity-service:
+    container_name: ecommerce_identity_service
+    build:
+      context: ../
+      dockerfile: src/Services/Identity/Identity.Api/Dockerfile
+    restart: always
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Production
+      - ConnectionStrings__Database=Host=identity_db;Port=5432;Database=IdentityDb;Username=db_user;Password=123456;
+      - Kestrel__Endpoints__Http__Url=http://+:5027
+      - Kestrel__Endpoints__Grpc__Url=http://+:5028
+    depends_on:
+      identity_db:
+        condition: service_healthy
+
+  catalog-service:
+    container_name: ecommerce_catalog_service
+    build:
+      context: ../
+      dockerfile: src/Services/Catalogs/Ecommerce.Services.Catalog.Api/Dockerfile
+    restart: always
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Production
+      - ConnectionStrings__Database=Server=product_db;Port=3306;Database=ProductCatalogDb;User=db_user;Password=123456;
+      - IdentityUrl=http://identity-service:5027
+      - Services__SellerGrpcUrl=http://seller-service:5043
+      - Kestrel__Endpoints__Http__Url=http://+:5001
+      - Kestrel__Endpoints__Grpc__Url=http://+:5002
+    depends_on:
+      product_db:
+        condition: service_healthy
+      identity-service:
+        condition: service_started
+
+  cart-service:
+    container_name: ecommerce_cart_service
+    build:
+      context: ../
+      dockerfile: src/Services/Carts/Ecommerce.Services.Carts.Api/Dockerfile
+    restart: always
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Production
+      - ConnectionStrings__Redis=cart_db:6379
+      - RabbitMq__Host=rabbitmq
+      - Services__ProductGrpcUrl=http://catalog-service:5002
+      - Services__SellerGrpcUrl=http://seller-service:5043
+      - IdentityUrl=http://identity-service:5027
+      - Kestrel__Endpoints__Http__Url=http://+:5004
+      - Kestrel__Endpoints__Grpc__Url=http://+:5005
+    depends_on:
+      cart_db:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      catalog-service:
+        condition: service_started
+
+  order-service:
+    container_name: ecommerce_order_service
+    build:
+      context: ../
+      dockerfile: src/Services/Orders/Ecommerce.Services.Orders.Api/Dockerfile
+    restart: always
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Production
+      - ConnectionStrings__Database=Host=order_db;Port=5432;Database=OrderDb;Username=db_user;Password=123456;
+      - RabbitMq__Host=rabbitmq
+      - Services__CartGrpcUrl=http://cart-service:5005
+      - Services__ProductGrpcUrl=http://catalog-service:5002
+      - Services__PaymentGrpcUrl=http://payment-service:5053
+      - IdentityUrl=http://identity-service:5027
+      - Kestrel__Endpoints__Http__Url=http://+:5007
+      - Kestrel__Endpoints__Grpc__Url=http://+:5008
+    depends_on:
+      order_db:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      cart-service:
+        condition: service_started
+
+  payment-service:
+    container_name: ecommerce_payment_service
+    build:
+      context: ../
+      dockerfile: src/Services/Payments/Ecommerce.Services.Payments.Api/Dockerfile
+    restart: always
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Production
+      - ConnectionStrings__Database=Host=payment_db;Port=5432;Database=PaymentDb;Username=db_user;Password=123456;
+      - Kestrel__Endpoints__Http__Url=http://+:5052
+      - Kestrel__Endpoints__Grpc__Url=http://+:5053
+    depends_on:
+      payment_db:
+        condition: service_healthy
+
+  seller-service:
+    container_name: ecommerce_seller_service
+    build:
+      context: ../
+      dockerfile: src/Services/Sellers/Ecommerce.Services.Sellers.Api/Dockerfile
+    restart: always
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Production
+      - ConnectionStrings__Database=Host=seller_db;Port=5432;Database=SellerDb;Username=db_user;Password=123456;
+      - IdentityUrl=http://identity-service:5027
+      - Kestrel__Endpoints__Http__Url=http://+:5042
+      - Kestrel__Endpoints__Grpc__Url=http://+:5043
+    depends_on:
+      seller_db:
+        condition: service_healthy
+
+  shipping-service:
+    container_name: ecommerce_shipping_service
+    build:
+      context: ../
+      dockerfile: src/Services/Shippings/Ecommerce.Services.Shippings.Api/Dockerfile
+    restart: always
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Production
+      - ConnectionStrings__Database=Host=shipping_db;Port=5432;Database=ShippingDb;Username=db_user;Password=123456;
+      - RabbitMq__Host=rabbitmq
+      - Services__SellerGrpcUrl=http://seller-service:5043
+      - Kestrel__Endpoints__Http__Url=http://+:5070
+    depends_on:
+      shipping_db:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+
+  apigateway-service:
+    container_name: ecommerce_apigateway_service
+    build:
+      context: ../
+      dockerfile: src/ApiGateway/Ecommerce.ApiGateway/Dockerfile
+    restart: always
+    ports:
+      - "80:8080"  # Expose port 80 cho client gọi vào gateway công cộng
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Production
+      - ASPNETCORE_URLS=http://+:8080
+      - ReverseProxy__Clusters__product-cluster__Destinations__product-1__Address=http://catalog-service:5001
+      - ReverseProxy__Clusters__cart-cluster__Destinations__cart-1__Address=http://cart-service:5004
+      - ReverseProxy__Clusters__order-cluster__Destinations__order-1__Address=http://order-service:5007
+      - ReverseProxy__Clusters__identity-cluster__Destinations__identity-1__Address=http://identity-service:5027
+    depends_on:
+      - identity-service
+      - catalog-service
+      - cart-service
+      - order-service
+
+volumes:
+  mysql_product_data:
+    driver: local
+  postgres_order_data:
+    driver: local
+  redis_cart_data:
+    driver: local
+  postgres_identity_data:
+    driver: local
+  postgres_payment_data:
+    driver: local
+  postgres_seller_data:
+    driver: local
+  postgres_shipping_data:
+    driver: local
+  elasticsearch_data:
+    driver: local
