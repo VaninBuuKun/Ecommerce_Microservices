@@ -7,7 +7,9 @@ COPY ["src/Services/Sellers/Ecommerce.Services.Sellers.Api/Ecommerce.Services.Se
 COPY ["src/Services/Sellers/Ecommerce.Services.Sellers.Contracts/Ecommerce.Services.Sellers.Contracts.csproj", "Services/Sellers/Ecommerce.Services.Sellers.Contracts/"]
 
 # Copy các ProjectReference từ BuildingBlocks
+COPY ["src/BuildingBlocks/BuildingBlocks.Application/BuildingBlocks.Application.csproj", "BuildingBlocks/BuildingBlocks.Application/"]
 COPY ["src/BuildingBlocks/BuildingBlocks.Auth/BuildingBlocks.Auth.csproj", "BuildingBlocks/BuildingBlocks.Auth/"]
+COPY ["src/BuildingBlocks/BuildingBlocks.Caching/BuildingBlocks.Caching.csproj", "BuildingBlocks/BuildingBlocks.Caching/"]
 COPY ["src/BuildingBlocks/BuildingBlocks.Grpc/BuildingBlocks.Grpc.csproj", "BuildingBlocks/BuildingBlocks.Grpc/"]
 COPY ["src/BuildingBlocks/BuildingBlocks.Logging/BuildingBlocks.Logging.csproj", "BuildingBlocks/BuildingBlocks.Logging/"]
 COPY ["src/BuildingBlocks/BuildingBlocks.Web/BuildingBlocks.Web.csproj", "BuildingBlocks/BuildingBlocks.Web/"]
