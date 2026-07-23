@@ -5,6 +5,7 @@ using Ecommerce.ApiGateway.Consts;
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddOpenApi();
+builder.Services.AddHealthChecks();
 
 builder.Services.AddControllers();
 
@@ -75,6 +76,7 @@ app.UseCors("MyPolicy");
 
 app.UseRateLimiter();
 app.MapControllers();
+app.MapHealthChecks("/health");
 app.MapReverseProxy();
 
 
