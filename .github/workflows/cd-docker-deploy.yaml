@@ -1,0 +1,48 @@
+name: 🚀 CD - Docker Build & Deploy
+
+on:
+  push:
+    branches: [ main ]
+
+jobs:
+  build:
+    name: 🐳 Build Docker Images
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 📂 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 🛠️ Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: 🏗️ Verify Docker Build for all services
+        run: |
+          # Chạy lệnh build thử toàn bộ services để đảm bảo không lỗi Dockerfile
+          docker compose -f src/docker-compose.prod.yaml build
+
+  # JOB 2: Deploy to Server (Chạy trực tiếp trên VPS của bạn khi JOB 1 thành công)
+  deploy:
+    name: 🚀 Deploy to VMware VPS
+    needs: build  # Chỉ chạy khi job "build" ở trên thành công
+    runs-on: self-hosted
+
+    steps:
+      - name: 📂 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 🚀 Start/Update Containers
+        run: |
+          cd src
+          # Build lại và khởi chạy tất cả services
+          docker compose -f docker-compose.prod.yaml up --build -d
+
+      - name: 🧹 Cleanup unused Docker Images
+        continue-on-error: true
+        run: |
+          docker image prune -f
+
+      - name: 📊 Verify status
+        run: |
+          cd src
+          docker compose -f docker-compose.prod.yaml ps
