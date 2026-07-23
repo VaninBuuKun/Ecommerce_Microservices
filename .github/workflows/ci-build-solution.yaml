@@ -20,8 +20,8 @@ jobs:
         with:
           dotnet-version: '9.0'
 
-      - name: Restore packages
-        run: dotnet restore src/Microservices.sln
+      - name: 📦 Restore packages
+        run: dotnet restore Microservices.sln
 
-      - name: Compile project
-        run: dotnet build src/Microservices.sln --configuration Release --no-restore
+      - name: 🚀 Compile project
+        run: dotnet build Microservices.sln --configuration Release --no-restore
