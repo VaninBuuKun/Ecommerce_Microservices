@@ -1,8 +1,9 @@
 using System;
+using BuildingBlocks.Shared.InfrastructureInterfaces.Messaging;
 
 namespace Ecommerce.Services.Orders.Contracts.Events;
 
-public class SubOrderConfirmedEvent
+public class SubOrderConfirmedEvent : IIntegrationEvent
 {
     public Guid SubOrderId { get; init; }
     public Guid OriginalOrderId { get; init; }

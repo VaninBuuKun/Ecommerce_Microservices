@@ -2,6 +2,11 @@ using BuildingBlocks.Web.Controllers;
 using Ecommerce.Services.Orders.Application.Features.Commands.CreateOrder;
 using Ecommerce.Services.Orders.Application.Features.Orders.Dtos;
 using Ecommerce.Services.Orders.Application.Features.Queries.GetCustomerOrders;
+using Ecommerce.Services.Orders.Application.Features.Orders.Queries.GetOrderById;
+using Ecommerce.Services.Orders.Application.Features.Orders.Queries.GetSubOrdersByShop;
+using Ecommerce.Services.Orders.Application.Features.Orders.Commands.SellerConfirmOrder;
+using Ecommerce.Services.Orders.Application.Features.Orders.Commands.SellerRejectOrder;
+using Ecommerce.Services.Orders.Application.Features.Orders.Commands.CancelOrder;
 using Microsoft.AspNetCore.Mvc;
 using BuildingBlocks.Auth;
 
@@ -18,13 +23,8 @@ public class OrdersController(ICurrentUserService currentUserService) : CleanV1C
     /// <summary>
     /// Lấy danh sách lịch sử mua hàng theo mã khách hàng (CustomerId)
     /// </summary>
-    /// <param name="customerId">Mã số định danh của khách hàng</param>
-    /// <param name="cancellationToken">Token hủy yêu cầu</param>
-    /// <returns>Danh sách đơn hàng đã mua</returns>
-    /// <response code="200">Lấy lịch sử mua hàng thành công</response>
-    /// <response code="400">Dữ liệu đầu vào không hợp lệ</response>
     [HttpGet("customer/{customerId:long}")]
-    [ProducesResponseType(typeof(CustomerOrderResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(List<CustomerOrderResponse>), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<IActionResult> GetOrdersByCustomer(long customerId, CancellationToken cancellationToken)
     {
@@ -36,19 +36,85 @@ public class OrdersController(ICurrentUserService currentUserService) : CleanV1C
     }
 
     /// <summary>
+    /// Lấy thông tin đơn hàng chi tiết theo Id
+    /// </summary>
+    [HttpGet("{orderId:guid}")]
+    [ProducesResponseType(typeof(CustomerOrderResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> GetOrderById(Guid orderId, CancellationToken cancellationToken)
+    {
+        var result = await _sender.SendAsync(new GetOrderByIdQuery(orderId, UserId), cancellationToken);
+
+        return result.IsSuccess 
+            ? Ok(result) 
+            : StatusCode(result.GetHttpStatusCode(), result);
+    }
+
+    /// <summary>
     /// Thực hiện thanh toán các sản phẩm được chọn từ giỏ hàng và tạo đơn hàng
     /// </summary>
-    /// <param name="request">Thông tin thanh toán đơn hàng</param>
-    /// <param name="cancellationToken">Token hủy yêu cầu</param>
-    /// <returns>Mã đơn hàng và thông tin thanh toán</returns>
-    /// <response code="200">Tạo đơn hàng thành công</response>
-    /// <response code="400">Dữ liệu đầu vào không hợp lệ</response>
     [HttpPost("checkout")]
     [ProducesResponseType(typeof(CustomerOrderResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<IActionResult> Checkout([FromBody] CreateOrderCommand request, CancellationToken cancellationToken)
     {
         var result = await _sender.SendAsync(request with{CustomerId = UserId}, cancellationToken);
+
+        return result.IsSuccess 
+            ? Ok(result) 
+            : StatusCode(result.GetHttpStatusCode(), result);
+    }
+
+    /// <summary>
+    /// Lấy danh sách các đơn hàng con (SubOrder) của cửa hàng (dành cho Seller)
+    /// </summary>
+    [HttpGet("shop/{shopId:long}")]
+    [ProducesResponseType(typeof(List<CustomerOrderResponse>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetSubOrdersByShop(long shopId, CancellationToken cancellationToken)
+    {
+        var result = await _sender.SendAsync(new GetSubOrdersByShopQuery(shopId, UserId), cancellationToken);
+
+        return result.IsSuccess 
+            ? Ok(result) 
+            : StatusCode(result.GetHttpStatusCode(), result);
+    }
+
+    /// <summary>
+    /// Người bán xác nhận đơn hàng con bắt đầu xử lý
+    /// </summary>
+    [HttpPut("suborder/{subOrderId:guid}/confirm")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    public async Task<IActionResult> ConfirmSubOrder(Guid subOrderId, [FromQuery] long shopId, CancellationToken cancellationToken)
+    {
+        var result = await _sender.SendAsync(new SellerConfirmOrderCommand(subOrderId, shopId), cancellationToken);
+
+        return result.IsSuccess 
+            ? Ok(result) 
+            : StatusCode(result.GetHttpStatusCode(), result);
+    }
+
+    /// <summary>
+    /// Người bán từ chối đơn hàng con (hết hàng, sự cố...)
+    /// </summary>
+    [HttpPut("suborder/{subOrderId:guid}/reject")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    public async Task<IActionResult> RejectSubOrder(Guid subOrderId, [FromQuery] long shopId, [FromQuery] string reason, CancellationToken cancellationToken)
+    {
+        var result = await _sender.SendAsync(new SellerRejectOrderCommand(subOrderId, shopId, reason), cancellationToken);
+
+        return result.IsSuccess 
+            ? Ok(result) 
+            : StatusCode(result.GetHttpStatusCode(), result);
+    }
+
+    /// <summary>
+    /// Khách hàng yêu cầu hủy đơn hàng con (chỉ khả dụng trước khi chuyển hàng)
+    /// </summary>
+    [HttpPut("suborder/{subOrderId:guid}/cancel")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    public async Task<IActionResult> CancelSubOrder(Guid subOrderId, [FromQuery] string reason, CancellationToken cancellationToken)
+    {
+        var result = await _sender.SendAsync(new CancelSubOrderCommand(subOrderId, UserId, reason), cancellationToken);
 
         return result.IsSuccess 
             ? Ok(result) 
