@@ -41,7 +41,7 @@ jobs:
 
       # 3. Gom chung logic Build bằng Docker Buildx tận dụng cache cho cả PR và Push
       - name: 🏗️ Build Docker Images (with Cache)
-        uses: docker/bake-action@v4
+        uses: docker/bake-action@v5
         with:
           files: src/docker-compose.prod.yaml
           push: ${{ github.event_name == 'push' }} # Nếu là PR thì chỉ build kiểm tra, nếu là Push thì build xong đẩy thẳng lên GHCR
