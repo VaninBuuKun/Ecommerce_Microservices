@@ -171,7 +171,7 @@ services:
   # ==========================================
   identity-service:
     container_name: ecommerce_identity_service
-    image: ghcr.io/vanld0502/ecommerce-identity-service:latest
+    image: ghcr.io/vancoder06/ecommerce-identity-service:latest
     build:
       context: ../
       dockerfile: src/Services/Identity/Identity.Api/Dockerfile
@@ -187,7 +187,7 @@ services:
 
   catalog-service:
     container_name: ecommerce_catalog_service
-    image: ghcr.io/vanld0502/ecommerce-catalog-service:latest
+    image: ghcr.io/vancoder06/ecommerce-catalog-service:latest
     build:
       context: ../
       dockerfile: src/Services/Catalogs/Ecommerce.Services.Catalog.Api/Dockerfile
@@ -207,7 +207,7 @@ services:
 
   cart-service:
     container_name: ecommerce_cart_service
-    image: ghcr.io/vanld0502/ecommerce-cart-service:latest
+    image: ghcr.io/vancoder06/ecommerce-cart-service:latest
     build:
       context: ../
       dockerfile: src/Services/Carts/Ecommerce.Services.Carts.Api/Dockerfile
@@ -231,7 +231,7 @@ services:
 
   order-service:
     container_name: ecommerce_order_service
-    image: ghcr.io/vanld0502/ecommerce-order-service:latest
+    image: ghcr.io/vancoder06/ecommerce-order-service:latest
     build:
       context: ../
       dockerfile: src/Services/Orders/Ecommerce.Services.Orders.Api/Dockerfile
@@ -256,7 +256,7 @@ services:
 
   payment-service:
     container_name: ecommerce_payment_service
-    image: ghcr.io/vanld0502/ecommerce-payment-service:latest
+    image: ghcr.io/vancoder06/ecommerce-payment-service:latest
     build:
       context: ../
       dockerfile: src/Services/Payments/Ecommerce.Services.Payments.Api/Dockerfile
@@ -272,7 +272,7 @@ services:
 
   seller-service:
     container_name: ecommerce_seller_service
-    image: ghcr.io/vanld0502/ecommerce-seller-service:latest
+    image: ghcr.io/vancoder06/ecommerce-seller-service:latest
     build:
       context: ../
       dockerfile: src/Services/Sellers/Ecommerce.Services.Sellers.Api/Dockerfile
@@ -289,7 +289,7 @@ services:
 
   shipping-service:
     container_name: ecommerce_shipping_service
-    image: ghcr.io/vanld0502/ecommerce-shipping-service:latest
+    image: ghcr.io/vancoder06/ecommerce-shipping-service:latest
     build:
       context: ../
       dockerfile: src/Services/Shippings/Ecommerce.Services.Shippings.Api/Dockerfile
@@ -308,7 +308,7 @@ services:
 
   apigateway-service:
     container_name: ecommerce_apigateway_service
-    image: ghcr.io/vanld0502/ecommerce-apigateway-service:latest
+    image: ghcr.io/vancoder06/ecommerce-apigateway-service:latest
     build:
       context: ../
       dockerfile: src/ApiGateway/Ecommerce.ApiGateway/Dockerfile
