@@ -43,7 +43,8 @@ jobs:
       - name: 🏗️ Build Docker Images (with Cache)
         uses: docker/bake-action@v5
         with:
-          files: src/docker-compose.prod.yaml
+          workdir: 'src'
+          files: docker-compose.prod.yaml
           push: ${{ github.event_name == 'push' }} # Nếu là PR thì chỉ build kiểm tra, nếu là Push thì build xong đẩy thẳng lên GHCR
           set: |
             *.cache-from=type=local,src=/tmp/.buildx-cache
