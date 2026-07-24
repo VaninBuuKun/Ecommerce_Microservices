@@ -1,29 +1,55 @@
-name: 🚀 CI/CD - Pull Request & Deploy
+name: 🚀 CI/CD - Build, Push & Deploy
 
 on:
   pull_request:
-    branches: [ main ] # Kích hoạt chạy thử khi có Pull Request hướng về nhánh main
-  
+    branches: [ main ]
   push:
-    branches: [ main ] # Hoặc chạy khi đã merge thành công vào main để deploy
+    branches: [ main ]
+
+permissions:
+  contents: read
+  packages: write
 
 jobs:
   build:
-    name: 🐳 Build & Test Docker Images
+    name: 🐳 Build & Push Docker Images
     runs-on: ubuntu-latest
 
     steps:
       - name: 📂 Checkout code
         uses: actions/checkout@v4
 
+      # 1. Cài đặt Docker Buildx (Bắt buộc để dùng cache nâng cao)
       - name: 🛠️ Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: 🏗️ Verify Docker Build for all services
-        run: |
-          docker compose -f src/docker-compose.prod.yaml build
+      # 2. Cấu hình Cache của GitHub Actions để giữ lại các layer build giữa các lần chạy
+      - name: 📦 Cache Docker layers
+        uses: actions/cache@v4
+        with:
+          path: /tmp/.buildx-cache
+          key: ${{ runner.os }}-buildx-${{ github.sha }}
+          restore-keys: |
+            ${{ runner.os }}-buildx-
 
-  # JOB 2: Chỉ thực hiện deploy thật khi code ĐÃ ĐƯỢC MERGE vào nhánh main
+      - name: 🔑 Log in to GitHub Container Registry (GHCR)
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      # 3. Gom chung logic Build bằng Docker Buildx tận dụng cache cho cả PR và Push
+      - name: 🏗️ Build Docker Images (with Cache)
+        uses: docker/bake-action@v5
+        with:
+          workdir: 'src'
+          files: docker-compose.prod.yaml
+          push: ${{ github.event_name == 'push' }} # Nếu là PR thì chỉ build kiểm tra, nếu là Push thì build xong đẩy thẳng lên GHCR
+          set: |
+            *.cache-from=type=local,src=/tmp/.buildx-cache
+            *.cache-to=type=local,dest=/tmp/.buildx-cache,mode=max
+
   deploy:
     name: 🚀 Deploy to VPS Singapore
     needs: build
@@ -34,13 +60,22 @@ jobs:
       - name: 📂 Checkout code
         uses: actions/checkout@v4
 
-      - name: 🚀 Start/Update Containers
+      - name: 🔑 Log in to GHCR on VPS
+        run: |
+          echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
+
+      - name: 📥 Pull latest images from GHCR
         run: |
           cd src
-          docker compose -f docker-compose.prod.yaml up --build -d
+          docker compose -f docker-compose.prod.yaml pull
+
+      - name: 🚀 Start/Update Containers (No Build)
+        run: |
+          cd src
+          docker compose -f docker-compose.prod.yaml up -d
 
       - name: 🧹 Cleanup unused Docker Images
-        continue-on-error: true 
+        continue-on-error: true
         run: |
           docker image prune -f
 
