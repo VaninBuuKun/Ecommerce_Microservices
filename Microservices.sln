@@ -236,7 +236,6 @@ EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "workflows", "workflows", "{DD565378-BF66-4A09-9993-C94CF3800138}"
 	ProjectSection(SolutionItems) = preProject
 		.github\workflows\cd-docker-deploy.yaml = .github\workflows\cd-docker-deploy.yaml
-		.github\workflows\ci-build-solution.yaml = .github\workflows\ci-build-solution.yaml
 	EndProjectSection
 EndProject
 Global
