@@ -12,6 +12,7 @@ namespace Ecommerce.Services.Sellers.Api.Features.Shops.Commands.RegisterShop;
 
 public class RegisterShopCommandHandler(
     IEfUnitOfWork unitOfWork,
+    BuildingBlocks.Grpc.Services.ShippingGrpc.ShippingGrpcClient shippingGrpcClient,
     ILogger<RegisterShopCommandHandler> logger)
     : ICommandHandler<RegisterShopCommand, Shop>
 {
@@ -23,6 +24,39 @@ public class RegisterShopCommandHandler(
         {
             var shopRepo = unitOfWork.Repository<Shop, long>();
             var kycRepo = unitOfWork.Repository<SellerKyc, Guid>();
+
+            // Phân giải địa giới hành chính bằng gRPC
+            string provinceName = string.Empty;
+            string districtName = string.Empty;
+            string wardName = string.Empty;
+
+            try
+            {
+                var locationResponse = await shippingGrpcClient.GetLocationNamesAsync(new BuildingBlocks.Grpc.Services.GetLocationNamesRequest
+                {
+                    ProvinceId = request.ProvinceId,
+                    DistrictId = request.DistrictId,
+                    WardCode = request.WardCode
+                }, cancellationToken: cancellationToken);
+
+                if (locationResponse != null && locationResponse.IsValid)
+                {
+                    provinceName = locationResponse.ProvinceName;
+                    districtName = locationResponse.DistrictName;
+                    wardName = locationResponse.WardName;
+                }
+                else
+                {
+                    logger.LogWarning("RegisterShopCommand: Shipping gRPC trả về Invalid cho các IDs: P:{P}, D:{D}, W:{W}", 
+                        request.ProvinceId, request.DistrictId, request.WardCode);
+                    return Result<Shop>.Failure("Địa chỉ (Tỉnh/Huyện/Xã) không hợp lệ trên hệ thống vận chuyển.", EErrorCode.InvalidArgument);
+                }
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "RegisterShopCommand: Không thể kết nối đến Shipping Service gRPC để lấy thông tin địa chỉ.");
+                return Result<Shop>.Failure("Không thể kết nối đến hệ thống xác thực địa chỉ vận chuyển.", EErrorCode.InternalServerError);
+            }
 
             // 1. Kiểm tra trạng thái xác minh KYC của User
             var userKyc = await kycRepo.FirstOrDefaultAsync(
@@ -51,9 +85,9 @@ public class RegisterShopCommandHandler(
             var pickUpAddress = new PickUpAddress(
                 request.RecipientName,
                 request.Phone,
-                request.Province,
-                request.District,
-                request.Ward,
+                provinceName,
+                districtName,
+                wardName,
                 request.AddressLine,
                 request.ProvinceId,
                 request.DistrictId,

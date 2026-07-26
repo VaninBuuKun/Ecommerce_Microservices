@@ -5,7 +5,7 @@ namespace Ecommerce.Services.Catalog.Domain.Products;
 
 public class Product : AggregateRoot<Guid>
 {
-    public long ShopId { get; private set; }
+    public long ShopId { get; init; }
     public string Name { get; private set; }
     public string Description { get; private set; }
     public ProductStatus Status { get; private set; }

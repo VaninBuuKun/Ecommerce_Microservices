@@ -39,8 +39,13 @@ try
     // Cấu hình Unit of Work
     builder.Services.AddScoped<IEfUnitOfWork, EfUnitOfWork<SellerDbContext>>();
 
+    builder.Services.AddGrpcClient<BuildingBlocks.Grpc.Services.ShippingGrpc.ShippingGrpcClient>(o =>
+    {
+        o.Address = new Uri(builder.Configuration["Services:ShippingGrpcUrl"] ?? "http://localhost:5071");
+    });
+
     // Cấu hình Building Blocks
-    builder.Services.AddBuildingBlocksWeb();
+    builder.Services.AddBuildingBlocksWeb(builder.Configuration);
     builder.Services.AddMasstransitEventBus(builder.Configuration, config =>
     {
         config.AddEntityFrameworkOutbox<SellerDbContext>(o =>
@@ -64,6 +69,8 @@ try
     }
 
     app.UseHttpsRedirection();
+
+    app.UseCors("CorsPolicy");
 
     app.UseAuthentication();
     app.UseAuthorization();

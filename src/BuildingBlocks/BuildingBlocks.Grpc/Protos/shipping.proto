@@ -1,0 +1,22 @@
+syntax = "proto3";
+
+option csharp_namespace = "BuildingBlocks.Grpc.Services";
+
+package shipping;
+
+service ShippingGrpc {
+  rpc GetLocationNames(GetLocationNamesRequest) returns (GetLocationNamesResponse);
+}
+
+message GetLocationNamesRequest {
+  int32 province_id = 1;
+  int32 district_id = 2;
+  string ward_code = 3;
+}
+
+message GetLocationNamesResponse {
+  string province_name = 1;
+  string district_name = 2;
+  string ward_name = 3;
+  bool is_valid = 4;
+}

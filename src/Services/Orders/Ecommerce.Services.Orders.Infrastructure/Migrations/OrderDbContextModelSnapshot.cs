@@ -40,6 +40,24 @@ namespace Ecommerce.Services.Orders.Infrastructure.Migrations
                     b.Property<DateTimeOffset?>("LastModifiedDate")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<int>("RecipientDistrictId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("RecipientName")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("RecipientPhone")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<int>("RecipientProvinceId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("RecipientWardId")
+                        .IsRequired()
+                        .HasColumnType("text");
+
                     b.Property<string>("ShippingAddress")
                         .IsRequired()
                         .HasMaxLength(500)
@@ -212,11 +230,26 @@ namespace Ecommerce.Services.Orders.Infrastructure.Migrations
                         .HasMaxLength(255)
                         .HasColumnType("character varying(255)");
 
+                    b.Property<bool>("IsOnlinePayment")
+                        .HasColumnType("boolean");
+
                     b.Property<string>("ItemsJson")
                         .HasColumnType("text");
 
                     b.Property<Guid>("OrderId")
                         .HasColumnType("uuid");
+
+                    b.Property<string>("RecipientName")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("RecipientPhone")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("RecipientWardId")
+                        .IsRequired()
+                        .HasColumnType("text");
 
                     b.Property<string>("ShippingAddress")
                         .HasMaxLength(500)

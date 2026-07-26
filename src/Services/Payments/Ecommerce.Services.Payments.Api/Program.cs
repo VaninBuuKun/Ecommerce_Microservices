@@ -59,7 +59,7 @@ try
 
 
     //BuildingBlocks
-    builder.Services.AddBuildingBlocksWeb();
+    builder.Services.AddBuildingBlocksWeb(builder.Configuration);
     builder.Services.AddMasstransitEventBus(builder.Configuration, config =>
     {
         config.AddEntityFrameworkOutbox<PaymentDbContext>(o =>
@@ -81,6 +81,7 @@ try
     }
 
     app.UseHttpsRedirection();
+    app.UseCors("CorsPolicy");
     app.MapGrpcService<Ecommerce.Services.Payments.Api.GrpcServers.PaymentGrpcService>();
     app.MapControllers();
     app.Run();

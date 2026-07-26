@@ -4,5 +4,5 @@ namespace Ecommerce.Services.Orders.Application.Services;
 
 public interface ISellerService
 {
-    Task<Result<bool>> ValidateShopOwnerAsync(long shopId, long userId, CancellationToken cancellationToken = default);
+    Task<Result<bool>> ValidateShopOwnerAsync(long shopId, long sellerId, CancellationToken cancellationToken = default);
 }

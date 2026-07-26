@@ -57,7 +57,8 @@ try
     });
 
     // BuildingBlocks
-    builder.Services.AddBuildingBlocksWeb();
+    builder.Services.AddGrpc();
+    builder.Services.AddBuildingBlocksWeb(builder.Configuration);
     
     builder.Services.AddMasstransitEventBus(builder.Configuration, config =>
     {
@@ -82,6 +83,8 @@ try
     }
 
     app.UseHttpsRedirection();
+    app.UseCors("CorsPolicy");
+    app.MapGrpcService<ShippingGrpcServer>();
     app.MapControllers();
     //
     // // Automatically apply migrations in dev environment

@@ -20,7 +20,7 @@ public class SellerRejectOrderCommandHandler(
 {
     protected override async Task<Result> HandleCommandAsync(SellerRejectOrderCommand command, CancellationToken cancellationToken)
     {
-        logger.LogInformation("Seller rejecting sub-order {SubOrderId} for Shop {ShopId}", command.SubOrderId, command.ShopId);
+        logger.LogInformation("Seller {SellerId} rejecting sub-order {SubOrderId}", command.SellerId, command.SubOrderId);
 
         try
         {
@@ -31,18 +31,15 @@ public class SellerRejectOrderCommandHandler(
             {
                 return Result.Failure("Đơn hàng không tồn tại", EErrorCode.NotFound);
             }
-
-            if (subOrder.ShopId != command.ShopId)
-            {
-                return Result.Failure("Đơn hàng không thuộc về shop của bạn", EErrorCode.Forbidden);
-            }
-
+            
             // Call gRPC Seller service to validate if the current user owns the shop
-            var validationResult = await sellerService.ValidateShopOwnerAsync(command.ShopId, subOrder.CustomerId, cancellationToken);
+            var validationResult = await sellerService.ValidateShopOwnerAsync(subOrder.ShopId, command.SellerId, cancellationToken);
+            
             if (!validationResult.IsSuccess)
             {
                 return Result.Failure(validationResult.Message, EErrorCode.Forbidden);
             }
+            
             if (!validationResult.Value)
             {
                 return Result.Failure("Bạn không phải là chủ sở hữu cửa hàng này", EErrorCode.Forbidden);

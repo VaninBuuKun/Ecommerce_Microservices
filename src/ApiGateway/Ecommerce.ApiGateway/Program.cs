@@ -34,16 +34,16 @@ builder.Services.AddRateLimiter(options =>
     };
 
     // 2. GIỮ NGUYÊN CHÍNH SÁCH FIXED WINDOW CỦA BẠN
-    options.AddPolicy("fixed-10-per-minute", httpContext =>
-        RateLimitPartition.GetFixedWindowLimiter(
-            partitionKey: httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown",
-            factory: _ => new FixedWindowRateLimiterOptions
-            {
-                PermitLimit = 2,
-                Window = TimeSpan.FromMinutes(1),
-                QueueLimit = 0,
-                AutoReplenishment = true
-            }));
+    // options.AddPolicy("fixed-10-per-minute", httpContext =>
+    //     RateLimitPartition.GetFixedWindowLimiter(
+    //         partitionKey: httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+    //         factory: _ => new FixedWindowRateLimiterOptions
+    //         {
+    //             PermitLimit = 2,
+    //             Window = TimeSpan.FromMinutes(1),
+    //             QueueLimit = 0,
+    //             AutoReplenishment = true
+    //         }));
 });
 builder.Services.AddReverseProxy().LoadFromConfig(builder.Configuration.GetSection("ReverseProxy"));
 builder.Services.AddCors(options =>

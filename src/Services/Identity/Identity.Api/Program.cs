@@ -1,4 +1,6 @@
+using BuildingBlocks.Auth;
 using BuildingBlocks.Logging;
+using BuildingBlocks.Web.Extensions;
 using Ecommerce.Services.Identity.Api.Config;
 using Ecommerce.Services.Identity.Api.Models.Entities;
 using Ecommerce.Services.Identity.Api.Persistances;
@@ -59,16 +61,22 @@ try
         .AddProfileService<ProfileService>();
 
     builder.Services.AddLocalApiAuthentication();
+    builder.Services.AddGrpc();
+    builder.Services.AddScoped<IAddressService, AddressService>();
     // Thêm cấu hình này để Cookie chạy được trên HTTP (Localhost)
     builder.Services.ConfigureApplicationCookie(options =>
     {
         options.Cookie.SameSite = SameSiteMode.Lax;
         options.Cookie.SecurePolicy = CookieSecurePolicy.SameAsRequest; // Tự động nhận diện HTTP hoặc HTTPS
     });
+
+    builder.Services.AddBuildingBlocsAuth(builder.Configuration);
+    builder.Services.AddBuildingBlocksWeb(builder.Configuration);
+    builder.Services.AddHttpContextAccessor();
     builder.Services.AddControllers();
     builder.Services.AddEndpointsApiExplorer();
     builder.Services.AddRazorPages(); // Thêm dòng này
-
+    
     var app = builder.Build();
 
     if (app.Environment.IsDevelopment())
@@ -79,12 +87,14 @@ try
 
 
     app.UseStaticFiles();
+    app.UseCors("CorsPolicy");
     // ══════════════════════════════════════════════════
     // BƯỚC 4: Kích hoạt các Middleware theo đúng thứ tự
     // Thứ tự này CỰC KỲ quan trọng, sai thứ tự là lỗi ngay
     // ══════════════════════════════════════════════════
     app.UseIdentityServer(); // Kích hoạt Duende → tự tạo ra /connect/token, /.well-known/...
     app.UseAuthorization();
+    app.MapGrpcService<IdentityGrpcServer>();
     app.MapControllers();
     app.MapRazorPages(); 
 

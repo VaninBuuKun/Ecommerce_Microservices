@@ -20,25 +20,21 @@ public class SellerConfirmOrderCommandHandler(
 {
     protected override async Task<Result> HandleCommandAsync(SellerConfirmOrderCommand command, CancellationToken cancellationToken)
     {
-        logger.LogInformation("Seller confirming sub-order {SubOrderId} for Shop {ShopId}", command.SubOrderId, command.ShopId);
-
+        
+        logger.LogInformation("Seller {SellerId} confirming sub-order {SubOrderId}", command.SellerId, command.SubOrderId);
         try
         {
             var subOrderRepo = unitOfWork.Repository<SubOrder, Guid>();
             var subOrder = await subOrderRepo.GetByIdAsync(command.SubOrderId, cancellationToken);
-
+            
             if (subOrder == null)
             {
                 return Result.Failure("Đơn hàng không tồn tại", EErrorCode.NotFound);
             }
-
-            if (subOrder.ShopId != command.ShopId)
-            {
-                return Result.Failure("Đơn hàng không thuộc về shop của bạn", EErrorCode.Forbidden);
-            }
-
+            
+            
             // Call gRPC Seller service to validate if the current user owns the shop
-            var validationResult = await sellerService.ValidateShopOwnerAsync(command.ShopId, subOrder.CustomerId, cancellationToken);
+            var validationResult = await sellerService.ValidateShopOwnerAsync(subOrder.ShopId, command.SellerId , cancellationToken);
             if (!validationResult.IsSuccess)
             {
                 return Result.Failure(validationResult.Message, EErrorCode.Forbidden);

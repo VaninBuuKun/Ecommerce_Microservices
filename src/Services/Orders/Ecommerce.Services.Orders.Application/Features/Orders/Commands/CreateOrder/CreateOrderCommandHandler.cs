@@ -19,6 +19,8 @@ public class CreateOrderCommandHandler(
     ICartService cartService,
     IProductService productService,
     IPaymentService paymentService,
+    IIdentityService identityService,
+    BuildingBlocks.Grpc.Services.ShippingGrpc.ShippingGrpcClient shippingGrpcClient,
     IEfUnitOfWork unitOfWork,
     IEventPublisher publisher,
     ILogger<CreateOrderCommandHandler> logger, IMapper mapper)
@@ -29,8 +31,53 @@ public class CreateOrderCommandHandler(
         var customerId = command.CustomerId;
             try
         {
-            logger.LogInformation("Bắt đầu tạo đơn hàng cho khách hàng: {CustomerId}", customerId);
+            logger.LogInformation("Bắt đầu tạo đơn hàng cho khách hàng: {CustomerId} sử dụng UserAddressId: {AddressId}", customerId, command.UserAddressId);
             
+            // 1. Phân giải địa chỉ người dùng qua gRPC Identity
+            var addressResult = await identityService.GetUserAddressAsync(command.UserAddressId, customerId);
+            if (!addressResult.IsSuccess || addressResult.Value == null)
+            {
+                logger.LogWarning("Không thể lấy thông tin địa chỉ đặt hàng: {Error}", addressResult.Message);
+                return Result<CustomerOrderResponse>.Failure(addressResult);
+            }
+
+            var addressData = addressResult.Value;
+
+            // 2. Phân giải tên Tỉnh/Huyện/Xã qua gRPC Shipping
+            string provinceName = string.Empty;
+            string districtName = string.Empty;
+            string wardName = string.Empty;
+
+            try
+            {
+                var locationResponse = await shippingGrpcClient.GetLocationNamesAsync(new BuildingBlocks.Grpc.Services.GetLocationNamesRequest
+                {
+                    ProvinceId = addressData.ProvinceId,
+                    DistrictId = addressData.DistrictId,
+                    WardCode = addressData.WardCode
+                }, cancellationToken: cancellationToken);
+
+                if (locationResponse != null && locationResponse.IsValid)
+                {
+                    provinceName = locationResponse.ProvinceName;
+                    districtName = locationResponse.DistrictName;
+                    wardName = locationResponse.WardName;
+                }
+                else
+                {
+                    logger.LogWarning("gRPC Shipping trả về Invalid cho các IDs: P:{P}, D:{D}, W:{W}", 
+                        addressData.ProvinceId, addressData.DistrictId, addressData.WardCode);
+                    return Result<CustomerOrderResponse>.Failure("Địa chỉ giao hàng có Tỉnh/Quận/Xã không tồn tại trên hệ thống vận chuyển.", EErrorCode.InvalidArgument);
+                }
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "Lỗi kết nối gRPC đến Shipping Service để phân giải tên địa danh.");
+                return Result<CustomerOrderResponse>.Failure("Lỗi hệ thống vận chuyển, vui lòng thử lại sau.", EErrorCode.InternalServerError);
+            }
+
+            var fullShippingAddress = $"{addressData.AddressLine}, {wardName}, {districtName}, {provinceName}";
+
             var cartResult = await cartService.GetCartByCustomerId(customerId);
 
             if (!cartResult.IsSuccess)
@@ -80,8 +127,8 @@ public class CreateOrderCommandHandler(
                 
                 bool isOnlinePayment = command.PaymentProvider != "cod";
                 
-                // Construct Order with the pre-generated ID
-                var order = new Order(customerId, command.ShippingAddress, isOnlinePayment, command.RecipientName, command.RecipientPhone, command.RecipientWardId)
+                // Construct Order with the pre-generated ID and resolved dynamic address info
+                var order = new Order(customerId, fullShippingAddress, isOnlinePayment, addressData.RecipientName, addressData.Phone, addressData.WardCode, addressData.ProvinceId, addressData.DistrictId)
                 {
                     Id = orderId
                 };
@@ -104,6 +151,7 @@ public class CreateOrderCommandHandler(
                 var listSubOrderCreatedEvents = order.GetSubOrders().Select(subOrder => new SubOrderCreatedEvent
                 {
                     SubOrderId = subOrder.Id,
+                    OrderId = order.Id,
                     CreatedAt = DateTime.UtcNow,
                     CustomerId = subOrder.CustomerId,
                     ShopId = subOrder.ShopId,
@@ -112,7 +160,7 @@ public class CreateOrderCommandHandler(
                     RecipientName = order.RecipientName,
                     RecipientPhone = order.RecipientPhone,
                     RecipientWardId = order.RecipientWardId,
-                    PaymentProvider = command.PaymentProvider,
+                    IsOnlinePayment = order.IsOnlinePayment,
                     OrderItems = subOrder.SubOrderItems.Select(item => new OrderItemData
                     {
                         VariantId = item.VariantId,

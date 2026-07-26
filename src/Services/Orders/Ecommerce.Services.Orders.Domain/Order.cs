@@ -23,6 +23,8 @@ public sealed class Order : AggregateRoot<Guid>, IDateTracking
     public string RecipientName { get; private set; } = string.Empty;
     public string RecipientPhone { get; private set; } = string.Empty;
     public string RecipientWardId { get; private set; } = string.Empty;
+    public int RecipientProvinceId { get; private set; }
+    public int RecipientDistrictId { get; private set; }
     
     public IReadOnlyCollection<SubOrder> GetSubOrders() => SubOrderItems.ToList().AsReadOnly();
     
@@ -32,13 +34,15 @@ public sealed class Order : AggregateRoot<Guid>, IDateTracking
     [NotMapped]
     public bool IsOnlinePayment { get; private set; } //Xác định hình thức thanh toán, true: online, false: offline
 
-    public Order(long customerId, string shippingAddress, bool isOnlinePayment, string recipientName, string recipientPhone, string recipientWardId)
+    public Order(long customerId, string shippingAddress, bool isOnlinePayment, string recipientName, string recipientPhone, string recipientWardId, int recipientProvinceId, int recipientDistrictId)
     {
         CustomerId = customerId;
         ShippingAddress = shippingAddress;
         RecipientName = recipientName;
         RecipientPhone = recipientPhone;
         RecipientWardId = recipientWardId;
+        RecipientProvinceId = recipientProvinceId;
+        RecipientDistrictId = recipientDistrictId;
 
         IsOnlinePayment = isOnlinePayment;
     }

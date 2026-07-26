@@ -21,10 +21,12 @@
     </ItemGroup>
 
     <ItemGroup>
+      <ProjectReference Include="..\..\..\BuildingBlocks\BuildingBlocks.Auth\BuildingBlocks.Auth.csproj" />
       <ProjectReference Include="..\..\..\BuildingBlocks\BuildingBlocks.EfCore\BuildingBlocks.EfCore.csproj" />
       <ProjectReference Include="..\..\..\BuildingBlocks\BuildingBlocks.Logging\BuildingBlocks.Logging.csproj" />
       <ProjectReference Include="..\..\..\BuildingBlocks\BuildingBlocks.Shared\BuildingBlocks.Shared.csproj" />
       <ProjectReference Include="..\..\..\BuildingBlocks\BuildingBlocks.Web\BuildingBlocks.Web.csproj" />
+      <ProjectReference Include="..\..\..\BuildingBlocks\BuildingBlocks.Grpc\BuildingBlocks.Grpc.csproj" />
     </ItemGroup>
 
     <ItemGroup>

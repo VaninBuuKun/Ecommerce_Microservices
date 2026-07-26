@@ -27,7 +27,7 @@ try
 
 //BuildingBlocks
     builder.Services.AddCustomCaching(builder.Configuration.GetConnectionString("Redis") ?? throw new InvalidOperationException("RedisConnectionString is missing."));
-    builder.Services.AddBuildingBlocksWeb();
+    builder.Services.AddBuildingBlocksWeb(builder.Configuration);
     builder.Services.AddMasstransitEventBus(builder.Configuration);
     builder.Services.AddBuildingBlocksApplication(typeof(Program).Assembly);
 
@@ -54,6 +54,7 @@ try
         app.MapScalarApiReference();
     }
 
+    app.UseCors("CorsPolicy");
     app.UseAuthentication();
     app.UseAuthorization();
 

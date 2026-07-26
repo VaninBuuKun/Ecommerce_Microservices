@@ -28,7 +28,7 @@ try
 //BuildingBlocks
     
     builder.Services.AddBuildingBlocksInfrastructure(builder.Configuration);
-    builder.Services.AddBuildingBlocksWeb();
+    builder.Services.AddBuildingBlocksWeb(builder.Configuration);
     builder.Services.AddBuildingBlocsAuth(builder.Configuration);
 
     AppContext.SetSwitch("System.Net.Http.SocketsHttpHandler.Http2UnencryptedSupport", true);
@@ -46,6 +46,7 @@ try
 
     app.UseHttpsRedirection();
     app.UseSerilogRequestLogging();
+    app.UseCors("CorsPolicy");
     app.MapGrpcService<ProductGrpcService>();
     app.MapControllers();
     app.Run();

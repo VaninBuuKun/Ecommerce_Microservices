@@ -10,6 +10,8 @@ public class SubOrderSagaState : SagaStateMachineInstance
     public string CurrentState { get; set; }
     public long ShopId { get; set; }
     public decimal TotalAmount { get; set; }
+
+    public bool IsOnlinePayment { get; set; } // false nếu cod
     public string FailureReason { get; set; }
     public string? ItemsJson { get; set; }
     public string ShippingAddress { get; set; } = string.Empty;

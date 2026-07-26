@@ -16,6 +16,6 @@ public record SubOrderCreatedEvent : IIntegrationEvent
     public string RecipientName { get; set; } = string.Empty;
     public string RecipientPhone { get; set; } = string.Empty;
     public string RecipientWardId { get; set; } = string.Empty;
-    public string PaymentProvider { get; set; }
+    public bool IsOnlinePayment { get; set; }
     public List<OrderItemData> OrderItems { get; set; } = new List<OrderItemData>();
 }

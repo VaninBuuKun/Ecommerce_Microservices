@@ -27,6 +27,7 @@ public class SubOrder : EntityTrackingBase<Guid>
     
     public SubOrder(long customerId, long shopId, bool isOnlinePayment)
     {
+        Id = Guid.NewGuid();
         CustomerId = customerId;
         ShopId = shopId;
 

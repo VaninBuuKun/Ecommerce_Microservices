@@ -2,6 +2,7 @@ using BuildingBlocks.EfCore.Persistence.Commons;
 using BuildingBlocks.Shared.InfrastructureInterfaces.InMemoryBus;
 using Ecommerce.Services.Sellers.Api.Models.Entities;
 using Microsoft.EntityFrameworkCore;
+using MassTransit;
 
 namespace Ecommerce.Services.Sellers.Api.Persistances;
 
@@ -13,6 +14,10 @@ public class SellerDbContext(DbContextOptions<SellerDbContext> options, IInMemor
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
+
+        modelBuilder.AddOutboxStateEntity();
+        modelBuilder.AddOutboxMessageEntity();
+        modelBuilder.AddInboxStateEntity();
 
         modelBuilder.Entity<SellerKyc>(entity =>
         {

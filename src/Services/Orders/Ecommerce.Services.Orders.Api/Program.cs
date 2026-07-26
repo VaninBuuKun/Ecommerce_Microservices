@@ -28,7 +28,7 @@ try
 
     builder.Services.AddInfrastructure(builder.Configuration);
     builder.Services.AddBuildingBlocksInfrastructure(builder.Configuration);
-    builder.Services.AddBuildingBlocksWeb();
+    builder.Services.AddBuildingBlocksWeb(builder.Configuration);
     builder.Services.AddBuildingBlocsAuth(builder.Configuration);
     builder.Services.AddApplicationServices();
     builder.AddCustomSerilog("orderApi");
@@ -51,12 +51,21 @@ try
     {
         o.Address = new Uri(builder.Configuration["Services:SellerGrpcUrl"] ?? throw new InvalidOperationException("SellerGrpcUrl is missing."));
     });
+    builder.Services.AddGrpcClient<IdentityGrpc.IdentityGrpcClient>(o =>
+    {
+        o.Address = new Uri(builder.Configuration["Services:IdentityGrpcUrl"] ?? throw new InvalidOperationException("IdentityGrpcUrl is missing."));
+    });
+    builder.Services.AddGrpcClient<ShippingGrpc.ShippingGrpcClient>(o =>
+    {
+        o.Address = new Uri(builder.Configuration["Services:ShippingGrpcUrl"] ?? throw new InvalidOperationException("ShippingGrpcUrl is missing."));
+    });
 
 
     builder.Services.AddScoped<ICartService, CartClientService>();
     builder.Services.AddScoped<IProductService, ProductClientService>();
     builder.Services.AddScoped<IPaymentService, PaymentClientService>();
     builder.Services.AddScoped<ISellerService, SellerClientService>();
+    builder.Services.AddScoped<IIdentityService, IdentityClientService>();
 
     var app = builder.Build();
 
@@ -66,8 +75,9 @@ try
         app.MapScalarApiReference();
     }
 
-    app.MapControllers();
     app.UseHttpsRedirection();
+    app.UseCors("CorsPolicy");
+    app.MapControllers();
 
     app.Run();
 
