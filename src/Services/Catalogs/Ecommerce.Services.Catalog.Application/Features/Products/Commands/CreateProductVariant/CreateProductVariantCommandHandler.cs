@@ -36,7 +36,11 @@ public class CreateProductVariantCommandHandler(
                 command.Sku,
                 command.Price,
                 command.AvailableStocks,
-                command.OptionValueIds
+                command.OptionValueIds,
+                command.Weight ?? 0,
+                command.Length ?? 0,
+                command.Width ?? 0,
+                command.Height ?? 0
             );
 
             _variantRepository.Add(createdVariant);

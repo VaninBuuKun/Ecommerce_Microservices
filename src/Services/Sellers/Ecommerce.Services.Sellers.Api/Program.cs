@@ -43,6 +43,7 @@ try
     {
         o.Address = new Uri(builder.Configuration["Services:ShippingGrpcUrl"] ?? "http://localhost:5071");
     });
+    builder.Services.AddScoped<Ecommerce.Services.Sellers.Api.Services.IShippingService, Ecommerce.Services.Sellers.Api.Services.ShippingService>();
 
     // Cấu hình Building Blocks
     builder.Services.AddBuildingBlocksWeb(builder.Configuration);

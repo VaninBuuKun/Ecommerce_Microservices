@@ -72,6 +72,9 @@ namespace Ecommerce.Services.Sellers.Api.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
+                    b.Property<string>("GhnShopId")
+                        .HasColumnType("text");
+
                     b.Property<DateTimeOffset?>("LastModifiedDate")
                         .HasColumnType("timestamp with time zone");
 

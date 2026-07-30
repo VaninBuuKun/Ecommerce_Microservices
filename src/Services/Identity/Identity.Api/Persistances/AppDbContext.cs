@@ -26,7 +26,6 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : IdentityDbCo
             entity.HasKey(a => a.Id);
             entity.Property(a => a.RecipientName).IsRequired().HasMaxLength(100);
             entity.Property(a => a.Phone).IsRequired().HasMaxLength(20);
-            entity.Property(a => a.WardCode).IsRequired().HasMaxLength(20);
             entity.Property(a => a.AddressLine).IsRequired().HasMaxLength(255);
             
             entity.HasOne(a => a.User)

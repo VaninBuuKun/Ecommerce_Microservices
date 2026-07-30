@@ -14,6 +14,7 @@ public class SubOrderStateMachine : MassTransitStateMachine<SubOrderSagaState>
 {
     public State AwaitingConfirmation { get; private set; }
     public State Processing { get; private set; }
+    public State PackageReady { get; private set; }
     public State Shipping { get; private set; }
     public State Delivered { get; private set; }
 
@@ -21,6 +22,7 @@ public class SubOrderStateMachine : MassTransitStateMachine<SubOrderSagaState>
     public Event<SubOrderCreatedEvent> SubOrderCreated { get; private set; }
     public Event<SubOrderConfirmedEvent> SubOrderConfirmed { get; private set; }
     public Event<SubOrderRejectedEvent> SubOrderRejected { get; private set; }
+    public Event<PackageReadyEvent> SubOrderPackageReady { get; private set; }
     public Event<SubOrderShippedEvent> SubOrderShipped { get; private set; }
     public Event<SubOrderDeliveredEvent> SubOrderDelivered { get; private set; }
     public Event<SubOrderCompletedEvent> SubOrderCompleted { get; private set; }
@@ -32,6 +34,7 @@ public class SubOrderStateMachine : MassTransitStateMachine<SubOrderSagaState>
         Event(() => SubOrderCreated, x => x.CorrelateById(context => context.Message.SubOrderId));
         Event(() => SubOrderConfirmed, x => x.CorrelateById(context => context.Message.SubOrderId));
         Event(() => SubOrderRejected, x => x.CorrelateById(context => context.Message.SubOrderId));
+        Event(() => SubOrderPackageReady, x => x.CorrelateById(context => context.Message.SubOrderId));
         Event(() => SubOrderShipped, x => x.CorrelateById(context => context.Message.SubOrderId));
         Event(() => SubOrderDelivered, x => x.CorrelateById(context => context.Message.SubOrderId));
         Event(() => SubOrderCompleted, x => x.CorrelateById(context => context.Message.SubOrderId));
@@ -64,6 +67,42 @@ public class SubOrderStateMachine : MassTransitStateMachine<SubOrderSagaState>
         );
 
         During(Processing,
+            When(SubOrderPackageReady)
+                .Then(context =>
+                {
+                    context.Saga.Weight = context.Message.Weight;
+                    context.Saga.Height = context.Message.Height;
+                    context.Saga.Width = context.Message.Width;
+                    context.Saga.Length = context.Message.Length;
+                })
+                .PublishAsync(context => context.Init<CreateShipmentRequest>(new CreateShipmentRequest
+                {
+                    SubOrderId = context.Saga.CorrelationId,
+                    OrderId = context.Saga.OrderId,
+                    RecipientWardId = context.Saga.RecipientWardId,
+                    RecipientAddress = context.Saga.ShippingAddress,
+                    RecipientName = context.Saga.RecipientName,
+                    RecipientPhone = context.Saga.RecipientPhone,
+                    ShopId = context.Saga.ShopId,
+                    Weight = context.Saga.Weight,
+                    Height = context.Saga.Height,
+                    Width = context.Saga.Width,
+                    Length = context.Saga.Length,
+                    CodAmount = context.Saga.IsOnlinePayment ? 0m : context.Saga.TotalAmount
+                }))
+                .PublishAsync(context => context.Init<SubOrderStatusChangedEvent>(new SubOrderStatusChangedEvent
+                {
+                    SubOrderId = context.Saga.CorrelationId,
+                    Status = "PackageReady"
+                }))
+                .TransitionTo(PackageReady),
+
+            When(SubOrderRejected)
+                .HandleRejectionFlow()
+                .Finalize()
+        );
+
+        During(PackageReady,
             When(SubOrderShipped)
                 .PublishAsync(context => context.Init<SubOrderStatusChangedEvent>(new SubOrderStatusChangedEvent
                 {
@@ -84,9 +123,17 @@ public class SubOrderStateMachine : MassTransitStateMachine<SubOrderSagaState>
                     SubOrderId = context.Saga.CorrelationId,
                     Status = "Delivered"
                 }))
-                .Finalize()
+                .TransitionTo(Delivered)
         );
 
-        // SetCompletedWhenFinalized();
+        During(Delivered,
+            When(SubOrderCompleted)
+                .PublishAsync(context => context.Init<SubOrderStatusChangedEvent>(new SubOrderStatusChangedEvent
+                {
+                    SubOrderId = context.Saga.CorrelationId,
+                    Status = "Completed"
+                }))
+                .Finalize()
+        );
     }
 }

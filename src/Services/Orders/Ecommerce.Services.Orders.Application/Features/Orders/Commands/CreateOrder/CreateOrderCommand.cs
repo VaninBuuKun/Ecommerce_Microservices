@@ -8,5 +8,6 @@ namespace Ecommerce.Services.Orders.Application.Features.Commands.CreateOrder;
 public record CreateOrderCommand(
     long CustomerId,
     string PaymentProvider,
-    Guid UserAddressId
-) : ICommand<CustomerOrderResponse>;
+    Guid UserAddressId,
+    Guid CheckoutSessionId,
+    Dictionary<long, string> ShopShippingSelections) : ICommand<CustomerOrderResponse>;

@@ -1,5 +1,3 @@
-using System;
-using System.Threading.Tasks;
 using BuildingBlocks.Grpc.Services;
 using Ecommerce.Services.Orders.Contracts.Events;
 using Ecommerce.Services.Orders.Contracts.Requests;
@@ -8,7 +6,6 @@ using Ecommerce.Services.Shippings.Api.Models.Enums;
 using Ecommerce.Services.Shippings.Api.Persistances;
 using Ecommerce.Services.Shippings.Api.Services;
 using MassTransit;
-using Microsoft.Extensions.Logging;
 
 namespace Ecommerce.Services.Shippings.Api.Consumers;
 
@@ -31,10 +28,28 @@ public class CreateShipmentConsumer(
                 ShopId = message.ShopId
             }, cancellationToken: context.CancellationToken);
 
-            string senderName = shopInfo.ShopName ?? "Cửa hàng Online";
-            string senderPhone = shopInfo.Phone ?? "0987654321";
-            string senderAddress = shopInfo.AddressLine ?? "Địa chỉ Shop";
-            string senderWardId = shopInfo.WardCode ?? "20002"; // Fallback ward code mặc định
+            if (shopInfo == null ||
+                string.IsNullOrWhiteSpace(shopInfo.ShopName) ||
+                string.IsNullOrWhiteSpace(shopInfo.Phone) ||
+                string.IsNullOrWhiteSpace(shopInfo.AddressLine) ||
+                shopInfo.WardId == 0 ||
+                string.IsNullOrWhiteSpace(shopInfo.GhnShopId))
+            {
+                logger.LogError("Shop {ShopId} has invalid or incomplete shipping information. Rejecting suborder.", message.ShopId);
+                
+                await context.Publish<SubOrderRejectedEvent>(new SubOrderRejectedEvent
+                {
+                    SubOrderId = message.SubOrderId,
+                    Reason = "Shop shipping information is incomplete or invalid (Missing name, phone, address, ward code, or GHN ShopId)."
+                });
+                return;
+            }
+
+            string senderName = shopInfo.ShopName;
+            string senderPhone = shopInfo.Phone;
+            string senderAddress = shopInfo.AddressLine;
+            long senderWardId = shopInfo.WardId;
+            string ghnShopId = shopInfo.GhnShopId;
 
             // 2. Chọn nhà vận chuyển động (mặc định là GHN, có thể mở rộng lấy theo yêu cầu đơn hàng)
             var shippingProvider = providerFactory.GetProvider("GHN"); 
@@ -46,6 +61,7 @@ public class CreateShipmentConsumer(
                 senderName,
                 senderPhone,
                 senderAddress,
+                ghnShopId,
                 message.RecipientWardId,
                 message.RecipientAddress,
                 message.RecipientName,
@@ -62,8 +78,12 @@ public class CreateShipmentConsumer(
                 Id = Guid.NewGuid(),
                 SubOrderId = message.SubOrderId,
                 OrderId = message.OrderId,
+                ShopId = message.ShopId,
                 SenderAddress = senderAddress,
                 RecipientAddress = message.RecipientAddress,
+                RecipientName = message.RecipientName,
+                RecipientPhone = message.RecipientPhone,
+                RecipientWardId = message.RecipientWardId,
                 Weight = message.Weight,
                 Length = message.Length,
                 Width = message.Width,
@@ -75,19 +95,14 @@ public class CreateShipmentConsumer(
             {
                 shipment.WaybillCode = waybillResult.Value.WaybillCode;
                 shipment.ShippingFee = waybillResult.Value.ShippingFee;
+                shipment.ExpectedDeliveryDate = waybillResult.Value.ExpectedDeliveryDate;
                 shipment.Status = ShipmentStatus.ReadyToPick;
                 shipment.TrackingLogs = $"[Registered] Shipment registered with waybill {shipment.WaybillCode} at {DateTime.UtcNow}";
                 
                 dbContext.Shipments.Add(shipment);
                 await dbContext.SaveChangesAsync(context.CancellationToken);
 
-                logger.LogInformation("Shipment created successfully. Waybill: {WaybillCode}", shipment.WaybillCode);
-
-                // Publish SubOrderShippedEvent to push Saga to Shipping state
-                await context.Publish<SubOrderShippedEvent>(new SubOrderShippedEvent
-                {
-                    SubOrderId = message.SubOrderId
-                });
+                logger.LogInformation("Shipment created successfully. Waybill: {WaybillCode}. Waiting for carrier pickup.", shipment.WaybillCode);
             }
             else
             {

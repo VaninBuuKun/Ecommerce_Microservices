@@ -57,7 +57,11 @@ public class ProductsController(ISender sender) : ControllerBase
         var result = await sender.Send(new CreateProductCommand(
             request.ShopId,
             request.Name,
-            request.Description
+            request.Description,
+            request.Weight,
+            request.Length,
+            request.Width,
+            request.Height
         ));
 
         if (result.IsSuccess)
@@ -74,7 +78,11 @@ public class ProductsController(ISender sender) : ControllerBase
         var result = await sender.Send(new UpdateProductCommand(
             id,
             request.Name,
-            request.Description
+            request.Description,
+            request.Weight,
+            request.Length,
+            request.Width,
+            request.Height
         ));
 
         if (result.IsSuccess)
@@ -132,7 +140,11 @@ public class ProductsController(ISender sender) : ControllerBase
             request.Sku,
             request.Price,
             request.AvailableStocks,
-            request.OptionValueIds
+            request.OptionValueIds,
+            request.Weight,
+            request.Length,
+            request.Width,
+            request.Height
         ));
 
         if (result.IsSuccess)
@@ -201,7 +213,7 @@ public class ProductsController(ISender sender) : ControllerBase
     }
 }
 
-public record CreateProductVariantRequest(string? Sku, decimal Price, int AvailableStocks, List<Guid> OptionValueIds);
+public record CreateProductVariantRequest(string? Sku, decimal Price, int AvailableStocks, List<Guid> OptionValueIds, double? Weight = null, double? Length = null, double? Width = null, double? Height = null);
 public record UpdateProductVariantRequest(string? Sku, decimal Price, int AvailableStocks);
 public record UpdateProductOptionRequest(string Name);
 public record UpdateProductOptionValueRequest(string Value);

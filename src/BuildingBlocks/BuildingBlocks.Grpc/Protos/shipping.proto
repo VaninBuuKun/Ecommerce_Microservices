@@ -6,12 +6,40 @@ package shipping;
 
 service ShippingGrpc {
   rpc GetLocationNames(GetLocationNamesRequest) returns (GetLocationNamesResponse);
+  rpc RegisterGhnShop(RegisterGhnShopRequest) returns (RegisterGhnShopResponse);
+  rpc CalculateBatchFee(CalculateBatchFeeGrpcRequest) returns (CalculateBatchFeeGrpcResponse);
+}
+
+message CalculateFeeItemRequest {
+  int64 shop_id = 1;
+  int64 sender_ward_id = 2;
+  int64 recipient_ward_id = 3;
+  double weight = 4;
+  double length = 5;
+  double width = 6;
+  double height = 7;
+  string shipping_method = 8;
+}
+
+message CalculateBatchFeeGrpcRequest {
+  repeated CalculateFeeItemRequest requests = 1;
+}
+
+message CalculateFeeItemResponse {
+  int64 shop_id = 1;
+  bool is_success = 2;
+  string fee = 3;
+  string error_message = 4;
+}
+
+message CalculateBatchFeeGrpcResponse {
+  repeated CalculateFeeItemResponse responses = 1;
 }
 
 message GetLocationNamesRequest {
-  int32 province_id = 1;
-  int32 district_id = 2;
-  string ward_code = 3;
+  int64 province_id = 1;
+  int64 district_id = 2;
+  int64 ward_id = 3;
 }
 
 message GetLocationNamesResponse {
@@ -19,4 +47,17 @@ message GetLocationNamesResponse {
   string district_name = 2;
   string ward_name = 3;
   bool is_valid = 4;
+}
+
+message RegisterGhnShopRequest {
+  int64 ward_id = 2;
+  string name = 3;
+  string phone = 4;
+  string address = 5;
+}
+
+message RegisterGhnShopResponse {
+  int64 shop_id = 1;
+  bool is_success = 2;
+  string error_message = 3;
 }

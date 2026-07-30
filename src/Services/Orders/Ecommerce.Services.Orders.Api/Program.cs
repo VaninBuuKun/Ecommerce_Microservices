@@ -66,6 +66,7 @@ try
     builder.Services.AddScoped<IPaymentService, PaymentClientService>();
     builder.Services.AddScoped<ISellerService, SellerClientService>();
     builder.Services.AddScoped<IIdentityService, IdentityClientService>();
+    builder.Services.AddScoped<IShippingService, ShippingClientService>();
 
     var app = builder.Build();
 

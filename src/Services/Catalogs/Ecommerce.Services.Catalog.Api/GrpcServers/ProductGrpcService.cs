@@ -61,6 +61,10 @@ public class ProductGrpcService(ISender sender, ILogger<ProductGrpcService> logg
             variant.VariantId = variantDto.Id.ToString();
             variant.VariantName = variantDto.VariantName;
             variant.ShopId = variantDto.ShopId;
+            variant.Weight = variantDto.Weight;
+            variant.Length = variantDto.Length;
+            variant.Width = variantDto.Width;
+            variant.Height = variantDto.Height;
             response.Variants.Add(variant);
         }
         return response;
@@ -93,20 +97,6 @@ public class ProductGrpcService(ISender sender, ILogger<ProductGrpcService> logg
             IsSuccess = appResponse.IsSuccess,
             ErrorMessage = appResponse.ErrorMessage
         };
-        
-        foreach (var item in appResponse.VariantStocks)
-        {
-            response.Items.Add(new RpcReservedStockItemDto()
-            {
-                ShopId = item.ShopId,
-                VariantId = item.VariantId.ToString(),
-                Quantity = item.Quantity,
-                AvailableStocks = item.AvailableStocks,
-                ProductName = item.ProductName,
-                VariantName = item.VariantName,
-                UnitPrice = item.UnitPrice.ToGrpcString()
-            });
-        }
         
         return response;
     }

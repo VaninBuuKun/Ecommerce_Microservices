@@ -1,18 +1,16 @@
-using System;
-using System.Threading;
-using System.Threading.Tasks;
 using BuildingBlocks.Shared.Commons;
 using BuildingBlocks.Shared.Enums;
 using BuildingBlocks.Shared.InfrastructureInterfaces.InMemoryBus;
 using BuildingBlocks.Shared.InfrastructureInterfaces.Persistence.EFCore;
 using Ecommerce.Services.Sellers.Api.Models.Entities;
-using Microsoft.Extensions.Logging;
+
+using Ecommerce.Services.Sellers.Api.Services;
 
 namespace Ecommerce.Services.Sellers.Api.Features.Shops.Commands.RegisterShop;
 
 public class RegisterShopCommandHandler(
     IEfUnitOfWork unitOfWork,
-    BuildingBlocks.Grpc.Services.ShippingGrpc.ShippingGrpcClient shippingGrpcClient,
+    IShippingService shippingService,
     ILogger<RegisterShopCommandHandler> logger)
     : ICommandHandler<RegisterShopCommand, Shop>
 {
@@ -30,32 +28,20 @@ public class RegisterShopCommandHandler(
             string districtName = string.Empty;
             string wardName = string.Empty;
 
-            try
-            {
-                var locationResponse = await shippingGrpcClient.GetLocationNamesAsync(new BuildingBlocks.Grpc.Services.GetLocationNamesRequest
-                {
-                    ProvinceId = request.ProvinceId,
-                    DistrictId = request.DistrictId,
-                    WardCode = request.WardCode
-                }, cancellationToken: cancellationToken);
+            var locationResult = await shippingService.GetLocationNamesAsync(
+                request.ProvinceId, request.DistrictId, request.WardId, cancellationToken);
 
-                if (locationResponse != null && locationResponse.IsValid)
-                {
-                    provinceName = locationResponse.ProvinceName;
-                    districtName = locationResponse.DistrictName;
-                    wardName = locationResponse.WardName;
-                }
-                else
-                {
-                    logger.LogWarning("RegisterShopCommand: Shipping gRPC trả về Invalid cho các IDs: P:{P}, D:{D}, W:{W}", 
-                        request.ProvinceId, request.DistrictId, request.WardCode);
-                    return Result<Shop>.Failure("Địa chỉ (Tỉnh/Huyện/Xã) không hợp lệ trên hệ thống vận chuyển.", EErrorCode.InvalidArgument);
-                }
-            }
-            catch (Exception ex)
+            if (locationResult.IsSuccess)
             {
-                logger.LogError(ex, "RegisterShopCommand: Không thể kết nối đến Shipping Service gRPC để lấy thông tin địa chỉ.");
-                return Result<Shop>.Failure("Không thể kết nối đến hệ thống xác thực địa chỉ vận chuyển.", EErrorCode.InternalServerError);
+                provinceName = locationResult.Value.ProvinceName;
+                districtName = locationResult.Value.DistrictName;
+                wardName = locationResult.Value.WardName;
+            }
+            else
+            {
+                logger.LogWarning("RegisterShopCommand: Giải mã địa chỉ thất bại cho P:{P}, D:{D}, W:{W}. Reason: {Msg}", 
+                    request.ProvinceId, request.DistrictId, request.WardId, locationResult.Message);
+                return Result<Shop>.Failure(locationResult.Message, locationResult.ErrorCode);
             }
 
             // 1. Kiểm tra trạng thái xác minh KYC của User
@@ -91,8 +77,24 @@ public class RegisterShopCommandHandler(
                 request.AddressLine,
                 request.ProvinceId,
                 request.DistrictId,
-                request.WardCode
+                request.WardId
             );
+
+            // Đăng ký Shop lên hệ thống vận chuyển GHN để lấy ShopId riêng biệt
+            string? ghnShopId = null;
+            var ghnResult = await shippingService.RegisterGhnShopAsync(
+                request.WardId, request.Name, request.Phone, request.AddressLine, cancellationToken);
+
+            if (ghnResult.IsSuccess)
+            {
+                ghnShopId = ghnResult.Value.GhnShopId.ToString();
+                logger.LogInformation("RegisterShopCommand: Đăng ký Shop thành công trên GHN. GhnShopId: {GhnShopId}", ghnShopId);
+            }
+            else
+            {
+                logger.LogError("RegisterShopCommand: Không thể đăng ký Shop trên GHN. Reason: {Error}", ghnResult.Message);
+                return Result<Shop>.Failure(ghnResult.Message, ghnResult.ErrorCode);
+            }
 
             // Khởi tạo thực thể Shop
             var shop = new Shop(
@@ -100,7 +102,10 @@ public class RegisterShopCommandHandler(
                 request.Name,
                 request.Description,
                 pickUpAddress
-            );
+            )
+            {
+                GhnShopId = ghnShopId
+            };
 
             shopRepo.Add(shop);
             await unitOfWork.SaveChangesAsync(cancellationToken);

@@ -49,6 +49,12 @@ public class SubOrder : EntityTrackingBase<Guid>
         CalculateGrandTotal();
     }
 
+    public void SetShippingFee(long shippingFee)
+    {
+        ShippingFee = shippingFee;
+        CalculateGrandTotal();
+    }
+
     // ========== Status Transition Rules ==========
     
     private static readonly Dictionary<SubOrderStatus, HashSet<SubOrderStatus>> AllowedTransitions = new()
@@ -56,7 +62,7 @@ public class SubOrder : EntityTrackingBase<Guid>
         [SubOrderStatus.AwaitingPayment] = new() { SubOrderStatus.AwaitingConfirmation, SubOrderStatus.Cancelled },
         [SubOrderStatus.AwaitingConfirmation] = new() { SubOrderStatus.Processing, SubOrderStatus.Cancelled },
         [SubOrderStatus.Processing] = new() { SubOrderStatus.Shipping, SubOrderStatus.Cancelled },
-        [SubOrderStatus.Shipping] = new() { SubOrderStatus.Delivered, SubOrderStatus.Cancelled },
+        [SubOrderStatus.Shipping] = new() { SubOrderStatus.Delivered },
         [SubOrderStatus.Delivered] = new() { SubOrderStatus.Completed },
         [SubOrderStatus.Completed] = new(),
         [SubOrderStatus.Cancelled] = new(),

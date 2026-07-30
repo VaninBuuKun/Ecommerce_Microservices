@@ -37,7 +37,7 @@ public class IdentityGrpcServer(AppDbContext dbContext, ILogger<IdentityGrpcServ
             Phone = address.Phone,
             ProvinceId = address.ProvinceId,
             DistrictId = address.DistrictId,
-            WardCode = address.WardCode,
+            WardId = address.WardId,
             AddressLine = address.AddressLine
         };
     }

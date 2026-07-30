@@ -20,7 +20,7 @@ public class LocationsController(ILocationService locationService) : ControllerB
     }
 
     [HttpGet("provinces/{provinceId}/districts")]
-    public async Task<IActionResult> GetDistricts(string provinceId)
+    public async Task<IActionResult> GetDistricts(long provinceId)
     {
         var result = await locationService.GetDistrictsAsync(provinceId);
         if (result.IsSuccess)
@@ -31,7 +31,7 @@ public class LocationsController(ILocationService locationService) : ControllerB
     }
 
     [HttpGet("districts/{districtId}/wards")]
-    public async Task<IActionResult> GetWards(string districtId)
+    public async Task<IActionResult> GetWards(long districtId)
     {
         var result = await locationService.GetWardsAsync(districtId);
         if (result.IsSuccess)

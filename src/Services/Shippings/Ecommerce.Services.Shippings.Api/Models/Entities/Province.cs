@@ -4,7 +4,7 @@ namespace Ecommerce.Services.Shippings.Api.Models.Entities;
 
 public class Province
 {
-    public string Id { get; set; } = string.Empty; // GSO Code as Primary Key
+    public long Id { get; set; }
     public string Name { get; set; } = string.Empty; // Clean name for search/matching (e.g., "Hồ Chí Minh")
     public string DisplayName { get; set; } = string.Empty; // Display name with prefix (e.g., "Thành phố Hồ Chí Minh")
 

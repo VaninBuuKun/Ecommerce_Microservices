@@ -17,8 +17,8 @@ message GetUserAddressResponse {
   bool found = 1;
   string recipient_name = 2;
   string phone = 3;
-  int32 province_id = 4;
-  int32 district_id = 5;
-  string ward_code = 6;
+  int64 province_id = 4;
+  int64 district_id = 5;
+  int64 ward_id = 6;
   string address_line = 7;
 }

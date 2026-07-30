@@ -98,6 +98,9 @@ namespace Ecommerce.Services.Shippings.Api.Migrations
                     b.Property<DateTimeOffset>("CreatedDate")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<DateTime?>("ExpectedDeliveryDate")
+                        .HasColumnType("timestamp with time zone");
+
                     b.Property<string>("FailureReason")
                         .HasMaxLength(255)
                         .HasColumnType("character varying(255)");
@@ -118,12 +121,27 @@ namespace Ecommerce.Services.Shippings.Api.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
+                    b.Property<string>("RecipientName")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("RecipientPhone")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("RecipientWardId")
+                        .IsRequired()
+                        .HasColumnType("text");
+
                     b.Property<string>("SenderAddress")
                         .IsRequired()
                         .HasColumnType("text");
 
                     b.Property<decimal>("ShippingFee")
                         .HasColumnType("decimal(18,2)");
+
+                    b.Property<long>("ShopId")
+                        .HasColumnType("bigint");
 
                     b.Property<int>("Status")
                         .HasColumnType("integer");

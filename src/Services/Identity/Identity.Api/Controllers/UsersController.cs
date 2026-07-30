@@ -271,7 +271,7 @@ public class UsersController(
             a.Phone,
             a.ProvinceId,
             a.DistrictId,
-            a.WardCode,
+            a.WardId,
             a.AddressLine,
             a.IsDefault
         });
@@ -292,7 +292,7 @@ public class UsersController(
             Phone = request.Phone,
             ProvinceId = request.ProvinceId,
             DistrictId = request.DistrictId,
-            WardCode = request.WardCode,
+            WardId = request.WardId,
             AddressLine = request.AddressLine,
             IsDefault = request.IsDefault
         };
@@ -306,7 +306,7 @@ public class UsersController(
             newAddress.Phone,
             newAddress.ProvinceId,
             newAddress.DistrictId,
-            newAddress.WardCode,
+            newAddress.WardId,
             newAddress.AddressLine,
             newAddress.IsDefault
         });
@@ -333,9 +333,9 @@ public class CreateUserAddressRequest
 {
     public string RecipientName { get; set; } = string.Empty;
     public string Phone { get; set; } = string.Empty;
-    public int ProvinceId { get; set; }
-    public int DistrictId { get; set; }
-    public string WardCode { get; set; } = string.Empty;
+    public long ProvinceId { get; set; }
+    public long DistrictId { get; set; }
+    public long WardId { get; set; }
     public string AddressLine { get; set; } = string.Empty;
     public bool IsDefault { get; set; }
 }

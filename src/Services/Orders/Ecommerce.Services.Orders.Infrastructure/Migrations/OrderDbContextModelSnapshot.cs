@@ -230,11 +230,17 @@ namespace Ecommerce.Services.Orders.Infrastructure.Migrations
                         .HasMaxLength(255)
                         .HasColumnType("character varying(255)");
 
+                    b.Property<double>("Height")
+                        .HasColumnType("double precision");
+
                     b.Property<bool>("IsOnlinePayment")
                         .HasColumnType("boolean");
 
                     b.Property<string>("ItemsJson")
                         .HasColumnType("text");
+
+                    b.Property<double>("Length")
+                        .HasColumnType("double precision");
 
                     b.Property<Guid>("OrderId")
                         .HasColumnType("uuid");
@@ -260,6 +266,12 @@ namespace Ecommerce.Services.Orders.Infrastructure.Migrations
 
                     b.Property<decimal>("TotalAmount")
                         .HasColumnType("decimal(18,2)");
+
+                    b.Property<double>("Weight")
+                        .HasColumnType("double precision");
+
+                    b.Property<double>("Width")
+                        .HasColumnType("double precision");
 
                     b.HasKey("CorrelationId");
 

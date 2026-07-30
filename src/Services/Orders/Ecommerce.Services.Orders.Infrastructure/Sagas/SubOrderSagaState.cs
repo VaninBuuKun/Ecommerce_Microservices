@@ -17,6 +17,11 @@ public class SubOrderSagaState : SagaStateMachineInstance
     public string ShippingAddress { get; set; } = string.Empty;
     public string RecipientName { get; set; } = string.Empty;
     public string RecipientPhone { get; set; } = string.Empty;
-    public string RecipientWardId { get; set; } = string.Empty;
+    public long RecipientWardId { get; set; }
+
+    public double Weight { get; set; }
+    public double Height { get; set; }
+    public double Width { get; set; }
+    public double Length { get; set; }
 }
 

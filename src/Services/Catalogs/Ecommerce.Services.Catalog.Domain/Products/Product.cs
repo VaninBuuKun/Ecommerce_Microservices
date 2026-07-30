@@ -9,6 +9,10 @@ public class Product : AggregateRoot<Guid>
     public string Name { get; private set; }
     public string Description { get; private set; }
     public ProductStatus Status { get; private set; }
+    public double Weight { get; private set; }
+    public double Length { get; private set; }
+    public double Width { get; private set; }
+    public double Height { get; private set; }
 
     // Navigation properties for EAV
     private readonly List<ProductOption> _options = new();
@@ -21,7 +25,7 @@ public class Product : AggregateRoot<Guid>
 
     private Product() { Name = null!; Description = null!; } // EF Core
 
-    private Product(long shopId, string name, string description)
+    private Product(long shopId, string name, string description, double weight, double length, double width, double height)
     {
         Check(new ProductNameCannotBeEmptyRule(name));
 
@@ -30,15 +34,23 @@ public class Product : AggregateRoot<Guid>
         Name = name;
         Description = description;
         Status = ProductStatus.Draft;
+        Weight = weight;
+        Length = length;
+        Width = width;
+        Height = height;
     }
 
     // ========== Update ==========
 
-    public void UpdateDetails(string name, string description)
+    public void UpdateDetails(string name, string description, double weight, double length, double width, double height)
     {
         Check(new ProductNameCannotBeEmptyRule(name));
         Name = name;
         Description = description;
+        Weight = weight;
+        Length = length;
+        Width = width;
+        Height = height;
     }   
 
     // ========== Options & Option Values ==========
@@ -80,7 +92,7 @@ public class Product : AggregateRoot<Guid>
 
     // ========== Variants ==========
 
-    public ProductVariant AddVariant(string? sku, decimal price, int availableStocks, List<Guid> optionValueIds)
+    public ProductVariant AddVariant(string? sku, decimal price, int availableStocks, List<Guid> optionValueIds, double weight = 0, double length = 0, double width = 0, double height = 0)
     {
         Check(new ProductPriceMustBePositiveRule(price));
         Check(new ProductStocksCannotBeNegativeRule(availableStocks));
@@ -106,7 +118,7 @@ public class Product : AggregateRoot<Guid>
             }
         }
         
-        var createdVariant = new ProductVariant(Id, sku, price, availableStocks);
+        var createdVariant = new ProductVariant(Id, sku, price, availableStocks, weight, length, width, height);
         foreach (var optionValueId in optionValueIds)
         {
             createdVariant.AddOption(new ProductVariantOption(createdVariant.Id, optionValueId));
@@ -152,8 +164,8 @@ public class Product : AggregateRoot<Guid>
 
     // ========== Factory Methods ==========
 
-    public static Product CreateNewProduct(long shopId, string name, string description)
+    public static Product CreateNewProduct(long shopId, string name, string description, double weight = 0, double length = 0, double width = 0, double height = 0)
     {
-        return new Product(shopId, name, description);
+        return new Product(shopId, name, description, weight, length, width, height);
     }
 }

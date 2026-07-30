@@ -1,17 +1,21 @@
 using System;
 using System.Threading;
 using System.Threading.Tasks;
+using BuildingBlocks.Grpc.Extensions;
 using BuildingBlocks.Grpc.Services;
 using BuildingBlocks.Shared.Commons;
 using BuildingBlocks.Shared.Enums;
+using Ecommerce.Services.Orders.Application.Commons.Dtos.Users;
 using Ecommerce.Services.Orders.Application.Services;
 using Grpc.Core;
+using MassTransit.Logging;
+using Microsoft.Extensions.Logging;
 
 namespace Ecommerce.Services.Orders.Infrastructure.GrpcClients;
 
-public class IdentityClientService(IdentityGrpc.IdentityGrpcClient client) : IIdentityService
+public class IdentityClientService(IdentityGrpc.IdentityGrpcClient client, Logger<IdentityClientService> logger) : IIdentityService
 {
-    public async Task<Result<GetUserAddressResponse>> GetUserAddressAsync(Guid addressId, long userId)
+    public async Task<Result<UserAddressDto>> GetUserAddressAsync(Guid addressId, long userId)
     {
         try
         {
@@ -23,18 +27,30 @@ public class IdentityClientService(IdentityGrpc.IdentityGrpcClient client) : IId
 
             if (!response.Found)
             {
-                return Result<GetUserAddressResponse>.Failure("Địa chỉ giao hàng không tìm thấy hoặc không thuộc về người dùng này.", EErrorCode.NotFound);
+                return Result<UserAddressDto>.Failure("Địa chỉ giao hàng không tìm thấy hoặc không thuộc về người dùng này.", EErrorCode.NotFound);
             }
 
-            return Result<GetUserAddressResponse>.Success(response);
+            return Result<UserAddressDto>.Success(new UserAddressDto()
+            {
+                Id = addressId.ToString(),
+                UserId = userId,
+                RecipientName = response.RecipientName,
+                Phone = response.Phone,
+                ProvinceId = response.ProvinceId,
+                DistrictId = response.DistrictId,
+                WardId = response.WardId,
+                AddressLine = response.AddressLine,
+            });
         }
         catch (RpcException ex)
         {
-            return Result<GetUserAddressResponse>.Failure($"gRPC Error calling Identity Service: {ex.Status.Detail}", EErrorCode.InternalServerError);
+            logger.LogError(ex, "Grpc Error getting user address");
+            return ex.ToResultFailure<UserAddressDto>();
         }
         catch (Exception ex)
         {
-            return Result<GetUserAddressResponse>.Failure($"Error getting user address: {ex.Message}", EErrorCode.InternalServerError);
+            logger.LogError(ex, $"Error getting user address {addressId}");
+            return Result<UserAddressDto>.Failure($"Error getting user address: {ex.Message}", EErrorCode.InternalServerError);
         }
     }
 }

@@ -12,9 +12,9 @@ public class UserAddress
     public string RecipientName { get; set; } = string.Empty;
     public string Phone { get; set; } = string.Empty;
     
-    public int ProvinceId { get; set; }
-    public int DistrictId { get; set; }
-    public string WardCode { get; set; } = string.Empty;
+    public long ProvinceId { get; set; }
+    public long DistrictId { get; set; }
+    public long WardId { get; set; } 
     public string AddressLine { get; set; } = string.Empty;
     
     public bool IsDefault { get; set; }

@@ -17,6 +17,16 @@ message RpcCartItemDto {
   string variantId = 1;
   int32 quantity = 7;
   bool isSelected = 8;
+  string productId = 9;
+  string productName = 10;
+  string variantName = 11;
+  string unitPrice = 12;
+  int64 shopId = 13;
+  int32 availableStocks = 14;
+  double weight = 15;
+  double length = 16;
+  double width = 17;
+  double height = 18;
 } 
 
 message GetCartByIdResponse {

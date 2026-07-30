@@ -71,7 +71,16 @@ public class SetupProductVariantsCommandHandler(
                     OptionValueIds.Add(optionAndValueToIdMap[lookupKey]);
                 }
                 
-                var createdVariant =  product.AddVariant(varDto.Sku, varDto.Price, varDto.AvailableStocks, OptionValueIds);
+                var createdVariant =  product.AddVariant(
+                    varDto.Sku, 
+                    varDto.Price, 
+                    varDto.AvailableStocks, 
+                    OptionValueIds,
+                    varDto.Weight ?? 0,
+                    varDto.Length ?? 0,
+                    varDto.Width ?? 0,
+                    varDto.Height ?? 0
+                );
                 
                 _variantRepository.Add(createdVariant);
             }

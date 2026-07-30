@@ -21,6 +21,12 @@ public class Shipment : EntityTrackingBase<Guid>
     public double Width { get; set; }  // in cm
     public double Length { get; set; } // in cm
 
+    public string RecipientName { get; set; } = string.Empty;
+    public string RecipientPhone { get; set; } = string.Empty;
+    public long RecipientWardId { get; set; }
+    public long ShopId { get; set; }
+    public DateTime? ExpectedDeliveryDate { get; set; }
+
     public string? FailureReason { get; set; }
     public string? TrackingLogs { get; set; } // JSON format of delivery stages
 }

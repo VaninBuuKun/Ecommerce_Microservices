@@ -12,6 +12,10 @@ public class ProductVariant : EntityTrackingBase<Guid>
     public int AvailableStocks { get; private set; }
     public int ReservedStocks { get; private set; }
     public bool IsDeleted { get; private set; }
+    public double? Weight { get; private set; }
+    public double? Length { get; private set; }
+    public double? Width { get; private set; }
+    public double? Height { get; private set; }
 
     private readonly List<ProductVariantOption> _options = new();
     public IReadOnlyCollection<ProductVariantOption> Options => _options.AsReadOnly();
@@ -19,7 +23,7 @@ public class ProductVariant : EntityTrackingBase<Guid>
 
     private ProductVariant() { }
 
-    internal ProductVariant(Guid productId, string? sku, decimal price, int availableStocks)
+    internal ProductVariant(Guid productId, string? sku, decimal price, int availableStocks, double? weight = null, double? length = null, double? width = null, double? height = null)
     {
         Check(new ProductPriceMustBePositiveRule(price));
         Check(new ProductStocksCannotBeNegativeRule(availableStocks));
@@ -31,6 +35,10 @@ public class ProductVariant : EntityTrackingBase<Guid>
         AvailableStocks = availableStocks;
         ReservedStocks = 0;
         IsDeleted = false;
+        Weight = weight;
+        Length = length;
+        Width = width;
+        Height = height;
     }
 
     public void UpdatePrice(decimal newPrice)
@@ -39,13 +47,17 @@ public class ProductVariant : EntityTrackingBase<Guid>
         Price = newPrice;
     }
 
-    public void UpdateDetails(string? sku, decimal price, int availableStocks)
+    public void UpdateDetails(string? sku, decimal price, int availableStocks, double? weight = null, double? length = null, double? width = null, double? height = null)
     {
         Check(new ProductPriceMustBePositiveRule(price));
         Check(new ProductStocksCannotBeNegativeRule(availableStocks));
         Sku = sku;
         Price = price;
         AvailableStocks = availableStocks;
+        Weight = weight;
+        Length = length;
+        Width = width;
+        Height = height;
     }
 
     public void ReserveStock(int stock)

@@ -1,44 +1,30 @@
-using System;
-using System.Net.Http;
-using System.Net.Http.Json;
 using System.Text.Json.Nodes;
-using System.Threading;
-using System.Threading.Tasks;
+using BuildingBlocks.EfCore.Persistence.Commons;
 using BuildingBlocks.Shared.Commons;
 using BuildingBlocks.Shared.Enums;
-using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.Logging;
 using Microsoft.EntityFrameworkCore;
 using Ecommerce.Services.Shippings.Api.Persistances;
 
 namespace Ecommerce.Services.Shippings.Api.Services;
 
-public class GhnShippingProvider : IShippingProvider
+public class GhnShippingProvider(
+    HttpClient httpClient,
+    IConfiguration configuration,
+    ILogger<GhnShippingProvider> logger,
+    ShippingDbContext dbContext)
+    : IShippingProvider
 {
-    private readonly HttpClient _httpClient;
-    private readonly ILogger<GhnShippingProvider> _logger;
-    private readonly string _token;
-    private readonly string _shopId;
-    private readonly string _baseUrl;
-    private readonly ShippingDbContext dbContext;
+    private readonly string _token = configuration["ShippingProviders:GHN:Token"] ?? "MOCK_TOKEN";
+    private readonly string _shopId = configuration["ShippingProviders:GHN:ShopId"] ?? "MOCK_SHOP_ID";
+    private readonly string _baseUrl = configuration["ShippingProviders:GHN:BaseUrl"] ?? "https://dev-online-gateway.ghn.vn";
 
     public string ProviderName => "GHN";
-
-    public GhnShippingProvider(HttpClient httpClient, IConfiguration configuration, ILogger<GhnShippingProvider> logger, ShippingDbContext dbContext)
-    {
-        _httpClient = httpClient;
-        _logger = logger;
-        this.dbContext = dbContext;
-        _token = configuration["ShippingProviders:GHN:Token"] ?? "MOCK_TOKEN";
-        _shopId = configuration["ShippingProviders:GHN:ShopId"] ?? "MOCK_SHOP_ID";
-        _baseUrl = configuration["ShippingProviders:GHN:BaseUrl"] ?? "https://dev-online-gateway.ghn.vn";
-    }
 
     public async Task<Result<decimal>> CalculateFeeAsync(CalculateFeeRequest request, CancellationToken cancellationToken = default)
     {
         try
         {
-            _logger.LogInformation("GHN: Calculating shipping fee from WardId {Sender} to WardId {Recipient}", request.SenderWardId, request.RecipientWardId);
+            logger.LogInformation("GHN: Calculating shipping fee from WardId {Sender} to WardId {Recipient}", request.SenderWardId, request.RecipientWardId);
             
             // Nếu chưa thiết lập API Token thực tế, sử dụng phương thức tính cước phí giả lập
             if (string.IsNullOrEmpty(_token) || _token == "MOCK_TOKEN" || _token == "MOCK_GHN_SANDBOX_TOKEN")
@@ -50,7 +36,7 @@ public class GhnShippingProvider : IShippingProvider
                 return Result<decimal>.Success(totalFee);
             }
 
-            var client = _httpClient;
+            var client = httpClient;
             client.DefaultRequestHeaders.Clear();
             client.DefaultRequestHeaders.Add("Token", _token);
             client.DefaultRequestHeaders.Add("ShopId", _shopId);
@@ -109,7 +95,7 @@ public class GhnShippingProvider : IShippingProvider
             if (!response.IsSuccessStatusCode)
             {
                 var errorText = await response.Content.ReadAsStringAsync(cancellationToken);
-                _logger.LogError("GHN Fee API error response: {Status} - {Response}", response.StatusCode, errorText);
+                logger.LogError("GHN Fee API error response: {Status} - {Response}", response.StatusCode, errorText);
                 return Result<decimal>.Failure($"GHN API Error: {response.StatusCode} - {errorText}", EErrorCode.InternalServerError);
             }
 
@@ -125,7 +111,7 @@ public class GhnShippingProvider : IShippingProvider
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "GHN: Error calculating shipping fee");
+            logger.LogError(ex, "GHN: Error calculating shipping fee");
             return Result<decimal>.Failure(ex.Message, EErrorCode.InternalServerError);
         }
     }
@@ -134,7 +120,7 @@ public class GhnShippingProvider : IShippingProvider
     {
         try
         {
-            _logger.LogInformation("GHN: Creating waybill for SubOrder {SubOrderId}", request.SubOrderId);
+            logger.LogInformation("GHN: Creating waybill for SubOrder {SubOrderId}", request.SubOrderId);
 
             // Nếu chưa thiết lập API Token thực tế, sử dụng phương thức giả lập
             if (string.IsNullOrEmpty(_token) || _token == "MOCK_TOKEN" || _token == "MOCK_GHN_SANDBOX_TOKEN")
@@ -148,10 +134,14 @@ public class GhnShippingProvider : IShippingProvider
                 return Result<CreateWaybillResponse>.Success(new CreateWaybillResponse(waybillCode, fee, expectedDeliveryDate));
             }
 
-            var client = _httpClient;
+            var client = httpClient;
             client.DefaultRequestHeaders.Clear();
             client.DefaultRequestHeaders.Add("Token", _token);
-            if (!string.IsNullOrEmpty(_shopId) && _shopId != "MOCK_SHOP_ID")
+            if (!string.IsNullOrEmpty(request.SenderProviderShopId))
+            {
+                client.DefaultRequestHeaders.Add("ShopId", request.SenderProviderShopId);
+            }
+            else if (!string.IsNullOrEmpty(_shopId) && _shopId != "MOCK_SHOP_ID")
             {
                 client.DefaultRequestHeaders.Add("ShopId", _shopId);
             }
@@ -221,7 +211,7 @@ public class GhnShippingProvider : IShippingProvider
             if (!response.IsSuccessStatusCode)
             {
                 var errorText = await response.Content.ReadAsStringAsync(cancellationToken);
-                _logger.LogError("GHN Order Create API error: {Status} - {Response}", response.StatusCode, errorText);
+                logger.LogError("GHN Order Create API error: {Status} - {Response}", response.StatusCode, errorText);
                 return Result<CreateWaybillResponse>.Failure($"GHN API Error: {response.StatusCode} - {errorText}", EErrorCode.InternalServerError);
             }
 
@@ -245,7 +235,7 @@ public class GhnShippingProvider : IShippingProvider
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "GHN: Error creating waybill");
+            logger.LogError(ex, "GHN: Error creating waybill");
             return Result<CreateWaybillResponse>.Failure(ex.Message, EErrorCode.InternalServerError);
         }
     }
@@ -254,7 +244,7 @@ public class GhnShippingProvider : IShippingProvider
     {
         try
         {
-            _logger.LogInformation("GHN: Canceling waybill {WaybillCode}", waybillCode);
+            logger.LogInformation("GHN: Canceling waybill {WaybillCode}", waybillCode);
             
             if (string.IsNullOrEmpty(_token) || _token == "MOCK_TOKEN" || _token == "MOCK_GHN_SANDBOX_TOKEN")
             {
@@ -262,7 +252,7 @@ public class GhnShippingProvider : IShippingProvider
                 return Result<bool>.Success(true);
             }
 
-            var client = _httpClient;
+            var client = httpClient;
             client.DefaultRequestHeaders.Clear();
             client.DefaultRequestHeaders.Add("Token", _token);
 
@@ -271,7 +261,7 @@ public class GhnShippingProvider : IShippingProvider
             if (!response.IsSuccessStatusCode)
             {
                 var errorText = await response.Content.ReadAsStringAsync(cancellationToken);
-                _logger.LogError("GHN Order Cancel API error: {Status} - {Response}", response.StatusCode, errorText);
+                logger.LogError("GHN Order Cancel API error: {Status} - {Response}", response.StatusCode, errorText);
                 return Result<bool>.Failure($"GHN API Error: {response.StatusCode} - {errorText}", EErrorCode.InternalServerError);
             }
 
@@ -279,8 +269,64 @@ public class GhnShippingProvider : IShippingProvider
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "GHN: Error canceling waybill {WaybillCode}", waybillCode);
+            logger.LogError(ex, "GHN: Error canceling waybill {WaybillCode}", waybillCode);
             return Result<bool>.Failure(ex.Message, EErrorCode.InternalServerError);
+        }
+    }
+
+    public async Task<Result<int>> RegisterShopAsync(long wardId, string name, string phone, string address, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            logger.LogInformation("GHN: Registering shop '{Name}' with phone {Phone} at Ward {WardId}", name, phone, wardId);
+
+            if (string.IsNullOrEmpty(_token) || _token == "MOCK_TOKEN" || _token == "MOCK_GHN_SANDBOX_TOKEN")
+            {
+                var mockShopId = new Random().Next(200000, 300000);
+                return Result<int>.Success(mockShopId);
+            }
+            
+            var ward = await dbContext.Wards.Include(ward => ward.District).FirstOrDefaultAsync(w => w.Id == wardId, cancellationToken: cancellationToken);
+            if (ward == null)
+            {
+                return Result<int>.Failure($"Ward with ID {wardId} not found", EErrorCode.NotFound);
+            }
+            
+            var client = httpClient;
+            client.DefaultRequestHeaders.Clear();
+            client.DefaultRequestHeaders.Add("Token", _token);
+
+            var payload = new
+            {
+                district_id = ward.District.GhnId,
+                ward_code = ward.GhnCode,
+                name = name,
+                phone = phone,
+                address = address
+            };
+
+            var response = await client.PostAsJsonAsync($"{_baseUrl}/shiip/public-api/v2/shop/register", payload, cancellationToken);
+            if (!response.IsSuccessStatusCode)
+            {
+                var errorText = await response.Content.ReadAsStringAsync(cancellationToken);
+                logger.LogError("GHN Shop Register API error: {Status} - {Response}", response.StatusCode, errorText);
+                return Result<int>.Failure($"GHN API Error: {response.StatusCode} - {errorText}", EErrorCode.InternalServerError);
+            }
+
+            var jsonResult = await response.Content.ReadFromJsonAsync<JsonNode>(cancellationToken: cancellationToken);
+            var shopId = jsonResult?["data"]?["shop_id"]?.GetValue<int>();
+
+            if (shopId.HasValue)
+            {
+                return Result<int>.Success(shopId.Value);
+            }
+
+            return Result<int>.Failure("Could not parse shop_id from GHN API response", EErrorCode.InternalServerError);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "GHN: Error registering shop '{Name}'", name);
+            return Result<int>.Failure(ex.Message, EErrorCode.InternalServerError);
         }
     }
 }

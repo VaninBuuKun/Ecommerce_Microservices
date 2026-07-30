@@ -28,7 +28,17 @@ public class CartClientService(CartGrpc.CartGrpcClient client) : ICartService
                 {
                     VariantId = Guid.Parse(item.VariantId),
                     Quantity = item.Quantity,
-                    IsSelected = item.IsSelected
+                    IsSelected = item.IsSelected,
+                    ProductId = Guid.TryParse(item.ProductId, out var prodId) ? prodId : Guid.Empty,
+                    ProductName = item.ProductName,
+                    VariantName = item.VariantName,
+                    UnitPrice = decimal.TryParse(item.UnitPrice, out var uPrice) ? uPrice : 0,
+                    ShopId = item.ShopId,
+                    AvailableStocks = item.AvailableStocks,
+                    Weight = item.Weight,
+                    Length = item.Length,
+                    Width = item.Width,
+                    Height = item.Height
                 });
             }
 

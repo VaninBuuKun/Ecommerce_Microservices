@@ -38,6 +38,10 @@ message RpcVariantDto {
   string unitPrice = 5;
   int32 availableStocks = 6;
   int64 shopId = 7;
+  double weight = 8;
+  double length = 9;
+  double width = 10;
+  double height = 11;
 }
 
 message ReserveStockRequest {
@@ -51,7 +55,6 @@ message RpcReserveStockItemDto {
 
 message ReserveStockResponse {
   bool isSuccess = 1;
-  repeated RpcReservedStockItemDto items = 2;
   string errorMessage = 3;
 }
 

@@ -19,9 +19,9 @@ public class CreateAddressDto
 {
     public string RecipientName { get; set; } = string.Empty;
     public string Phone { get; set; } = string.Empty;
-    public int ProvinceId { get; set; }
-    public int DistrictId { get; set; }
-    public string WardCode { get; set; } = string.Empty;
+    public long ProvinceId { get; set; }
+    public long DistrictId { get; set; }
+    public long WardId { get; set; }
     public string AddressLine { get; set; } = string.Empty;
     public bool IsDefault { get; set; }
 }
@@ -63,7 +63,7 @@ public class AddressService(AppDbContext dbContext) : IAddressService
             Phone = dto.Phone,
             ProvinceId = dto.ProvinceId,
             DistrictId = dto.DistrictId,
-            WardCode = dto.WardCode,
+            WardId = dto.WardId,
             AddressLine = dto.AddressLine,
             IsDefault = setAsDefault
         };

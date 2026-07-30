@@ -43,7 +43,8 @@ message GetShopShippingInfoResponse {
   string shop_name = 2;
   string phone = 3;
   string address_line = 4;
-  string ward_code = 5;
-  int32 district_id = 6;
-  int32 province_id = 7;
+  int64 ward_id = 5;
+  int64 district_id = 6;
+  int64 province_id = 7;
+  string ghn_shop_id = 8;
 }

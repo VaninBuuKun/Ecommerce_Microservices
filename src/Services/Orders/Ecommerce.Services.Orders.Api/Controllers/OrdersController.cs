@@ -4,8 +4,9 @@ using Ecommerce.Services.Orders.Application.Features.Orders.Dtos;
 using Ecommerce.Services.Orders.Application.Features.Queries.GetCustomerOrders;
 using Ecommerce.Services.Orders.Application.Features.Orders.Queries.GetOrderById;
 using Ecommerce.Services.Orders.Application.Features.Orders.Queries.GetSubOrdersByShop;
-using Ecommerce.Services.Orders.Application.Features.Orders.Commands.SellerConfirmOrder;
-using Ecommerce.Services.Orders.Application.Features.Orders.Commands.SellerRejectOrder;
+using Ecommerce.Services.Orders.Application.Features.Orders.Commands.SellerConfirmSubOrder;
+using Ecommerce.Services.Orders.Application.Features.Orders.Commands.SellerRejectSubOrder;
+using Ecommerce.Services.Orders.Application.Features.Orders.Commands.SellerPackageReady;
 using Ecommerce.Services.Orders.Application.Features.Orders.Commands.CancelOrder;
 using Microsoft.AspNetCore.Mvc;
 using BuildingBlocks.Auth;
@@ -87,7 +88,7 @@ public class OrdersController(ICurrentUserService currentUserService) : CleanV1C
     public async Task<IActionResult> ConfirmSubOrder(Guid subOrderId, CancellationToken cancellationToken)
     {
         var sellerId = currentUserService.UserId;
-        var result = await _sender.SendAsync(new SellerConfirmOrderCommand(subOrderId, sellerId), cancellationToken);
+        var result = await _sender.SendAsync(new SellerConfirmSubOrderCommand(subOrderId, sellerId), cancellationToken);
 
         return result.IsSuccess 
             ? Ok(result) 
@@ -102,9 +103,31 @@ public class OrdersController(ICurrentUserService currentUserService) : CleanV1C
     public async Task<IActionResult> RejectSubOrder(Guid subOrderId, [FromQuery] string reason, CancellationToken cancellationToken)
     {
         var sellerId = currentUserService.UserId;
-        var result = await _sender.SendAsync(new SellerRejectOrderCommand(subOrderId, sellerId, reason), cancellationToken);
+        var result = await _sender.SendAsync(new SellerRejectSubOrderCommand(subOrderId, sellerId, reason), cancellationToken);
 
         return result.IsSuccess
+            ? Ok(result) 
+            : StatusCode(result.GetHttpStatusCode(), result);
+    }
+
+    /// <summary>
+    /// Người bán hoàn tất đóng gói, nhập kích thước cân nặng thực tế và gửi hãng vận chuyển
+    /// </summary>
+    [HttpPut("suborder/{subOrderId:guid}/package-ready")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    public async Task<IActionResult> PackageReady(Guid subOrderId, [FromBody] SellerPackageReadyRequest request, CancellationToken cancellationToken)
+    {
+        var sellerId = currentUserService.UserId;
+        var result = await _sender.SendAsync(new SellerPackageReadyCommand(
+            subOrderId,
+            sellerId,
+            request.Weight,
+            request.Length,
+            request.Width,
+            request.Height
+        ), cancellationToken);
+
+        return result.IsSuccess 
             ? Ok(result) 
             : StatusCode(result.GetHttpStatusCode(), result);
     }
@@ -124,3 +147,10 @@ public class OrdersController(ICurrentUserService currentUserService) : CleanV1C
             : StatusCode(result.GetHttpStatusCode(), result);
     }
 }
+
+public record SellerPackageReadyRequest(
+    double Weight,
+    double Length,
+    double Width,
+    double Height
+);

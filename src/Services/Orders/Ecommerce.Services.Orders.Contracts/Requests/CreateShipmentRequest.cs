@@ -6,9 +6,8 @@ public class CreateShipmentRequest
 {
     public Guid SubOrderId { get; set; }
     public Guid OrderId { get; set; }
-    public string SenderWardId { get; set; } = string.Empty;
     public string SenderAddress { get; set; } = string.Empty;
-    public string RecipientWardId { get; set; } = string.Empty;
+    public long RecipientWardId { get; set; }
     public string RecipientAddress { get; set; } = string.Empty;
     public string RecipientName { get; set; } = string.Empty;
     public string RecipientPhone { get; set; } = string.Empty;

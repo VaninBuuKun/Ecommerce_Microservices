@@ -10,8 +10,7 @@ public record RegisterShopCommand(
     string RecipientName,
     string Phone,
     string AddressLine,
-    int ProvinceId,
-    int DistrictId,
-    string WardCode,
-    string IdentityCardNumber
+    long ProvinceId,
+    long DistrictId,
+    long WardId
 ) : ICommand<Shop>;

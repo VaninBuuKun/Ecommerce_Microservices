@@ -35,13 +35,11 @@ try
         options.UseNpgsql(connectionString));
 
     builder.Services.AddScoped<GhnShippingProvider>();
-    builder.Services.AddScoped<GhtkShippingProvider>();
     builder.Services.AddScoped<IShippingProvider>(sp => sp.GetRequiredService<GhnShippingProvider>()); // Mặc định kế thừa cũ
     builder.Services.AddScoped<IShippingProviderFactory, ShippingProviderFactory>();
     builder.Services.AddScoped<ILocationService, LocationService>();
     builder.Services.AddScoped<IEfUnitOfWork, EfUnitOfWork<ShippingDbContext>>();
     builder.Services.AddHttpClient<GhnShippingProvider>();
-    builder.Services.AddHttpClient<GhtkShippingProvider>();
     
     builder.Services.AddGrpcClient<BuildingBlocks.Grpc.Services.SellerGrpc.SellerGrpcClient>(o =>
     {
