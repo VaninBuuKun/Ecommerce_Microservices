@@ -1,4 +1,5 @@
 using System.Reflection;
+using BuildingBlocks.Caching;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Configuration;
 using Ecommerce.Services.Orders.Infrastructure.Persistence;
@@ -16,7 +17,8 @@ public static class DependencyInjection
     public static IServiceCollection AddInfrastructure(this IServiceCollection services, IConfiguration configuration)
     {
         var connectionString = configuration.GetConnectionString("Database");
-
+        
+        services.AddCustomCaching(configuration.GetConnectionString("Redis") ?? throw new InvalidOperationException("Redis connection string is missing."));
         services.AddDbContext<OrderDbContext>(options =>
             options.UseNpgsql(connectionString));
 

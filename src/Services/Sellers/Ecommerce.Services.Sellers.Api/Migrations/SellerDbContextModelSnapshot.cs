@@ -281,8 +281,8 @@ namespace Ecommerce.Services.Sellers.Api.Migrations
                                 .HasColumnType("character varying(100)")
                                 .HasColumnName("PickUp_District");
 
-                            b1.Property<int>("DistrictId")
-                                .HasColumnType("integer")
+                            b1.Property<long>("DistrictId")
+                                .HasColumnType("bigint")
                                 .HasColumnName("PickUp_DistrictId");
 
                             b1.Property<string>("Phone")
@@ -297,8 +297,8 @@ namespace Ecommerce.Services.Sellers.Api.Migrations
                                 .HasColumnType("character varying(100)")
                                 .HasColumnName("PickUp_Province");
 
-                            b1.Property<int>("ProvinceId")
-                                .HasColumnType("integer")
+                            b1.Property<long>("ProvinceId")
+                                .HasColumnType("bigint")
                                 .HasColumnName("PickUp_ProvinceId");
 
                             b1.Property<string>("RecipientName")
@@ -313,11 +313,10 @@ namespace Ecommerce.Services.Sellers.Api.Migrations
                                 .HasColumnType("character varying(100)")
                                 .HasColumnName("PickUp_Ward");
 
-                            b1.Property<string>("WardCode")
-                                .IsRequired()
+                            b1.Property<long>("WardId")
                                 .HasMaxLength(20)
-                                .HasColumnType("character varying(20)")
-                                .HasColumnName("PickUp_WardCode");
+                                .HasColumnType("bigint")
+                                .HasColumnName("PickUp_WardId");
 
                             b1.HasKey("ShopId");
 

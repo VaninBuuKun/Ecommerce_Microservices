@@ -13,7 +13,7 @@ using Microsoft.Extensions.Logging;
 
 namespace Ecommerce.Services.Orders.Infrastructure.GrpcClients;
 
-public class IdentityClientService(IdentityGrpc.IdentityGrpcClient client, Logger<IdentityClientService> logger) : IIdentityService
+public class IdentityClientService(IdentityGrpc.IdentityGrpcClient client, ILogger<IdentityClientService> logger) : IIdentityService
 {
     public async Task<Result<UserAddressDto>> GetUserAddressAsync(Guid addressId, long userId)
     {

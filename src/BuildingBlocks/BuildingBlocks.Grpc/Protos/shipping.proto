@@ -12,17 +12,16 @@ service ShippingGrpc {
 
 message CalculateFeeItemRequest {
   int64 shop_id = 1;
-  int64 sender_ward_id = 2;
-  int64 recipient_ward_id = 3;
-  double weight = 4;
-  double length = 5;
-  double width = 6;
-  double height = 7;
-  string shipping_method = 8;
+  string ghn_shop_id = 2;
+  double weight = 3;
+  double length = 4;
+  double width = 5;
+  double height = 6;
 }
 
 message CalculateBatchFeeGrpcRequest {
   repeated CalculateFeeItemRequest requests = 1;
+  int64 recipient_ward_id = 2;
 }
 
 message CalculateFeeItemResponse {

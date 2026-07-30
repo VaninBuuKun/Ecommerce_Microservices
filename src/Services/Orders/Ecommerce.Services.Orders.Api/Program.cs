@@ -1,17 +1,13 @@
 using BuildingBlocks.Auth;
 using BuildingBlocks.Logging;
 using BuildingBlocks.EfCore;
-using BuildingBlocks.Messaging;
 using Ecommerce.Services.Orders.Infrastructure;
 using BuildingBlocks.Web.Extensions;
-using Mapster;
-using MapsterMapper;
 using Scalar.AspNetCore;
 using BuildingBlocks.Grpc.Services;
 using Ecommerce.Services.Orders.Application;
 using Ecommerce.Services.Orders.Application.Services;
 using Ecommerce.Services.Orders.Infrastructure.GrpcClients;
-using MassTransit;
 using Serilog;
 
 var builder = WebApplication.CreateBuilder(args);

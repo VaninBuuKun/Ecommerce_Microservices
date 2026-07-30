@@ -184,9 +184,9 @@ public class CreateOrderCommandHandler(
                 }
 
                 // Áp đặt phí vận chuyển đã đóng băng trong CheckoutSession cho từng Shop
-                foreach (var shopShipping in checkoutSession.ShopShippings.Values)
+                foreach (var shopShipping in checkoutSession.ShopShippingFees)
                 {
-                    order.SetShippingFee(shopShipping.ShopId, shopShipping.ShippingFee);
+                    order.SetShippingFee(shopShipping.Key, shopShipping.Value);
                 }
                 
                 // Gọi gRPC Payment Service

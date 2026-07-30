@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using BuildingBlocks.Shared.Commons;
@@ -6,7 +7,7 @@ using BuildingBlocks.Shared.Commons;
 namespace Ecommerce.Services.Shippings.Api.Services;
 
 public record CalculateFeeRequest(
-    long SenderWardId,
+    string GhnShopId,
     long RecipientWardId,
     double Weight,
     double Length,
@@ -43,6 +44,7 @@ public interface IShippingProvider
 {
     string ProviderName { get; }
     Task<Result<decimal>> CalculateFeeAsync(CalculateFeeRequest request, CancellationToken cancellationToken = default);
+    Task<Result<List<Result<decimal>>>> CalculateBatchFeeAsync(List<CalculateFeeRequest> requests, CancellationToken cancellationToken = default);
     Task<Result<CreateWaybillResponse>> CreateWaybillAsync(CreateWaybillRequest request, CancellationToken cancellationToken = default);
     Task<Result<bool>> CancelWaybillAsync(string waybillCode, CancellationToken cancellationToken = default);
 }

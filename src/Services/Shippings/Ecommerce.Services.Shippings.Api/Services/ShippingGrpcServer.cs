@@ -87,39 +87,59 @@ public class ShippingGrpcServer(
     {
         logger.LogInformation("gRPC Request to calculate batch fee for {Count} requests", request.Requests.Count);
 
-        var tasks = request.Requests.Select(async req =>
-        {
-            var result = await ghnShippingProvider.CalculateFeeAsync(new CalculateFeeRequest(
-                req.SenderWardId,
-                req.RecipientWardId,
-                req.Weight,
-                req.Length,
-                req.Width,
-                req.Height
-            ), context.CancellationToken);
+        var providerRequests = request.Requests.Select(req => new CalculateFeeRequest(
+            req.GhnShopId,
+            request.RecipientWardId,
+            req.Weight,
+            req.Length,
+            req.Width,
+            req.Height
+        )).ToList();
 
-            if (result.IsSuccess)
-            {
-                return new CalculateFeeItemResponse
-                {
-                    ShopId = req.ShopId,
-                    IsSuccess = true,
-                    Fee = result.Value.ToString()
-                };
-            }
-
-            return new CalculateFeeItemResponse
-            {
-                ShopId = req.ShopId,
-                IsSuccess = false,
-                ErrorMessage = result.Message
-            };
-        }).ToList();
-
-        var results = await Task.WhenAll(tasks);
+        var batchResult = await ghnShippingProvider.CalculateBatchFeeAsync(providerRequests, context.CancellationToken);
 
         var response = new CalculateBatchFeeGrpcResponse();
-        response.Responses.AddRange(results);
+
+        if (batchResult.IsSuccess && batchResult.Value != null)
+        {
+            for (int i = 0; i < request.Requests.Count; i++)
+            {
+                var req = request.Requests[i];
+                var result = batchResult.Value[i];
+
+                if (result.IsSuccess)
+                {
+                    response.Responses.Add(new CalculateFeeItemResponse
+                    {
+                        ShopId = req.ShopId,
+                        IsSuccess = true,
+                        Fee = result.Value.ToString()
+                    });
+                }
+                else
+                {
+                    response.Responses.Add(new CalculateFeeItemResponse
+                    {
+                        ShopId = req.ShopId,
+                        IsSuccess = false,
+                        ErrorMessage = result.Message
+                    });
+                }
+            }
+        }
+        else
+        {
+            var errorMsg = batchResult?.Message ?? "Lỗi tính phí vận chuyển hàng loạt";
+            foreach (var req in request.Requests)
+            {
+                response.Responses.Add(new CalculateFeeItemResponse
+                {
+                    ShopId = req.ShopId,
+                    IsSuccess = false,
+                    ErrorMessage = errorMsg
+                });
+            }
+        }
 
         return response;
     }

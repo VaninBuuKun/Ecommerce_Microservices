@@ -3,12 +3,11 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using BuildingBlocks.Application.InMemoryBus;
 using BuildingBlocks.Shared.Commons;
 using BuildingBlocks.Shared.Enums;
 using BuildingBlocks.Shared.InfrastructureInterfaces.Caching;
+using BuildingBlocks.Shared.InfrastructureInterfaces.InMemoryBus;
 using Ecommerce.Services.Orders.Application.Commons.Dtos.Cart;
-using Ecommerce.Services.Orders.Application.Commons.Dtos.Sellers;
 using Ecommerce.Services.Orders.Application.Features.Orders.Dtos;
 using Ecommerce.Services.Orders.Application.Services;
 using Microsoft.Extensions.Logging;
@@ -17,25 +16,26 @@ namespace Ecommerce.Services.Orders.Application.Features.Orders.Commands.CalOrde
 
 public class CalOrderGrandTotalCommandHandler(
     ICartService cartService,
-    IIdentityService identityService,
-    ILogger<CalOrderGrandTotalCommandHandler> logger,
-    IShippingService shippingService,
     ISellerService sellerService,
-    ICacheService cacheService
-    ) : CommandHandler<CalOrderGrandTotalCommand, CalOrderGrandTotalResponse>
+    IShippingService shippingService,
+    IIdentityService identityService,
+    ICacheService cacheService,
+    ILogger<CalOrderGrandTotalCommandHandler> logger)
+    : ICommandHandler<CalOrderGrandTotalCommand, CalOrderGrandTotalResponse>
 {
-    protected override async Task<Result<CalOrderGrandTotalResponse>> HandleCommandAsync(CalOrderGrandTotalCommand command, CancellationToken cancellationToken)
+    public async Task<Result<CalOrderGrandTotalResponse>> Handle(CalOrderGrandTotalCommand command, CancellationToken cancellationToken)
     {
         var customerId = command.CustomerId;
+        logger.LogInformation("Bắt đầu tính toán tổng tiền đơn hàng và phí ship cho khách hàng: {CustomerId}", customerId);
+
         try
         {
-            logger.LogInformation("Bắt đầu tính toán đơn hàng cho khách hàng: {CustomerId} sử dụng UserAddressId: {AddressId}", customerId, command.UserAddressId);
-            
+            // Kiểm tra địa chỉ người nhận
             var addressResult = await identityService.GetUserAddressAsync(command.UserAddressId, customerId);
             if (!addressResult.IsSuccess || addressResult.Value == null)
             {
-                logger.LogWarning("Không thể lấy thông tin địa chỉ đặt hàng: {Error}", addressResult.Message);
-                return Result<CalOrderGrandTotalResponse>.Failure(addressResult);
+                logger.LogWarning("Không tìm thấy địa chỉ người nhận {AddressId}: {Error}", command.UserAddressId, addressResult.Message);
+                return Result<CalOrderGrandTotalResponse>.Failure($"Không tìm thấy địa chỉ nhận hàng của bạn", EErrorCode.NotFound);
             }
 
             var addressData = addressResult.Value;
@@ -66,6 +66,7 @@ public class CalOrderGrandTotalCommandHandler(
             var checkoutSessionItems = new List<CheckoutSessionItem>();
             var groupedItems = selectedItems.GroupBy(item => item.ShopId);
             var batchRequests = new List<ShippingFeeRequestItem>();
+            var shopNames = new Dictionary<long, string>();
 
             // Chuẩn bị dữ liệu và thông tin shop gửi hàng
             foreach (var shopGroup in groupedItems)
@@ -82,17 +83,8 @@ public class CalOrderGrandTotalCommandHandler(
                 }
 
                 var shopShippingInfo = shopShippingInfoResult.Value;
-                var senderWardId = shopShippingInfo.WardId;
-
-                // Xác định phương thức vận chuyển trừu tượng (Mặc định là "fast")
-                string shippingMethod = "fast";
-                if (command.ShopShippingSelections != null && command.ShopShippingSelections.TryGetValue(shopId, out var selectedMethod))
-                {
-                    if (!string.IsNullOrEmpty(selectedMethod))
-                    {
-                        shippingMethod = selectedMethod;
-                    }
-                }
+                var ghnShopId = shopShippingInfo.GhnShopId ?? string.Empty;
+                shopNames[shopId] = shopShippingInfo.ShopName;
 
                 // Tính toán trọng lượng/kích thước gói hàng lũy kế thực tế từ sản phẩm
                 double totalWeight = shopItems.Sum(x => (x.Weight > 0 ? x.Weight : 500) * x.Quantity); // default 500g
@@ -102,13 +94,12 @@ public class CalOrderGrandTotalCommandHandler(
 
                 batchRequests.Add(new ShippingFeeRequestItem(
                     shopId,
-                    senderWardId,
+                    ghnShopId,
                     recipientWardId,
                     totalWeight,
                     maxLength,
                     maxWidth,
-                    totalHeight,
-                    shippingMethod
+                    totalHeight
                 ));
 
                 foreach (var item in shopItems)
@@ -133,7 +124,7 @@ public class CalOrderGrandTotalCommandHandler(
             }
 
             decimal totalShippingFee = 0;
-            var shopShippings = new Dictionary<long, CheckoutSessionShopShipping>();
+            var shopShippings = new Dictionary<long, decimal>();
 
             foreach (var feeResponse in batchFeeResult.Value)
             {
@@ -144,27 +135,20 @@ public class CalOrderGrandTotalCommandHandler(
                 }
 
                 totalShippingFee += feeResponse.Fee;
-                var requestItem = batchRequests.First(r => r.ShopId == feeResponse.ShopId);
-
-                shopShippings[feeResponse.ShopId] = new CheckoutSessionShopShipping
-                {
-                    ShopId = feeResponse.ShopId,
-                    ShippingFee = feeResponse.Fee,
-                    ShippingProviderCode = requestItem.ShippingMethod
-                };
+                shopShippings[feeResponse.ShopId] = feeResponse.Fee;
             }
 
             var grandTotal = subTotal + totalShippingFee;
 
-            // Tạo CheckoutSession
-            var checkoutSessionId = Guid.NewGuid();
+            // Tạo hoặc tái sử dụng CheckoutSessionId
+            var checkoutSessionId = command.CheckoutSessionId ?? Guid.NewGuid();
             var checkoutSession = new CheckoutSession
             {
                 CheckoutSessionId = checkoutSessionId,
                 CustomerId = customerId,
                 UserAddressId = command.UserAddressId,
                 Items = checkoutSessionItems,
-                ShopShippings = shopShippings,
+                ShopShippingFees = shopShippings,
                 SubTotal = subTotal,
                 TotalShippingFee = totalShippingFee,
                 GrandTotal = grandTotal,
@@ -178,9 +162,36 @@ public class CalOrderGrandTotalCommandHandler(
 
             logger.LogInformation("Đã lưu CheckoutSession thành công trong Redis với ID: {SessionId}. GrandTotal: {Total}", checkoutSessionId, grandTotal);
 
+            // Xây dựng DTO phản hồi chi tiết cho checkout page
+            var shopGroups = new List<CheckoutShopGroupDto>();
+            foreach (var shopGroup in groupedItems)
+            {
+                var shopId = shopGroup.Key;
+                var shopItems = shopGroup.Select(item => new CheckoutItemDto
+                {
+                    VariantId = item.VariantId,
+                    ProductName = item.ProductName,
+                    VariantName = item.VariantName,
+                    UnitPrice = item.UnitPrice,
+                    Quantity = item.Quantity
+                }).ToList();
+
+                shopGroups.Add(new CheckoutShopGroupDto
+                {
+                    ShopId = shopId,
+                    ShopName = shopNames.TryGetValue(shopId, out var name) ? name : $"Shop {shopId}",
+                    ShippingFee = shopShippings.TryGetValue(shopId, out var fee) ? fee : 0,
+                    Items = shopItems
+                });
+            }
+
             return Result<CalOrderGrandTotalResponse>.Success(new CalOrderGrandTotalResponse
             {
-                QuoteId = checkoutSessionId.ToString(),
+                Id = checkoutSessionId.ToString(),
+                ShopShippingFee = shopShippings,
+                ShopGroups = shopGroups,
+                SubTotal = subTotal,
+                TotalShippingFee = totalShippingFee,
                 GrandTotal = grandTotal
             });
         }

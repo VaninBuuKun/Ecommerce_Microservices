@@ -9,7 +9,7 @@ using Microsoft.Extensions.Logging;
 
 namespace Ecommerce.Services.Orders.Infrastructure.GrpcClients;
 
-public class ShippingClientService(Logger<ShippingClientService> logger, ShippingGrpc.ShippingGrpcClient shippingClient) : IShippingService
+public class ShippingClientService(ILogger<ShippingClientService> logger, ShippingGrpc.ShippingGrpcClient shippingClient) : IShippingService
 {
     public async Task<Result<LocationDto>> GetLocationNameAsync(long provinceId, long districtId, long wardId)
     {
@@ -55,19 +55,20 @@ public class ShippingClientService(Logger<ShippingClientService> logger, Shippin
     {
         try
         {
-            var request = new CalculateBatchFeeGrpcRequest();
+            var request = new CalculateBatchFeeGrpcRequest
+            {
+                RecipientWardId = items.FirstOrDefault()?.RecipientWardId ?? 0
+            };
             foreach (var item in items)
             {
                 request.Requests.Add(new CalculateFeeItemRequest
                 {
                     ShopId = item.ShopId,
-                    SenderWardId = item.SenderWardId,
-                    RecipientWardId = item.RecipientWardId,
+                    GhnShopId = item.GhnShopId,
                     Weight = item.Weight,
                     Length = item.Length,
                     Width = item.Width,
-                    Height = item.Height,
-                    ShippingMethod = item.ShippingMethod
+                    Height = item.Height
                 });
             }
 

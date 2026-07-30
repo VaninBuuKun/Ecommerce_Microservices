@@ -68,6 +68,8 @@ try
         });
     });
 
+    // builder.Services.AddHostedService<LocationSyncJob>();
+
     builder.Services.AddBuildingBlocksInfrastructure(builder.Configuration);
     builder.Services.AddBuildingBlocsAuth(builder.Configuration);
     builder.Services.AddBuildingBlocksApplication(Assembly.GetExecutingAssembly());
@@ -84,7 +86,7 @@ try
     app.UseCors("CorsPolicy");
     app.MapGrpcService<ShippingGrpcServer>();
     app.MapControllers();
-    //
+    
     // // Automatically apply migrations in dev environment
     // using (var scope = app.Services.CreateScope())
     // {

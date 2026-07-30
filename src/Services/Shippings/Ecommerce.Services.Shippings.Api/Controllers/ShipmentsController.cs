@@ -51,7 +51,7 @@ public class ShipmentsController(IShippingProvider shippingProvider) : Controlle
         }
 
         var providerRequest = new CalculateFeeRequest(
-            request.SenderWardId,
+            request.GhnShopId,
             request.RecipientWardId,
             totalWeight,
             maxLength,
@@ -98,7 +98,7 @@ public class ShipmentsController(IShippingProvider shippingProvider) : Controlle
 
 public record PreviewFeeItem(Guid VariantId, int Quantity);
 public record PreviewFeeRequest(
-    long SenderWardId,
+    string GhnShopId,
     long RecipientWardId,
     System.Collections.Generic.List<PreviewFeeItem> Items
 );

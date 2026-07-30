@@ -9,7 +9,7 @@ public class CheckoutSession
     public long CustomerId { get; set; }
     public Guid UserAddressId { get; set; }
     public List<CheckoutSessionItem> Items { get; set; } = new();
-    public Dictionary<long, CheckoutSessionShopShipping> ShopShippings { get; set; } = new();
+    public Dictionary<long, decimal> ShopShippingFees { get; set; } = new();
     public decimal SubTotal { get; set; }
     public decimal TotalShippingFee { get; set; }
     public decimal GrandTotal { get; set; }
@@ -22,11 +22,4 @@ public class CheckoutSessionItem
     public Guid VariantId { get; set; }
     public int Quantity { get; set; }
     public decimal UnitPrice { get; set; }
-}
-
-public class CheckoutSessionShopShipping
-{
-    public long ShopId { get; set; }
-    public decimal ShippingFee { get; set; }
-    public string ShippingProviderCode { get; set; }
 }

@@ -8,6 +8,7 @@ using Ecommerce.Services.Orders.Application.Features.Orders.Commands.SellerConfi
 using Ecommerce.Services.Orders.Application.Features.Orders.Commands.SellerRejectSubOrder;
 using Ecommerce.Services.Orders.Application.Features.Orders.Commands.SellerPackageReady;
 using Ecommerce.Services.Orders.Application.Features.Orders.Commands.CancelOrder;
+using Ecommerce.Services.Orders.Application.Features.Orders.Commands.CalOrderGrandTotal;
 using Microsoft.AspNetCore.Mvc;
 using BuildingBlocks.Auth;
 
@@ -45,6 +46,28 @@ public class OrdersController(ICurrentUserService currentUserService) : CleanV1C
     public async Task<IActionResult> GetOrderById(Guid orderId, CancellationToken cancellationToken)
     {
         var result = await _sender.SendAsync(new GetOrderByIdQuery(orderId, UserId), cancellationToken);
+
+        return result.IsSuccess 
+            ? Ok(result) 
+            : StatusCode(result.GetHttpStatusCode(), result);
+    }
+
+    /// <summary>
+    /// Tính toán tổng tiền và phí ship của đơn hàng (lưu thông tin vào Redis CheckoutSession)
+    /// </summary>
+    [HttpPost("calculate")]
+    [ProducesResponseType(typeof(CalOrderGrandTotalResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> CalculateOrderTotal(
+        [FromBody] CalculateOrderTotalRequest request,
+        CancellationToken cancellationToken)
+    {
+        var result = await _sender.SendAsync(new CalOrderGrandTotalCommand(
+            UserId,
+            request.UserAddressId,
+            request.ShopShippingSelections,
+            request.CheckoutSessionId
+        ), cancellationToken);
 
         return result.IsSuccess 
             ? Ok(result) 
@@ -154,3 +177,10 @@ public record SellerPackageReadyRequest(
     double Width,
     double Height
 );
+
+public class CalculateOrderTotalRequest
+{
+    public Guid UserAddressId { get; set; }
+    public Guid? CheckoutSessionId { get; set; }
+    public Dictionary<long, string>? ShopShippingSelections { get; set; }
+}
