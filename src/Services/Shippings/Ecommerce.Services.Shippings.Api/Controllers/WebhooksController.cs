@@ -12,7 +12,7 @@ using Microsoft.Extensions.Logging;
 namespace Ecommerce.Services.Shippings.Api.Controllers;
 
 [ApiController]
-[Route("api/[controller]")]
+[Route("api/shipping-[controller]")]
 public class WebhooksController(
     IEfUnitOfWork unitOfWork,
     IEventPublisher publisher,
@@ -25,12 +25,21 @@ public class WebhooksController(
         {
             logger.LogInformation("Received GHN shipping webhook: {@GhnData}", ghnData);
 
-            if (!ghnData.TryGetValue("waybill_code", out var waybillCodeObj) || waybillCodeObj == null)
+            string? waybillCode = null;
+            if (ghnData.TryGetValue("OrderCode", out var orderCodeObj) && orderCodeObj != null)
             {
-                return BadRequest("Missing waybill_code");
+                waybillCode = orderCodeObj.ToString();
+            }
+            else if (ghnData.TryGetValue("waybill_code", out var waybillCodeObj) && waybillCodeObj != null)
+            {
+                waybillCode = waybillCodeObj.ToString();
             }
 
-            var waybillCode = waybillCodeObj.ToString()!;
+            if (string.IsNullOrEmpty(waybillCode))
+            {
+                return BadRequest("Missing waybill_code or OrderCode");
+            }
+
             var shipmentRepo = unitOfWork.Repository<Shipment, Guid>();
             var shipment = await shipmentRepo.FirstOrDefaultAsync(x => x.WaybillCode == waybillCode);
 
@@ -40,12 +49,20 @@ public class WebhooksController(
                 return NotFound($"Shipment not found for waybill: {waybillCode}");
             }
 
-            if (!ghnData.TryGetValue("status", out var statusObj) || statusObj == null)
+            string? status = null;
+            if (ghnData.TryGetValue("Status", out var statusObj) && statusObj != null)
+            {
+                status = statusObj.ToString()?.ToLower();
+            }
+            else if (ghnData.TryGetValue("status", out var statusObjSnake) && statusObjSnake != null)
+            {
+                status = statusObjSnake.ToString()?.ToLower();
+            }
+
+            if (string.IsNullOrEmpty(status))
             {
                 return BadRequest("Missing status");
             }
-
-            var status = statusObj.ToString()!.ToLower();
             logger.LogInformation("Updating shipment {WaybillCode} status to {Status}", waybillCode, status);
 
             switch (status)

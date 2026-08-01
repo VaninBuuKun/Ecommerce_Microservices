@@ -46,11 +46,31 @@ public class CancelSubOrderCommandHandler(
             subOrder.UpdateSubOrderStatus(SubOrderStatus.Cancelled);
             subOrderRepo.Update(subOrder);
 
-            // 1. Publish event to Outbox first
+            Guid? refundRequestId = null;
+
+            // Nếu đơn hàng đã thanh toán online trước đó -> Tạo bản ghi RefundRequest ở trạng thái AutoApproved
+            if (subOrder.IsOnlinePayment && subOrder.Status != SubOrderStatus.AwaitingPayment)
+            {
+                var refundRepo = unitOfWork.Repository<RefundRequest, Guid>();
+                var refundRequest = new RefundRequest
+                {
+                    SubOrderId = subOrder.Id,
+                    CustomerId = subOrder.CustomerId,
+                    ShopId = subOrder.ShopId,
+                    RefundAmount = subOrder.GrandTotal,
+                    Reason = $"Hệ thống tự động hoàn tiền do khách hàng hủy đơn hàng (Lý do: {command.Reason}).",
+                    Status = RefundStatus.AutoApproved
+                };
+                refundRepo.Add(refundRequest);
+                refundRequestId = refundRequest.Id;
+            }
+
+            // 1. Publish event to Outbox first (Saga will catch this and trigger auto refund if online payment)
             await publisher.PublishAsync(new SubOrderRejectedEvent
             {
                 SubOrderId = subOrder.Id,
-                Reason = $"Hủy bởi khách hàng: {command.Reason}"
+                Reason = $"Hủy bởi khách hàng: {command.Reason}",
+                RefundRequestId = refundRequestId
             }, cancellationToken);
 
             // 2. Commit transaction (saves entity state + publishes event outbox message atomically)

@@ -15,13 +15,16 @@ public record CalculateFeeRequest(
     double Height
 );
 
+public record CreateWaybillItemRequest(
+    string Name,
+    string Code,
+    int Quantity,
+    int Price
+);
+
 public record CreateWaybillRequest(
     Guid SubOrderId,
     Guid OrderId,
-    long SenderWardId,
-    string SenderName,
-    string SenderPhone,
-    string SenderAddress,
     string SenderProviderShopId,
     long RecipientWardId,
     string RecipientAddress,
@@ -31,7 +34,8 @@ public record CreateWaybillRequest(
     double Length,
     double Width,
     double Height,
-    decimal CodAmount
+    decimal CodAmount,
+    List<CreateWaybillItemRequest> Items
 );
 
 public record CreateWaybillResponse(

@@ -13,14 +13,18 @@ public static class SubOrderStateMachineExtensions
         this EventActivityBinder<SubOrderSagaState, SubOrderRejectedEvent> binder)
     {
         return binder
-            .Then(context => context.Saga.FailureReason = context.Message.Reason)
-            .If(context => context.Saga.IsOnlinePayment, b => b
-                .PublishAsync(context => context.Init<RefundSubOrderRequest>(new RefundSubOrderRequest
+            .Then(context => 
+            {
+                context.Saga.FailureReason = context.Message.Reason;
+                context.Saga.RefundRequestId = context.Message.RefundRequestId;
+            })
+            .If(context => context.Saga.IsOnlinePayment && context.Saga.CurrentState != "Shipping", b => b
+                .PublishAsync(context => context.Init<RefundSubOrderBeforeDeliveredRequest>(new RefundSubOrderBeforeDeliveredRequest
                 {
-                    OriginalOrderId = context.Saga.OrderId,
-                    SubOrderId = context.Saga.CorrelationId,
+                    CustomerId = context.Saga.CustomerId,
                     RefundAmount = context.Saga.TotalAmount,
-                    Reason = context.Message.Reason
+                    Reason = context.Message.Reason,
+                    RefundRequestId = context.Saga.RefundRequestId ?? Guid.Empty
                 }))
             )
             .PublishAsync(context =>

@@ -178,16 +178,6 @@ public class GhnShippingProvider(
                 client.DefaultRequestHeaders.Add("ShopId", _shopId);
             }
 
-            var senderWard = await dbContext.Wards
-                .Include(w => w.District)
-                .ThenInclude(d => d.Province)
-                .FirstOrDefaultAsync(w => w.Id == request.SenderWardId, cancellationToken);
-
-            if (senderWard == null || senderWard.District?.GhnId == null || string.IsNullOrEmpty(senderWard.GhnCode))
-            {
-                return Result<CreateWaybillResponse>.Failure($"Không tìm thấy địa chỉ gửi hàng cho WardId {request.SenderWardId}", EErrorCode.NotFound);
-            }
-
             var recipientWard = await dbContext.Wards
                 .Include(w => w.District)
                 .ThenInclude(d => d.Province)
@@ -203,12 +193,6 @@ public class GhnShippingProvider(
                 payment_type_id = 2, // Người mua trả phí ship
                 note = "Cho xem hàng, không cho thử",
                 required_note = "CHOXEMHANGKHONGTHU",
-                from_name = request.SenderName,
-                from_phone = request.SenderPhone,
-                from_address = request.SenderAddress,
-                from_ward_name = senderWard.DisplayName,
-                from_district_name = senderWard.District.DisplayName,
-                from_province_name = senderWard.District.Province.DisplayName,
                 to_name = request.RecipientName,
                 to_phone = request.RecipientPhone,
                 to_address = request.RecipientAddress,
@@ -220,17 +204,13 @@ public class GhnShippingProvider(
                 height = (int)request.Height,
                 service_type_id = 2, // Standard
                 cod_amount = (int)request.CodAmount,
-                items = new[]
+                items = request.Items.Select(item => new
                 {
-                    new
-                    {
-                        name = "Sản phẩm đơn hàng",
-                        code = "SP",
-                        quantity = 1,
-                        price = (int)request.CodAmount,
-                        weight = (int)request.Weight
-                    }
-                }
+                    name = item.Name,
+                    code = item.Code,
+                    quantity = item.Quantity,
+                    price = item.Price
+                }).ToArray()
             };
 
             var response = await client.PostAsJsonAsync($"{_baseUrl}/shiip/public-api/v2/shipping-order/create", payload, cancellationToken);
@@ -249,7 +229,7 @@ public class GhnShippingProvider(
             var deliveryDate = DateTime.UtcNow.AddDays(3);
             if (DateTime.TryParse(expectedDeliveryStr, out var parsedDate))
             {
-                deliveryDate = parsedDate;
+                deliveryDate = parsedDate.ToUniversalTime();
             }
 
             if (!string.IsNullOrEmpty(orderCode))

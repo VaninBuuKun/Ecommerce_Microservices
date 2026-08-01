@@ -4,6 +4,7 @@ using BuildingBlocks.Shared.Enums;
 using BuildingBlocks.Shared.InfrastructureInterfaces.Messaging;
 using BuildingBlocks.Shared.InfrastructureInterfaces.Persistence.EFCore;
 using Ecommerce.Services.Orders.Contracts.Events;
+using Ecommerce.Services.Orders.Contracts.Requests;
 using Ecommerce.Services.Orders.Domain;
 using Ecommerce.Services.Orders.Domain.Enums;
 using Ecommerce.Services.Orders.Application.Services;
@@ -44,14 +45,34 @@ public class SellerRejectSubOrderCommandHandler(
                 return Result.Failure("Bạn không phải là chủ sở hữu cửa hàng này", EErrorCode.Forbidden);
             }
 
+            var originalStatus = subOrder.Status;
             subOrder.UpdateSubOrderStatus(SubOrderStatus.Cancelled);
             subOrderRepo.Update(subOrder);
 
+            Guid? refundRequestId = null;
+
+            // Nếu đơn hàng đã thanh toán online trước đó và chưa giao cho shipper (chưa ở trạng thái Shipping) -> Tạo bản ghi RefundRequest ở trạng thái AutoApproved
+            if (subOrder.IsOnlinePayment && originalStatus != SubOrderStatus.AwaitingPayment && originalStatus != SubOrderStatus.Shipping)
+            {
+                var refundRepo = unitOfWork.Repository<RefundRequest, Guid>();
+                var refundRequest = new RefundRequest
+                {
+                    SubOrderId = subOrder.Id,
+                    CustomerId = subOrder.CustomerId,
+                    ShopId = subOrder.ShopId,
+                    RefundAmount = subOrder.GrandTotal,
+                    Reason = $"Hệ thống tự động hoàn tiền do cửa hàng hủy/từ chối đơn hàng (Lý do: {command.Reason}).",
+                    Status = RefundStatus.AutoApproved
+                };
+                refundRepo.Add(refundRequest);
+                refundRequestId = refundRequest.Id;
+            }
 
             await publisher.PublishAsync(new SubOrderRejectedEvent
             {
                 SubOrderId = subOrder.Id,
-                Reason = command.Reason
+                Reason = command.Reason,
+                RefundRequestId = refundRequestId
             }, cancellationToken);
             
             await unitOfWork.SaveChangesAsync(cancellationToken);

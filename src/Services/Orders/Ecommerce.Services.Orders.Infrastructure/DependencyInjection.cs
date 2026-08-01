@@ -40,6 +40,7 @@ public static class DependencyInjection
         });
         
         services.AddScoped<IEfUnitOfWork, EfUnitOfWork<OrderDbContext>>();
+        services.AddHostedService<Ecommerce.Services.Orders.Infrastructure.BackgroundServices.AutoCompleteOrdersBackgroundService>();
         
         return services;
     }

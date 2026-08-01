@@ -14,7 +14,7 @@ var builder = WebApplication.CreateBuilder(args);
 
 // Serilog
 builder.AddCustomSerilog("OrdersService");
-Log.Information("Identity Service starting......");
+Log.Information("Order Service starting......");
 try
 {
     // OpenAPI

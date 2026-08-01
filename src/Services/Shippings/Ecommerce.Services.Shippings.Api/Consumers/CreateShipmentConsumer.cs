@@ -6,6 +6,12 @@ using Ecommerce.Services.Shippings.Api.Models.Enums;
 using Ecommerce.Services.Shippings.Api.Persistances;
 using Ecommerce.Services.Shippings.Api.Services;
 using MassTransit;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
 
 namespace Ecommerce.Services.Shippings.Api.Consumers;
 
@@ -57,10 +63,6 @@ public class CreateShipmentConsumer(
             var waybillResult = await shippingProvider.CreateWaybillAsync(new CreateWaybillRequest(
                 message.SubOrderId,
                 message.OrderId,
-                senderWardId,
-                senderName,
-                senderPhone,
-                senderAddress,
                 ghnShopId,
                 message.RecipientWardId,
                 message.RecipientAddress,
@@ -70,7 +72,13 @@ public class CreateShipmentConsumer(
                 message.Length,
                 message.Width,
                 message.Height,
-                message.CodAmount
+                message.CodAmount,
+                message.Items.Select(item => new CreateWaybillItemRequest(
+                    item.ProductName,
+                    item.VariantId.ToString(),
+                    item.Quantity,
+                    (int)item.UnitPrice
+                )).ToList()
             ), context.CancellationToken);
 
             var shipment = new Shipment
@@ -123,11 +131,13 @@ public class CreateShipmentConsumer(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Unexpected error creating shipment");
+            var detailedError = ex.InnerException != null ? $"{ex.Message} -> Inner: {ex.InnerException.Message}" : ex.Message;
+            logger.LogError(ex, "Unexpected error in CreateShipmentConsumer: {DetailedError}", detailedError);
+            
             await context.Publish<SubOrderRejectedEvent>(new SubOrderRejectedEvent
             {
                 SubOrderId = message.SubOrderId,
-                Reason = $"Shipping allocation error: {ex.Message}"
+                Reason = $"Shipping allocation error: {detailedError}"
             });
         }
     }

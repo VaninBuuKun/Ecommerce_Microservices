@@ -10,6 +10,10 @@ public class PaymentDbContext(DbContextOptions options, IInMemoryBus bus) : EfDb
 {
     public DbSet<Payment> Payments { get; set; }
     public DbSet<PaymentMethod> PaymentMethods { get; set; }
+    public DbSet<Wallet> Wallets { get; set; }
+    public DbSet<BankAccount> BankAccounts { get; set; }
+    public DbSet<WalletTransaction> WalletTransactions { get; set; }
+    public DbSet<WithdrawalRequest> WithdrawalRequests { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -22,6 +26,23 @@ public class PaymentDbContext(DbContextOptions options, IInMemoryBus bus) : EfDb
         modelBuilder.Entity<Payment>(e =>
         {
             e.Property(p => p.Amount).HasColumnType("decimal(18,2)");
+        });
+
+        modelBuilder.Entity<Wallet>(e =>
+        {
+            e.Property(w => w.Balance).HasColumnType("decimal(18,2)");
+            e.HasIndex(w => w.UserId).IsUnique();
+        });
+
+        modelBuilder.Entity<WalletTransaction>(e =>
+        {
+            e.Property(t => t.Amount).HasColumnType("decimal(18,2)");
+            e.Property(t => t.BalanceAfter).HasColumnType("decimal(18,2)");
+        });
+
+        modelBuilder.Entity<WithdrawalRequest>(e =>
+        {
+            e.Property(w => w.Amount).HasColumnType("decimal(18,2)");
         });
     }
 }

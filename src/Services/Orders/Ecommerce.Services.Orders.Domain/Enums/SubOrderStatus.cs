@@ -7,7 +7,9 @@ public enum SubOrderStatus
     Processing, //Hiễn thị là đã chấp nhận và đang xử lý
     PackageReady, //Seller đã đóng gói xong, chờ shipper đến lấy hàng
     Shipping, //Đang giao khi hoàn tất đóng gói đưa cho bên giao hàng
-    Delivered, //Khi shipper giao hàng 
+    Delivered, //Khi shipper giao hàng đến người mua
+    Returning, //Customer yêu cầu hoàn trả (đang chờ Seller duyệt)
+    Refunded,  //Seller đã đồng ý hoàn trả, tiền đã vào ví Customer
     Completed, //Khi khách hàng xác nhận đã nhận hàng và hài lòng (Trong 7 ngày sau delivered) tiền sẽ về ví của shop.
     Cancelled
 }

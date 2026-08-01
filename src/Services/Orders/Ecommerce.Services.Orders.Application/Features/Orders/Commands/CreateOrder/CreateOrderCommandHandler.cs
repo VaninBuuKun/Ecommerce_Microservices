@@ -40,9 +40,25 @@ public class CreateOrderCommandHandler(
         var customerId = command.CustomerId;
         try
         {
-            logger.LogInformation("Bắt đầu tạo đơn hàng cho khách hàng: {CustomerId} sử dụng UserAddressId: {AddressId}", customerId, command.UserAddressId);
+            // 1. Lấy và xác thực thông tin đối chiếu với CheckoutSession từ Redis
+            var redisKey = $"checkout_session:{command.CheckoutSessionId}";
+            var checkoutSession = await cacheService.GetAsync<CheckoutSession>(redisKey, cancellationToken);
+            if (checkoutSession == null)
+            {
+                logger.LogWarning("Không tìm thấy CheckoutSession {SessionId} hoặc phiên đã hết hạn", command.CheckoutSessionId);
+                return Result<CustomerOrderResponse>.Failure("Phiên thanh toán đã hết hạn hoặc không hợp lệ. Vui lòng tải lại và đặt hàng lại.", EErrorCode.InvalidInput);
+            }
 
-            var addressResult = await identityService.GetUserAddressAsync(command.UserAddressId, customerId);
+            if (checkoutSession.CustomerId != customerId)
+            {
+                logger.LogWarning("CheckoutSession {SessionId} không thuộc về CustomerId {CustomerId}", command.CheckoutSessionId, customerId);
+                return Result<CustomerOrderResponse>.Failure("Phiên thanh toán không hợp lệ.", EErrorCode.Forbidden);
+            }
+
+            var userAddressId = checkoutSession.UserAddressId;
+            logger.LogInformation("Bắt đầu tạo đơn hàng cho khách hàng: {CustomerId} sử dụng UserAddressId: {AddressId} từ CheckoutSession", customerId, userAddressId);
+
+            var addressResult = await identityService.GetUserAddressAsync(userAddressId, customerId);
             if (!addressResult.IsSuccess || addressResult.Value == null)
             {
                 logger.LogWarning("Không thể lấy thông tin địa chỉ đặt hàng: {Error}", addressResult.Message);
@@ -99,27 +115,6 @@ public class CreateOrderCommandHandler(
             if (selectedItems.Count == 0)
             {
                 return Result<CustomerOrderResponse>.Failure("Không có sản phẩm nào được chọn để thanh toán", EErrorCode.InvalidInput);
-            }
-
-            // 2.5 Lấy và xác thực thông tin đối chiếu với CheckoutSession từ Redis
-            var redisKey = $"checkout_session:{command.CheckoutSessionId}";
-            var checkoutSession = await cacheService.GetAsync<CheckoutSession>(redisKey, cancellationToken);
-            if (checkoutSession == null)
-            {
-                logger.LogWarning("Không tìm thấy CheckoutSession {SessionId} hoặc phiên đã hết hạn", command.CheckoutSessionId);
-                return Result<CustomerOrderResponse>.Failure("Phiên thanh toán đã hết hạn hoặc không hợp lệ. Vui lòng tải lại và đặt hàng lại.", EErrorCode.InvalidInput);
-            }
-
-            if (checkoutSession.CustomerId != customerId)
-            {
-                logger.LogWarning("CheckoutSession {SessionId} không thuộc về CustomerId {CustomerId}", command.CheckoutSessionId, customerId);
-                return Result<CustomerOrderResponse>.Failure("Phiên thanh toán không hợp lệ.", EErrorCode.Forbidden);
-            }
-
-            if (checkoutSession.UserAddressId != command.UserAddressId)
-            {
-                logger.LogWarning("Địa chỉ đặt hàng không trùng khớp với CheckoutSession {SessionId}", command.CheckoutSessionId);
-                return Result<CustomerOrderResponse>.Failure("Địa chỉ giao hàng đã thay đổi. Vui lòng tính toán lại tổng tiền trước khi đặt hàng.", EErrorCode.InvalidInput);
             }
 
             if (selectedItems.Count != checkoutSession.Items.Count)
@@ -215,7 +210,10 @@ public class CreateOrderCommandHandler(
                     {
                         VariantId = item.VariantId,
                         UnitPrice = item.UnitPrice,
-                        Quantity = item.Quantity
+                        Quantity = item.Quantity,
+                        ProductName = string.IsNullOrEmpty(item.VariantName) 
+                            ? item.ProductName 
+                            : $"{item.ProductName} - {item.VariantName}"
                     }).ToList()
                 }).ToList();
 

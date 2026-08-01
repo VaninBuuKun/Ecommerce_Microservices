@@ -16,10 +16,12 @@ public class SubOrder : EntityTrackingBase<Guid>
     public long GrandTotal { get; private set; }
     
     public SubOrderStatus Status { get; private set; }
+    public bool IsOnlinePayment { get; private set; }
     public ICollection<SubOrderItem> SubOrderItems { get; set; } = new List<SubOrderItem>();
 
     public DateTimeOffset CreatedDate { get; set; }
     public DateTimeOffset? LastModifiedDate { get; set; }
+    public DateTimeOffset? DeliveredDate { get; set; }
     
     public Order Order { get; private set; }
 
@@ -30,6 +32,7 @@ public class SubOrder : EntityTrackingBase<Guid>
         Id = Guid.NewGuid();
         CustomerId = customerId;
         ShopId = shopId;
+        IsOnlinePayment = isOnlinePayment;
 
         Status = isOnlinePayment ? SubOrderStatus.AwaitingPayment : SubOrderStatus.AwaitingConfirmation;
     }
@@ -61,9 +64,12 @@ public class SubOrder : EntityTrackingBase<Guid>
     {
         [SubOrderStatus.AwaitingPayment] = new() { SubOrderStatus.AwaitingConfirmation, SubOrderStatus.Cancelled },
         [SubOrderStatus.AwaitingConfirmation] = new() { SubOrderStatus.Processing, SubOrderStatus.Cancelled },
-        [SubOrderStatus.Processing] = new() { SubOrderStatus.Shipping, SubOrderStatus.Cancelled },
+        [SubOrderStatus.Processing] = new() { SubOrderStatus.PackageReady, SubOrderStatus.Cancelled },
+        [SubOrderStatus.PackageReady] = new() {SubOrderStatus.Shipping, SubOrderStatus.Cancelled },
         [SubOrderStatus.Shipping] = new() { SubOrderStatus.Delivered },
-        [SubOrderStatus.Delivered] = new() { SubOrderStatus.Completed },
+        [SubOrderStatus.Delivered] = new() { SubOrderStatus.Returning, SubOrderStatus.Completed },
+        [SubOrderStatus.Returning] = new() { SubOrderStatus.Refunded, SubOrderStatus.Delivered },
+        [SubOrderStatus.Refunded] = new(),
         [SubOrderStatus.Completed] = new(),
         [SubOrderStatus.Cancelled] = new(),
     };
@@ -77,6 +83,11 @@ public class SubOrder : EntityTrackingBase<Guid>
             throw new InvalidOperationException(
                 $"Không thể chuyển trạng thái đơn hàng từ '{Status}' sang '{newStatus}'. " +
                 $"Các trạng thái hợp lệ: [{string.Join(", ", allowed ?? new HashSet<SubOrderStatus>())}]");
+        }
+
+        if (newStatus == SubOrderStatus.Delivered)
+        {
+            DeliveredDate = DateTimeOffset.UtcNow;
         }
 
         Status = newStatus;

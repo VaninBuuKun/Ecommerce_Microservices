@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 
 namespace Ecommerce.Services.Orders.Contracts.Requests;
 
@@ -17,4 +18,13 @@ public class CreateShipmentRequest
     public double Width { get; set; }
     public double Length { get; set; }
     public decimal CodAmount { get; set; }
+    public List<ShipmentItemData> Items { get; set; } = new();
+}
+
+public class ShipmentItemData
+{
+    public Guid VariantId { get; set; }
+    public int Quantity { get; set; }
+    public decimal UnitPrice { get; set; }
+    public string ProductName { get; set; } = string.Empty;
 }

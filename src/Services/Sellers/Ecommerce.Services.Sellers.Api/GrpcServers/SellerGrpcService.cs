@@ -67,7 +67,8 @@ public class SellerGrpcService(IEfUnitOfWork unitOfWork) : SellerGrpc.SellerGrpc
             WardId = shop.PickUpAddress?.WardId ?? 0,
             DistrictId = shop.PickUpAddress?.DistrictId ?? 0,
             ProvinceId = shop.PickUpAddress?.ProvinceId ?? 0,
-            GhnShopId = shop.GhnShopId ?? string.Empty
+            GhnShopId = shop.GhnShopId ?? string.Empty,
+            OwnerUserId = shop.OwnerUserId
         };
     }
 }
