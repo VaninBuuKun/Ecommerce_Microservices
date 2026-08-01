@@ -2,6 +2,7 @@ using BuildingBlocks.EfCore.Persistence.Commons;
 using BuildingBlocks.Shared.InfrastructureInterfaces.InMemoryBus;
 using Ecommerce.Services.Sellers.Api.Models.Entities;
 using Microsoft.EntityFrameworkCore;
+using MassTransit;
 
 namespace Ecommerce.Services.Sellers.Api.Persistances;
 
@@ -13,6 +14,10 @@ public class SellerDbContext(DbContextOptions<SellerDbContext> options, IInMemor
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
+
+        modelBuilder.AddOutboxStateEntity();
+        modelBuilder.AddOutboxMessageEntity();
+        modelBuilder.AddInboxStateEntity();
 
         modelBuilder.Entity<SellerKyc>(entity =>
         {
@@ -40,7 +45,7 @@ public class SellerDbContext(DbContextOptions<SellerDbContext> options, IInMemor
                 
                 address.Property(a => a.ProvinceId).HasColumnName("PickUp_ProvinceId").IsRequired();
                 address.Property(a => a.DistrictId).HasColumnName("PickUp_DistrictId").IsRequired();
-                address.Property(a => a.WardCode).HasColumnName("PickUp_WardCode").HasMaxLength(20).IsRequired();
+                address.Property(a => a.WardId).HasColumnName("PickUp_WardId").HasMaxLength(20).IsRequired();
             });
         });
     }

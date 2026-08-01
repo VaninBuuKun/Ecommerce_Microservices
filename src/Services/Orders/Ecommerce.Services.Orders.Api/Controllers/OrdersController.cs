@@ -4,9 +4,11 @@ using Ecommerce.Services.Orders.Application.Features.Orders.Dtos;
 using Ecommerce.Services.Orders.Application.Features.Queries.GetCustomerOrders;
 using Ecommerce.Services.Orders.Application.Features.Orders.Queries.GetOrderById;
 using Ecommerce.Services.Orders.Application.Features.Orders.Queries.GetSubOrdersByShop;
-using Ecommerce.Services.Orders.Application.Features.Orders.Commands.SellerConfirmOrder;
-using Ecommerce.Services.Orders.Application.Features.Orders.Commands.SellerRejectOrder;
+using Ecommerce.Services.Orders.Application.Features.Orders.Commands.SellerConfirmSubOrder;
+using Ecommerce.Services.Orders.Application.Features.Orders.Commands.SellerRejectSubOrder;
+using Ecommerce.Services.Orders.Application.Features.Orders.Commands.SellerPackageReady;
 using Ecommerce.Services.Orders.Application.Features.Orders.Commands.CancelOrder;
+using Ecommerce.Services.Orders.Application.Features.Orders.Commands.CalOrderGrandTotal;
 using Microsoft.AspNetCore.Mvc;
 using BuildingBlocks.Auth;
 
@@ -51,6 +53,28 @@ public class OrdersController(ICurrentUserService currentUserService) : CleanV1C
     }
 
     /// <summary>
+    /// Tính toán tổng tiền và phí ship của đơn hàng (lưu thông tin vào Redis CheckoutSession)
+    /// </summary>
+    [HttpPost("calculate")]
+    [ProducesResponseType(typeof(CalOrderGrandTotalResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> CalculateOrderTotal(
+        [FromBody] CalculateOrderTotalRequest request,
+        CancellationToken cancellationToken)
+    {
+        var result = await _sender.SendAsync(new CalOrderGrandTotalCommand(
+            UserId,
+            request.UserAddressId,
+            request.ShopShippingSelections,
+            request.CheckoutSessionId
+        ), cancellationToken);
+
+        return result.IsSuccess 
+            ? Ok(result) 
+            : StatusCode(result.GetHttpStatusCode(), result);
+    }
+
+    /// <summary>
     /// Thực hiện thanh toán các sản phẩm được chọn từ giỏ hàng và tạo đơn hàng
     /// </summary>
     [HttpPost("checkout")]
@@ -68,7 +92,7 @@ public class OrdersController(ICurrentUserService currentUserService) : CleanV1C
     /// <summary>
     /// Lấy danh sách các đơn hàng con (SubOrder) của cửa hàng (dành cho Seller)
     /// </summary>
-    [HttpGet("shop/{shopId:long}")]
+    [HttpGet("shop/{shopId:long}/suborders")]
     [ProducesResponseType(typeof(List<CustomerOrderResponse>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetSubOrdersByShop(long shopId, CancellationToken cancellationToken)
     {
@@ -84,9 +108,10 @@ public class OrdersController(ICurrentUserService currentUserService) : CleanV1C
     /// </summary>
     [HttpPut("suborder/{subOrderId:guid}/confirm")]
     [ProducesResponseType(StatusCodes.Status200OK)]
-    public async Task<IActionResult> ConfirmSubOrder(Guid subOrderId, [FromQuery] long shopId, CancellationToken cancellationToken)
+    public async Task<IActionResult> ConfirmSubOrder(Guid subOrderId, CancellationToken cancellationToken)
     {
-        var result = await _sender.SendAsync(new SellerConfirmOrderCommand(subOrderId, shopId), cancellationToken);
+        var sellerId = currentUserService.UserId;
+        var result = await _sender.SendAsync(new SellerConfirmSubOrderCommand(subOrderId, sellerId), cancellationToken);
 
         return result.IsSuccess 
             ? Ok(result) 
@@ -98,9 +123,32 @@ public class OrdersController(ICurrentUserService currentUserService) : CleanV1C
     /// </summary>
     [HttpPut("suborder/{subOrderId:guid}/reject")]
     [ProducesResponseType(StatusCodes.Status200OK)]
-    public async Task<IActionResult> RejectSubOrder(Guid subOrderId, [FromQuery] long shopId, [FromQuery] string reason, CancellationToken cancellationToken)
+    public async Task<IActionResult> RejectSubOrder(Guid subOrderId, [FromQuery] string reason, CancellationToken cancellationToken)
     {
-        var result = await _sender.SendAsync(new SellerRejectOrderCommand(subOrderId, shopId, reason), cancellationToken);
+        var sellerId = currentUserService.UserId;
+        var result = await _sender.SendAsync(new SellerRejectSubOrderCommand(subOrderId, sellerId, reason), cancellationToken);
+
+        return result.IsSuccess
+            ? Ok(result) 
+            : StatusCode(result.GetHttpStatusCode(), result);
+    }
+
+    /// <summary>
+    /// Người bán hoàn tất đóng gói, nhập kích thước cân nặng thực tế và gửi hãng vận chuyển
+    /// </summary>
+    [HttpPut("suborder/{subOrderId:guid}/package-ready")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    public async Task<IActionResult> PackageReady(Guid subOrderId, [FromBody] SellerPackageReadyRequest request, CancellationToken cancellationToken)
+    {
+        var sellerId = currentUserService.UserId;
+        var result = await _sender.SendAsync(new SellerPackageReadyCommand(
+            subOrderId,
+            sellerId,
+            request.Weight,
+            request.Length,
+            request.Width,
+            request.Height
+        ), cancellationToken);
 
         return result.IsSuccess 
             ? Ok(result) 
@@ -114,10 +162,25 @@ public class OrdersController(ICurrentUserService currentUserService) : CleanV1C
     [ProducesResponseType(StatusCodes.Status200OK)]
     public async Task<IActionResult> CancelSubOrder(Guid subOrderId, [FromQuery] string reason, CancellationToken cancellationToken)
     {
+        var userId = currentUserService.UserId;
         var result = await _sender.SendAsync(new CancelSubOrderCommand(subOrderId, UserId, reason), cancellationToken);
 
         return result.IsSuccess 
             ? Ok(result) 
             : StatusCode(result.GetHttpStatusCode(), result);
     }
+}
+
+public record SellerPackageReadyRequest(
+    double Weight,
+    double Length,
+    double Width,
+    double Height
+);
+
+public class CalculateOrderTotalRequest
+{
+    public Guid UserAddressId { get; set; }
+    public Guid? CheckoutSessionId { get; set; }
+    public Dictionary<long, string>? ShopShippingSelections { get; set; }
 }

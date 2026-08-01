@@ -34,8 +34,16 @@ public record VariantOptionValueSetupDto(
     string ValueName
 );
 
-public record VariantSetupDto(string? Sku, decimal Price, int AvailableStocks, 
-    List<VariantOptionValueSetupDto> OptionValues);
+public record VariantSetupDto(
+    string? Sku, 
+    decimal Price, 
+    int AvailableStocks, 
+    List<VariantOptionValueSetupDto> OptionValues,
+    double? Weight = null,
+    double? Length = null,
+    double? Width = null,
+    double? Height = null
+);
 /*
 {
     "Options": [

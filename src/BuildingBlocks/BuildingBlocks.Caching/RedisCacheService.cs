@@ -24,7 +24,6 @@ public class RedisCacheService : ICacheService
         CancellationToken token = default)
     {
         var value = await _database.StringGetAsync(key);
-
         if (value.IsNullOrEmpty)
             return default;
 

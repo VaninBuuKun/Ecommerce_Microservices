@@ -31,14 +31,10 @@ public class ShopController(ISender sender, ICurrentUserService currentUserServi
             Description: request.Description,
             RecipientName: request.RecipientName,
             Phone: request.Phone,
-            Province: request.Province,
-            District: request.District,
-            Ward: request.Ward,
             AddressLine: request.AddressLine,
             ProvinceId: request.ProvinceId,
             DistrictId: request.DistrictId,
-            WardCode: request.WardCode,
-            IdentityCardNumber: string.Empty // CCCD đã quản lý riêng ở Kyc
+            WardId: request.WardId
         );
 
         var result = await sender.Send(command);
@@ -70,11 +66,8 @@ public record RegisterShopRequest(
     string Description,
     string RecipientName,
     string Phone,
-    string Province,
-    string District,
-    string Ward,
     string AddressLine,
-    int ProvinceId,
-    int DistrictId,
-    string WardCode
+    long ProvinceId,
+    long DistrictId,
+    long WardId
 );

@@ -15,6 +15,7 @@ public class OrderDbContext(DbContextOptions<OrderDbContext> options, IInMemoryB
     public DbSet<SubOrder> SubOrders { get; set; }
     public DbSet<SubOrderItem> OrderItems { get; set; }
     public DbSet<ShippingAddress> ShippingAddresses { get; set; }
+    public DbSet<RefundRequest> RefundRequests { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -85,6 +86,20 @@ public class OrderDbContext(DbContextOptions<OrderDbContext> options, IInMemoryB
             entity.Property(a => a.District).IsRequired().HasMaxLength(100);
             entity.Property(a => a.Ward).IsRequired().HasMaxLength(100);
             entity.Property(a => a.AddressLine).IsRequired().HasMaxLength(255);
+        });
+
+        modelBuilder.Entity<RefundRequest>(entity =>
+        {
+            entity.HasKey(r => r.Id);
+            entity.Property(r => r.RefundAmount).HasColumnType("decimal(18,2)");
+            entity.Property(r => r.Reason).IsRequired().HasMaxLength(1000);
+            entity.Property(r => r.SellerNote).HasMaxLength(1000);
+            entity.Property(r => r.Status).HasConversion<int>();
+
+            entity.HasOne(r => r.SubOrder)
+                  .WithMany()
+                  .HasForeignKey(r => r.SubOrderId)
+                  .OnDelete(DeleteBehavior.Cascade);
         });
     }
 }

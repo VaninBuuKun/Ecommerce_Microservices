@@ -20,6 +20,59 @@ public class ShipmentsController(IShippingProvider shippingProvider) : Controlle
         return StatusCode(result.GetHttpStatusCode(), result.Message);
     }
 
+    [HttpPost("preview-fee")]
+    public async Task<IActionResult> PreviewFee([FromBody] PreviewFeeRequest request)
+    {
+        double totalWeight = 0;
+        double maxLength = 0;
+        double maxWidth = 0;
+        double totalHeight = 0;
+
+        foreach (var item in request.Items)
+        {
+            // Mặc định: Nặng 500g, Dài 20cm, Rộng 15cm, Cao 5cm cho mỗi sản phẩm
+            double itemWeight = 500; 
+            double itemLength = 20;
+            double itemWidth = 15;
+            double itemHeight = 5;
+
+            totalWeight += itemWeight * item.Quantity;
+            maxLength = Math.Max(maxLength, itemLength);
+            maxWidth = Math.Max(maxWidth, itemWidth);
+            totalHeight += itemHeight * item.Quantity;
+        }
+
+        if (request.Items.Count == 0)
+        {
+            totalWeight = 500;
+            maxLength = 20;
+            maxWidth = 15;
+            totalHeight = 5;
+        }
+
+        var providerRequest = new CalculateFeeRequest(
+            request.GhnShopId,
+            request.RecipientWardId,
+            totalWeight,
+            maxLength,
+            maxWidth,
+            totalHeight
+        );
+
+        var result = await shippingProvider.CalculateFeeAsync(providerRequest);
+        if (result.IsSuccess)
+        {
+            return Ok(new PreviewFeeResponse(
+                result.Value,
+                totalWeight,
+                maxLength,
+                maxWidth,
+                totalHeight
+            ));
+        }
+        return StatusCode(result.GetHttpStatusCode(), result.Message);
+    }
+
     [HttpPost("create-waybill")]
     public async Task<IActionResult> CreateWaybill([FromBody] CreateWaybillRequest request)
     {
@@ -42,3 +95,17 @@ public class ShipmentsController(IShippingProvider shippingProvider) : Controlle
         return StatusCode(result.GetHttpStatusCode(), result.Message);
     }
 }
+
+public record PreviewFeeItem(Guid VariantId, int Quantity);
+public record PreviewFeeRequest(
+    string GhnShopId,
+    long RecipientWardId,
+    System.Collections.Generic.List<PreviewFeeItem> Items
+);
+public record PreviewFeeResponse(
+    decimal ShippingFee,
+    double EstimatedWeight,
+    double EstimatedLength,
+    double EstimatedWidth,
+    double EstimatedHeight
+);

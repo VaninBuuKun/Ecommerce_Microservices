@@ -40,6 +40,17 @@ namespace Ecommerce.Services.Orders.Infrastructure.Migrations
                     b.Property<DateTimeOffset?>("LastModifiedDate")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<string>("RecipientName")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("RecipientPhone")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<long>("RecipientWardId")
+                        .HasColumnType("bigint");
+
                     b.Property<string>("ShippingAddress")
                         .IsRequired()
                         .HasMaxLength(500)
@@ -57,6 +68,49 @@ namespace Ecommerce.Services.Orders.Infrastructure.Migrations
                     b.HasKey("Id");
 
                     b.ToTable("Orders");
+                });
+
+            modelBuilder.Entity("Ecommerce.Services.Orders.Domain.RefundRequest", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset>("CreatedDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<long>("CustomerId")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTimeOffset?>("LastModifiedDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Reason")
+                        .IsRequired()
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<decimal>("RefundAmount")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<string>("SellerNote")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<long>("ShopId")
+                        .HasColumnType("bigint");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("integer");
+
+                    b.Property<Guid>("SubOrderId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("SubOrderId");
+
+                    b.ToTable("RefundRequests");
                 });
 
             modelBuilder.Entity("Ecommerce.Services.Orders.Domain.ShippingAddress", b =>
@@ -124,8 +178,14 @@ namespace Ecommerce.Services.Orders.Infrastructure.Migrations
                     b.Property<long>("CustomerId")
                         .HasColumnType("bigint");
 
+                    b.Property<DateTimeOffset?>("DeliveredDate")
+                        .HasColumnType("timestamp with time zone");
+
                     b.Property<long>("GrandTotal")
                         .HasColumnType("bigint");
+
+                    b.Property<bool>("IsOnlinePayment")
+                        .HasColumnType("boolean");
 
                     b.Property<DateTimeOffset?>("LastModifiedDate")
                         .HasColumnType("timestamp with time zone");
@@ -208,14 +268,40 @@ namespace Ecommerce.Services.Orders.Infrastructure.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
+                    b.Property<long>("CustomerId")
+                        .HasColumnType("bigint");
+
                     b.Property<string>("FailureReason")
                         .HasMaxLength(255)
                         .HasColumnType("character varying(255)");
 
+                    b.Property<double>("Height")
+                        .HasColumnType("double precision");
+
+                    b.Property<bool>("IsOnlinePayment")
+                        .HasColumnType("boolean");
+
                     b.Property<string>("ItemsJson")
                         .HasColumnType("text");
 
+                    b.Property<double>("Length")
+                        .HasColumnType("double precision");
+
                     b.Property<Guid>("OrderId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("RecipientName")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("RecipientPhone")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<long>("RecipientWardId")
+                        .HasColumnType("bigint");
+
+                    b.Property<Guid?>("RefundRequestId")
                         .HasColumnType("uuid");
 
                     b.Property<string>("ShippingAddress")
@@ -227,6 +313,12 @@ namespace Ecommerce.Services.Orders.Infrastructure.Migrations
 
                     b.Property<decimal>("TotalAmount")
                         .HasColumnType("decimal(18,2)");
+
+                    b.Property<double>("Weight")
+                        .HasColumnType("double precision");
+
+                    b.Property<double>("Width")
+                        .HasColumnType("double precision");
 
                     b.HasKey("CorrelationId");
 
@@ -399,6 +491,17 @@ namespace Ecommerce.Services.Orders.Infrastructure.Migrations
                     b.HasIndex("Created");
 
                     b.ToTable("OutboxState");
+                });
+
+            modelBuilder.Entity("Ecommerce.Services.Orders.Domain.RefundRequest", b =>
+                {
+                    b.HasOne("Ecommerce.Services.Orders.Domain.SubOrder", "SubOrder")
+                        .WithMany()
+                        .HasForeignKey("SubOrderId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("SubOrder");
                 });
 
             modelBuilder.Entity("Ecommerce.Services.Orders.Domain.SubOrder", b =>

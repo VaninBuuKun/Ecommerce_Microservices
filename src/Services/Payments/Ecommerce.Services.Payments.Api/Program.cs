@@ -33,10 +33,18 @@ try
     builder.Services.AddGrpc();
     var connectionString = builder.Configuration.GetConnectionString("Database");
     builder.Services.AddHttpContextAccessor();
+    
+    // Register Seller gRPC client
+    builder.Services.AddGrpcClient<BuildingBlocks.Grpc.Services.SellerGrpc.SellerGrpcClient>(o =>
+    {
+        o.Address = new Uri(builder.Configuration["Services:SellerGrpcUrl"] ?? throw new InvalidOperationException("SellerGrpcUrl is missing."));
+    });
     builder.Services.AddDbContext<PaymentDbContext>(options =>
         options.UseNpgsql(connectionString));
     builder.Services.AddScoped<IPaymentMethodService, PaymentMethodService>();
     builder.Services.AddScoped<IPaymentService, PaymentService>();
+    builder.Services.AddScoped<IWalletService, WalletService>();
+    builder.Services.AddScoped<IWithdrawalService, WithdrawalService>();
     builder.Services.AddScoped<IEfUnitOfWork, EfUnitOfWork<PaymentDbContext>>();
     builder.Services.AddScoped<PaymentGatewayFactory>();
     builder.Services.AddScoped<IPaymentGateway, MomoPaymentGateway>();
@@ -59,9 +67,11 @@ try
 
 
     //BuildingBlocks
-    builder.Services.AddBuildingBlocksWeb();
+    builder.Services.AddBuildingBlocksWeb(builder.Configuration);
     builder.Services.AddMasstransitEventBus(builder.Configuration, config =>
     {
+        config.AddConsumers(Assembly.GetExecutingAssembly());
+        
         config.AddEntityFrameworkOutbox<PaymentDbContext>(o =>
         {
             o.UsePostgres();
@@ -81,6 +91,7 @@ try
     }
 
     app.UseHttpsRedirection();
+    app.UseCors("CorsPolicy");
     app.MapGrpcService<Ecommerce.Services.Payments.Api.GrpcServers.PaymentGrpcService>();
     app.MapControllers();
     app.Run();

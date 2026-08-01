@@ -1,12 +1,13 @@
-﻿using System.Reflection;
+using System.Reflection;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Configuration;
 using Microsoft.OpenApi.Models;
 
 namespace BuildingBlocks.Web.Extensions;
 
 public static class DependencyInjection
 {
-    public static IServiceCollection AddBuildingBlocksWeb(this IServiceCollection services)
+    public static IServiceCollection AddBuildingBlocksWeb(this IServiceCollection services, IConfiguration configuration)
     {
         services.AddOpenApi(options =>
         {
@@ -44,6 +45,27 @@ public static class DependencyInjection
                 return Task.CompletedTask;
             });
         });
+
+        // Đọc cấu hình CORS và đăng ký
+        var allowedOrigins = configuration.GetSection("AllowedOrigins").Get<string[]>();
+        
+        // Nếu không có cấu hình ở appsettings.json, fallback về localhost port mặc định
+        if (allowedOrigins == null || allowedOrigins.Length == 0)
+        {
+            allowedOrigins = new[] { "http://localhost:5173", "http://localhost:5174", "http://127.0.0.1:5173", "http://127.0.0.1:5174", "http://127.0.0.1:5500" };
+        }
+
+        services.AddCors(options =>
+        {
+            options.AddPolicy("CorsPolicy", policy =>
+            {
+                policy.WithOrigins(allowedOrigins)
+                      .AllowAnyHeader()
+                      .AllowAnyMethod()
+                      .AllowCredentials();
+            });
+        });
+
         return services;
     }
 }

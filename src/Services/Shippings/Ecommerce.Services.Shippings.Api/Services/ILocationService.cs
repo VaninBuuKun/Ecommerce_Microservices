@@ -8,6 +8,6 @@ namespace Ecommerce.Services.Shippings.Api.Services;
 public interface ILocationService
 {
     Task<Result<List<ProvinceDto>>> GetProvincesAsync();
-    Task<Result<List<DistrictDto>>> GetDistrictsAsync(string provinceId);
-    Task<Result<List<WardDto>>> GetWardsAsync(string districtId);
+    Task<Result<List<DistrictDto>>> GetDistrictsAsync(long provinceId);
+    Task<Result<List<WardDto>>> GetWardsAsync(long districtId);
 }

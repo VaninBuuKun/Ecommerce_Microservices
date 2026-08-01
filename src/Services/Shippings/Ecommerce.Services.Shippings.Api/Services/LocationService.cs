@@ -20,7 +20,7 @@ public class LocationService(ShippingDbContext dbContext) : ILocationService
         return Result<List<ProvinceDto>>.Success(provinces);
     }
 
-    public async Task<Result<List<DistrictDto>>> GetDistrictsAsync(string provinceId)
+    public async Task<Result<List<DistrictDto>>> GetDistrictsAsync(long provinceId)
     {
         var districts = await dbContext.Districts
             .Where(d => d.ProvinceId == provinceId)
@@ -31,7 +31,7 @@ public class LocationService(ShippingDbContext dbContext) : ILocationService
         return Result<List<DistrictDto>>.Success(districts);
     }
 
-    public async Task<Result<List<WardDto>>> GetWardsAsync(string districtId)
+    public async Task<Result<List<WardDto>>> GetWardsAsync(long districtId)
     {
         var wards = await dbContext.Wards
             .Where(w => w.DistrictId == districtId)

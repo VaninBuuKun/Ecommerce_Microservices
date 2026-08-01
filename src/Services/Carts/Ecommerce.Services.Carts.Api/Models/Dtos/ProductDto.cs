@@ -9,4 +9,8 @@ public class ProductDto
     public string VariantName { get; set; } = string.Empty;
     public decimal UnitPrice { get; set; }
     public decimal AvailableStocks { get; set; }
+    public double Weight { get; set; }
+    public double Length { get; set; }
+    public double Width { get; set; }
+    public double Height { get; set; }
 }

@@ -20,6 +20,8 @@
         <Protobuf Include="Protos\cart.proto" GrpcServices="Both" />
         <Protobuf Include="Protos\payment.proto" GrpcServices="Both" />
         <Protobuf Include="Protos\seller.proto" GrpcServices="Both" />
+        <Protobuf Include="Protos\shipping.proto" GrpcServices="Both" />
+        <Protobuf Include="Protos\identity.proto" GrpcServices="Both" />
     </ItemGroup>
 
     <ItemGroup>

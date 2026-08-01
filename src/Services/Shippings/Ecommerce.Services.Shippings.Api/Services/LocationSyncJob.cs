@@ -25,7 +25,6 @@ public class LocationSyncJob(
     {
         logger.LogInformation("LocationSyncJob is starting...");
 
-        // Chờ 5 giây sau khi ứng dụng start để đảm bảo Database đã migrate thành công
         await Task.Delay(TimeSpan.FromSeconds(5), stoppingToken);
 
         try
@@ -66,8 +65,9 @@ public class LocationSyncJob(
 
     private async Task SeedStandardLocationsFromJsonAsync(ShippingDbContext dbContext)
     {
-        // Xóa sạch dữ liệu cũ để reset từ đầu
         logger.LogInformation("LocationSyncJob: Resetting existing location data in database...");
+        
+        // Xóa theo thứ tự ngược lại từ Ward -> District -> Province để tránh lỗi khóa ngoại (Foreign Key)
         dbContext.Wards.RemoveRange(dbContext.Wards);
         dbContext.Districts.RemoveRange(dbContext.Districts);
         dbContext.Provinces.RemoveRange(dbContext.Provinces);
@@ -89,78 +89,69 @@ public class LocationSyncJob(
         var provincesArray = JsonNode.Parse(jsonText)?.AsArray();
         if (provincesArray == null) return;
 
-        var provinces = new List<Province>();
-        var districts = new List<District>();
-        var wards = new List<Ward>();
+        int totalProvinces = 0, totalDistricts = 0, totalWards = 0;
 
-        int pIdx = 1;
         foreach (var pNode in provincesArray)
         {
             if (pNode == null) continue;
             var rawProvName = pNode["name"]?.GetValue<string>() ?? "";
-            var pName = CleanLocationName(rawProvName);
-            var pId = pIdx.ToString("D2"); // ví dụ: "01", "02"
-            pIdx++;
-
+            
             var province = new Province 
             { 
-                Id = pId, 
-                Name = pName,
+                Name = CleanLocationName(rawProvName),
                 DisplayName = rawProvName
             };
-            provinces.Add(province);
+            
+            dbContext.Provinces.Add(province);
+            await dbContext.SaveChangesAsync(); // Lưu ngay để EF sinh ra Province.Id tự tăng
+            totalProvinces++;
 
             var districtsArray = pNode["districts"]?.AsArray();
             if (districtsArray == null) continue;
 
-            int dIdx = 1;
             foreach (var dNode in districtsArray)
             {
                 if (dNode == null) continue;
                 var rawDistName = dNode["name"]?.GetValue<string>() ?? "";
-                var dName = CleanLocationName(rawDistName);
-                var dId = $"{pId}{dIdx:D3}"; // ví dụ: "01001", "01002"
-                dIdx++;
 
                 var district = new District 
                 { 
-                    Id = dId, 
-                    ProvinceId = pId, 
-                    Name = dName,
+                    ProvinceId = province.Id, // Lấy ID vừa được sinh tự động
+                    Name = CleanLocationName(rawDistName),
                     DisplayName = rawDistName
                 };
-                districts.Add(district);
+                
+                dbContext.Districts.Add(district);
+                await dbContext.SaveChangesAsync(); // Lưu ngay để sinh ra District.Id tự tăng
+                totalDistricts++;
 
                 var wardsArray = dNode["wards"]?.AsArray();
                 if (wardsArray == null) continue;
 
-                int wIdx = 1;
+                var wards = new List<Ward>();
                 foreach (var wNode in wardsArray)
                 {
                     if (wNode == null) continue;
                     var rawWardName = wNode["name"]?.GetValue<string>() ?? "";
-                    var wName = CleanLocationName(rawWardName);
-                    var wId = $"{dId}{wIdx:D4}"; // ví dụ: "010010001", "010010002"
-                    wIdx++;
 
-                    var ward = new Ward 
+                    wards.Add(new Ward 
                     { 
-                        Id = wId, 
-                        DistrictId = dId, 
-                        Name = wName,
+                        DistrictId = district.Id, // Lấy ID vừa được sinh tự động
+                        Name = CleanLocationName(rawWardName),
                         DisplayName = rawWardName
-                    };
-                    wards.Add(ward);
+                    });
+                    totalWards++;
+                }
+
+                if (wards.Count > 0)
+                {
+                    dbContext.Wards.AddRange(wards);
+                    await dbContext.SaveChangesAsync();
                 }
             }
         }
 
-        dbContext.Provinces.AddRange(provinces);
-        dbContext.Districts.AddRange(districts);
-        dbContext.Wards.AddRange(wards);
-
-        await dbContext.SaveChangesAsync();
-        logger.LogInformation("LocationSyncJob: Standard address catalog seeded from locations.json. Total Provinces: {P}, Districts: {D}, Wards: {W}", provinces.Count, districts.Count, wards.Count);
+        logger.LogInformation("LocationSyncJob: Standard address catalog seeded from locations.json. Total Provinces: {P}, Districts: {D}, Wards: {W}", totalProvinces, totalDistricts, totalWards);
     }
 
     private string CleanLocationName(string name)
@@ -181,7 +172,7 @@ public class LocationSyncJob(
     {
         if (string.IsNullOrEmpty(name)) return "";
         
-        var normalized = name.ToLower()
+        return name.ToLower()
             .Replace("thành phố", "", StringComparison.OrdinalIgnoreCase)
             .Replace("tỉnh", "", StringComparison.OrdinalIgnoreCase)
             .Replace("quận", "", StringComparison.OrdinalIgnoreCase)
@@ -226,20 +217,16 @@ public class LocationSyncJob(
             .Replace("ỵ", "y")
             .Replace(" ", "")
             .Trim();
-            
-        return normalized;
     }
 
     private async Task ApplyMockGhnMappingsAsync(ShippingDbContext dbContext)
     {
-        // Ánh xạ các tỉnh
         var hn = await dbContext.Provinces.FirstOrDefaultAsync(x => x.Name.Contains("Hà Nội"));
         if (hn != null) { hn.GhnId = 201; hn.GhtkId = "HN"; }
 
         var hcm = await dbContext.Provinces.FirstOrDefaultAsync(x => x.Name.Contains("Hồ Chí Minh"));
         if (hcm != null) { hcm.GhnId = 202; hcm.GhtkId = "HCM"; }
 
-        // Ánh xạ các quận theo tên để đảm bảo chính xác khi ID thay đổi
         var q1 = await dbContext.Districts.FirstOrDefaultAsync(x => x.Name.Contains("Quận 1") || x.Name == "1");
         if (q1 != null) { q1.GhnId = 1442; q1.GhtkId = "Q.1"; }
 
@@ -274,9 +261,8 @@ public class LocationSyncJob(
             foreach (var province in provinces)
             {
                 var cleanProvName = GetComparisonKey(province.Name);
-                
-                // Pass 1: Tìm kiếm khớp hoàn toàn (Exact match)
                 bool matched = false;
+                
                 foreach (var ghnP in ghnProvinces)
                 {
                     var ghnProvName = GetComparisonKey(ghnP?["ProvinceName"]?.GetValue<string>() ?? "");
@@ -288,7 +274,6 @@ public class LocationSyncJob(
                     }
                 }
 
-                // Pass 2: Nếu chưa khớp, thử tìm kiếm chứa nhau (Partial match fallback)
                 if (!matched)
                 {
                     foreach (var ghnP in ghnProvinces)
@@ -305,13 +290,13 @@ public class LocationSyncJob(
             await dbContext.SaveChangesAsync(cancellationToken);
         }
 
-        // 2. Ánh xạ các Quận thuộc Tỉnh đã ánh xạ (Lặp qua các Tỉnh đã được map để lấy danh sách Quận)
+        // 2. Ánh xạ các Quận
         var mappedProvinces = provinces.Where(p => p.GhnId != null).ToList();
         logger.LogInformation("LocationSyncJob: Syncing districts for {Count} mapped provinces...", mappedProvinces.Count);
         
         foreach (var province in mappedProvinces)
         {
-            await Task.Delay(100, cancellationToken); // Tránh rate-limit
+            await Task.Delay(100, cancellationToken);
             var response = await httpClient.PostAsJsonAsync(
                 "https://dev-online-gateway.ghn.vn/shiip/public-api/master-data/district", 
                 new { province_id = province.GhnId!.Value },
@@ -331,9 +316,8 @@ public class LocationSyncJob(
             foreach (var district in dbDistricts)
             {
                 var cleanDistName = GetComparisonKey(district.Name);
-                
-                // Pass 1: Exact Match
                 bool matched = false;
+                
                 foreach (var ghnD in ghnDistricts)
                 {
                     var ghnDistName = GetComparisonKey(ghnD?["DistrictName"]?.GetValue<string>() ?? "");
@@ -345,7 +329,6 @@ public class LocationSyncJob(
                     }
                 }
 
-                // Pass 2: Partial Match Fallback
                 if (!matched)
                 {
                     foreach (var ghnD in ghnDistricts)
@@ -362,13 +345,13 @@ public class LocationSyncJob(
             await dbContext.SaveChangesAsync(cancellationToken);
         }
 
-        // 3. Ánh xạ các Phường/Xã thuộc Quận đã ánh xạ (Lặp qua các Quận đã được map để lấy danh sách Phường)
+        // 3. Ánh xạ các Phường/Xã
         var mappedDistricts = await dbContext.Districts.Where(d => d.GhnId != null).ToListAsync(cancellationToken);
         logger.LogInformation("LocationSyncJob: Syncing wards for {Count} mapped districts...", mappedDistricts.Count);
 
         foreach (var district in mappedDistricts)
         {
-            await Task.Delay(100, cancellationToken); // Tránh rate-limit
+            await Task.Delay(100, cancellationToken);
             var response = await httpClient.PostAsJsonAsync(
                 "https://dev-online-gateway.ghn.vn/shiip/public-api/master-data/ward", 
                 new { district_id = district.GhnId!.Value },
@@ -388,9 +371,8 @@ public class LocationSyncJob(
             foreach (var ward in dbWards)
             {
                 var cleanWardName = GetComparisonKey(ward.Name);
-                
-                // Pass 1: Exact Match
                 bool matched = false;
+                
                 foreach (var ghnW in ghnWards)
                 {
                     var ghnWardName = GetComparisonKey(ghnW?["WardName"]?.GetValue<string>() ?? "");
@@ -402,7 +384,6 @@ public class LocationSyncJob(
                     }
                 }
 
-                // Pass 2: Partial Match Fallback
                 if (!matched)
                 {
                     foreach (var ghnW in ghnWards)

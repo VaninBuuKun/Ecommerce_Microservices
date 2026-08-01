@@ -11,9 +11,13 @@ public class CurrentUserService(IHttpContextAccessor accessor) : ICurrentUserSer
     {
         get 
         {
-            var userIdClaim = accessor.HttpContext.User.FindFirst(ClaimTypes.NameIdentifier).Value;
+            var user = accessor.HttpContext?.User;
+            if (user == null) return 0;
+
+            var userIdClaim = user.FindFirst(ClaimTypes.NameIdentifier) ?? user.FindFirst("sub");
+            if (userIdClaim == null) return 0;
             
-            return long.TryParse(userIdClaim, out var userId) ? userId : throw new InvalidOperationException("UserId claim is not a valid long value.");
+            return long.TryParse(userIdClaim.Value, out var userId) ? userId : 0;
         }
     }
 
@@ -21,9 +25,11 @@ public class CurrentUserService(IHttpContextAccessor accessor) : ICurrentUserSer
     {
         get
         {
-            var email = accessor.HttpContext.User.FindFirst(ClaimTypes.Email).Value;
+            var user = accessor.HttpContext?.User;
+            if (user == null) return null;
 
-            return email;
+            var emailClaim = user.FindFirst(ClaimTypes.Email) ?? user.FindFirst("email");
+            return emailClaim?.Value;
         }
     }
     

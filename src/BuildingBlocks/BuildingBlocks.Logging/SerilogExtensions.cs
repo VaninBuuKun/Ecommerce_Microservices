@@ -30,8 +30,8 @@ public static class SerilogExtensions
             .Enrich.WithMachineName()
             .WriteTo.Elasticsearch(new[] { new Uri(elasticUri) }, opts =>
             {
-                // Cấu hình Data Stream chính chủ của Elastic: logs-{dataset}-{namespace}
-                opts.DataStream = new DataStreamName("logs", cleanAppName, environment);
+                // Cấu hình Data Stream: app-logs-{appName}-{environment} để tên chỉ mục luôn bắt đầu bằng app-logs-*
+                opts.DataStream = new DataStreamName("app-logs", cleanAppName, environment);
             })
         );
     }

@@ -1,24 +1,20 @@
 using BuildingBlocks.Auth;
 using BuildingBlocks.Logging;
 using BuildingBlocks.EfCore;
-using BuildingBlocks.Messaging;
 using Ecommerce.Services.Orders.Infrastructure;
 using BuildingBlocks.Web.Extensions;
-using Mapster;
-using MapsterMapper;
 using Scalar.AspNetCore;
 using BuildingBlocks.Grpc.Services;
 using Ecommerce.Services.Orders.Application;
 using Ecommerce.Services.Orders.Application.Services;
 using Ecommerce.Services.Orders.Infrastructure.GrpcClients;
-using MassTransit;
 using Serilog;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Serilog
 builder.AddCustomSerilog("OrdersService");
-Log.Information("Identity Service starting......");
+Log.Information("Order Service starting......");
 try
 {
     // OpenAPI
@@ -28,7 +24,7 @@ try
 
     builder.Services.AddInfrastructure(builder.Configuration);
     builder.Services.AddBuildingBlocksInfrastructure(builder.Configuration);
-    builder.Services.AddBuildingBlocksWeb();
+    builder.Services.AddBuildingBlocksWeb(builder.Configuration);
     builder.Services.AddBuildingBlocsAuth(builder.Configuration);
     builder.Services.AddApplicationServices();
     builder.AddCustomSerilog("orderApi");
@@ -51,12 +47,22 @@ try
     {
         o.Address = new Uri(builder.Configuration["Services:SellerGrpcUrl"] ?? throw new InvalidOperationException("SellerGrpcUrl is missing."));
     });
+    builder.Services.AddGrpcClient<IdentityGrpc.IdentityGrpcClient>(o =>
+    {
+        o.Address = new Uri(builder.Configuration["Services:IdentityGrpcUrl"] ?? throw new InvalidOperationException("IdentityGrpcUrl is missing."));
+    });
+    builder.Services.AddGrpcClient<ShippingGrpc.ShippingGrpcClient>(o =>
+    {
+        o.Address = new Uri(builder.Configuration["Services:ShippingGrpcUrl"] ?? throw new InvalidOperationException("ShippingGrpcUrl is missing."));
+    });
 
 
     builder.Services.AddScoped<ICartService, CartClientService>();
     builder.Services.AddScoped<IProductService, ProductClientService>();
     builder.Services.AddScoped<IPaymentService, PaymentClientService>();
     builder.Services.AddScoped<ISellerService, SellerClientService>();
+    builder.Services.AddScoped<IIdentityService, IdentityClientService>();
+    builder.Services.AddScoped<IShippingService, ShippingClientService>();
 
     var app = builder.Build();
 
@@ -66,8 +72,9 @@ try
         app.MapScalarApiReference();
     }
 
-    app.MapControllers();
     app.UseHttpsRedirection();
+    app.UseCors("CorsPolicy");
+    app.MapControllers();
 
     app.Run();
 

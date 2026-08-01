@@ -1,98 +1,149 @@
-name: 🚀 CI/CD - Build, Push & Deploy
+name: .NET CI/CD Pipeline
 
 on:
-  pull_request:
-    branches: [ main ]
   push:
-    branches: [ main ]
-
-permissions:
-  contents: read
-  packages: write
+    branches:
+      - main
+    pull_request:
+      - dev
 
 jobs:
-  build:
-    name: 🐳 Build & Push Docker Images
+  # ==========================================
+  # GIAI ĐOẠN CI: Chạy cho cả nhánh dev và main
+  # ==========================================
+  build-and-test:
     runs-on: ubuntu-latest
-
+    permissions:
+      contents: read
+      packages: write
     steps:
-      - name: 📂 Checkout code
+      - name: Kiểm tra và tải code từ kho chứa
         uses: actions/checkout@v4
 
-      # 1. Cài đặt Docker Buildx (Bắt buộc để dùng cache nâng cao)
-      - name: 🛠️ Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-
-      # 2. Cấu hình Cache của GitHub Actions để giữ lại các layer build giữa các lần chạy
-      - name: 📦 Cache Docker layers
-        uses: actions/cache@v4
+      - name: Cài đặt môi trường .NET Core
+        uses: actions/setup-dotnet@v4
         with:
-          path: /tmp/.buildx-cache
-          key: ${{ runner.os }}-buildx-${{ github.sha }}
-          restore-keys: |
-            ${{ runner.os }}-buildx-
+          dotnet-version: '9.0.x' # Cập nhật lên .NET 9
 
-      - name: 🏷️ Convert repository owner to lowercase
-        id: repo-owner
-        run: echo "lowercase=${OWNER,,}" >> $GITHUB_OUTPUT
-        env:
-          OWNER: ${{ github.repository_owner }}
+      - name: Khôi phục NuGet và Biên dịch ứng dụng (Backend)
+        run: |
+          cd backend
+          dotnet restore
+          dotnet build --configuration Release --no-restore
 
-      - name: 🔑 Log in to GitHub Container Registry (GHCR)
+      # Sử dụng lại GITHUB_TOKEN mặc định (không cần cấu hình token phụ)
+      - name: Đăng nhập vào GHCR
         uses: docker/login-action@v3
         with:
           registry: ghcr.io
-          username: ${{ steps.repo-owner.outputs.lowercase }}
+          username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      # 3. Gom chung logic Build bằng Docker Buildx tận dụng cache cho cả PR và Push
-      - name: 🏗️ Build & Push Docker Images (with Cache)
-        uses: docker/bake-action@v5
+      # Đặt tag: nhánh main -> prod, nhánh dev -> dev
+      # Chuyển TOÀN BỘ tên kho chứa (ví dụ: VaninBuuKun/H-c-CICD) sang viết thường
+      - name: Xác định Tag và Tên Repo viết thường
+        id: vars
+        run: |
+          if [ "${{ github.ref_name }}" = "main" ]; then
+             echo "tag=prod" >> $GITHUB_OUTPUT
+          else
+             echo "tag=dev" >> $GITHUB_OUTPUT
+          fi
+          echo "repo_lowercase=$(echo ${{ github.repository }} | tr '[:upper:]' '[:lower:]')" >> $GITHUB_OUTPUT
+
+      # Đặt Image theo cấu trúc: ghcr.io/owner/repository/image-name
+      # GITHUB_TOKEN mặc định có toàn quyền với các Package gắn liền với repo này
+      - name: Build & Push Docker Image BACKEND
+        uses: docker/build-push-action@v5
         with:
-          workdir: 'src'
-          files: docker-compose.prod.yaml
-          push: ${{ github.event_name == 'push' }} # Nếu là PR thì chỉ build kiểm tra, nếu là Push thì build xong đẩy thẳng lên GHCR
-          set: |
-            *.cache-from=type=local,src=/tmp/.buildx-cache
-            *.cache-to=type=local,dest=/tmp/.buildx-cache,mode=max
+          context: ./backend
+          file: ./backend/Dockerfile
+          push: true
+          tags: ghcr.io/${{ steps.vars.outputs.repo_lowercase }}/student-backend:${{ steps.vars.outputs.tag }}
 
+      - name: Build & Push Docker Image FRONTEND
+        uses: docker/build-push-action@v5
+        with:
+          context: ./frontend
+          file: ./frontend/Dockerfile
+          push: true
+          tags: ghcr.io/${{ steps.vars.outputs.repo_lowercase }}/student-frontend:${{ steps.vars.outputs.tag }}
 
-  deploy:
-    name: 🚀 Deploy to VPS Singapore
-    needs: build
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    runs-on: self-hosted
-
+  # ==========================================
+  # GIAI ĐOẠN CD DEV: Chỉ chạy khi push vào nhánh dev
+  # ==========================================
+  deploy-dev:
+    runs-on: ubuntu-latest
+    needs: build-and-test
+    if: github.ref_name == 'dev'
     steps:
-      - name: 📂 Checkout code
-        uses: actions/checkout@v4
+      - name: Kết nối SSH vào Server Dev và Cập nhật ứng dụng
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.DEV_SERVER_IP }}
+          username: ${{ secrets.DEV_SERVER_USER }}
+          key: ${{ secrets.DEV_SSH_PRIVATE_KEY }}
+          script: |
+            mkdir -p ~/app/dev
+            cd ~/app/dev
+            
+            # Đăng nhập GHCR trên VPS (dùng Token cá nhân PAT để VPS có quyền kéo ảnh từ GitHub về)
+            echo "${{ secrets.GHCR_PAT }}" | docker login ghcr.io -u "${{ secrets.REGISTRY_USERNAME }}" --password-stdin
+            
+            # Tải file docker-compose.deploy.yml phục vụ cho DEV từ nhánh dev
+            curl -o docker-compose.yml -H "Authorization: token ${{ secrets.GHCR_PAT }}" \
+              "https://raw.githubusercontent.com/${{ github.repository }}/dev/docker-compose.deploy.yml"
+            
+            # Khởi chạy bằng cách kéo image mới nhất về và cập nhật
+            cat <<EOF > .env
+            REGISTRY_OWNER=$(echo ${{ github.repository }} | tr '[:upper:]' '[:lower:]')
+            PROJECT_ENV=dev
+            FRONTEND_PORT=8081
+            BACKEND_PORT=5001
+            DB_PORT=5433
+            DB_NAME=students_dev_db
+            DB_PASSWORD=${{ secrets.DEV_DB_PASSWORD || 'devsecretpassword' }}
+            EOF
+            
+            docker compose down --remove-orphans
+            docker compose pull
+            docker compose up -d
 
-      - name: 🏷️ Convert repository owner to lowercase
-        id: repo-owner
-        run: echo "lowercase=${OWNER,,}" >> $GITHUB_OUTPUT
-        env:
-          OWNER: ${{ github.repository_owner }}
-
-      - name: 🔑 Log in to GHCR on VPS
-        run: |
-          echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u "${{ steps.repo-owner.outputs.lowercase }}" --password-stdin
-
-      - name: 📥 Pull latest images from GHCR
-        run: |
-          cd src
-          docker compose -f docker-compose.prod.yaml pull
-
-      - name: 🚀 Start/Update Containers (No Build)
-        run: |
-          cd src
-          docker compose -f docker-compose.prod.yaml up -d
-
-      - name: 🧹 Cleanup unused Docker Images
-        continue-on-error: true
-        run: |
-          docker image prune -f
-
-      - name: 📊 Verify status
-        run: |
-          cd src
-          docker compose -f docker-compose.prod.yaml ps
+  # ==========================================
+  # GIAI ĐOẠN CD PROD: Chỉ chạy khi push vào nhánh main
+  # ==========================================
+  deploy-prod:
+    runs-on: ubuntu-latest
+    needs: build-and-test
+    if: github.ref_name == 'main'
+    steps:
+      - name: Kết nối SSH vào Server Production và Cập nhật hệ thống
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.PROD_SERVER_IP }}
+          username: ${{ secrets.PROD_SERVER_USER }}
+          key: ${{ secrets.PROD_SSH_PRIVATE_KEY }}
+          script: |
+            mkdir -p ~/app/prod
+            cd ~/app/prod
+            
+            echo "${{ secrets.GHCR_PAT }}" | docker login ghcr.io -u "${{ secrets.REGISTRY_USERNAME }}" --password-stdin
+            
+            # Tải file docker-compose.deploy.yml phục vụ cho PROD từ nhánh main
+            curl -o docker-compose.yml -H "Authorization: token ${{ secrets.GHCR_PAT }}" \
+              "https://raw.githubusercontent.com/${{ github.repository }}/main/docker-compose.deploy.yml"
+            
+            # Khởi chạy bằng cách kéo image mới nhất về và cập nhật
+            cat <<EOF > .env
+            REGISTRY_OWNER=$(echo ${{ github.repository }} | tr '[:upper:]' '[:lower:]')
+            PROJECT_ENV=prod
+            FRONTEND_PORT=8080
+            BACKEND_PORT=5000
+            DB_PORT=5432
+            DB_NAME=students_prod_db
+            DB_PASSWORD=${{ secrets.PROD_DB_PASSWORD || 'prodsecretpassword' }}
+            EOF
+            
+            docker compose down --remove-orphans
+            docker compose pull
+            docker compose up -d

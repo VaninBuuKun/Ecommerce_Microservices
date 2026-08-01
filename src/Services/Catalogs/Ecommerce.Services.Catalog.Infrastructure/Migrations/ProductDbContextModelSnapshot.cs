@@ -32,6 +32,12 @@ namespace Ecommerce.Services.Catalog.Infrastructure.Migrations
                         .IsRequired()
                         .HasColumnType("longtext");
 
+                    b.Property<double>("Height")
+                        .HasColumnType("double");
+
+                    b.Property<double>("Length")
+                        .HasColumnType("double");
+
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasColumnType("longtext");
@@ -43,6 +49,12 @@ namespace Ecommerce.Services.Catalog.Infrastructure.Migrations
                         .IsRequired()
                         .HasMaxLength(20)
                         .HasColumnType("varchar(20)");
+
+                    b.Property<double>("Weight")
+                        .HasColumnType("double");
+
+                    b.Property<double>("Width")
+                        .HasColumnType("double");
 
                     b.HasKey("Id");
 
@@ -128,11 +140,17 @@ namespace Ecommerce.Services.Catalog.Infrastructure.Migrations
                     b.Property<DateTimeOffset>("CreatedDate")
                         .HasColumnType("datetime(6)");
 
+                    b.Property<double?>("Height")
+                        .HasColumnType("double");
+
                     b.Property<bool>("IsDeleted")
                         .HasColumnType("tinyint(1)");
 
                     b.Property<DateTimeOffset?>("LastModifiedDate")
                         .HasColumnType("datetime(6)");
+
+                    b.Property<double?>("Length")
+                        .HasColumnType("double");
 
                     b.Property<decimal>("Price")
                         .HasColumnType("decimal(18,2)");
@@ -146,6 +164,12 @@ namespace Ecommerce.Services.Catalog.Infrastructure.Migrations
                     b.Property<string>("Sku")
                         .HasMaxLength(50)
                         .HasColumnType("varchar(50)");
+
+                    b.Property<double?>("Weight")
+                        .HasColumnType("double");
+
+                    b.Property<double?>("Width")
+                        .HasColumnType("double");
 
                     b.HasKey("Id");
 

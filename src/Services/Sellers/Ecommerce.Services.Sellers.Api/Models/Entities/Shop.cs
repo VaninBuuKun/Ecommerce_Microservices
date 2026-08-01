@@ -19,13 +19,13 @@ public class PickUpAddress
     public string Ward { get; private set; } = string.Empty;
     public string AddressLine { get; private set; } = string.Empty;
     
-    public int ProvinceId { get; private set; }
-    public int DistrictId { get; private set; }
-    public string WardCode { get; private set; } = string.Empty;
+    public long ProvinceId { get; private set; }
+    public long DistrictId { get; private set; }
+    public long WardId { get; private set; }
 
     private PickUpAddress() {}
 
-    public PickUpAddress(string recipientName, string phone, string province, string district, string ward, string addressLine, int provinceId, int districtId, string wardCode)
+    public PickUpAddress(string recipientName, string phone, string province, string district, string ward, string addressLine, long provinceId, long districtId, long wardId)
     {
         RecipientName = recipientName;
         Phone = phone;
@@ -35,7 +35,7 @@ public class PickUpAddress
         AddressLine = addressLine;
         ProvinceId = provinceId;
         DistrictId = districtId;
-        WardCode = wardCode;
+        wardId = wardId;
     }
 }
 
@@ -48,6 +48,7 @@ public class Shop : EntityTrackingBase<long>
     public PickUpAddress PickUpAddress { get; set; } = null!;
     
     public ShopStatus Status { get; set; } = ShopStatus.Pending;
+    public string? GhnShopId { get; set; }
 
     private Shop() {}
 

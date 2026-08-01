@@ -13,7 +13,7 @@ using System.Threading.Tasks;
 
 namespace Ecommerce.Services.Catalog.Application.Features.Products.Commands.UpdateProduct;
 
-public record UpdateProductCommand(Guid Id, string Name, string Description) : ICommand<ProductResponse>;
+public record UpdateProductCommand(Guid Id, string Name, string Description, double Weight = 0, double Length = 0, double Width = 0, double Height = 0) : ICommand<ProductResponse>;
 
 public class UpdateProductCommandHandler(
     IEfUnitOfWork unitOfWork,
@@ -33,7 +33,7 @@ public class UpdateProductCommandHandler(
                 return Result<ProductResponse>.Failure("Product Not Found", EErrorCode.NotFound);
             }
 
-            existsProduct.UpdateDetails(command.Name, command.Description);
+            existsProduct.UpdateDetails(command.Name, command.Description, command.Weight, command.Length, command.Width, command.Height);
 
             _productRepository.Update(existsProduct);
             await unitOfWork.SaveChangesAsync(cancellationToken);

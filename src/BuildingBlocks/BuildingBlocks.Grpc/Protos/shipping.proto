@@ -1,0 +1,62 @@
+syntax = "proto3";
+
+option csharp_namespace = "BuildingBlocks.Grpc.Services";
+
+package shipping;
+
+service ShippingGrpc {
+  rpc GetLocationNames(GetLocationNamesRequest) returns (GetLocationNamesResponse);
+  rpc RegisterGhnShop(RegisterGhnShopRequest) returns (RegisterGhnShopResponse);
+  rpc CalculateBatchFee(CalculateBatchFeeGrpcRequest) returns (CalculateBatchFeeGrpcResponse);
+}
+
+message CalculateFeeItemRequest {
+  int64 shop_id = 1;
+  string ghn_shop_id = 2;
+  double weight = 3;
+  double length = 4;
+  double width = 5;
+  double height = 6;
+}
+
+message CalculateBatchFeeGrpcRequest {
+  repeated CalculateFeeItemRequest requests = 1;
+  int64 recipient_ward_id = 2;
+}
+
+message CalculateFeeItemResponse {
+  int64 shop_id = 1;
+  bool is_success = 2;
+  string fee = 3;
+  string error_message = 4;
+}
+
+message CalculateBatchFeeGrpcResponse {
+  repeated CalculateFeeItemResponse responses = 1;
+}
+
+message GetLocationNamesRequest {
+  int64 province_id = 1;
+  int64 district_id = 2;
+  int64 ward_id = 3;
+}
+
+message GetLocationNamesResponse {
+  string province_name = 1;
+  string district_name = 2;
+  string ward_name = 3;
+  bool is_valid = 4;
+}
+
+message RegisterGhnShopRequest {
+  int64 ward_id = 2;
+  string name = 3;
+  string phone = 4;
+  string address = 5;
+}
+
+message RegisterGhnShopResponse {
+  int64 shop_id = 1;
+  bool is_success = 2;
+  string error_message = 3;
+}

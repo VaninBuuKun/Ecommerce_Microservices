@@ -14,7 +14,7 @@ public class CartGrpcService(ISender sender, IMapper mapper) : CartGrpc.CartGrpc
 {
     public override async Task<GetCartByIdResponse> GetCartByCustomerId(GetCartByIdRequest request, ServerCallContext context)
     {
-        var result = await sender.Send(new GetBasicCartQuery(request.CustomerId));
+        var result = await sender.Send(new GetCartQuery(request.CustomerId));
         if (!result.IsSuccess)
         {
             throw result.ToRpcException();
@@ -26,14 +26,30 @@ public class CartGrpcService(ISender sender, IMapper mapper) : CartGrpc.CartGrpc
             CustomerId = cart.CustomerId
         };
         
-        foreach (var item in cart.Items)
+        if (cart.ShopGroups != null)
         {
-            response.Items.Add(new RpcCartItemDto()
+            foreach (var group in cart.ShopGroups)
             {
-                VariantId = item.ProductVariantId.ToString(),
-                Quantity = item.Quantity,
-                IsSelected = item.IsSelected
-            });
+                foreach (var item in group.Items)
+                {
+                    response.Items.Add(new RpcCartItemDto()
+                    {
+                        VariantId = item.ProductVariantId.ToString(),
+                        Quantity = item.Quantity,
+                        IsSelected = item.IsSelected,
+                        ProductId = item.ProductId.ToString(),
+                        ProductName = item.ProductName,
+                        VariantName = item.VariantName,
+                        UnitPrice = item.UnitPrice.ToString(),
+                        ShopId = item.ShopId,
+                        AvailableStocks = item.AvailableStocks,
+                        Weight = item.Weight,
+                        Length = item.Length,
+                        Width = item.Width,
+                        Height = item.Height
+                    });
+                }
+            }
         }
         return response;
     }

@@ -2,6 +2,7 @@ using BuildingBlocks.EfCore.Persistence.Commons;
 using BuildingBlocks.Shared.InfrastructureInterfaces.InMemoryBus;
 using Ecommerce.Services.Shippings.Api.Models.Entities;
 using Microsoft.EntityFrameworkCore;
+using MassTransit;
 
 namespace Ecommerce.Services.Shippings.Api.Persistances;
 
@@ -15,6 +16,10 @@ public class ShippingDbContext(DbContextOptions<ShippingDbContext> options, IInM
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
+
+        modelBuilder.AddOutboxStateEntity();
+        modelBuilder.AddOutboxMessageEntity();
+        modelBuilder.AddInboxStateEntity();
 
         modelBuilder.Entity<Shipment>(e =>
         {

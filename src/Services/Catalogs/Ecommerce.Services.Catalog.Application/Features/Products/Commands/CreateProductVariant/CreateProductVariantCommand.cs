@@ -7,6 +7,10 @@ public record CreateProductVariantCommand(
     string? Sku,
     decimal Price,
     int AvailableStocks,
-    List<Guid> OptionValueIds
+    List<Guid> OptionValueIds,
+    double? Weight = null,
+    double? Length = null,
+    double? Width = null,
+    double? Height = null
 ) : ICommand<VariantDto>;
 

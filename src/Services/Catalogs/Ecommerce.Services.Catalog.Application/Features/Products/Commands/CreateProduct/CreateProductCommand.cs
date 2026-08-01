@@ -13,7 +13,7 @@ using Ecommerce.Services.Catalog.Application.Commons.Interfaces;
 
 namespace Ecommerce.Services.Catalog.Application.Features.Products.Commands.CreateProduct;
 
-public record CreateProductCommand(long ShopId, string Name, string Description) : ICommand<ProductResponse>;
+public record CreateProductCommand(long ShopId, string Name, string Description, double Weight = 0, double Length = 0, double Width = 0, double Height = 0) : ICommand<ProductResponse>;
 
 public class CreateProductCommandHandler(
     IEfUnitOfWork unitOfWork,
@@ -45,7 +45,11 @@ public class CreateProductCommandHandler(
             var product = Product.CreateNewProduct(
                 command.ShopId,
                 command.Name,
-                command.Description
+                command.Description,
+                command.Weight,
+                command.Length,
+                command.Width,
+                command.Height
             );
 
             _productRepository.Add(product);

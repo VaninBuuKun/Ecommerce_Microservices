@@ -35,13 +35,11 @@ try
         options.UseNpgsql(connectionString));
 
     builder.Services.AddScoped<GhnShippingProvider>();
-    builder.Services.AddScoped<GhtkShippingProvider>();
     builder.Services.AddScoped<IShippingProvider>(sp => sp.GetRequiredService<GhnShippingProvider>()); // Mặc định kế thừa cũ
     builder.Services.AddScoped<IShippingProviderFactory, ShippingProviderFactory>();
     builder.Services.AddScoped<ILocationService, LocationService>();
     builder.Services.AddScoped<IEfUnitOfWork, EfUnitOfWork<ShippingDbContext>>();
     builder.Services.AddHttpClient<GhnShippingProvider>();
-    builder.Services.AddHttpClient<GhtkShippingProvider>();
     
     builder.Services.AddGrpcClient<BuildingBlocks.Grpc.Services.SellerGrpc.SellerGrpcClient>(o =>
     {
@@ -57,7 +55,8 @@ try
     });
 
     // BuildingBlocks
-    builder.Services.AddBuildingBlocksWeb();
+    builder.Services.AddGrpc();
+    builder.Services.AddBuildingBlocksWeb(builder.Configuration);
     
     builder.Services.AddMasstransitEventBus(builder.Configuration, config =>
     {
@@ -68,6 +67,8 @@ try
             o.UseBusOutbox();
         });
     });
+
+    // builder.Services.AddHostedService<LocationSyncJob>();
 
     builder.Services.AddBuildingBlocksInfrastructure(builder.Configuration);
     builder.Services.AddBuildingBlocsAuth(builder.Configuration);
@@ -82,8 +83,10 @@ try
     }
 
     app.UseHttpsRedirection();
+    app.UseCors("CorsPolicy");
+    app.MapGrpcService<ShippingGrpcServer>();
     app.MapControllers();
-    //
+    
     // // Automatically apply migrations in dev environment
     // using (var scope = app.Services.CreateScope())
     // {
