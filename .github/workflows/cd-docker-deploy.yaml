@@ -27,7 +27,6 @@ jobs:
 
       - name: Khôi phục NuGet và Biên dịch ứng dụng (Backend)
         run: |
-          cd src
           dotnet restore
           dotnet build --configuration Release --no-restore
 
