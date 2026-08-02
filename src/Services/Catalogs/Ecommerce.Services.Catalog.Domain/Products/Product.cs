@@ -13,7 +13,16 @@ public class Product : AggregateRoot<Guid>
     public double Length { get; private set; }
     public double Width { get; private set; }
     public double Height { get; private set; }
+    
+    // Phân cấp Category
+    public Guid? CategoryId { get; private set; }
+    public Category? Category { get; private set; }
 
+    // Thông tin Ratings & Reviews (2NF)
+    public double AverageRating { get; private set; }
+    public int ReviewCount { get; private set; }
+    public int RatingSum { get; private set; }
+    
     // Navigation properties for EAV
     private readonly List<ProductOption> _options = new();
     public IReadOnlyCollection<ProductOption> Options => _options.AsReadOnly();
@@ -22,6 +31,10 @@ public class Product : AggregateRoot<Guid>
     public IReadOnlyCollection<ProductVariant> Variants => _variants.Where(v => !v.IsDeleted).ToList().AsReadOnly();
 
     public bool HasVariants => _variants.Any(v => !v.IsDeleted);
+
+    // Dịch vụ Images & Reviews
+    public ICollection<ProductImage> Images { get; private set; } = new List<ProductImage>();
+    public ICollection<ProductReview> Reviews { get; private set; } = new List<ProductReview>();
 
     private Product() { Name = null!; Description = null!; } // EF Core
 
@@ -160,6 +173,30 @@ public class Product : AggregateRoot<Guid>
     public void Deactivate()
     {
         Status = ProductStatus.Inactive;
+    }
+
+    public void SetCategory(Guid? categoryId)
+    {
+        CategoryId = categoryId;
+    }
+
+    public void UpdateRatings(int newReviewRating)
+    {
+        RatingSum += newReviewRating;
+        ReviewCount += 1;
+        AverageRating = Math.Round((double)RatingSum / ReviewCount, 1);
+    }
+
+    public void AddProductImage(string imageUrl, bool isMain = false)
+    {
+        if (isMain)
+        {
+            foreach (var img in Images)
+            {
+                img.SetAsMain(false);
+            }
+        }
+        Images.Add(new ProductImage(Id, imageUrl, isMain));
     }
 
     // ========== Factory Methods ==========

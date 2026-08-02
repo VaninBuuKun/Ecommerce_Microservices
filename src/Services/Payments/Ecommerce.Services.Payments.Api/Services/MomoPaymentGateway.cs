@@ -36,7 +36,7 @@ public class MomoPaymentGateway(IOptions<MomoSettings> settings, IHttpClientFact
                            $"&partnerCode={_settings.PartnerCode}" +
                            $"&redirectUrl={redirectUrl}" +
                            $"&requestId={requestId}" +
-                           $"&requestType=payWithMethod"; //Hiển thị đầy đủ phương thức của Momo,Có các type khác captureWallet, payWithAtm
+                           $"&requestType=captureWallet"; 
         
 
         var signature = HmacSha256(_settings.SecretKey, rawSignature);
@@ -54,7 +54,7 @@ public class MomoPaymentGateway(IOptions<MomoSettings> settings, IHttpClientFact
             orderInfo = "Thanh toán đơn hàng",
             redirectUrl = redirectUrl,
             ipnUrl = ipnUrl,
-            requestType = "payWithMethod",
+            requestType = "captureWallet",
             extraData = extraData,
             lang = "vi",
             signature

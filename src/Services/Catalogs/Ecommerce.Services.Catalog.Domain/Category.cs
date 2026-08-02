@@ -1,0 +1,49 @@
+using BuildingBlocks.Shared.Domains;
+using Ecommerce.Services.Catalog.Domain.Products;
+
+namespace Ecommerce.Services.Catalog.Domain;
+
+public class Category : EntityTrackingBase<Guid>
+{
+    public string Name { get; private set; }
+    public string Description { get; private set; }
+    public Guid? ParentId { get; private set; }
+    public bool IsActive { get; private set; }
+
+    public Category? Parent { get; private set; }
+    public ICollection<Category> SubCategories { get; private set; } = new List<Category>();
+    public ICollection<Product> Products { get; private set; } = new List<Product>();
+
+    private Category() {}
+
+    public Category(string name, string description, Guid? parentId = null)
+    {
+        Id = Guid.NewGuid();
+        Name = name;
+        Description = description;
+        ParentId = parentId;
+        IsActive = true;
+    }
+
+    public void Update(string name, string description, Guid? parentId)
+    {
+        if (parentId == Id)
+        {
+            throw new InvalidOperationException("Danh mục cha không được trùng với danh mục hiện tại.");
+        }
+
+        Name = name;
+        Description = description;
+        ParentId = parentId;
+    }
+
+    public void Deactivate()
+    {
+        IsActive = false;
+    }
+
+    public void Activate()
+    {
+        IsActive = true;
+    }
+}

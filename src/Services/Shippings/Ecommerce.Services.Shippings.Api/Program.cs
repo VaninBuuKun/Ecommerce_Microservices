@@ -68,7 +68,7 @@ try
         });
     });
 
-    // builder.Services.AddHostedService<LocationSyncJob>();
+    builder.Services.AddHostedService<LocationSyncJob>();
 
     builder.Services.AddBuildingBlocksInfrastructure(builder.Configuration);
     builder.Services.AddBuildingBlocsAuth(builder.Configuration);

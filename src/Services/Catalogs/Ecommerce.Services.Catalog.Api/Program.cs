@@ -13,6 +13,7 @@ using Serilog;
 
 var builder = WebApplication.CreateBuilder(args);
 builder.AddCustomSerilog("catalogApi");
+builder.AddCustomTracing("CatalogService");
 try
 {
     //MyDI
@@ -23,6 +24,7 @@ try
     builder.Services.AddInfrastructure(builder.Configuration);
     builder.Services.AddApplicationServices();
     builder.Services.AddScoped<IVariantRepository, VariantRepository>();
+    builder.Services.AddScoped<IProductRepository, ProductRepository>();
     builder.Services.AddScoped<Ecommerce.Services.Catalog.Application.Commons.Interfaces.ISellerService, Ecommerce.Services.Catalog.Infrastructure.GrpcClients.SellerClientService>();
 
 //BuildingBlocks

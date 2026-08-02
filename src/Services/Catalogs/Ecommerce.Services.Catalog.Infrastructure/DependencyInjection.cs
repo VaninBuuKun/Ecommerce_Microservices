@@ -37,6 +37,7 @@ public static class DependencyInjection
         });
 
         services.AddScoped<Ecommerce.Services.Catalog.Application.Commons.Interfaces.ISellerService, Ecommerce.Services.Catalog.Infrastructure.GrpcClients.SellerClientService>();
+        services.AddScoped<Ecommerce.Services.Catalog.Application.Common.Interfaces.IStorageService, Ecommerce.Services.Catalog.Infrastructure.Storage.S3StorageService>();
 
         return services;
     }

@@ -11,13 +11,11 @@ using Ecommerce.Services.Catalog.Application.Features.Products.Commands.UpdatePr
 using Ecommerce.Services.Catalog.Application.Features.Products.Queries.GetProductById;
 using Ecommerce.Services.Catalog.Application.Features.Products.Queries.GetProducts;
 using Ecommerce.Services.Catalog.Application.Features.Products.Queries.GetVariantById;
+using Ecommerce.Services.Catalog.Application.Features.Reviews.Commands.CreateProductReview;
+using Ecommerce.Services.Catalog.Application.Features.Storage.Queries.GenerateUploadUrl;
 using MediatR;
-using Microsoft.AspNetCore.Mvc;
-using System;
-using System.Collections.Generic;
-using System.Threading.Tasks;
-
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 
 namespace Ecommerce.Services.Catalog.Api.Controllers;
 
@@ -26,14 +24,61 @@ namespace Ecommerce.Services.Catalog.Api.Controllers;
 public class ProductsController(ISender sender) : ControllerBase
 {
     [HttpGet]
-    public async Task<IActionResult> GetProducts()
+    public async Task<IActionResult> GetProducts(
+        [FromQuery] string? searchTerm,
+        [FromQuery] Guid? categoryId,
+        [FromQuery] double? minRating,
+        [FromQuery] string? cursor,
+        [FromQuery] int limit = 10,
+        [FromQuery] string sortBy = "name")
     {
-        var result = await sender.Send(new GetProductsQuery());
+        var result = await sender.Send(new GetProductsQuery(searchTerm, categoryId, minRating, cursor, limit, sortBy));
 
         if (result.IsSuccess)
         {
             return Ok(result.Value);
         }
+        return StatusCode(result.GetHttpStatusCode(), result.Message);
+    }
+
+    [HttpPost("{productId}/reviews")]
+    [Authorize]
+    public async Task<IActionResult> AddReview(Guid productId, [FromBody] AddReviewRequest request)
+    {
+        // Trích xuất UserId/CustomerId từ Claims trong JWT Token
+        var userIdClaim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+        if (string.IsNullOrEmpty(userIdClaim) || !long.TryParse(userIdClaim, out var customerId))
+        {
+            return Unauthorized("Không tìm thấy thông tin khách hàng trong Token.");
+        }
+
+        var result = await sender.Send(new CreateProductReviewCommand(
+            productId,
+            customerId,
+            request.Rating,
+            request.Comment,
+            request.ImageUrls
+        ));
+
+        if (result.IsSuccess)
+        {
+            return Ok(result.Value);
+        }
+
+        return StatusCode(result.GetHttpStatusCode(), result.Message);
+    }
+
+    [HttpGet("upload-url")]
+    [Authorize]
+    public async Task<IActionResult> GenerateUploadUrl([FromQuery] string fileName, [FromQuery] string contentType)
+    {
+        var result = await sender.Send(new GenerateUploadUrlQuery(fileName, contentType));
+
+        if (result.IsSuccess)
+        {
+            return Ok(result.Value);
+        }
+
         return StatusCode(result.GetHttpStatusCode(), result.Message);
     }
 
@@ -217,3 +262,4 @@ public record CreateProductVariantRequest(string? Sku, decimal Price, int Availa
 public record UpdateProductVariantRequest(string? Sku, decimal Price, int AvailableStocks);
 public record UpdateProductOptionRequest(string Name);
 public record UpdateProductOptionValueRequest(string Value);
+public record AddReviewRequest(int Rating, string Comment, List<string>? ImageUrls);

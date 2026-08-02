@@ -11,9 +11,14 @@
       <PackageReference Include="Scalar.AspNetCore" Version="2.14.14" />
       <PackageReference Include="Serilog.AspNetCore" Version="10.0.0" />
       <PackageReference Include="Serilog.Enrichers.Environment" Version="3.0.1" />
+      <PackageReference Include="Serilog.Enrichers.Span" Version="3.1.0" />
       <PackageReference Include="Serilog.Settings.Configuration" Version="10.0.1-dev-02351" />
       <PackageReference Include="Elastic.Serilog.Sinks" Version="8.11.0" />
       <PackageReference Include="Serilog.Sinks.File" Version="8.0.0-nblumhardt-02322" />
+      <PackageReference Include="OpenTelemetry.Extensions.Hosting" Version="1.9.0" />
+      <PackageReference Include="OpenTelemetry.Instrumentation.AspNetCore" Version="1.9.0" />
+      <PackageReference Include="OpenTelemetry.Instrumentation.Http" Version="1.9.0" />
+      <PackageReference Include="OpenTelemetry.Exporter.OpenTelemetryProtocol" Version="1.9.0" />
     </ItemGroup>
 
 </Project>
