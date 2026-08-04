@@ -27,17 +27,15 @@ public class CreateProductReviewCommandHandler(IEfUnitOfWork unitOfWork, IProduc
             foreach (var url in request.ImageUrls)
             {
                 reviewImageRepository.Add(new ProductReviewImage(review.Id, url));
-                // review.AddImage(url);
             }
         }
 
         var reviewRepository = unitOfWork.Repository<ProductReview, Guid>();
         reviewRepository.Add(review);
-
-        // 1. Lưu Review vào DB trước
+        
         await unitOfWork.SaveChangesAsync(cancellationToken);
 
-        // 2. Gọi SQL nguyên tử (Atomic Update) qua ProductRepository để cập nhật rating chống tranh chấp
+        // Tránh lost update
         await productRepository.UpdateProductRatingsAsync(request.ProductId, request.Rating, cancellationToken);
 
         return Result<Guid>.Success(review.Id);

@@ -9,6 +9,7 @@ public class ProductOptionValue : EntityTrackingBase<Guid>
     public string Value { get; private set; }
     public string? ImageUrl { get; private set; }
     public int SortOrder { get; private set; }
+    public bool IsDeleted { get; private set; }
 
     private ProductOptionValue() { Value = null!; }
 
@@ -20,11 +21,17 @@ public class ProductOptionValue : EntityTrackingBase<Guid>
         OptionId = optionId;
         Value = value;
         SortOrder = sortOrder;
+        IsDeleted = false;
     }
 
     public void Update(string value, int sortOrder)
     {
         Value = value;
         SortOrder = sortOrder;
+    }
+
+    public void SoftDelete()
+    {
+        IsDeleted = true;
     }
 }

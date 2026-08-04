@@ -52,21 +52,77 @@ jobs:
 
       # Đặt Image theo cấu trúc: ghcr.io/owner/repository/image-name
       # GITHUB_TOKEN mặc định có toàn quyền với các Package gắn liền với repo này
-      - name: Build & Push Docker Image BACKEND
+      # Build & Push Docker Image IDENTITY SERVICE
+      - name: Build & Push Docker Image IDENTITY SERVICE
         uses: docker/build-push-action@v5
         with:
-          context: ./backend
-          file: ./backend/Dockerfile
+          context: .
+          file: ./src/Services/Identity/Identity.Api/Dockerfile
           push: true
-          tags: ghcr.io/${{ steps.vars.outputs.repo_lowercase }}/student-backend:${{ steps.vars.outputs.tag }}
+          tags: ghcr.io/${{ steps.vars.outputs.repo_lowercase }}/identity-service:${{ steps.vars.outputs.tag }}
 
-      - name: Build & Push Docker Image FRONTEND
+      # Build & Push Docker Image CATALOG SERVICE
+      - name: Build & Push Docker Image CATALOG SERVICE
         uses: docker/build-push-action@v5
         with:
-          context: ./frontend
-          file: ./frontend/Dockerfile
+          context: .
+          file: ./src/Services/Catalogs/Ecommerce.Services.Catalog.Api/Dockerfile
           push: true
-          tags: ghcr.io/${{ steps.vars.outputs.repo_lowercase }}/student-frontend:${{ steps.vars.outputs.tag }}
+          tags: ghcr.io/${{ steps.vars.outputs.repo_lowercase }}/catalog-service:${{ steps.vars.outputs.tag }}
+
+      # Build & Push Docker Image CART SERVICE
+      - name: Build & Push Docker Image CART SERVICE
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./src/Services/Carts/Ecommerce.Services.Cart.Api/Dockerfile
+          push: true
+          tags: ghcr.io/${{ steps.vars.outputs.repo_lowercase }}/cart-service:${{ steps.vars.outputs.tag }}
+
+      # Build & Push Docker Image ORDER SERVICE
+      - name: Build & Push Docker Image ORDER SERVICE
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./src/Services/Orders/Ecommerce.Services.Orders.Api/Dockerfile
+          push: true
+          tags: ghcr.io/${{ steps.vars.outputs.repo_lowercase }}/order-service:${{ steps.vars.outputs.tag }}
+
+      # Build & Push Docker Image PAYMENT SERVICE
+      - name: Build & Push Docker Image PAYMENT SERVICE
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./src/Services/Payments/Ecommerce.Services.Payments.Api/Dockerfile
+          push: true
+          tags: ghcr.io/${{ steps.vars.outputs.repo_lowercase }}/payment-service:${{ steps.vars.outputs.tag }}
+
+      # Build & Push Docker Image SELLER SERVICE
+      - name: Build & Push Docker Image SELLER SERVICE
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./src/Services/Sellers/Ecommerce.Services.Sellers.Api/Dockerfile
+          push: true
+          tags: ghcr.io/${{ steps.vars.outputs.repo_lowercase }}/seller-service:${{ steps.vars.outputs.tag }}
+
+      # Build & Push Docker Image SHIPPING SERVICE
+      - name: Build & Push Docker Image SHIPPING SERVICE
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./src/Services/Shippings/Ecommerce.Services.Shippings.Api/Dockerfile
+          push: true
+          tags: ghcr.io/${{ steps.vars.outputs.repo_lowercase }}/shipping-service:${{ steps.vars.outputs.tag }}
+
+      # Build & Push Docker Image API GATEWAY
+      - name: Build & Push Docker Image API GATEWAY
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./src/ApiGateway/Ecommerce.ApiGateway/Dockerfile
+          push: true
+          tags: ghcr.io/${{ steps.vars.outputs.repo_lowercase }}/api-gateway:${{ steps.vars.outputs.tag }}
 
 #  # ==========================================
 #  # GIAI ĐOẠN CD DEV: Chỉ chạy khi push vào nhánh dev

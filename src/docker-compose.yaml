@@ -27,3 +27,7 @@ services:
   minio:
     container_name: ecommerce_minio
     image: minio/minio:RELEASE.2024-01-28T22-35-53Z
+
+  jaeger:
+    container_name: ecommerce_jaeger
+    image: jaegertracing/all-in-one:1.53

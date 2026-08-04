@@ -102,11 +102,7 @@ public class ProductsController(ISender sender) : ControllerBase
         var result = await sender.Send(new CreateProductCommand(
             request.ShopId,
             request.Name,
-            request.Description,
-            request.Weight,
-            request.Length,
-            request.Width,
-            request.Height
+            request.Description
         ));
 
         if (result.IsSuccess)
@@ -118,12 +114,37 @@ public class ProductsController(ISender sender) : ControllerBase
     }
 
     [HttpPut("{id}")]
-    public async Task<IActionResult> UpdateProduct(Guid id, ProductRequest request)
+    public async Task<IActionResult> UpdateProduct(Guid id, [FromBody] UpdateProductRequest request)
     {
         var result = await sender.Send(new UpdateProductCommand(
             id,
             request.Name,
             request.Description,
+            request.Weight,
+            request.Length,
+            request.Width,
+            request.Height,
+            request.ThumbnailUrl,
+            request.VideoUrl,
+            request.ImageUrls
+        ));
+
+        if (result.IsSuccess)
+        {
+            return Ok(result.Value);
+        }
+        
+        return StatusCode(result.GetHttpStatusCode(), result.Message);
+    }
+
+    [HttpPut("{id}/single-variant")]
+    public async Task<IActionResult> SetupSingleVariant(Guid id, [FromBody] SetupSingleVariantRequest request)
+    {
+        var result = await sender.Send(new SetupSingleVariantCommand(
+            id,
+            request.Price,
+            request.AvailableStocks,
+            request.Sku,
             request.Weight,
             request.Length,
             request.Width,
@@ -139,9 +160,22 @@ public class ProductsController(ISender sender) : ControllerBase
     }
 
     [HttpPut("{id}/init-variants")]
-    public async Task<IActionResult> UpdateProductVariantsSetup(Guid id, [FromBody] SetupProductVariantsCommand command)
+    public async Task<IActionResult> InitVariants(Guid id, [FromBody] InitVariantsCommand command)
     {
         var result = await sender.Send(command with { ProductId = id });
+
+        if (result.IsSuccess)
+        {
+            return Ok(result.Value);
+        }
+        
+        return StatusCode(result.GetHttpStatusCode(), result.Message);
+    }
+
+    [HttpPut("{id}/variants")]
+    public async Task<IActionResult> BulkUpdateVariants(Guid id, [FromBody] BulkUpdateVariantsRequest request)
+    {
+        var result = await sender.Send(new BulkUpdateVariantsCommand(id, request.Variants));
 
         if (result.IsSuccess)
         {
@@ -257,6 +291,32 @@ public class ProductsController(ISender sender) : ControllerBase
         return StatusCode(result.GetHttpStatusCode(), result.Message);
     }
 }
+
+public record UpdateProductRequest(
+    string Name,
+    string Description,
+    double Weight,
+    double Length,
+    double Width,
+    double Height,
+    string? ThumbnailUrl,
+    string? VideoUrl,
+    List<string> ImageUrls
+);
+
+public record SetupSingleVariantRequest(
+    decimal Price,
+    int AvailableStocks,
+    string? Sku = null,
+    double? Weight = null,
+    double? Length = null,
+    double? Width = null,
+    double? Height = null
+);
+
+public record BulkUpdateVariantsRequest(
+    List<BulkUpdateVariantDto> Variants
+);
 
 public record CreateProductVariantRequest(string? Sku, decimal Price, int AvailableStocks, List<Guid> OptionValueIds, double? Weight = null, double? Length = null, double? Width = null, double? Height = null);
 public record UpdateProductVariantRequest(string? Sku, decimal Price, int AvailableStocks);

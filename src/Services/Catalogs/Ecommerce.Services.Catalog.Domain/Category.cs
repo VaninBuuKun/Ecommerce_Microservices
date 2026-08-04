@@ -8,6 +8,7 @@ public class Category : EntityTrackingBase<Guid>
     public string Name { get; private set; }
     public string Description { get; private set; }
     public Guid? ParentId { get; private set; }
+    public string? IconUrl { get; private set; }
     public bool IsActive { get; private set; }
 
     public Category? Parent { get; private set; }
@@ -16,12 +17,13 @@ public class Category : EntityTrackingBase<Guid>
 
     private Category() {}
 
-    public Category(string name, string description, Guid? parentId = null)
+    public Category(string name, string description, string? iconUrl, Guid? parentId = null)
     {
         Id = Guid.NewGuid();
         Name = name;
         Description = description;
         ParentId = parentId;
+        IconUrl = iconUrl;
         IsActive = true;
     }
 

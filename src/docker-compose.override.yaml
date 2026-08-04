@@ -88,6 +88,15 @@ services:
       - minio_data:/data
     mem_limit: 256m
 
+  jaeger:
+    restart: always
+    ports:
+      - "4317:4317"
+      - "16686:16686"
+    environment:
+      - COLLECTOR_OTLP_ENABLED=true
+    mem_limit: 256m
+
 volumes:
   mysql_product_data:
     driver: local

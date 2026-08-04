@@ -36,6 +36,9 @@ namespace Ecommerce.Services.Catalog.Infrastructure.Migrations
                         .HasMaxLength(1000)
                         .HasColumnType("varchar(1000)");
 
+                    b.Property<string>("IconUrl")
+                        .HasColumnType("longtext");
+
                     b.Property<bool>("IsActive")
                         .HasColumnType("tinyint(1)");
 
@@ -152,10 +155,14 @@ namespace Ecommerce.Services.Catalog.Infrastructure.Migrations
                         .HasColumnType("longtext");
 
                     b.Property<double>("Height")
-                        .HasColumnType("double");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("double")
+                        .HasDefaultValue(0.0);
 
                     b.Property<double>("Length")
-                        .HasColumnType("double");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("double")
+                        .HasDefaultValue(0.0);
 
                     b.Property<string>("Name")
                         .IsRequired()
@@ -176,10 +183,14 @@ namespace Ecommerce.Services.Catalog.Infrastructure.Migrations
                         .HasColumnType("varchar(20)");
 
                     b.Property<double>("Weight")
-                        .HasColumnType("double");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("double")
+                        .HasDefaultValue(0.0);
 
                     b.Property<double>("Width")
-                        .HasColumnType("double");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("double")
+                        .HasDefaultValue(0.0);
 
                     b.HasKey("Id");
 

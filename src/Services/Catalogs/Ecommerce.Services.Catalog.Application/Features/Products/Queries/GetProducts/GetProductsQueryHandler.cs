@@ -82,6 +82,8 @@ public class GetProductsQueryHandler(
             }
 
             var dtos = mapper.Map<List<ProductResponse>>(itemsToReturn);
+            
+            
             return Result<PagedCursorResponse<ProductResponse>>.Success(new PagedCursorResponse<ProductResponse>(dtos, nextCursor, hasNext));
         }
         catch (Exception ex)

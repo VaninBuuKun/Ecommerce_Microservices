@@ -13,6 +13,9 @@ public class Product : AggregateRoot<Guid>
     public double Length { get; private set; }
     public double Width { get; private set; }
     public double Height { get; private set; }
+    public string? ThumbnailUrl { get; private set; }
+    public string? VideoUrl { get; private set; }
+    public List<string> ImageUrls { get; private set; } = new();
     
     // Phân cấp Category
     public Guid? CategoryId { get; private set; }
@@ -22,7 +25,7 @@ public class Product : AggregateRoot<Guid>
     public double AverageRating { get; private set; }
     public int ReviewCount { get; private set; }
     public int RatingSum { get; private set; }
-    
+
     // Navigation properties for EAV
     private readonly List<ProductOption> _options = new();
     public IReadOnlyCollection<ProductOption> Options => _options.AsReadOnly();
@@ -55,7 +58,7 @@ public class Product : AggregateRoot<Guid>
 
     // ========== Update ==========
 
-    public void UpdateDetails(string name, string description, double weight, double length, double width, double height)
+    public void UpdateDetails(string name, string description, double weight, double length, double width, double height, string? thumbnailUrl, string? videoUrl, List<string> imageUrls)
     {
         Check(new ProductNameCannotBeEmptyRule(name));
         Name = name;
@@ -64,15 +67,18 @@ public class Product : AggregateRoot<Guid>
         Length = length;
         Width = width;
         Height = height;
+        ThumbnailUrl = thumbnailUrl;
+        VideoUrl = videoUrl;
+        ImageUrls = imageUrls ?? new List<string>();
     }   
 
     // ========== Options & Option Values ==========
 
     public ProductOption AddOption(string name)
     {
-        if (_options.Any(o => o.Name.Equals(name, StringComparison.OrdinalIgnoreCase)))
+        if (_options.Any(o => !o.IsDeleted && o.Name.Equals(name, StringComparison.OrdinalIgnoreCase)))
         {
-            throw new InvalidOperationException($"Option with name '{name} already exists.");
+            throw new InvalidOperationException($"Option with name '{name}' already exists.");
         }
 
         var productOption = new ProductOption(Id, name, _options.Count);
@@ -111,9 +117,10 @@ public class Product : AggregateRoot<Guid>
         Check(new ProductStocksCannotBeNegativeRule(availableStocks));
         
         // Validate that variant has exactly one option value from each option
-        if (optionValueIds.Count != _options.Count)
+        var activeOptionsCount = _options.Count(o => !o.IsDeleted);
+        if (optionValueIds.Count != activeOptionsCount)
         {
-            throw new ArgumentException($"A variant must have exactly {_options.Count} option values.");
+            throw new ArgumentException($"A variant must have exactly {activeOptionsCount} option values.");
         }
         
         if (optionValueIds.Distinct().Count() != optionValueIds.Count)
@@ -182,9 +189,9 @@ public class Product : AggregateRoot<Guid>
 
     public void UpdateRatings(int newReviewRating)
     {
-        RatingSum += newReviewRating;
+        var totalRatingSum = (AverageRating * ReviewCount) + newReviewRating;
         ReviewCount += 1;
-        AverageRating = Math.Round((double)RatingSum / ReviewCount, 1);
+        AverageRating = Math.Round((double)totalRatingSum / ReviewCount, 1);
     }
 
     public void AddProductImage(string imageUrl, bool isMain = false)

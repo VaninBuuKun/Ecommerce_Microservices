@@ -1,6 +1,7 @@
 using System;
 using System.Threading.Tasks;
 using Ecommerce.Services.Catalog.Application.Features.Categories.Commands.CreateCategory;
+using Ecommerce.Services.Catalog.Application.Features.Categories.Queries.GetCategories;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -18,6 +19,7 @@ public class CategoriesController(ISender sender) : ControllerBase
         var result = await sender.Send(new CreateCategoryCommand(
             request.Name,
             request.Description,
+            request.IconUrl,
             request.ParentId
         ));
 
@@ -28,6 +30,18 @@ public class CategoriesController(ISender sender) : ControllerBase
 
         return StatusCode(result.GetHttpStatusCode(), result.Message);
     }
+
+    [HttpGet]
+    public async Task<IActionResult> GetCategories()
+    {
+        var result = await sender.Send(new GetCategoriesQuery());
+
+        if (result.IsSuccess)
+        {
+            return Ok(result.Value);
+        }
+        return StatusCode(result.GetHttpStatusCode(), result.Message);
+    }
 }
 
-public record CreateCategoryRequest(string Name, string Description, Guid? ParentId);
+public record CreateCategoryRequest(string Name, string Description, string? IconUrl, Guid? ParentId);

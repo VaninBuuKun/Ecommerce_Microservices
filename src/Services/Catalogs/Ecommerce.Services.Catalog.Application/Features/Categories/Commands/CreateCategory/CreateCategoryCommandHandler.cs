@@ -30,7 +30,7 @@ public class CreateCategoryCommandHandler(IEfUnitOfWork unitOfWork) : IRequestHa
             }
         }
 
-        var category = new Category(request.Name, request.Description, request.ParentId);
+        var category = new Category(request.Name, request.Description, request.IconUrl,request.ParentId);
         categoryRepository.Add(category);
 
         await unitOfWork.SaveChangesAsync(cancellationToken);

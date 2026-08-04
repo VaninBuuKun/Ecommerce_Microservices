@@ -5,20 +5,34 @@ using BuildingBlocks.Shared.InfrastructureInterfaces.InMemoryBus;
 using BuildingBlocks.Shared.InfrastructureInterfaces.Persistence.EFCore;
 using Ecommerce.Services.Catalog.Application.Commons.Dtos.Products;
 using Ecommerce.Services.Catalog.Domain.Products;
+using Ecommerce.Services.Catalog.Domain.Products.Specifications;
 using MapsterMapper;
 using Microsoft.Extensions.Logging;
 using System;
+using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 
 namespace Ecommerce.Services.Catalog.Application.Features.Products.Commands.UpdateProduct;
 
-public record UpdateProductCommand(Guid Id, string Name, string Description, double Weight = 0, double Length = 0, double Width = 0, double Height = 0) : ICommand<ProductResponse>;
+public record UpdateProductCommand(
+    Guid Id, 
+    string Name, 
+    string Description, 
+    double Weight, 
+    double Length, 
+    double Width, 
+    double Height,
+    string? ThumbnailUrl,
+    string? VideoUrl,
+    List<string> ImageUrls
+) : ICommand<ProductResponse>;
 
 public class UpdateProductCommandHandler(
     IEfUnitOfWork unitOfWork,
-    ILogger<UpdateProductCommandHandler> logger, IMapper mapper)
-    : CommandHandler<UpdateProductCommand, ProductResponse>
+    ILogger<UpdateProductCommandHandler> logger, 
+    IMapper mapper
+) : CommandHandler<UpdateProductCommand, ProductResponse>
 {
     private readonly IGenericEfRepository<Product, Guid> _productRepository = unitOfWork.Repository<Product, Guid>();
 
@@ -26,20 +40,31 @@ public class UpdateProductCommandHandler(
     {
         try
         {
-            var existsProduct = await _productRepository.GetByIdAsync(command.Id, cancellationToken);
+            var spec = new ProductWithVariantsAndOptionsSpec(command.Id);
+            var existsProduct = await _productRepository.FirstOrDefaultAsync(spec, cancellationToken);
 
             if (existsProduct == null)
             {
                 return Result<ProductResponse>.Failure("Product Not Found", EErrorCode.NotFound);
             }
 
-            existsProduct.UpdateDetails(command.Name, command.Description, command.Weight, command.Length, command.Width, command.Height);
+            // Update basic details including weight, dimensions, images, thumbnail and video url
+            existsProduct.UpdateDetails(
+                command.Name, 
+                command.Description, 
+                command.Weight, 
+                command.Length, 
+                command.Width, 
+                command.Height,
+                command.ThumbnailUrl,
+                command.VideoUrl,
+                command.ImageUrls
+            );
 
             _productRepository.Update(existsProduct);
             await unitOfWork.SaveChangesAsync(cancellationToken);
             
             var response = mapper.Map<ProductResponse>(existsProduct);
-
             return Result<ProductResponse>.Success(response);
         }
         catch (Exception ex)

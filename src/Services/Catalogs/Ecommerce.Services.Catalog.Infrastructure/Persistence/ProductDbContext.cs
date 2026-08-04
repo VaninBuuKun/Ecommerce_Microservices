@@ -96,6 +96,19 @@ public class ProductDbContext(DbContextOptions<ProductDbContext> options, IInMem
 
             entity.Navigation(p => p.Variants)
                   .UsePropertyAccessMode(PropertyAccessMode.Field);
+            
+            entity.Property(p => p.Weight).HasDefaultValue(0);
+            entity.Property(p => p.Height).HasDefaultValue(0);
+            entity.Property(p => p.Width).HasDefaultValue(0);
+            entity.Property(p => p.Length).HasDefaultValue(0);
+            entity.Property(p => p.ThumbnailUrl).HasMaxLength(1000);
+            entity.Property(p => p.VideoUrl).HasMaxLength(1000);
+            entity.Property(p => p.ImageUrls)
+                  .HasConversion(
+                      v => System.Text.Json.JsonSerializer.Serialize(v, (System.Text.Json.JsonSerializerOptions)null),
+                      v => System.Text.Json.JsonSerializer.Deserialize<List<string>>(v, (System.Text.Json.JsonSerializerOptions)null) ?? new List<string>()
+                  )
+                  .HasColumnType("json");
         });
 
         modelBuilder.Entity<ProductOption>(entity =>
