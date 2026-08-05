@@ -6,7 +6,7 @@ namespace Ecommerce.Services.Orders.Application.Services;
 
 public record ShippingFeeRequestItem(
     long ShopId,
-    string GhnShopId,
+    long SenderWardId,
     long RecipientWardId,
     double Weight,
     double Length,

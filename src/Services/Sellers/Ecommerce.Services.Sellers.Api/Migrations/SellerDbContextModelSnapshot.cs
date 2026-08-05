@@ -31,6 +31,16 @@ namespace Ecommerce.Services.Sellers.Api.Migrations
                     b.Property<DateTimeOffset>("CreatedDate")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<string>("IdentityCardBackUrl")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<string>("IdentityCardFrontUrl")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
                     b.Property<string>("IdentityCardNumber")
                         .IsRequired()
                         .HasMaxLength(20)
@@ -72,11 +82,12 @@ namespace Ecommerce.Services.Sellers.Api.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
-                    b.Property<string>("GhnShopId")
-                        .HasColumnType("text");
-
                     b.Property<DateTimeOffset?>("LastModifiedDate")
                         .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("LogoUrl")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
 
                     b.Property<string>("Name")
                         .IsRequired()
@@ -326,8 +337,7 @@ namespace Ecommerce.Services.Sellers.Api.Migrations
                                 .HasForeignKey("ShopId");
                         });
 
-                    b.Navigation("PickUpAddress")
-                        .IsRequired();
+                    b.Navigation("PickUpAddress");
                 });
 
             modelBuilder.Entity("MassTransit.EntityFrameworkCoreIntegration.OutboxMessage", b =>

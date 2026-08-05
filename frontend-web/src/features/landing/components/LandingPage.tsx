@@ -14,6 +14,7 @@ import {
 	ChevronRight,
 } from "lucide-react";
 import CategoryList from "./CategoryList";
+import { toast } from "react-toastify";
 
 export default function LandingPage() {
 	const categoryRef = useRef<HTMLDivElement>(null);
@@ -340,9 +341,10 @@ export default function LandingPage() {
 						<div className="flex flex-wrap items-center gap-3 pt-4">
 							{/* Nút 1: Khám phá sản phẩm (dẫn mượt đến gợi ý dành cho bạn) */}
 							<button
-								onClick={() =>
-									scrollToSection("suggested-products")
-								}
+								onClick={() => {
+									toast.success("Hello");
+									scrollToSection("suggested-products");
+								}}
 								className="inline-flex items-center gap-2 bg-brand-primary text-brand-dark px-5 py-2.5 rounded-sm font-medium text-sm hover:bg-brand-primary-deep transition-all duration-200 shadow-sm cursor-pointer"
 							>
 								Khám phá sản phẩm

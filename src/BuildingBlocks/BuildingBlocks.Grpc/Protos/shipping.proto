@@ -6,17 +6,16 @@ package shipping;
 
 service ShippingGrpc {
   rpc GetLocationNames(GetLocationNamesRequest) returns (GetLocationNamesResponse);
-  rpc RegisterGhnShop(RegisterGhnShopRequest) returns (RegisterGhnShopResponse);
   rpc CalculateBatchFee(CalculateBatchFeeGrpcRequest) returns (CalculateBatchFeeGrpcResponse);
 }
 
 message CalculateFeeItemRequest {
   int64 shop_id = 1;
-  string ghn_shop_id = 2;
-  double weight = 3;
-  double length = 4;
-  double width = 5;
-  double height = 6;
+  double weight = 2;
+  double length = 3;
+  double width = 4;
+  double height = 5;
+  int64 sender_ward_id = 6;
 }
 
 message CalculateBatchFeeGrpcRequest {
@@ -46,17 +45,4 @@ message GetLocationNamesResponse {
   string district_name = 2;
   string ward_name = 3;
   bool is_valid = 4;
-}
-
-message RegisterGhnShopRequest {
-  int64 ward_id = 2;
-  string name = 3;
-  string phone = 4;
-  string address = 5;
-}
-
-message RegisterGhnShopResponse {
-  int64 shop_id = 1;
-  bool is_success = 2;
-  string error_message = 3;
 }

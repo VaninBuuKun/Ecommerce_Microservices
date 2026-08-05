@@ -7,7 +7,7 @@ using BuildingBlocks.Shared.Commons;
 namespace Ecommerce.Services.Shippings.Api.Services;
 
 public record CalculateFeeRequest(
-    string GhnShopId,
+    long SenderWardId,
     long RecipientWardId,
     double Weight,
     double Length,
@@ -25,7 +25,10 @@ public record CreateWaybillItemRequest(
 public record CreateWaybillRequest(
     Guid SubOrderId,
     Guid OrderId,
-    string SenderProviderShopId,
+    string SenderName,
+    string SenderPhone,
+    string SenderAddress,
+    long SenderWardId,
     long RecipientWardId,
     string RecipientAddress,
     string RecipientName,

@@ -17,6 +17,11 @@ public class RegisterKycCommandHandler(
 
         try
         {
+            if (string.IsNullOrWhiteSpace(request.IdentityCardFrontUrl) || string.IsNullOrWhiteSpace(request.IdentityCardBackUrl))
+            {
+                return Result<SellerKyc>.Failure("Vui lòng cung cấp ảnh mặt trước và mặt sau căn cước công dân.", EErrorCode.InvalidInput);
+            }
+
             var kycRepo = unitOfWork.Repository<SellerKyc, Guid>();
 
             var existingKyc = await kycRepo.FirstOrDefaultAsync(
@@ -31,23 +36,27 @@ public class RegisterKycCommandHandler(
                     return Result<SellerKyc>.Failure("Tài khoản của bạn đã được xác minh làm Người bán hàng.", EErrorCode.Conflict);
                 }
                 
-                if (existingKyc.Status == KycStatus.Pending)
+                if (existingKyc.Status == KycStatus.Submitted && !request.IsDraft)
                 {
-                    return Result<SellerKyc>.Failure("Hồ sơ xác minh của bạn đang chờ Admin duyệt.", EErrorCode.Conflict);
+                    return Result<SellerKyc>.Failure("Hồ sơ xác minh của bạn đang chờ Admin duyệt. Bạn cần rút lại hồ sơ để chỉnh sửa.", EErrorCode.Conflict);
                 }
                 
-                // Nếu bị Rejected trước đó, cho phép gửi lại thông tin mới để duyệt
-                existingKyc.Resubmit(request.IdentityCardNumber);
+                existingKyc.Resubmit(request.IdentityCardNumber, request.IdentityCardFrontUrl, request.IdentityCardBackUrl, request.IsDraft);
                 kycRepo.Update(existingKyc);
                 await unitOfWork.SaveChangesAsync(cancellationToken);
                 return Result<SellerKyc>.Success(existingKyc);
             }
 
-            var kyc = new SellerKyc(request.UserId, request.IdentityCardNumber);
+            var kyc = new SellerKyc(
+                request.UserId,
+                request.IdentityCardNumber,
+                request.IdentityCardFrontUrl,
+                request.IdentityCardBackUrl,
+                request.IsDraft);
             kycRepo.Add(kyc);
             await unitOfWork.SaveChangesAsync(cancellationToken);
 
-            logger.LogInformation("RegisterKycCommand: Lưu hồ sơ KYC thành công cho User: {UserId} dưới dạng Pending.", request.UserId);
+            logger.LogInformation("RegisterKycCommand: Lưu hồ sơ KYC thành công cho User: {UserId} dưới dạng {Status}.", request.UserId, kyc.Status);
             return Result<SellerKyc>.Success(kyc);
         }
         catch (Exception ex)

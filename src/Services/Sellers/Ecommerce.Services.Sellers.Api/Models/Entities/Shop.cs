@@ -5,9 +5,9 @@ namespace Ecommerce.Services.Sellers.Api.Models.Entities;
 
 public enum ShopStatus
 {
-    Pending,
     Active,
-    Suspended
+    Suspended,
+    Banned
 }
 
 public class PickUpAddress
@@ -35,7 +35,7 @@ public class PickUpAddress
         AddressLine = addressLine;
         ProvinceId = provinceId;
         DistrictId = districtId;
-        wardId = wardId;
+        WardId = wardId;
     }
 }
 
@@ -44,30 +44,45 @@ public class Shop : EntityTrackingBase<long>
     public long OwnerUserId { get; set; }
     public string Name { get; set; } = string.Empty;
     public string Description { get; set; } = string.Empty;
+    public string? LogoUrl { get; set; }
     
-    public PickUpAddress PickUpAddress { get; set; } = null!;
+    public PickUpAddress? PickUpAddress { get; set; } = null!;
     
-    public ShopStatus Status { get; set; } = ShopStatus.Pending;
-    public string? GhnShopId { get; set; }
+    public ShopStatus Status { get; set; } = ShopStatus.Active;
 
     private Shop() {}
 
-    public Shop(long ownerUserId, string name, string description, PickUpAddress pickUpAddress)
+    public Shop(long ownerUserId, string name, string description,string? logoUrl = null)
     {
         OwnerUserId = ownerUserId;
         Name = name;
         Description = description;
-        PickUpAddress = pickUpAddress;
-        Status = ShopStatus.Pending;
+        LogoUrl = logoUrl;
+        Status = ShopStatus.Active;
     }
 
-    public void Approve()
+    public void Activate()
     {
+        if (Status == ShopStatus.Banned)
+        {
+            throw new InvalidOperationException("Không thể kích hoạt lại cửa hàng đã bị khóa.");
+        }
+
         Status = ShopStatus.Active;
     }
 
     public void Suspend()
     {
+        if (Status == ShopStatus.Banned)
+        {
+            throw new InvalidOperationException("Cửa hàng đã bị khóa, không thể tạm ẩn.");
+        }
+
         Status = ShopStatus.Suspended;
+    }
+
+    public void Ban()
+    {
+        Status = ShopStatus.Banned;
     }
 }

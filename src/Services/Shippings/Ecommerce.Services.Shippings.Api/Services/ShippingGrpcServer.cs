@@ -55,40 +55,12 @@ public class ShippingGrpcServer(
         };
     }
 
-    public override async Task<RegisterGhnShopResponse> RegisterGhnShop(RegisterGhnShopRequest request, ServerCallContext context)
-    {
-        logger.LogInformation("gRPC Request to register GHN shop: {Name}, Phone: {Phone}", request.Name, request.Phone);
-
-        var result = await ghnShippingProvider.RegisterShopAsync(
-            request.WardId,
-            request.Name,
-            request.Phone,
-            request.Address,
-            context.CancellationToken
-        );
-
-        if (result.IsSuccess)
-        {
-            return new RegisterGhnShopResponse
-            {
-                ShopId = result.Value,
-                IsSuccess = true
-            };
-        }
-
-        return new RegisterGhnShopResponse
-        {
-            IsSuccess = false,
-            ErrorMessage = result.Message
-        };
-    }
-
     public override async Task<CalculateBatchFeeGrpcResponse> CalculateBatchFee(CalculateBatchFeeGrpcRequest request, ServerCallContext context)
     {
         logger.LogInformation("gRPC Request to calculate batch fee for {Count} requests", request.Requests.Count);
 
         var providerRequests = request.Requests.Select(req => new CalculateFeeRequest(
-            req.GhnShopId,
+            req.SenderWardId,
             request.RecipientWardId,
             req.Weight,
             req.Length,

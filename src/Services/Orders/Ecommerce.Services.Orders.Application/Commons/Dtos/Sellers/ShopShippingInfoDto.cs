@@ -9,5 +9,5 @@ public class ShopShippingInfoDto
     public long WardId { get; set; }
     public long DistrictId { get; set; }
     public long ProvinceId { get; set; }
-    public string GhnShopId { get; set; }
+    public string RecipientName { get; set; }
 }

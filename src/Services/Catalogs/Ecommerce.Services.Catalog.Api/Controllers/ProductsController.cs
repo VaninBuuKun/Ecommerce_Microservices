@@ -68,20 +68,6 @@ public class ProductsController(ISender sender) : ControllerBase
         return StatusCode(result.GetHttpStatusCode(), result.Message);
     }
 
-    [HttpGet("upload-url")]
-    [Authorize]
-    public async Task<IActionResult> GenerateUploadUrl([FromQuery] string fileName, [FromQuery] string contentType)
-    {
-        var result = await sender.Send(new GenerateUploadUrlQuery(fileName, contentType));
-
-        if (result.IsSuccess)
-        {
-            return Ok(result.Value);
-        }
-
-        return StatusCode(result.GetHttpStatusCode(), result.Message);
-    }
-
     [HttpGet("{id}")]
     public async Task<IActionResult> GetProduct(Guid id)
     {

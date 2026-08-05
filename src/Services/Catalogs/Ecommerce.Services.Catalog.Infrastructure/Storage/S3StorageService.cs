@@ -22,7 +22,8 @@ public class S3StorageService : IStorageService
         var config = new AmazonS3Config
         {
             ServiceURL = _serviceUrl,
-            ForcePathStyle = true // Cần thiết khi kết nối với MinIO local
+            ForcePathStyle = true, // Cần thiết khi kết nối với MinIO local
+            UseHttp = true
         };
 
         _s3Client = new AmazonS3Client(accessKey, secretKey, config);
@@ -36,7 +37,8 @@ public class S3StorageService : IStorageService
             Key = fileName,
             Verb = HttpVerb.PUT,
             ContentType = contentType,
-            Expires = DateTime.UtcNow.AddMinutes(durationInMinutes)
+            Expires = DateTime.UtcNow.AddMinutes(durationInMinutes),
+            Protocol = Protocol.HTTP
         };
 
         return _s3Client.GetPreSignedURL(request);
