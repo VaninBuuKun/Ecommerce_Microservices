@@ -9,7 +9,7 @@ public class ProductsWithVariantsAndOptionsSpec : Specification<Product>
         Query.Skip((page - 1) * pageSize)
             .Take(pageSize)
             .Include(product => product.Variants)
-            .ThenInclude(variant => variant.Options)
+            .ThenInclude(variant => variant.VariantOptions)
             .Include(product => product.Options)
             .ThenInclude(option => option.Values);
     }

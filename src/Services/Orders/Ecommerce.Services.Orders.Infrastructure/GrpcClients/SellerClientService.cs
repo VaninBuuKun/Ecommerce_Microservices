@@ -70,7 +70,7 @@ public class SellerClientService(
                 WardId = response.WardId,
                 DistrictId = response.DistrictId,
                 ProvinceId = response.ProvinceId,
-                GhnShopId = response.GhnShopId
+                RecipientName = response.RecipientName
             });
         }
         catch (RpcException ex)

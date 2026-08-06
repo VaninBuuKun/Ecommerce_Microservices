@@ -1,3 +1,4 @@
+using BuildingBlocks.Auth;
 using Ecommerce.Services.Catalog.Api.Models.Dtos;
 using Ecommerce.Services.Catalog.Application.Features.Products.Commands.CreateProduct;
 using Ecommerce.Services.Catalog.Application.Features.Products.Commands.DeleteProduct;
@@ -6,34 +7,79 @@ using Ecommerce.Services.Catalog.Application.Features.Products.Commands.SetupPro
 using Ecommerce.Services.Catalog.Application.Features.Products.Commands.CreateProductVariant;
 using Ecommerce.Services.Catalog.Application.Features.Products.Commands.UpdateProductVariant;
 using Ecommerce.Services.Catalog.Application.Features.Products.Commands.DeleteProductVariant;
-using Ecommerce.Services.Catalog.Application.Features.Products.Commands.UpdateProductOption;
-using Ecommerce.Services.Catalog.Application.Features.Products.Commands.UpdateProductOptionValue;
+using Ecommerce.Services.Catalog.Application.Features.Products.Commands.InitSingleVariant;
+using Ecommerce.Services.Catalog.Application.Features.Products.Queries.GetMyProducts;
 using Ecommerce.Services.Catalog.Application.Features.Products.Queries.GetProductById;
 using Ecommerce.Services.Catalog.Application.Features.Products.Queries.GetProducts;
 using Ecommerce.Services.Catalog.Application.Features.Products.Queries.GetVariantById;
+using Ecommerce.Services.Catalog.Application.Features.Reviews.Commands.CreateProductReview;
 using MediatR;
-using Microsoft.AspNetCore.Mvc;
-using System;
-using System.Collections.Generic;
-using System.Threading.Tasks;
-
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 
 namespace Ecommerce.Services.Catalog.Api.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
-public class ProductsController(ISender sender) : ControllerBase
+public class ProductsController(ISender sender, ICurrentUserService userService) : ControllerBase
 {
     [HttpGet]
-    public async Task<IActionResult> GetProducts()
+    public async Task<IActionResult> GetProducts(
+        [FromQuery] string? searchTerm,
+        [FromQuery] Guid? categoryId,
+        [FromQuery] double? minRating,
+        [FromQuery] string? cursor,
+        [FromQuery] int limit = 10,
+        [FromQuery] string sortBy = "name")
     {
-        var result = await sender.Send(new GetProductsQuery());
+        var result = await sender.Send(new GetProductsQuery(searchTerm, categoryId, minRating, cursor, limit, sortBy));
 
         if (result.IsSuccess)
         {
             return Ok(result.Value);
         }
+        return StatusCode(result.GetHttpStatusCode(), result.Message);
+    }
+    
+    
+    [HttpGet("me")]
+    [Authorize]
+    public async Task<IActionResult> GetMyProducts(
+        [FromQuery] int page, [FromQuery] int pageSize, [FromQuery] long ShopId)
+    {
+        var result = await sender.Send(new GetMyProductsQuery(ShopId, userService.UserId, page, pageSize));
+
+        if (result.IsSuccess)
+        {
+            return Ok(result.Value);
+        }
+        return StatusCode(result.GetHttpStatusCode(), result.Message);
+    }
+
+    [HttpPost("{productId}/reviews")]
+    [Authorize]
+    public async Task<IActionResult> AddReview(Guid productId, [FromBody] AddReviewRequest request)
+    {
+        // Trích xuất UserId/CustomerId từ Claims trong JWT Token
+        var userIdClaim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+        if (string.IsNullOrEmpty(userIdClaim) || !long.TryParse(userIdClaim, out var customerId))
+        {
+            return Unauthorized("Không tìm thấy thông tin khách hàng trong Token.");
+        }
+
+        var result = await sender.Send(new CreateProductReviewCommand(
+            productId,
+            customerId,
+            request.Rating,
+            request.Comment,
+            request.ImageUrls
+        ));
+
+        if (result.IsSuccess)
+        {
+            return Ok(result.Value);
+        }
+
         return StatusCode(result.GetHttpStatusCode(), result.Message);
     }
 
@@ -58,10 +104,7 @@ public class ProductsController(ISender sender) : ControllerBase
             request.ShopId,
             request.Name,
             request.Description,
-            request.Weight,
-            request.Length,
-            request.Width,
-            request.Height
+            request.ThumbnailUrl
         ));
 
         if (result.IsSuccess)
@@ -73,12 +116,37 @@ public class ProductsController(ISender sender) : ControllerBase
     }
 
     [HttpPut("{id}")]
-    public async Task<IActionResult> UpdateProduct(Guid id, ProductRequest request)
+    public async Task<IActionResult> UpdateProduct(Guid id, [FromBody] UpdateProductRequest request)
     {
         var result = await sender.Send(new UpdateProductCommand(
             id,
             request.Name,
             request.Description,
+            request.Weight,
+            request.Length,
+            request.Width,
+            request.Height,
+            request.ThumbnailUrl,
+            request.VideoUrl,
+            request.ImageUrls
+        ));
+
+        if (result.IsSuccess)
+        {
+            return Ok(result.Value);
+        }
+        
+        return StatusCode(result.GetHttpStatusCode(), result.Message);
+    }
+
+    [HttpPut("{id}/single-variant")]
+    public async Task<IActionResult> SetupSingleVariant(Guid id, [FromBody] SetupSingleVariantRequest request)
+    {
+        var result = await sender.Send(new InitSingleVariantCommand(
+            id,
+            request.Price,
+            request.AvailableStocks,
+            request.Sku,
             request.Weight,
             request.Length,
             request.Width,
@@ -94,9 +162,22 @@ public class ProductsController(ISender sender) : ControllerBase
     }
 
     [HttpPut("{id}/init-variants")]
-    public async Task<IActionResult> UpdateProductVariantsSetup(Guid id, [FromBody] SetupProductVariantsCommand command)
+    public async Task<IActionResult> InitVariants(Guid id, [FromBody] InitVariantsCommand command)
     {
         var result = await sender.Send(command with { ProductId = id });
+
+        if (result.IsSuccess)
+        {
+            return Ok(result.Value);
+        }
+        
+        return StatusCode(result.GetHttpStatusCode(), result.Message);
+    }
+
+    [HttpPut("{id}/variants")]
+    public async Task<IActionResult> BulkUpdateVariants(Guid id, [FromBody] BulkUpdateVariantsRequest request)
+    {
+        var result = await sender.Send(new BulkUpdateVariantsCommand(id, request.Variants));
 
         if (result.IsSuccess)
         {
@@ -155,24 +236,6 @@ public class ProductsController(ISender sender) : ControllerBase
         return StatusCode(result.GetHttpStatusCode(), result.Message);
     }
 
-    [HttpPut("variants/{id}")]
-    public async Task<IActionResult> UpdateProductVariant(Guid id, [FromBody] UpdateProductVariantRequest request)
-    {
-        var result = await sender.Send(new UpdateProductVariantCommand(
-            id,
-            request.Sku,
-            request.Price,
-            request.AvailableStocks
-        ));
-
-        if (result.IsSuccess)
-        {
-            return Ok(result.Value);
-        }
-
-        return StatusCode(result.GetHttpStatusCode(), result.Message);
-    }
-
     [HttpDelete("variants/{id}")]
     public async Task<IActionResult> DeleteProductVariant(Guid id)
     {
@@ -185,35 +248,44 @@ public class ProductsController(ISender sender) : ControllerBase
 
         return StatusCode(result.GetHttpStatusCode(), result.Message);
     }
+}
 
-    [HttpPut("options/{id}")]
-    public async Task<IActionResult> UpdateProductOption(Guid id, [FromBody] UpdateProductOptionRequest request)
+public class SetupSingleVariantCommand : IRequest<object>
+{
+    public SetupSingleVariantCommand(Guid id, decimal requestPrice, int requestAvailableStocks, string? requestSku, double? requestWeight, double? requestLength, double? requestWidth, double? requestHeight)
     {
-        var result = await sender.Send(new UpdateProductOptionCommand(id, request.Name));
-
-        if (result.IsSuccess)
-        {
-            return Ok(result.Value);
-        }
-
-        return StatusCode(result.GetHttpStatusCode(), result.Message);
-    }
-
-    [HttpPut("option-values/{id}")]
-    public async Task<IActionResult> UpdateProductOptionValue(Guid id, [FromBody] UpdateProductOptionValueRequest request)
-    {
-        var result = await sender.Send(new UpdateProductOptionValueCommand(id, request.Value));
-
-        if (result.IsSuccess)
-        {
-            return Ok(result.Value);
-        }
-
-        return StatusCode(result.GetHttpStatusCode(), result.Message);
+        throw new NotImplementedException();
     }
 }
+
+public record UpdateProductRequest(
+    string Name,
+    string Description,
+    double Weight,
+    double Length,
+    double Width,
+    double Height,
+    string? ThumbnailUrl,
+    string? VideoUrl,
+    List<string> ImageUrls
+);
+
+public record SetupSingleVariantRequest(
+    decimal Price,
+    int AvailableStocks,
+    string? Sku = null,
+    double? Weight = null,
+    double? Length = null,
+    double? Width = null,
+    double? Height = null
+);
+
+public record BulkUpdateVariantsRequest(
+    List<BulkUpdateVariantDto> Variants
+);
 
 public record CreateProductVariantRequest(string? Sku, decimal Price, int AvailableStocks, List<Guid> OptionValueIds, double? Weight = null, double? Length = null, double? Width = null, double? Height = null);
 public record UpdateProductVariantRequest(string? Sku, decimal Price, int AvailableStocks);
 public record UpdateProductOptionRequest(string Name);
 public record UpdateProductOptionValueRequest(string Value);
+public record AddReviewRequest(int Rating, string Comment, List<string>? ImageUrls);

@@ -28,42 +28,40 @@ public class CreateShipmentConsumer(
 
         try
         {
-            // 1. Gọi gRPC lấy thông tin lấy hàng thực tế của Shop
             var shopInfo = await sellerGrpcClient.GetShopShippingInfoAsync(new GetShopShippingInfoRequest
             {
                 ShopId = message.ShopId
             }, cancellationToken: context.CancellationToken);
 
+            var senderName = !string.IsNullOrWhiteSpace(shopInfo?.RecipientName)
+                ? shopInfo.RecipientName
+                : shopInfo?.ShopName;
+
             if (shopInfo == null ||
-                string.IsNullOrWhiteSpace(shopInfo.ShopName) ||
+                string.IsNullOrWhiteSpace(senderName) ||
                 string.IsNullOrWhiteSpace(shopInfo.Phone) ||
                 string.IsNullOrWhiteSpace(shopInfo.AddressLine) ||
-                shopInfo.WardId == 0 ||
-                string.IsNullOrWhiteSpace(shopInfo.GhnShopId))
+                shopInfo.WardId == 0)
             {
                 logger.LogError("Shop {ShopId} has invalid or incomplete shipping information. Rejecting suborder.", message.ShopId);
                 
                 await context.Publish<SubOrderRejectedEvent>(new SubOrderRejectedEvent
                 {
                     SubOrderId = message.SubOrderId,
-                    Reason = "Shop shipping information is incomplete or invalid (Missing name, phone, address, ward code, or GHN ShopId)."
+                    Reason = "Shop shipping information is incomplete or invalid (Missing name, phone, address, or ward code)."
                 });
                 return;
             }
 
-            string senderName = shopInfo.ShopName;
-            string senderPhone = shopInfo.Phone;
-            string senderAddress = shopInfo.AddressLine;
-            long senderWardId = shopInfo.WardId;
-            string ghnShopId = shopInfo.GhnShopId;
-
-            // 2. Chọn nhà vận chuyển động (mặc định là GHN, có thể mở rộng lấy theo yêu cầu đơn hàng)
             var shippingProvider = providerFactory.GetProvider("GHN"); 
 
             var waybillResult = await shippingProvider.CreateWaybillAsync(new CreateWaybillRequest(
                 message.SubOrderId,
                 message.OrderId,
-                ghnShopId,
+                senderName,
+                shopInfo.Phone,
+                shopInfo.AddressLine,
+                shopInfo.WardId,
                 message.RecipientWardId,
                 message.RecipientAddress,
                 message.RecipientName,
@@ -87,7 +85,7 @@ public class CreateShipmentConsumer(
                 SubOrderId = message.SubOrderId,
                 OrderId = message.OrderId,
                 ShopId = message.ShopId,
-                SenderAddress = senderAddress,
+                SenderAddress = shopInfo.AddressLine,
                 RecipientAddress = message.RecipientAddress,
                 RecipientName = message.RecipientName,
                 RecipientPhone = message.RecipientPhone,
@@ -121,7 +119,6 @@ public class CreateShipmentConsumer(
 
                 logger.LogError("Failed to create waybill: {Error}", waybillResult.Message);
 
-                // Publish SubOrderRejectedEvent to cancel Saga
                 await context.Publish<SubOrderRejectedEvent>(new SubOrderRejectedEvent
                 {
                     SubOrderId = message.SubOrderId,

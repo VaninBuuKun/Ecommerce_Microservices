@@ -46,6 +46,6 @@ message GetShopShippingInfoResponse {
   int64 ward_id = 5;
   int64 district_id = 6;
   int64 province_id = 7;
-  string ghn_shop_id = 8;
-  int64 owner_user_id = 9;
+  int64 owner_user_id = 8;
+  string recipient_name = 9;
 }

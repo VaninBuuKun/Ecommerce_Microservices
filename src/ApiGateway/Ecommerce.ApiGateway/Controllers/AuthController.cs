@@ -7,7 +7,7 @@ using LoginRequest = Ecommerce.ApiGateway.Dtos.LoginRequest;
 namespace Ecommerce.ApiGateway.Controllers;
 
 [ApiController]
-[Route("app-auth")]
+[Route("api/app-auth")]
 public class AuthController(IHttpClientFactory httpClientFactory) : ControllerBase
 {
     [HttpPost("login")]

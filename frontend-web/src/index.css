@@ -1,0 +1,67 @@
+/* Nhúng trực tiếp font Geist Sans từ Google Fonts lên dòng đầu tiên */
+@import url('https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700;800&display=swap');
+
+@import "tailwindcss";
+
+@theme {
+  --font-sans: 'Geist', system-ui, -apple-system, sans-serif;
+  --font-heading: 'Geist', system-ui, -apple-system, sans-serif;
+  
+  /* Supabase design system color scheme */
+  --color-brand-primary: #3ecf8e;       /* Emerald Green chính */
+  --color-brand-primary-deep: #24b47e;  /* Emerald Deep khi click */
+  --color-brand-primary-soft: #4ade80;  /* Emerald Soft */
+  --color-brand-dark: #171717;          /* Ink Black default text */
+  --color-brand-dark-lift: #212121;     /* Ink Secondary */
+  --color-brand-light: #ffffff;         /* Canvas White */
+  --color-brand-light-soft: #fafafa;    /* Canvas Soft background */
+  --color-brand-dark-surface: #1c1c1c;  /* Canvas Night (Featured card/code blocks) */
+  --color-brand-muted: #707070;         /* Ink Mute */
+  --color-brand-border: #dfdfdf;        /* Hairline border */
+  --color-brand-border-strong: #c7c7c7; /* Hairline Strong */
+}
+
+:root {
+  color-scheme: light;
+  background-color: var(--color-brand-light);
+  color: var(--color-brand-dark);
+}
+
+body {
+  margin: 0;
+  font-family: var(--font-sans);
+  background-color: var(--color-brand-light);
+  color: var(--color-brand-dark);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-sans);
+  font-weight: 500;
+  letter-spacing: -0.03em;
+}
+
+/* Glassmorphism utility */
+.glass {
+  background: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: #d4d4d8;
+  border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #a1a1aa;
+}

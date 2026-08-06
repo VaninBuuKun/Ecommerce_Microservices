@@ -1,0 +1,80 @@
+using System;
+using Ardalis.Specification;
+
+namespace Ecommerce.Services.Catalog.Domain.Products.Specifications;
+
+public class ProductsWithCursorPaginationSpec : Specification<Product>
+{
+    public ProductsWithCursorPaginationSpec(
+        string? searchTerm, 
+        Guid? categoryId, 
+        double? minRating, 
+        string sortBy, 
+        string? lastValue, 
+        Guid? lastId, 
+        int limit)
+    {
+        // 1. Chỉ lấy sản phẩm đang hoạt động
+        Query.Where(p => p.Status == ProductStatus.Active);
+
+        // 2. Filter theo SearchTerm
+        if (!string.IsNullOrEmpty(searchTerm))
+        {
+            Query.Where(p => p.Name.Contains(searchTerm));
+        }
+
+        // 3. Filter theo Category
+        if (categoryId.HasValue)
+        {
+            Query.Where(p => p.CategoryId == categoryId.Value);
+        }
+
+        // 4. Filter theo MinRating
+        if (minRating.HasValue)
+        {
+            Query.Where(p => p.AverageRating >= minRating.Value);
+        }
+
+        // 5. Load Navigation Properties
+        Query.Include(p => p.Images)
+             .Include(p => p.Category);
+
+        // 6. Áp dụng sắp xếp và Keyset Pagination (ý tương đơn giản duyệt so với lần cuối cùng, nếu bằng thì sẽ lấy id lớn hơn, nói chung là thay vì load các phần tử lên Ram,
+        // thì chỉ cần duyệt skip qua những thằng k hợp lý chỉ load nhưng sản phẩm cần thiêt)
+        switch (sortBy.ToLower())
+        {
+            case "rating":
+                if (lastValue != null && lastId != null)
+                {
+                    var ratingLimit = double.Parse(lastValue);
+                    Query.Where(p => p.AverageRating < ratingLimit || 
+                        (p.AverageRating == ratingLimit && p.Id.CompareTo(lastId.Value) > 0));
+                }
+                Query.OrderByDescending(p => p.AverageRating).ThenBy(p => p.Id);
+                break;
+
+            case "reviews":
+                if (lastValue != null && lastId != null)
+                {
+                    var reviewLimit = int.Parse(lastValue);
+                    Query.Where(p => p.ReviewCount < reviewLimit || 
+                        (p.ReviewCount == reviewLimit && p.Id.CompareTo(lastId.Value) > 0));
+                }
+                Query.OrderByDescending(p => p.ReviewCount).ThenBy(p => p.Id);
+                break;
+
+            case "name":
+            default:
+                if (lastValue != null && lastId != null)
+                {
+                    Query.Where(p => string.Compare(p.Name, lastValue) > 0 || 
+                        (p.Name == lastValue && p.Id.CompareTo(lastId.Value) > 0));
+                }
+                Query.OrderBy(p => p.Name).ThenBy(p => p.Id);
+                break;
+        }
+
+        // Lấy thêm 1 bản ghi để check HasNext
+        Query.Take(limit);
+    }
+}

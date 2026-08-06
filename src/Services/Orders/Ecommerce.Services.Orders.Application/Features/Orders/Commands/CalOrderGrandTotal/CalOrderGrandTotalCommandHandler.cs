@@ -83,7 +83,6 @@ public class CalOrderGrandTotalCommandHandler(
                 }
 
                 var shopShippingInfo = shopShippingInfoResult.Value;
-                var ghnShopId = shopShippingInfo.GhnShopId ?? string.Empty;
                 shopNames[shopId] = shopShippingInfo.ShopName;
 
                 // Tính toán trọng lượng/kích thước gói hàng lũy kế thực tế từ sản phẩm
@@ -94,7 +93,7 @@ public class CalOrderGrandTotalCommandHandler(
 
                 batchRequests.Add(new ShippingFeeRequestItem(
                     shopId,
-                    ghnShopId,
+                    shopShippingInfo.WardId,
                     recipientWardId,
                     totalWeight,
                     maxLength,

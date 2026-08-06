@@ -64,11 +64,11 @@ public class ShippingClientService(ILogger<ShippingClientService> logger, Shippi
                 request.Requests.Add(new CalculateFeeItemRequest
                 {
                     ShopId = item.ShopId,
-                    GhnShopId = item.GhnShopId,
                     Weight = item.Weight,
                     Length = item.Length,
                     Width = item.Width,
-                    Height = item.Height
+                    Height = item.Height,
+                    SenderWardId = item.SenderWardId
                 });
             }
 

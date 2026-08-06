@@ -5,27 +5,33 @@ namespace Ecommerce.Services.Sellers.Api.Models.Entities;
 
 public enum KycStatus
 {
-    Pending,
-    Verified,
-    Rejected
+    Draft = 0,
+    Submitted = 1,
+    Pending = 1, // Alias for backward compatibility
+    Verified = 2,
+    Rejected = 3
 }
 
 public class SellerKyc : EntityTrackingBase<Guid>
 {
     public long UserId { get; set; }
     public string IdentityCardNumber { get; set; } = string.Empty;
-    public KycStatus Status { get; set; } = KycStatus.Pending;
+    public string IdentityCardFrontUrl { get; set; } = string.Empty;
+    public string IdentityCardBackUrl { get; set; } = string.Empty;
+    public KycStatus Status { get; set; } = KycStatus.Draft;
     public string? RejectReason { get; set; }
     
     public DateTimeOffset? VerifiedDate { get; set; }
 
     private SellerKyc() {}
 
-    public SellerKyc(long userId, string identityCardNumber)
+    public SellerKyc(long userId, string identityCardNumber, string identityCardFrontUrl, string identityCardBackUrl, bool isDraft = false)
     {
         UserId = userId;
         IdentityCardNumber = identityCardNumber;
-        Status = KycStatus.Pending;
+        IdentityCardFrontUrl = identityCardFrontUrl;
+        IdentityCardBackUrl = identityCardBackUrl;
+        Status = isDraft ? KycStatus.Draft : KycStatus.Submitted;
     }
 
     public void Verify()
@@ -40,11 +46,23 @@ public class SellerKyc : EntityTrackingBase<Guid>
         RejectReason = reason;
     }
 
-    public void Resubmit(string identityCardNumber)
+    public void UpdateData(string identityCardNumber, string identityCardFrontUrl, string identityCardBackUrl, bool isDraft)
     {
         IdentityCardNumber = identityCardNumber;
-        Status = KycStatus.Pending;
+        IdentityCardFrontUrl = identityCardFrontUrl;
+        IdentityCardBackUrl = identityCardBackUrl;
+        Status = isDraft ? KycStatus.Draft : KycStatus.Submitted;
         RejectReason = null;
         VerifiedDate = null;
+    }
+
+    public void WithdrawToDraft()
+    {
+        Status = KycStatus.Draft;
+    }
+
+    public void Resubmit(string identityCardNumber, string identityCardFrontUrl, string identityCardBackUrl, bool isDraft = false)
+    {
+        UpdateData(identityCardNumber, identityCardFrontUrl, identityCardBackUrl, isDraft);
     }
 }

@@ -13,6 +13,18 @@ public class Product : AggregateRoot<Guid>
     public double Length { get; private set; }
     public double Width { get; private set; }
     public double Height { get; private set; }
+    public string? ThumbnailUrl { get; private set; }
+    public string? VideoUrl { get; private set; }
+    public List<string> ImageUrls { get; private set; } = new();
+    
+    // Phân cấp Category
+    public Guid? CategoryId { get; private set; }
+    public Category? Category { get; private set; }
+
+    // Thông tin Ratings & Reviews (2NF)
+    public double AverageRating { get; private set; }
+    public int ReviewCount { get; private set; }
+    public int RatingSum { get; private set; }
 
     // Navigation properties for EAV
     private readonly List<ProductOption> _options = new();
@@ -23,9 +35,13 @@ public class Product : AggregateRoot<Guid>
 
     public bool HasVariants => _variants.Any(v => !v.IsDeleted);
 
+    // Dịch vụ Images & Reviews
+    public ICollection<ProductImage> Images { get; private set; } = new List<ProductImage>();
+    public ICollection<ProductReview> Reviews { get; private set; } = new List<ProductReview>();
+
     private Product() { Name = null!; Description = null!; } // EF Core
 
-    private Product(long shopId, string name, string description, double weight, double length, double width, double height)
+    private Product(long shopId, string name, string description, string thumbnailUrl, double weight, double length, double width, double height)
     {
         Check(new ProductNameCannotBeEmptyRule(name));
 
@@ -38,11 +54,12 @@ public class Product : AggregateRoot<Guid>
         Length = length;
         Width = width;
         Height = height;
+        ThumbnailUrl = thumbnailUrl;
     }
 
     // ========== Update ==========
 
-    public void UpdateDetails(string name, string description, double weight, double length, double width, double height)
+    public void UpdateDetails(string name, string description, double weight, double length, double width, double height, string? thumbnailUrl, string? videoUrl, List<string> imageUrls)
     {
         Check(new ProductNameCannotBeEmptyRule(name));
         Name = name;
@@ -51,15 +68,18 @@ public class Product : AggregateRoot<Guid>
         Length = length;
         Width = width;
         Height = height;
+        ThumbnailUrl = thumbnailUrl;
+        VideoUrl = videoUrl;
+        ImageUrls = imageUrls ?? new List<string>();
     }   
 
     // ========== Options & Option Values ==========
 
     public ProductOption AddOption(string name)
     {
-        if (_options.Any(o => o.Name.Equals(name, StringComparison.OrdinalIgnoreCase)))
+        if (_options.Any(o => !o.IsDeleted && o.Name.Equals(name, StringComparison.OrdinalIgnoreCase)))
         {
-            throw new InvalidOperationException($"Option with name '{name} already exists.");
+            throw new InvalidOperationException($"Option with name '{name}' already exists.");
         }
 
         var productOption = new ProductOption(Id, name, _options.Count);
@@ -98,9 +118,10 @@ public class Product : AggregateRoot<Guid>
         Check(new ProductStocksCannotBeNegativeRule(availableStocks));
         
         // Validate that variant has exactly one option value from each option
-        if (optionValueIds.Count != _options.Count)
+        var activeOptionsCount = _options.Count(o => !o.IsDeleted);
+        if (optionValueIds.Count != activeOptionsCount)
         {
-            throw new ArgumentException($"A variant must have exactly {_options.Count} option values.");
+            throw new ArgumentException($"A variant must have exactly {activeOptionsCount} option values.");
         }
         
         if (optionValueIds.Distinct().Count() != optionValueIds.Count)
@@ -110,7 +131,7 @@ public class Product : AggregateRoot<Guid>
 
         foreach (var variant in _variants)
         {
-            var Ids = variant.Options.Select(o => o.OptionValueId).ToList();
+            var Ids = variant.VariantOptions.Select(o => o.OptionValueId).ToList();
 
             if (new HashSet<Guid>(Ids).SetEquals(optionValueIds))
             {
@@ -162,10 +183,34 @@ public class Product : AggregateRoot<Guid>
         Status = ProductStatus.Inactive;
     }
 
+    public void SetCategory(Guid? categoryId)
+    {
+        CategoryId = categoryId;
+    }
+
+    public void UpdateRatings(int newReviewRating)
+    {
+        var totalRatingSum = (AverageRating * ReviewCount) + newReviewRating;
+        ReviewCount += 1;
+        AverageRating = Math.Round((double)totalRatingSum / ReviewCount, 1);
+    }
+
+    public void AddProductImage(string imageUrl, bool isMain = false)
+    {
+        if (isMain)
+        {
+            foreach (var img in Images)
+            {
+                img.SetAsMain(false);
+            }
+        }
+        Images.Add(new ProductImage(Id, imageUrl, isMain));
+    }
+
     // ========== Factory Methods ==========
 
-    public static Product CreateNewProduct(long shopId, string name, string description, double weight = 0, double length = 0, double width = 0, double height = 0)
+    public static Product CreateNewProduct(long shopId, string name, string description, string thumbnailUrl, double weight = 0, double length = 0, double width = 0, double height = 0)
     {
-        return new Product(shopId, name, description, weight, length, width, height);
+        return new Product(shopId, name, description, thumbnailUrl, weight, length, width, height);
     }
 }

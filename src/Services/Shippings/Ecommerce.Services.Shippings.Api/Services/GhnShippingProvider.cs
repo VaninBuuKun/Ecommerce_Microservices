@@ -31,7 +31,23 @@ public class GhnShippingProvider(
     {
         try
         {
-            logger.LogInformation("GHN: Calculating shipping fee to WardId {Recipient} using GhnShopId {GhnShopId}", request.RecipientWardId, request.GhnShopId);
+            logger.LogInformation(
+                "GHN: Calculating shipping fee from WardId {Sender} to WardId {Recipient} using config ShopId {ShopId}",
+                request.SenderWardId, request.RecipientWardId, _shopId);
+
+            if (string.IsNullOrEmpty(_shopId))
+            {
+                return Result<decimal>.Failure("Thiếu mã cửa hàng GHN (ShippingProviders:GHN:ShopId)", EErrorCode.InvalidInput);
+            }
+
+            var senderWard = await dbContext.Wards
+                .Include(w => w.District)
+                .FirstOrDefaultAsync(w => w.Id == request.SenderWardId, cancellationToken);
+
+            if (senderWard == null || senderWard.District?.GhnId == null || string.IsNullOrEmpty(senderWard.GhnCode))
+            {
+                return Result<decimal>.Failure($"Không tìm thấy thông tin địa chỉ lấy hàng (WardId: {request.SenderWardId})", EErrorCode.NotFound);
+            }
 
             var recipientWard = await dbContext.Wards
                 .Include(w => w.District)
@@ -45,17 +61,13 @@ public class GhnShippingProvider(
             var client = httpClient;
             client.DefaultRequestHeaders.Clear();
             client.DefaultRequestHeaders.Add("Token", _token);
-            
-            var activeShopId = !string.IsNullOrEmpty(request.GhnShopId) ? request.GhnShopId : _shopId;
-            if (string.IsNullOrEmpty(activeShopId))
-            {
-                return Result<decimal>.Failure("Thiếu mã cửa hàng GHN (GhnShopId)", EErrorCode.InvalidInput);
-            }
-            client.DefaultRequestHeaders.Add("ShopId", activeShopId);
+            client.DefaultRequestHeaders.Add("ShopId", _shopId);
 
             var payload = new
             {
-                service_type_id = 2, // Default Standard (ecom)
+                service_type_id = 2,
+                from_district_id = senderWard.District.GhnId.Value,
+                from_ward_code = senderWard.GhnCode,
                 to_district_id = recipientWard.District.GhnId.Value,
                 to_ward_code = recipientWard.GhnCode,
                 weight = (int)request.Weight,
@@ -96,15 +108,28 @@ public class GhnShippingProvider(
         {
             logger.LogInformation("GHN: Calculating batch shipping fees for {Count} requests", requests.Count);
 
-            var wardIds = requests.Select(r => r.RecipientWardId).Distinct().ToList();
-            var Wards = await dbContext.Wards
+            if (string.IsNullOrEmpty(_shopId))
+            {
+                return Result<List<Result<decimal>>>.Failure("Thiếu mã cửa hàng GHN (ShippingProviders:GHN:ShopId)", EErrorCode.InvalidInput);
+            }
+
+            var wardIds = requests
+                .SelectMany(r => new[] { r.SenderWardId, r.RecipientWardId })
+                .Distinct()
+                .ToList();
+            var wards = await dbContext.Wards
                 .Include(w => w.District)
                 .Where(w => wardIds.Contains(w.Id))
                 .ToDictionaryAsync(w => w.Id, cancellationToken);
 
             var tasks = requests.Select(async request =>
             {
-                if (!Wards.TryGetValue(request.RecipientWardId, out var recipientWard) || recipientWard.District?.GhnId == null || string.IsNullOrEmpty(recipientWard.GhnCode))
+                if (!wards.TryGetValue(request.SenderWardId, out var senderWard) || senderWard.District?.GhnId == null || string.IsNullOrEmpty(senderWard.GhnCode))
+                {
+                    return Result<decimal>.Failure($"Không tìm thấy địa chỉ lấy hàng cho WardId {request.SenderWardId}", EErrorCode.NotFound);
+                }
+
+                if (!wards.TryGetValue(request.RecipientWardId, out var recipientWard) || recipientWard.District?.GhnId == null || string.IsNullOrEmpty(recipientWard.GhnCode))
                 {
                     return Result<decimal>.Failure($"Không tìm thấy địa chỉ nhận hàng cho WardId {request.RecipientWardId}", EErrorCode.NotFound);
                 }
@@ -112,17 +137,13 @@ public class GhnShippingProvider(
                 var client = httpClient;
                 client.DefaultRequestHeaders.Clear();
                 client.DefaultRequestHeaders.Add("Token", _token);
-                
-                var activeShopId = !string.IsNullOrEmpty(request.GhnShopId) ? request.GhnShopId : _shopId;
-                if (string.IsNullOrEmpty(activeShopId))
-                {
-                    return Result<decimal>.Failure("Thiếu mã cửa hàng GHN (GhnShopId)", EErrorCode.InvalidInput);
-                }
-                client.DefaultRequestHeaders.Add("ShopId", activeShopId);
+                client.DefaultRequestHeaders.Add("ShopId", _shopId);
 
                 var payload = new
                 {
-                    service_type_id = 2, // Standard
+                    service_type_id = 2,
+                    from_district_id = senderWard.District.GhnId.Value,
+                    from_ward_code = senderWard.GhnCode,
                     to_district_id = recipientWard.District.GhnId.Value,
                     to_ward_code = recipientWard.GhnCode,
                     weight = (int)request.Weight,
@@ -166,16 +187,23 @@ public class GhnShippingProvider(
         {
             logger.LogInformation("GHN: Creating waybill for SubOrder {SubOrderId}", request.SubOrderId);
 
+            if (string.IsNullOrEmpty(_shopId))
+            {
+                return Result<CreateWaybillResponse>.Failure("Thiếu mã cửa hàng GHN (ShippingProviders:GHN:ShopId)", EErrorCode.InvalidInput);
+            }
+
             var client = httpClient;
             client.DefaultRequestHeaders.Clear();
             client.DefaultRequestHeaders.Add("Token", _token);
-            if (!string.IsNullOrEmpty(request.SenderProviderShopId))
+            client.DefaultRequestHeaders.Add("ShopId", _shopId);
+
+            var senderWard = await dbContext.Wards
+                .Include(w => w.District)
+                .FirstOrDefaultAsync(w => w.Id == request.SenderWardId, cancellationToken);
+
+            if (senderWard == null || senderWard.District?.GhnId == null || string.IsNullOrEmpty(senderWard.GhnCode))
             {
-                client.DefaultRequestHeaders.Add("ShopId", request.SenderProviderShopId);
-            }
-            else if (!string.IsNullOrEmpty(_shopId))
-            {
-                client.DefaultRequestHeaders.Add("ShopId", _shopId);
+                return Result<CreateWaybillResponse>.Failure($"Không tìm thấy địa chỉ lấy hàng cho WardId {request.SenderWardId}", EErrorCode.NotFound);
             }
 
             var recipientWard = await dbContext.Wards
@@ -190,9 +218,14 @@ public class GhnShippingProvider(
 
             var payload = new
             {
-                payment_type_id = 2, // Người mua trả phí ship
+                payment_type_id = 2,
                 note = "Cho xem hàng, không cho thử",
                 required_note = "CHOXEMHANGKHONGTHU",
+                from_name = request.SenderName,
+                from_phone = request.SenderPhone,
+                from_address = request.SenderAddress,
+                from_ward_code = senderWard.GhnCode,
+                from_district_id = senderWard.District.GhnId.Value,
                 to_name = request.RecipientName,
                 to_phone = request.RecipientPhone,
                 to_address = request.RecipientAddress,
@@ -202,7 +235,7 @@ public class GhnShippingProvider(
                 length = (int)request.Length,
                 width = (int)request.Width,
                 height = (int)request.Height,
-                service_type_id = 2, // Standard
+                service_type_id = 2,
                 cod_amount = (int)request.CodAmount,
                 items = request.Items.Select(item => new
                 {
@@ -271,56 +304,6 @@ public class GhnShippingProvider(
         {
             logger.LogError(ex, "GHN: Error canceling waybill {WaybillCode}", waybillCode);
             return Result<bool>.Failure(ex.Message, EErrorCode.InternalServerError);
-        }
-    }
-
-    public async Task<Result<int>> RegisterShopAsync(long wardId, string name, string phone, string address, CancellationToken cancellationToken = default)
-    {
-        try
-        {
-            logger.LogInformation("GHN: Registering shop '{Name}' with phone {Phone} at Ward {WardId}", name, phone, wardId);
-            
-            var ward = await dbContext.Wards.Include(ward => ward.District).FirstOrDefaultAsync(w => w.Id == wardId, cancellationToken: cancellationToken);
-            if (ward == null || ward.District?.GhnId == null || string.IsNullOrEmpty(ward.GhnCode))
-            {
-                return Result<int>.Failure($"Không tìm thấy thông tin địa chỉ cửa hàng (WardId: {wardId})", EErrorCode.NotFound);
-            }
-            
-            var client = httpClient;
-            client.DefaultRequestHeaders.Clear();
-            client.DefaultRequestHeaders.Add("Token", _token);
-
-            var payload = new
-            {
-                district_id = ward.District.GhnId.Value,
-                ward_code = ward.GhnCode,
-                name = name,
-                phone = phone,
-                address = address
-            };
-
-            var response = await client.PostAsJsonAsync($"{_baseUrl}/shiip/public-api/v2/shop/register", payload, cancellationToken);
-            if (!response.IsSuccessStatusCode)
-            {
-                var errorText = await response.Content.ReadAsStringAsync(cancellationToken);
-                logger.LogError("GHN Shop Register API error: {Status} - {Response}", response.StatusCode, errorText);
-                return Result<int>.Failure($"GHN API Error: {response.StatusCode} - {errorText}", EErrorCode.InternalServerError);
-            }
-
-            var jsonResult = await response.Content.ReadFromJsonAsync<JsonNode>(cancellationToken: cancellationToken);
-            var shopId = jsonResult?["data"]?["shop_id"]?.GetValue<int>();
-
-            if (shopId.HasValue)
-            {
-                return Result<int>.Success(shopId.Value);
-            }
-
-            return Result<int>.Failure("Could not parse shop_id from GHN API response", EErrorCode.InternalServerError);
-        }
-        catch (Exception ex)
-        {
-            logger.LogError(ex, "GHN: Error registering shop '{Name}'", name);
-            return Result<int>.Failure(ex.Message, EErrorCode.InternalServerError);
         }
     }
 }

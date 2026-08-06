@@ -30,7 +30,6 @@ public class ShipmentsController(IShippingProvider shippingProvider) : Controlle
 
         foreach (var item in request.Items)
         {
-            // Mặc định: Nặng 500g, Dài 20cm, Rộng 15cm, Cao 5cm cho mỗi sản phẩm
             double itemWeight = 500; 
             double itemLength = 20;
             double itemWidth = 15;
@@ -51,7 +50,7 @@ public class ShipmentsController(IShippingProvider shippingProvider) : Controlle
         }
 
         var providerRequest = new CalculateFeeRequest(
-            request.GhnShopId,
+            request.SenderWardId,
             request.RecipientWardId,
             totalWeight,
             maxLength,
@@ -98,7 +97,7 @@ public class ShipmentsController(IShippingProvider shippingProvider) : Controlle
 
 public record PreviewFeeItem(Guid VariantId, int Quantity);
 public record PreviewFeeRequest(
-    string GhnShopId,
+    long SenderWardId,
     long RecipientWardId,
     System.Collections.Generic.List<PreviewFeeItem> Items
 );

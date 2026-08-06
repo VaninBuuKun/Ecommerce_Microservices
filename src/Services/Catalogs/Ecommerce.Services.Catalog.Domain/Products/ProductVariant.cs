@@ -17,15 +17,14 @@ public class ProductVariant : EntityTrackingBase<Guid>
     public double? Width { get; private set; }
     public double? Height { get; private set; }
 
-    private readonly List<ProductVariantOption> _options = new();
-    public IReadOnlyCollection<ProductVariantOption> Options => _options.AsReadOnly();
+    private readonly List<ProductVariantOption> _variantOptions = new();
+    public IReadOnlyCollection<ProductVariantOption> VariantOptions => _variantOptions.AsReadOnly();
     public Product Product { get; private set; } = null!;
 
     private ProductVariant() { }
 
     internal ProductVariant(Guid productId, string? sku, decimal price, int availableStocks, double? weight = null, double? length = null, double? width = null, double? height = null)
     {
-        Check(new ProductPriceMustBePositiveRule(price));
         Check(new ProductStocksCannotBeNegativeRule(availableStocks));
 
         Id = Guid.NewGuid();
@@ -49,7 +48,6 @@ public class ProductVariant : EntityTrackingBase<Guid>
 
     public void UpdateDetails(string? sku, decimal price, int availableStocks, double? weight = null, double? length = null, double? width = null, double? height = null)
     {
-        Check(new ProductPriceMustBePositiveRule(price));
         Check(new ProductStocksCannotBeNegativeRule(availableStocks));
         Sku = sku;
         Price = price;
@@ -76,7 +74,7 @@ public class ProductVariant : EntityTrackingBase<Guid>
 
     public void AddOption(ProductVariantOption option)
     {
-        _options.Add(option);
+        _variantOptions.Add(option);
     }
     
     public void SoftDelete()
@@ -96,7 +94,11 @@ public class ProductVariant : EntityTrackingBase<Guid>
 
     public string GetVariantName()
     {
-        List<string> names = _options.Select(o => o.OptionValue.Value).ToList();
+        List<string> names = _variantOptions
+            .OrderBy(o => o.OptionValue.Option.SortOrder)
+            .ThenBy(o => o.OptionValue.SortOrder)
+            .Select(o => o.OptionValue.Value)
+            .ToList();
 
         if (names.Count == 0)
         {

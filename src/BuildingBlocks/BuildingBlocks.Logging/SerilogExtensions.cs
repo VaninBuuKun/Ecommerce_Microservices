@@ -2,6 +2,9 @@ using Elastic.Ingest.Elasticsearch.DataStreams;
 using Microsoft.AspNetCore.Builder;
 using Serilog;
 using Elastic.Serilog.Sinks;
+using Microsoft.Extensions.DependencyInjection;
+using OpenTelemetry.Trace;
+using Serilog.Enrichers.Span;
 
 namespace BuildingBlocks.Logging;
 
@@ -28,11 +31,34 @@ public static class SerilogExtensions
             .Enrich.WithProperty("ApplicationName", applicationName)
             .Enrich.FromLogContext()
             .Enrich.WithMachineName()
+            .Enrich.WithSpan() // Thêm Span Enricher để đính kèm TraceId, SpanId
             .WriteTo.Elasticsearch(new[] { new Uri(elasticUri) }, opts =>
             {
                 // Cấu hình Data Stream: app-logs-{appName}-{environment} để tên chỉ mục luôn bắt đầu bằng app-logs-*
                 opts.DataStream = new DataStreamName("app-logs", cleanAppName, environment);
             })
         );
+    }
+
+    public static void AddCustomTracing(this WebApplicationBuilder builder, string serviceName)
+    {
+        var otlpEndpoint = builder.Configuration["OpenTelemetry:OtlpEndpoint"] ?? "http://localhost:4317";
+
+        builder.Services.AddOpenTelemetry()
+            .WithTracing(tracing =>
+            {
+                tracing
+                    .AddSource(serviceName)
+                    .SetSampler(new OpenTelemetry.Trace.AlwaysOnSampler())
+                    .AddAspNetCoreInstrumentation(options =>
+                    {
+                        options.RecordException = true;
+                    })
+                    .AddHttpClientInstrumentation()
+                    .AddOtlpExporter(options =>
+                    {
+                        options.Endpoint = new Uri(otlpEndpoint);
+                    });
+            });
     }
 }

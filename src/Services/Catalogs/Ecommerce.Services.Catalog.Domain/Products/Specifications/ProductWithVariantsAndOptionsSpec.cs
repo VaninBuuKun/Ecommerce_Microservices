@@ -8,7 +8,7 @@ public class ProductWithVariantsAndOptionsSpec : Specification<Product>, ISingle
     {
         Query.Where(product => product.Id == Id)
             .Include(product => product.Variants)
-            .ThenInclude(variant => variant.Options)
+            .ThenInclude(variant => variant.VariantOptions)
             .Include(product => product.Options)
             .ThenInclude(option => option.Values);
     }

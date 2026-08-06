@@ -38,6 +38,11 @@ public class ApproveKycCommandHandler(
                 return Result.Success();
             }
 
+            if (kyc.Status == KycStatus.Draft)
+            {
+                return Result.Failure("Hồ sơ KYC đang ở trạng thái Nháp, người dùng chưa tiến hành gửi. Admin không thể duyệt.", EErrorCode.InvalidInput);
+            }
+
             kyc.Verify();
             kycRepo.Update(kyc);
             await unitOfWork.SaveChangesAsync(cancellationToken);

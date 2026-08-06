@@ -34,32 +34,4 @@ public class ShippingService(ShippingGrpc.ShippingGrpcClient shippingGrpcClient)
             return Result<LocationNamesDto>.Failure($"Lỗi kết nối kiểm tra địa chỉ: {ex.Message}", EErrorCode.InternalServerError);
         }
     }
-
-    public async Task<Result<GhnShopRegistrationDto>> RegisterGhnShopAsync(
-        long wardId, string name, string phone, string address, CancellationToken cancellationToken = default)
-    {
-        try
-        {
-            var response = await shippingGrpcClient.RegisterGhnShopAsync(new RegisterGhnShopRequest
-            {
-                WardId = wardId,
-                Name = name,
-                Phone = phone,
-                Address = address
-            }, cancellationToken: cancellationToken);
-
-            if (response != null && response.IsSuccess)
-            {
-                var dto = new GhnShopRegistrationDto(response.ShopId);
-                return Result<GhnShopRegistrationDto>.Success(dto);
-            }
-
-            var errMsg = response?.ErrorMessage ?? "Lỗi không xác định từ đối tác vận chuyển.";
-            return Result<GhnShopRegistrationDto>.Failure(errMsg, EErrorCode.InternalServerError);
-        }
-        catch (Exception ex)
-        {
-            return Result<GhnShopRegistrationDto>.Failure($"Lỗi kết nối đăng ký shop: {ex.Message}", EErrorCode.InternalServerError);
-        }
-    }
 }

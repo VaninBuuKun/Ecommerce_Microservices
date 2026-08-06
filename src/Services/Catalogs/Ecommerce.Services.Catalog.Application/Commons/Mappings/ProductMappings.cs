@@ -1,3 +1,4 @@
+using Ecommerce.Services.Catalog.Application.Commons.Dtos.Products;
 using Ecommerce.Services.Catalog.Application.Features.Products.Dtos;
 using Ecommerce.Services.Catalog.Domain.Products;
 using Mapster;
@@ -16,5 +17,17 @@ public class ProductMappings : IRegister
             .Map(dest => dest.Length, src => src.Length.HasValue && src.Length.Value > 0 ? src.Length.Value : src.Product.Length)
             .Map(dest => dest.Width, src => src.Width.HasValue && src.Width.Value > 0 ? src.Width.Value : src.Product.Width)
             .Map(dest => dest.Height, src => src.Height.HasValue && src.Height.Value > 0 ? src.Height.Value : src.Product.Height);
+
+        config.NewConfig<Product, ProductResponse>()
+            .Map(dest => dest.MainImageUrl, src => 
+                src.Images.FirstOrDefault(image => image.IsMain) != null 
+                    ? src.Images.FirstOrDefault(image => image.IsMain)!.ImageUrl 
+                    : ""
+            )
+            .Map(dest => dest.PriceDisplay, src =>
+                src.Variants.Any(v => !v.IsDeleted) 
+                    ? src.Variants.Where(v => !v.IsDeleted).Min(v => v.Price) 
+                    : 0
+            );
     }
 }

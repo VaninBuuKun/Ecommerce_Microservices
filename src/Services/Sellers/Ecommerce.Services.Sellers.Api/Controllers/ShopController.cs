@@ -1,14 +1,16 @@
 using System;
 using System.Threading.Tasks;
+using BuildingBlocks.Auth;
 using BuildingBlocks.Shared.Commons;
 using BuildingBlocks.Shared.Extensions;
-using Ecommerce.Services.Sellers.Api.Features.Shops.Commands.ApproveShop;
-using Ecommerce.Services.Sellers.Api.Features.Shops.Commands.RegisterShop;
+using Ecommerce.Services.Sellers.Api.Features.Shops.Commands.ActivateShop;
+using Ecommerce.Services.Sellers.Api.Features.Shops.Commands.BanShop;
+using Ecommerce.Services.Sellers.Api.Features.Shops.Commands.CreateShop;
+using Ecommerce.Services.Sellers.Api.Features.Shops.Commands.SuspendShop;
+using Ecommerce.Services.Sellers.Api.Features.Shops.Commands.UpdateShop;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-
-using BuildingBlocks.Auth;
 
 namespace Ecommerce.Services.Sellers.Api.Controllers;
 
@@ -16,19 +18,64 @@ namespace Ecommerce.Services.Sellers.Api.Controllers;
 [Route("api/[controller]")]
 public class ShopController(ISender sender, ICurrentUserService currentUserService) : ControllerBase
 {
-    [HttpPost("register")]
+    [HttpGet("me")]
     [Authorize]
-    public async Task<IActionResult> RegisterShop([FromBody] RegisterShopRequest request)
+    public async Task<IActionResult> GetMyProfile()
     {
         if (!currentUserService.IsAuthenticated)
         {
             return Unauthorized("Tài khoản chưa được xác thực danh tính.");
         }
 
-        var command = new RegisterShopCommand(
+        var result = await sender.Send(new Ecommerce.Services.Sellers.Api.Features.Shops.Queries.GetMySellerProfile.GetMySellerProfileQuery(currentUserService.UserId));
+        if (!result.IsSuccess)
+        {
+            return StatusCode((int)result.ErrorCode.ToHttpStatusCode(), result.Message);
+        }
+
+        return Ok(result.Value);
+    }
+
+    [HttpPost]
+    [Authorize]
+    public async Task<IActionResult> CreateShop([FromBody] CreateShopRequest request)
+    {
+        if (!currentUserService.IsAuthenticated)
+        {
+            return Unauthorized("Tài khoản chưa được xác thực danh tính.");
+        }
+
+        var command = new CreateShopCommand(
             OwnerUserId: currentUserService.UserId,
             Name: request.Name,
             Description: request.Description,
+            LogoUrl: request.LogoUrl
+        );
+
+        var result = await sender.Send(command);
+        if (!result.IsSuccess)
+        {
+            return StatusCode((int)result.ErrorCode.ToHttpStatusCode(), result.Message);
+        }
+
+        return Ok(result.Value);
+    }
+
+    [HttpPut("{id:long}")]
+    [Authorize]
+    public async Task<IActionResult> UpdateShop(long id, [FromBody] UpdateShopRequest request)
+    {
+        if (!currentUserService.IsAuthenticated)
+        {
+            return Unauthorized("Tài khoản chưa được xác thực danh tính.");
+        }
+
+        var command = new UpdateShopCommand(
+            ShopId: id,
+            OwnerUserId: currentUserService.UserId,
+            Name: request.Name,
+            Description: request.Description,
+            LogoUrl: request.LogoUrl,
             RecipientName: request.RecipientName,
             Phone: request.Phone,
             AddressLine: request.AddressLine,
@@ -46,24 +93,68 @@ public class ShopController(ISender sender, ICurrentUserService currentUserServi
         return Ok(result.Value);
     }
 
-    // Admin duyệt kích hoạt hoạt động của Shop
-    [HttpPut("{id:long}/approve")]
-    [Authorize(Roles = "Admin")]
-    public async Task<IActionResult> ApproveShop(long id)
+    [HttpPut("{id:long}/suspend")]
+    [Authorize]
+    public async Task<IActionResult> SuspendShop(long id)
     {
-        var result = await sender.Send(new ApproveShopCommand(id));
+        if (!currentUserService.IsAuthenticated)
+        {
+            return Unauthorized("Tài khoản chưa được xác thực danh tính.");
+        }
+
+        var isAdmin = User.IsInRole("Admin");
+        var result = await sender.Send(new SuspendShopCommand(id, currentUserService.UserId, isAdmin));
         if (!result.IsSuccess)
         {
             return StatusCode((int)result.ErrorCode.ToHttpStatusCode(), result.Message);
         }
 
-        return Ok("Cửa hàng đã được kích hoạt hoạt động chính thức.");
+        return Ok("Cửa hàng đã được tạm ẩn.");
+    }
+
+    [HttpPut("{id:long}/activate")]
+    [Authorize]
+    public async Task<IActionResult> ActivateShop(long id)
+    {
+        if (!currentUserService.IsAuthenticated)
+        {
+            return Unauthorized("Tài khoản chưa được xác thực danh tính.");
+        }
+
+        var isAdmin = User.IsInRole("Admin");
+        var result = await sender.Send(new ActivateShopCommand(id, currentUserService.UserId, isAdmin));
+        if (!result.IsSuccess)
+        {
+            return StatusCode((int)result.ErrorCode.ToHttpStatusCode(), result.Message);
+        }
+
+        return Ok("Cửa hàng đã được kích hoạt lại.");
+    }
+
+    [HttpPut("{id:long}/ban")]
+    [Authorize(Roles = "Admin")]
+    public async Task<IActionResult> BanShop(long id)
+    {
+        var result = await sender.Send(new BanShopCommand(id));
+        if (!result.IsSuccess)
+        {
+            return StatusCode((int)result.ErrorCode.ToHttpStatusCode(), result.Message);
+        }
+
+        return Ok("Cửa hàng đã bị khóa bởi Admin.");
     }
 }
 
-public record RegisterShopRequest(
+public record CreateShopRequest(
     string Name,
     string Description,
+    string LogoUrl
+);
+
+public record UpdateShopRequest(
+    string Name,
+    string Description,
+    string? LogoUrl,
     string RecipientName,
     string Phone,
     string AddressLine,
