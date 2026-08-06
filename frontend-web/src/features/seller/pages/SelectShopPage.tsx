@@ -11,21 +11,19 @@ import {
 	KycVerifiedNoShopState,
 	ShopSelectList,
 } from "../components";
+import { useSellerProfileQuery } from "../hooks";
+import { useRegisterKycMutation } from "../hooks";
+import { useWithdrawKycMutation } from "../hooks";
 
 export default function SelectShopPage() {
 	const navigate = useNavigate();
+	const { data: profile, isLoading } = useSellerProfileQuery();
+	const registerKycMutation = useRegisterKycMutation();
+	const withdrawKycMutation = useWithdrawKycMutation();
 
-	const {
-		shops,
-		activeShop,
-		setActiveShop,
-		kyc,
-		isLoadingProfile,
-		fetchSellerProfile,
-		saveKycDraft,
-		submitKyc,
-		withdrawKycDraft,
-	} = useSellerStore();
+	const { setActiveShop } = useSellerStore();
+	const shops = profile?.shops ?? [];
+	const kyc = profile?.kyc ?? null;
 
 	const [showKycForm, setShowKycForm] = useState(false);
 	const [identityNumber, setIdentityNumber] = useState("");
@@ -35,10 +33,6 @@ export default function SelectShopPage() {
 
 	const [showSubmitModal, setShowSubmitModal] = useState(false);
 	const [showWithdrawModal, setShowWithdrawModal] = useState(false);
-
-	useEffect(() => {
-		fetchSellerProfile();
-	}, [fetchSellerProfile]);
 
 	useEffect(() => {
 		if (kyc) {
@@ -58,7 +52,7 @@ export default function SelectShopPage() {
 
 	const handleSelectShop = (shop: Shop) => {
 		if (setActiveShop) setActiveShop(shop);
-		navigate("/seller/dashboard");
+		navigate(`/seller/${shop.id}/dashboard`);
 	};
 
 	const validateForm = () => {
@@ -77,7 +71,12 @@ export default function SelectShopPage() {
 		if (!validateForm()) return;
 		setIsSubmitting(true);
 		try {
-			await saveKycDraft({ identityNumber, identityFront, identityBack });
+			await registerKycMutation.mutateAsync({
+				identityCardNumber: identityNumber,
+				identityCardFrontUrl: identityFront,
+				identityCardBackUrl: identityBack,
+				isDraft: true,
+			});
 			alert("Đã cập nhật bản nháp KYC thành công!");
 		} catch (err: any) {
 			alert(err?.response?.data || "Có lỗi xảy ra khi lưu bản nháp KYC.");
@@ -96,7 +95,12 @@ export default function SelectShopPage() {
 		setShowSubmitModal(false);
 		setIsSubmitting(true);
 		try {
-			await submitKyc({ identityNumber, identityFront, identityBack });
+			await registerKycMutation.mutateAsync({
+				identityCardNumber: identityNumber,
+				identityCardFrontUrl: identityFront,
+				identityCardBackUrl: identityBack,
+				isDraft: false,
+			});
 			setShowKycForm(false);
 		} catch (err: any) {
 			alert(err?.response?.data || "Có lỗi xảy ra khi gửi hồ sơ KYC.");
@@ -109,7 +113,7 @@ export default function SelectShopPage() {
 		setShowWithdrawModal(false);
 		setIsSubmitting(true);
 		try {
-			await withdrawKycDraft();
+			await withdrawKycMutation.mutateAsync();
 			setShowKycForm(true);
 		} catch (err: any) {
 			alert(err?.response?.data || "Có lỗi xảy ra khi rút hồ sơ KYC.");
@@ -126,7 +130,7 @@ export default function SelectShopPage() {
 
 			<main className="flex-1 flex items-center justify-center p-6">
 				<div className="w-full max-w-lg bg-white border border-brand-border rounded-xl shadow-sm p-6 relative">
-					{isLoadingProfile ? (
+					{isLoading ? (
 						<div className="py-12 text-center text-xs text-brand-muted flex flex-col items-center gap-2">
 							<div className="w-6 h-6 border-2 border-brand-primary border-t-transparent rounded-full animate-spin"></div>
 							Đang tải thông tin xác minh...
@@ -202,7 +206,7 @@ export default function SelectShopPage() {
 			{/* MODAL XÁC NHẬN SUBMIT KYC */}
 			{showSubmitModal &&
 				createPortal(
-					<div className="fixed inset-0 z-[9999] bg-black/50 flex items-center justify-center p-4">
+					<div className="fixed inset-0 z-10000 bg-black/50 flex items-center justify-center p-4">
 						<div className="bg-white rounded-xl max-w-sm w-full p-5 space-y-4 shadow-xl text-left">
 							<h3 className="text-sm font-bold text-brand-dark">
 								Xác nhận gửi hồ sơ KYC
@@ -239,7 +243,7 @@ export default function SelectShopPage() {
 			{/* MODAL XÁC NHẬN RÚT HỒ SƠ KYC */}
 			{showWithdrawModal &&
 				createPortal(
-					<div className="fixed inset-0 z-[9999] bg-black/50 flex items-center justify-center p-4">
+					<div className="fixed inset-0 z-10000 bg-black/50 flex items-center justify-center p-4">
 						<div className="bg-white rounded-xl max-w-sm w-full p-5 space-y-4 shadow-xl text-left">
 							<h3 className="text-sm font-bold text-brand-dark">
 								Xác nhận rút hồ sơ

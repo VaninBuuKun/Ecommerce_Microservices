@@ -159,6 +159,10 @@ namespace Ecommerce.Services.Catalog.Infrastructure.Migrations
                         .HasColumnType("double")
                         .HasDefaultValue(0.0);
 
+                    b.Property<string>("ImageUrls")
+                        .IsRequired()
+                        .HasColumnType("json");
+
                     b.Property<double>("Length")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("double")
@@ -181,6 +185,14 @@ namespace Ecommerce.Services.Catalog.Infrastructure.Migrations
                         .IsRequired()
                         .HasMaxLength(20)
                         .HasColumnType("varchar(20)");
+
+                    b.Property<string>("ThumbnailUrl")
+                        .HasMaxLength(1000)
+                        .HasColumnType("varchar(1000)");
+
+                    b.Property<string>("VideoUrl")
+                        .HasMaxLength(1000)
+                        .HasColumnType("varchar(1000)");
 
                     b.Property<double>("Weight")
                         .ValueGeneratedOnAdd()
@@ -244,6 +256,9 @@ namespace Ecommerce.Services.Catalog.Infrastructure.Migrations
                     b.Property<string>("ImageUrl")
                         .HasMaxLength(1000)
                         .HasColumnType("varchar(1000)");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("tinyint(1)");
 
                     b.Property<DateTimeOffset?>("LastModifiedDate")
                         .HasColumnType("datetime(6)");
@@ -420,7 +435,7 @@ namespace Ecommerce.Services.Catalog.Infrastructure.Migrations
                         .IsRequired();
 
                     b.HasOne("Ecommerce.Services.Catalog.Domain.Products.ProductVariant", "Variant")
-                        .WithMany("Options")
+                        .WithMany("VariantOptions")
                         .HasForeignKey("VariantId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
@@ -460,7 +475,7 @@ namespace Ecommerce.Services.Catalog.Infrastructure.Migrations
 
             modelBuilder.Entity("Ecommerce.Services.Catalog.Domain.Products.ProductVariant", b =>
                 {
-                    b.Navigation("Options");
+                    b.Navigation("VariantOptions");
                 });
 #pragma warning restore 612, 618
         }

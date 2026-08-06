@@ -42,6 +42,12 @@ export default function AppRoutes() {
 			{/* Các trang người bán */}
 			<Route path="/seller" element={<SelectShopPage />} />
 			<Route path="/seller/register" element={<RegisterShopPage />} />
+			<Route
+				path="/seller/:shopId/dashboard/*"
+				element={<SellerLayout />}
+			>
+				<Route path="*" element={<SellerDashboard />} />
+			</Route>
 			<Route path="/seller/dashboard/*" element={<SellerLayout />}>
 				<Route path="*" element={<SellerDashboard />} />
 			</Route>

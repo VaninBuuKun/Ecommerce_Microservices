@@ -1,4 +1,3 @@
-import { useRef } from "react";
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import {
@@ -10,135 +9,17 @@ import {
 	Heart,
 	Eye,
 	Tag,
-	ChevronLeft,
-	ChevronRight,
 } from "lucide-react";
 import CategoryList from "./CategoryList";
 import { toast } from "react-toastify";
 
 export default function LandingPage() {
-	const categoryRef = useRef<HTMLDivElement>(null);
-
-	const scrollContainer = (
-		ref: React.RefObject<HTMLDivElement>,
-		direction: "left" | "right",
-	) => {
-		if (ref.current) {
-			const scrollAmount = direction === "left" ? -400 : 400;
-			ref.current.scrollBy({ left: scrollAmount, behavior: "smooth" });
-		}
-	};
-
 	const scrollToSection = (id: string) => {
 		const element = document.getElementById(id);
 		if (element) {
 			element.scrollIntoView({ behavior: "smooth" });
 		}
 	};
-
-	// MOCK DATA DANH MỤC (20 Items)
-	const categories = [
-		{
-			id: 1,
-			name: "Thời Trang Nam",
-			icon: "https://images.unsplash.com/photo-1488161628813-04466f872be2?auto=format&fit=crop&q=80&w=150",
-		},
-		{
-			id: 2,
-			name: "Đồ Thể Thao",
-			icon: "https://images.unsplash.com/photo-1517841905240-472988babdf9?auto=format&fit=crop&q=80&w=150",
-		},
-		{
-			id: 3,
-			name: "Phụ Kiện Luxury",
-			icon: "https://images.unsplash.com/photo-1509319117193-57bab727e09d?auto=format&fit=crop&q=80&w=150",
-		},
-		{
-			id: 4,
-			name: "Quần Jeans",
-			icon: "https://images.unsplash.com/photo-1542272604-787c3835535d?auto=format&fit=crop&q=80&w=150",
-		},
-		{
-			id: 5,
-			name: "Áo Khoác",
-			icon: "https://images.unsplash.com/photo-1551028719-00167b16eac5?auto=format&fit=crop&q=80&w=150",
-		},
-		{
-			id: 6,
-			name: "Áo Thun",
-			icon: "https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?auto=format&fit=crop&q=80&w=150",
-		},
-		{
-			id: 7,
-			name: "Giày Sneaker",
-			icon: "https://images.unsplash.com/photo-1595950653106-6c9ebd614d3a?auto=format&fit=crop&q=80&w=150",
-		},
-		{
-			id: 8,
-			name: "Đồng Hồ",
-			icon: "https://images.unsplash.com/photo-1524592094714-0f0654e20314?auto=format&fit=crop&q=80&w=150",
-		},
-		{
-			id: 9,
-			name: "Túi Xách",
-			icon: "https://images.unsplash.com/photo-1553062407-98eeb64c6a62?auto=format&fit=crop&q=80&w=150",
-		},
-		{
-			id: 10,
-			name: "Mắt Kính",
-			icon: "https://images.unsplash.com/photo-1511499767150-a48a237f0083?auto=format&fit=crop&q=80&w=150",
-		},
-		{
-			id: 11,
-			name: "Nón",
-			icon: "https://images.unsplash.com/photo-1588850561407-ed78c282e89b?auto=format&fit=crop&q=80&w=150",
-		},
-		{
-			id: 12,
-			name: "Nước Hoa",
-			icon: "https://images.unsplash.com/photo-1594035910387-fea47794261f?auto=format&fit=crop&q=80&w=150",
-		},
-		{
-			id: 13,
-			name: "Trang Sức",
-			icon: "https://images.unsplash.com/photo-1535632066927-ab7c9ab60908?auto=format&fit=crop&q=80&w=150",
-		},
-		{
-			id: 14,
-			name: "Đồ Bơi",
-			icon: "https://images.unsplash.com/photo-1565538420870-da08ff96a207?auto=format&fit=crop&q=80&w=150",
-		},
-		{
-			id: 15,
-			name: "Đồ Lót",
-			icon: "https://images.unsplash.com/photo-1618354691373-d851c5c3a990?auto=format&fit=crop&q=80&w=150",
-		},
-		{
-			id: 16,
-			name: "Trang Phục Dự Tiệc",
-			icon: "https://images.unsplash.com/photo-1566737236500-c8ac43014a67?auto=format&fit=crop&q=80&w=150",
-		},
-		{
-			id: 17,
-			name: "Thời Trang Cổ Điển",
-			icon: "https://images.unsplash.com/photo-1550614000-4b9b94098485?auto=format&fit=crop&q=80&w=150",
-		},
-		{
-			id: 18,
-			name: "Streetwear",
-			icon: "https://images.unsplash.com/photo-1556821840-3a63f95609a7?auto=format&fit=crop&q=80&w=150",
-		},
-		{
-			id: 19,
-			name: "Office Wear",
-			icon: "https://images.unsplash.com/photo-1487222477894-8943e31ef7b2?auto=format&fit=crop&q=80&w=150",
-		},
-		{
-			id: 20,
-			name: "Limited Edition",
-			icon: "https://images.unsplash.com/photo-1617114919297-3c8ddb01f599?auto=format&fit=crop&q=80&w=150",
-		},
-	];
 
 	// MOCK DATA TOP DEALS (Thu nhỏ kích thước, đúng 5 item hiển thị chuẩn khung)
 	const topDeals = [

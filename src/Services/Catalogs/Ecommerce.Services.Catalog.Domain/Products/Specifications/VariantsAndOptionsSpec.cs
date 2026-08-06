@@ -7,7 +7,7 @@ public class VariantsAndOptionsSpec : Specification<ProductVariant>
     public VariantsAndOptionsSpec(List<Guid> variantIds)
     {
         Query.Where(variant => variantIds.Contains(variant.Id))
-            .Include(variant => variant.Options)
+            .Include(variant => variant.VariantOptions)
             .ThenInclude(option => option.OptionValue)
             .ThenInclude(optionValue => optionValue.Option)
             .Include(variant => variant.Product);

@@ -38,7 +38,7 @@ export const ShopSelectList: React.FC<Props> = ({
 						className="w-full flex items-center gap-3 p-3 border border-brand-border rounded-lg hover:border-brand-primary hover:bg-brand-primary/5 transition-all text-left group cursor-pointer"
 					>
 						<img
-							src={shop.avatarUrl}
+							src={shop.logoUrl}
 							alt={shop.name}
 							className="w-10 h-10 object-cover rounded-full border border-brand-border shrink-0"
 							onError={(e) => {

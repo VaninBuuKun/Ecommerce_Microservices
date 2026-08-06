@@ -5,20 +5,29 @@ import {
 	Users,
 	Filter,
 	RefreshCw,
-	Plus,
 } from "lucide-react";
-import { Routes, Route, Link } from "react-router-dom";
+import { Routes, Route, Link, useParams } from "react-router-dom";
 import { useSellerStore } from "../stores";
+import { useSellerProfileQuery } from "../hooks";
+import { ProductsView, EditProductPage } from "../../catalog";
+import { ShopSettingsPage } from "./ShopSettingsPage";
 
 // View: Tổng quan Dashboard
 function Overview() {
+	const { shopId } = useParams<{ shopId?: string }>();
 	const { activeShop } = useSellerStore();
+	const { data: profile } = useSellerProfileQuery();
+	const resolvedShop =
+		activeShop ??
+		profile?.shops.find((shop) => String(shop.id) === shopId) ??
+		profile?.shops[0] ??
+		null;
 
 	return (
 		<div className="space-y-6 text-left">
 			<div>
 				<h1 className="text-xl font-bold text-brand-dark mb-1">
-					Chào mừng quay trở lại, {activeShop?.name}!
+					Chào mừng quay trở lại, {resolvedShop?.name}!
 				</h1>
 				<p className="text-xs text-brand-muted">
 					Dưới đây là hiệu suất và thống kê bán hàng của shop hôm nay.
@@ -194,7 +203,7 @@ function OrdersView() {
 				<input
 					type="text"
 					placeholder="Mã đơn hàng, Tên người nhận..."
-					className="h-8 px-3 bg-white border border-brand-border rounded text-xs focus:outline-none focus:border-brand-primary min-w-[200px]"
+					className="h-8 px-3 bg-white border border-brand-border rounded text-xs focus:outline-none focus:border-brand-primary min-w-50"
 				/>
 				<select className="h-8 px-3 bg-white border border-brand-border rounded text-xs focus:outline-none focus:border-brand-primary">
 					<option>Mọi trạng thái</option>
@@ -262,79 +271,10 @@ function OrdersView() {
 	);
 }
 
-// View: Sản phẩm (Quản lý sản phẩm)
-function ProductsView() {
-	return (
-		<div className="space-y-4 text-left">
-			<div className="flex justify-between items-center pb-3 border-b border-brand-border">
-				<div>
-					<h2 className="text-sm font-bold text-brand-dark">
-						Quản lý Sản phẩm
-					</h2>
-					<p className="text-[11px] text-brand-muted">
-						Thêm mới, sửa đổi và theo dõi hàng tồn kho của bạn.
-					</p>
-				</div>
-				<button className="h-8 px-3 bg-brand-primary hover:bg-brand-primary-deep text-brand-dark text-xs font-semibold rounded flex items-center gap-1 cursor-pointer">
-					<Plus className="w-3.5 h-3.5" />
-					Thêm sản phẩm mới
-				</button>
-			</div>
-
-			<div className="flex gap-2 p-3 bg-brand-light-soft border border-brand-border rounded-xl">
-				<input
-					type="text"
-					placeholder="Tìm theo tên sản phẩm, SKU..."
-					className="h-8 px-3 bg-white border border-brand-border rounded text-xs focus:outline-none focus:border-brand-primary flex-1 max-w-sm"
-				/>
-			</div>
-
-			<div className="border border-brand-border rounded-xl overflow-hidden">
-				<table className="w-full text-xs text-left">
-					<thead className="bg-brand-light-soft border-b border-brand-border text-brand-dark font-bold">
-						<tr>
-							<th className="p-3">Hình ảnh</th>
-							<th className="p-3">Tên sản phẩm</th>
-							<th className="p-3">Phân loại</th>
-							<th className="p-3">Giá bán</th>
-							<th className="p-3">Kho hàng</th>
-							<th className="p-3">Trạng thái</th>
-						</tr>
-					</thead>
-					<tbody className="divide-y divide-brand-border">
-						<tr>
-							<td className="p-3">
-								<img
-									src="https://images.unsplash.com/photo-1556821840-3a63f95609a7?auto=format&fit=crop&q=80&w=60"
-									alt="Product"
-									className="w-10 h-10 object-cover rounded border border-brand-border"
-								/>
-							</td>
-							<td className="p-3 font-bold text-brand-dark">
-								Áo Hoodie Streetwear Emerald Accent
-							</td>
-							<td className="p-3 text-brand-muted">
-								Thời trang Nam
-							</td>
-							<td className="p-3 font-bold">450.000đ</td>
-							<td className="p-3">45 cái</td>
-							<td className="p-3">
-								<span className="px-2 py-0.5 bg-green-100 text-green-800 rounded font-bold text-[10px]">
-									Đang hoạt động
-								</span>
-							</td>
-						</tr>
-					</tbody>
-				</table>
-			</div>
-		</div>
-	);
-}
-
 // Placeholder cho các trang khác
 function PlaceholderView({ title }: { title: string }) {
 	return (
-		<div className="py-12 text-center text-brand-muted space-y-3 text-left">
+		<div className="py-12 text-center text-brand-muted space-y-3">
 			<h3 className="text-sm font-bold text-brand-dark">{title}</h3>
 			<p className="text-xs">
 				Trang chức năng này đang được thiết lập và chuẩn bị hiển thị.
@@ -348,6 +288,10 @@ export default function SellerDashboard() {
 		<Routes>
 			<Route index element={<Overview />} />
 			<Route path="products/list" element={<ProductsView />} />
+			<Route
+				path="products/edit/:productId"
+				element={<EditProductPage />}
+			/>
 			<Route
 				path="products/category"
 				element={<PlaceholderView title="Quản lý Danh mục sản phẩm" />}
@@ -413,10 +357,7 @@ export default function SellerDashboard() {
 				path="customer-stats"
 				element={<PlaceholderView title="Thống kê khách hàng" />}
 			/>
-			<Route
-				path="settings"
-				element={<PlaceholderView title="Cài đặt thông tin Shop" />}
-			/>
+			<Route path="settings" element={<ShopSettingsPage />} />
 			<Route path="*" element={<Overview />} />
 		</Routes>
 	);

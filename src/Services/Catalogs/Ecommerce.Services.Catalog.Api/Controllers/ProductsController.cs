@@ -1,3 +1,4 @@
+using BuildingBlocks.Auth;
 using Ecommerce.Services.Catalog.Api.Models.Dtos;
 using Ecommerce.Services.Catalog.Application.Features.Products.Commands.CreateProduct;
 using Ecommerce.Services.Catalog.Application.Features.Products.Commands.DeleteProduct;
@@ -6,13 +7,12 @@ using Ecommerce.Services.Catalog.Application.Features.Products.Commands.SetupPro
 using Ecommerce.Services.Catalog.Application.Features.Products.Commands.CreateProductVariant;
 using Ecommerce.Services.Catalog.Application.Features.Products.Commands.UpdateProductVariant;
 using Ecommerce.Services.Catalog.Application.Features.Products.Commands.DeleteProductVariant;
-using Ecommerce.Services.Catalog.Application.Features.Products.Commands.UpdateProductOption;
-using Ecommerce.Services.Catalog.Application.Features.Products.Commands.UpdateProductOptionValue;
+using Ecommerce.Services.Catalog.Application.Features.Products.Commands.InitSingleVariant;
+using Ecommerce.Services.Catalog.Application.Features.Products.Queries.GetMyProducts;
 using Ecommerce.Services.Catalog.Application.Features.Products.Queries.GetProductById;
 using Ecommerce.Services.Catalog.Application.Features.Products.Queries.GetProducts;
 using Ecommerce.Services.Catalog.Application.Features.Products.Queries.GetVariantById;
 using Ecommerce.Services.Catalog.Application.Features.Reviews.Commands.CreateProductReview;
-using Ecommerce.Services.Catalog.Application.Features.Storage.Queries.GenerateUploadUrl;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -21,7 +21,7 @@ namespace Ecommerce.Services.Catalog.Api.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
-public class ProductsController(ISender sender) : ControllerBase
+public class ProductsController(ISender sender, ICurrentUserService userService) : ControllerBase
 {
     [HttpGet]
     public async Task<IActionResult> GetProducts(
@@ -33,6 +33,21 @@ public class ProductsController(ISender sender) : ControllerBase
         [FromQuery] string sortBy = "name")
     {
         var result = await sender.Send(new GetProductsQuery(searchTerm, categoryId, minRating, cursor, limit, sortBy));
+
+        if (result.IsSuccess)
+        {
+            return Ok(result.Value);
+        }
+        return StatusCode(result.GetHttpStatusCode(), result.Message);
+    }
+    
+    
+    [HttpGet("me")]
+    [Authorize]
+    public async Task<IActionResult> GetMyProducts(
+        [FromQuery] int page, [FromQuery] int pageSize, [FromQuery] long ShopId)
+    {
+        var result = await sender.Send(new GetMyProductsQuery(ShopId, userService.UserId, page, pageSize));
 
         if (result.IsSuccess)
         {
@@ -88,7 +103,8 @@ public class ProductsController(ISender sender) : ControllerBase
         var result = await sender.Send(new CreateProductCommand(
             request.ShopId,
             request.Name,
-            request.Description
+            request.Description,
+            request.ThumbnailUrl
         ));
 
         if (result.IsSuccess)
@@ -126,7 +142,7 @@ public class ProductsController(ISender sender) : ControllerBase
     [HttpPut("{id}/single-variant")]
     public async Task<IActionResult> SetupSingleVariant(Guid id, [FromBody] SetupSingleVariantRequest request)
     {
-        var result = await sender.Send(new SetupSingleVariantCommand(
+        var result = await sender.Send(new InitSingleVariantCommand(
             id,
             request.Price,
             request.AvailableStocks,
@@ -220,24 +236,6 @@ public class ProductsController(ISender sender) : ControllerBase
         return StatusCode(result.GetHttpStatusCode(), result.Message);
     }
 
-    [HttpPut("variants/{id}")]
-    public async Task<IActionResult> UpdateProductVariant(Guid id, [FromBody] UpdateProductVariantRequest request)
-    {
-        var result = await sender.Send(new UpdateProductVariantCommand(
-            id,
-            request.Sku,
-            request.Price,
-            request.AvailableStocks
-        ));
-
-        if (result.IsSuccess)
-        {
-            return Ok(result.Value);
-        }
-
-        return StatusCode(result.GetHttpStatusCode(), result.Message);
-    }
-
     [HttpDelete("variants/{id}")]
     public async Task<IActionResult> DeleteProductVariant(Guid id)
     {
@@ -250,31 +248,13 @@ public class ProductsController(ISender sender) : ControllerBase
 
         return StatusCode(result.GetHttpStatusCode(), result.Message);
     }
+}
 
-    [HttpPut("options/{id}")]
-    public async Task<IActionResult> UpdateProductOption(Guid id, [FromBody] UpdateProductOptionRequest request)
+public class SetupSingleVariantCommand : IRequest<object>
+{
+    public SetupSingleVariantCommand(Guid id, decimal requestPrice, int requestAvailableStocks, string? requestSku, double? requestWeight, double? requestLength, double? requestWidth, double? requestHeight)
     {
-        var result = await sender.Send(new UpdateProductOptionCommand(id, request.Name));
-
-        if (result.IsSuccess)
-        {
-            return Ok(result.Value);
-        }
-
-        return StatusCode(result.GetHttpStatusCode(), result.Message);
-    }
-
-    [HttpPut("option-values/{id}")]
-    public async Task<IActionResult> UpdateProductOptionValue(Guid id, [FromBody] UpdateProductOptionValueRequest request)
-    {
-        var result = await sender.Send(new UpdateProductOptionValueCommand(id, request.Value));
-
-        if (result.IsSuccess)
-        {
-            return Ok(result.Value);
-        }
-
-        return StatusCode(result.GetHttpStatusCode(), result.Message);
+        throw new NotImplementedException();
     }
 }
 

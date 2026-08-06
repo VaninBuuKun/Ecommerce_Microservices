@@ -1,34 +1,15 @@
 using BuildingBlocks.Application.InMemoryBus;
 using BuildingBlocks.Shared.Commons;
 using BuildingBlocks.Shared.Enums;
-using BuildingBlocks.Shared.InfrastructureInterfaces.InMemoryBus;
 using BuildingBlocks.Shared.InfrastructureInterfaces.Persistence.EFCore;
 using Ecommerce.Services.Catalog.Application.Commons.Dtos.Products;
-using Ecommerce.Services.Catalog.Application.Features.Products.Commands.SetupProductVariants;
+using Ecommerce.Services.Catalog.Application.Features.Products.Commands.UpdateProductVariant;
 using Ecommerce.Services.Catalog.Domain.Products;
 using Ecommerce.Services.Catalog.Domain.Products.Specifications;
 using MapsterMapper;
 using Microsoft.Extensions.Logging;
 
-namespace Ecommerce.Services.Catalog.Application.Features.Products.Commands.UpdateProductVariant;
-
-public record BulkUpdateVariantDto(
-    Guid? Id,
-    string? Sku,
-    decimal Price,
-    int AvailableStocks,
-    List<VariantOptionValueDto> OptionValues,
-    double? Weight = null,
-    double? Length = null,
-    double? Width = null,
-    double? Height = null
-);
-
-public record BulkUpdateVariantsCommand(
-    Guid ProductId,
-    List<BulkUpdateVariantDto> Variants
-) : ICommand<ProductResponse>;
-
+namespace Ecommerce.Services.Catalog.Application.Features.Products.Commands.BulkUpdateVariantsCommandHandler;
 public class BulkUpdateVariantsCommandHandler(
     IEfUnitOfWork unitOfWork,
     ILogger<BulkUpdateVariantsCommandHandler> logger,
@@ -79,6 +60,19 @@ public class BulkUpdateVariantsCommandHandler(
 
             foreach (var req in command.Variants)
             {
+                // Update option value images if provided
+                foreach (var optVal in req.OptionValues)
+                {
+                    var matchingOptionVal = product.Options
+                        .SelectMany(o => o.Values)
+                        .FirstOrDefault(v => v.Option.Name == optVal.OptionName && v.Value == optVal.ValueName);
+
+                    if (matchingOptionVal != null && optVal.ImageUrl != null && matchingOptionVal.ImageUrl != optVal.ImageUrl)
+                    {
+                        matchingOptionVal.Update(matchingOptionVal.Value, matchingOptionVal.SortOrder, optVal.ImageUrl);
+                    }
+                }
+
                 // UPDATE
                 if (req.Id.HasValue)
                 {

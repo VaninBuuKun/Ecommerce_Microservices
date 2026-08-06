@@ -139,12 +139,12 @@ public class ProductDbContext(DbContextOptions<ProductDbContext> options, IInMem
             entity.Property(v => v.Sku).HasMaxLength(50);
             
 
-            entity.HasMany(v => v.Options)
+            entity.HasMany(v => v.VariantOptions)
                   .WithOne(vo => vo.Variant)
                   .HasForeignKey(vo => vo.VariantId)
                   .OnDelete(DeleteBehavior.Cascade);
 
-            entity.Navigation(v => v.Options)
+            entity.Navigation(v => v.VariantOptions)
                   .UsePropertyAccessMode(PropertyAccessMode.Field);
         });
 

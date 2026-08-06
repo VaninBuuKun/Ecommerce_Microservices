@@ -41,7 +41,7 @@ public class Product : AggregateRoot<Guid>
 
     private Product() { Name = null!; Description = null!; } // EF Core
 
-    private Product(long shopId, string name, string description, double weight, double length, double width, double height)
+    private Product(long shopId, string name, string description, string thumbnailUrl, double weight, double length, double width, double height)
     {
         Check(new ProductNameCannotBeEmptyRule(name));
 
@@ -54,6 +54,7 @@ public class Product : AggregateRoot<Guid>
         Length = length;
         Width = width;
         Height = height;
+        ThumbnailUrl = thumbnailUrl;
     }
 
     // ========== Update ==========
@@ -130,7 +131,7 @@ public class Product : AggregateRoot<Guid>
 
         foreach (var variant in _variants)
         {
-            var Ids = variant.Options.Select(o => o.OptionValueId).ToList();
+            var Ids = variant.VariantOptions.Select(o => o.OptionValueId).ToList();
 
             if (new HashSet<Guid>(Ids).SetEquals(optionValueIds))
             {
@@ -208,8 +209,8 @@ public class Product : AggregateRoot<Guid>
 
     // ========== Factory Methods ==========
 
-    public static Product CreateNewProduct(long shopId, string name, string description, double weight = 0, double length = 0, double width = 0, double height = 0)
+    public static Product CreateNewProduct(long shopId, string name, string description, string thumbnailUrl, double weight = 0, double length = 0, double width = 0, double height = 0)
     {
-        return new Product(shopId, name, description, weight, length, width, height);
+        return new Product(shopId, name, description, thumbnailUrl, weight, length, width, height);
     }
 }

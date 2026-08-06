@@ -43,6 +43,7 @@ public class CreateProductCommandHandler(
                 command.ShopId,
                 command.Name,
                 command.Description,
+                command.thumbnailUrl,
                 0,
                 0,
                 0,

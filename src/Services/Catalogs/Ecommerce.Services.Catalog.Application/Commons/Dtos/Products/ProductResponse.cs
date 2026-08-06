@@ -14,6 +14,7 @@ public class ProductResponse
     public int RatingSum { get; set; }
     
     public decimal PriceDisplay { get; set; }
+    public string Status { get; set; } = string.Empty;
     public string MainImageUrl { get; set; } = string.Empty;
     public string? ThumbnailUrl { get; set; }
     public string? VideoUrl { get; set; }
@@ -49,7 +50,7 @@ public class ProductVariantDto
     public decimal Price { get; set; }
     public int AvailableStocks { get; set; }
     public int ReservedStocks { get; set; }
-    public List<ProductVariantOptionDto> Options { get; set; } = new();
+    public List<ProductVariantOptionDto> VariantOptions { get; set; } = new();
 }
 
 public class ProductVariantOptionDto

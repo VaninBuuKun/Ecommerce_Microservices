@@ -4,6 +4,7 @@ import { ArrowLeft, Store } from "lucide-react";
 import { z } from "zod";
 import { UploadImage } from "../../../shared"; // Đường dẫn tới component UploadImage của bạn
 import { useSellerStore } from "../stores"; // Giả định store chứa hàm tạo shop
+import { useCreateShopMutation } from "../hooks";
 
 // 1. Khởi tạo schema Zod validate form tạo gian hàng
 const registerShopSchema = z.object({
@@ -14,9 +15,8 @@ const registerShopSchema = z.object({
 
 export default function RegisterSellerPage() {
 	const navigate = useNavigate();
-
-	// Nếu store của bạn có hàm tạo shop, hãy lấy ra ở đây
-	// const { registerShop } = useSellerStore();
+	const { activeShop } = useSellerStore();
+	const createShopMutation = useCreateShopMutation();
 
 	const [shopName, setShopName] = useState("");
 	const [description, setDescription] = useState("");
@@ -42,12 +42,19 @@ export default function RegisterSellerPage() {
 
 		setIsSubmitting(true);
 		try {
-			// TODO: Gọi API tạo gian hàng thực tế tại đây
-			// await registerShop({ shopName, description, avatarUrl });
-
-			console.log("Submitted Data:", result.data);
+			const createdShop = await createShopMutation.mutateAsync({
+				name: result.data.shopName,
+				description: result.data.description ?? "",
+				logoUrl: result.data.avatarUrl,
+			});
 			alert("Tạo gian hàng thành công!");
-			navigate("/seller/dashboard");
+			navigate(
+				createdShop?.id
+					? `/seller/${createdShop.id}/dashboard`
+					: activeShop?.id
+						? `/seller/${activeShop.id}/dashboard`
+						: "/seller/dashboard",
+			);
 		} catch (err: any) {
 			alert(err?.response?.data || "Có lỗi xảy ra khi tạo gian hàng.");
 		} finally {

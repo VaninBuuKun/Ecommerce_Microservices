@@ -1,6 +1,11 @@
-import { useState, useEffect } from "react";
-import { Link, Outlet, useNavigate, useLocation } from "react-router-dom";
-import { useAuthStore } from "../features/auth";
+import { useState, useEffect, useRef } from "react";
+import {
+	Link,
+	Outlet,
+	useNavigate,
+	useLocation,
+	useParams,
+} from "react-router-dom";
 import Breadcrumb, { type BreadcrumbItem } from "../components/Breadcrumb";
 import {
 	Bell,
@@ -16,14 +21,19 @@ import {
 	Plus,
 } from "lucide-react";
 import { useSellerStore } from "../features/seller";
+import { useSellerProfileQuery } from "../features/seller/hooks";
 
 export default function SellerLayout() {
 	const navigate = useNavigate();
 	const location = useLocation();
-	const { user } = useAuthStore();
-	const { shops, activeShop, setActiveShop } = useSellerStore();
+	const { shopId } = useParams<{ shopId?: string }>();
+	const { data: profile, isLoading } = useSellerProfileQuery();
+	const { activeShop, setActiveShop } = useSellerStore();
+	const requestedProfileRef = useRef(false);
+	const shops = profile?.shops ?? [];
 
 	const [showShopDropdown, setShowShopDropdown] = useState(false);
+	const isEditProductPage = location.pathname.includes("/products/edit");
 	const [showNotificationDropdown, setShowNotificationDropdown] =
 		useState(false);
 	const [expandedMenus, setExpandedMenus] = useState<Record<string, boolean>>(
@@ -38,15 +48,77 @@ export default function SellerLayout() {
 		},
 	);
 
+	const currentDashboardSuffix = location.pathname.includes("/dashboard")
+		? location.pathname.slice(
+				location.pathname.indexOf("/dashboard") + "/dashboard".length,
+			)
+		: "";
+	const resolvedShop =
+		shops.find((shop) => String(shop.id) === shopId) ?? activeShop ?? null;
+	const resolvedShopId = resolvedShop?.id ? String(resolvedShop.id) : null;
+	const sellerBasePath = resolvedShopId
+		? `/seller/${resolvedShopId}/dashboard`
+		: "/seller/dashboard";
+	const normalizedLocationPath = shopId
+		? location.pathname.replace(`/seller/${shopId}`, "/seller")
+		: location.pathname;
+
 	useEffect(() => {
-		if (!activeShop) {
-			if (shops.length > 0) {
-				setActiveShop(shops[0]);
-			} else {
-				navigate("/seller");
-			}
+		if (requestedProfileRef.current) return;
+
+		if (!shops.length && !activeShop && !isLoading) {
+			requestedProfileRef.current = true;
 		}
-	}, [activeShop, shops, navigate, setActiveShop]);
+	}, [shops.length, activeShop, isLoading]);
+
+	useEffect(() => {
+		if (isLoading) return;
+
+		if (shopId) {
+			if (shops.length > 0) {
+				const matchedShop = shops.find(
+					(shop) => String(shop.id) === shopId,
+				);
+				if (matchedShop && activeShop?.id !== matchedShop.id) {
+					setActiveShop(matchedShop);
+					return;
+				}
+				if (!matchedShop) {
+					navigate("/seller", { replace: true });
+				}
+			} else if (requestedProfileRef.current && !activeShop) {
+				navigate("/seller", { replace: true });
+			}
+			return;
+		}
+
+		if (activeShop?.id) {
+			const nextPath = `${sellerBasePath}${currentDashboardSuffix}`;
+			if (location.pathname !== nextPath) {
+				navigate(nextPath, { replace: true });
+			}
+			return;
+		}
+
+		if (shops.length > 0) {
+			setActiveShop(shops[0]);
+			return;
+		}
+
+		if (requestedProfileRef.current && !activeShop) {
+			navigate("/seller", { replace: true });
+		}
+	}, [
+		shopId,
+		shops,
+		activeShop,
+		navigate,
+		setActiveShop,
+		location.pathname,
+		sellerBasePath,
+		currentDashboardSuffix,
+		isLoading,
+	]);
 
 	const toggleExpand = (menuKey: string) => {
 		setExpandedMenus((prev) => ({
@@ -58,11 +130,12 @@ export default function SellerLayout() {
 	const handleSwitchShop = (shop: any) => {
 		setActiveShop(shop);
 		setShowShopDropdown(false);
+		navigate(`/seller/${shop.id}/dashboard${currentDashboardSuffix}`);
 	};
 
 	// Helper trả về style động cho sublink dựa theo URL active
 	const getSubLinkClass = (path: string) => {
-		const isSelected = location.pathname === path;
+		const isSelected = normalizedLocationPath === path;
 		return isSelected
 			? "block py-1 px-2 rounded text-[11px] font-bold text-brand-primary-deep bg-brand-primary/10 transition-colors"
 			: "block py-1 px-2 rounded text-[11px] font-medium text-brand-muted hover:text-brand-primary-deep hover:bg-brand-primary/5 transition-colors";
@@ -96,17 +169,25 @@ export default function SellerLayout() {
 	const getBreadcrumbItems = (): BreadcrumbItem[] => {
 		const paths = location.pathname.split("/").filter(Boolean);
 		const items: BreadcrumbItem[] = [
-			{ label: "Người bán", path: "/seller/dashboard" },
+			{ label: "Người bán", path: sellerBasePath },
 		];
 
 		if (paths.includes("dashboard")) {
 			items.push({ label: "Tổng quan" });
 		} else if (paths.includes("products")) {
-			items.push({ label: "Quản lý sản phẩm" });
-			if (paths.includes("list"))
-				items.push({ label: "Danh sách sản phẩm" });
-			else if (paths.includes("category"))
-				items.push({ label: "Danh mục sản phẩm" });
+			if (paths.includes("edit")) {
+				items.push({
+					label: "Sản phẩm",
+					path: `${sellerBasePath}/products/list`,
+				});
+				items.push({ label: "Chỉnh sửa" });
+			} else {
+				items.push({ label: "Quản lý sản phẩm" });
+				if (paths.includes("list"))
+					items.push({ label: "Danh sách sản phẩm" });
+				else if (paths.includes("category"))
+					items.push({ label: "Danh mục sản phẩm" });
+			}
 		} else if (paths.includes("orders")) {
 			items.push({ label: "Quản lý đơn hàng" });
 		} else {
@@ -116,7 +197,18 @@ export default function SellerLayout() {
 		return items;
 	};
 
-	if (!activeShop) return null;
+	if (isLoading && !resolvedShopId) {
+		return (
+			<div className="min-h-screen bg-brand-light-soft flex items-center justify-center font-sans">
+				<div className="flex flex-col items-center gap-3 text-brand-muted text-xs">
+					<div className="w-7 h-7 border-2 border-brand-primary border-t-transparent rounded-full animate-spin" />
+					Đang tải dữ liệu shop...
+				</div>
+			</div>
+		);
+	}
+
+	if (!resolvedShop) return null;
 
 	return (
 		<div className="min-h-screen bg-brand-light-soft flex flex-col font-sans">
@@ -193,12 +285,16 @@ export default function SellerLayout() {
 					>
 						<button className="flex items-center gap-2.5 px-3 py-1.5 rounded-lg hover:bg-brand-light-soft transition-colors cursor-pointer text-left">
 							<img
-								src={activeShop.avatarUrl}
-								alt={activeShop.name}
+								src={resolvedShop.logoUrl}
+								alt={resolvedShop.name}
 								className="w-6 h-6 rounded-full object-cover border border-brand-border"
+								onError={(e) => {
+									(e.target as HTMLImageElement).src =
+										"https://cdn-icons-png.flaticon.com/512/3081/3081986.png";
+								}}
 							/>
-							<span className="text-xs font-bold text-brand-dark max-w-[120px] truncate">
-								{activeShop.name}
+							<span className="text-xs font-bold text-brand-dark max-w-30 truncate">
+								{resolvedShop.name}
 							</span>
 							<ChevronDown className="w-3.5 h-3.5 text-brand-muted shrink-0" />
 						</button>
@@ -217,12 +313,18 @@ export default function SellerLayout() {
 												onClick={() =>
 													handleSwitchShop(shop)
 												}
-												className={`w-full flex items-center gap-2.5 px-2.5 py-2 rounded text-xs text-left cursor-pointer transition-colors ${activeShop.id === shop.id ? "bg-brand-primary/10 text-brand-primary-deep font-bold" : "hover:bg-brand-light-soft text-brand-dark"}`}
+												className={`w-full flex items-center gap-2.5 px-2.5 py-2 rounded text-xs text-left cursor-pointer transition-colors ${resolvedShop.id === shop.id ? "bg-brand-primary/10 text-brand-primary-deep font-bold" : "hover:bg-brand-light-soft text-brand-dark"}`}
 											>
 												<img
-													src={shop.avatarUrl}
+													src={shop.logoUrl}
 													alt={shop.name}
 													className="w-5 h-5 rounded-full object-cover border border-brand-border"
+													onError={(e) => {
+														(
+															e.target as HTMLImageElement
+														).src =
+															"https://cdn-icons-png.flaticon.com/512/3081/3081986.png";
+													}}
 												/>
 												<span className="truncate flex-1">
 													{shop.name}
@@ -253,311 +355,305 @@ export default function SellerLayout() {
 			{/* CONTAINER BODY CHỨA SIDEBAR & CONTENT */}
 			<div className="flex-1 flex overflow-hidden">
 				{/* SIDEBAR NGƯỜI BÁN */}
-				<aside className="w-64 bg-white border-r border-brand-border flex flex-col shrink-0 overflow-y-auto p-4 select-none">
-					<nav className="space-y-1.5">
-						{/* Quản lý sản phẩm */}
-						<div>
-							<button
-								onClick={() => toggleExpand("product")}
-								className="w-full flex items-center justify-between px-3 py-1.5 rounded text-xs font-bold text-brand-dark hover:bg-brand-light-soft cursor-pointer"
-							>
-								<div className="flex items-center gap-2.5">
-									<ShoppingBag className="w-4 h-4 text-brand-muted" />
-									<span>Quản lý sản phẩm</span>
-								</div>
-								{expandedMenus.product ? (
-									<ChevronDown className="w-3.5 h-3.5 text-brand-muted" />
-								) : (
-									<ChevronRight className="w-3.5 h-3.5 text-brand-muted" />
+				{!isEditProductPage && (
+					<aside className="w-64 bg-white border-r border-brand-border flex flex-col shrink-0 overflow-y-auto p-4 select-none">
+						<nav className="space-y-1.5">
+							{/* Quản lý sản phẩm */}
+							<div>
+								<button
+									onClick={() => toggleExpand("product")}
+									className="w-full flex items-center justify-between px-3 py-1.5 rounded text-xs font-bold text-brand-dark hover:bg-brand-light-soft cursor-pointer"
+								>
+									<div className="flex items-center gap-2.5">
+										<ShoppingBag className="w-4 h-4 text-brand-muted" />
+										<span>Quản lý sản phẩm</span>
+									</div>
+									{expandedMenus.product ? (
+										<ChevronDown className="w-3.5 h-3.5 text-brand-muted" />
+									) : (
+										<ChevronRight className="w-3.5 h-3.5 text-brand-muted" />
+									)}
+								</button>
+								{expandedMenus.product && (
+									<div className="pl-3 mt-1 space-y-0.5 border-l border-brand-border ml-4">
+										<Link
+											to="/seller/dashboard/products/list"
+											className={getSubLinkClass(
+												"/seller/dashboard/products/list",
+											)}
+										>
+											Sản phẩm
+										</Link>
+										<Link
+											to="/seller/dashboard/products/bulk"
+											className={getSubLinkClass(
+												"/seller/dashboard/products/bulk",
+											)}
+										>
+											Hàng loạt (Import/Export)
+										</Link>
+									</div>
 								)}
-							</button>
-							{expandedMenus.product && (
-								<div className="pl-3 mt-1 space-y-0.5 border-l border-brand-border ml-4">
-									<Link
-										to="/seller/dashboard/products/list"
-										className={getSubLinkClass(
-											"/seller/dashboard/products/list",
-										)}
-									>
-										Sản phẩm
-									</Link>
-									<Link
-										to="/seller/dashboard/products/category"
-										className={getSubLinkClass(
-											"/seller/dashboard/products/category",
-										)}
-									>
-										Danh mục
-									</Link>
-									<Link
-										to="/seller/dashboard/products/bulk"
-										className={getSubLinkClass(
-											"/seller/dashboard/products/bulk",
-										)}
-									>
-										Hàng loạt (Import/Export)
-									</Link>
-								</div>
-							)}
-						</div>
+							</div>
 
-						{/* Quản lý Đơn hàng */}
-						<div>
-							<button
-								onClick={() => toggleExpand("order")}
-								className="w-full flex items-center justify-between px-3 py-1.5 rounded text-xs font-bold text-brand-dark hover:bg-brand-light-soft cursor-pointer"
-							>
-								<div className="flex items-center gap-2.5">
-									<Package className="w-4 h-4 text-brand-muted" />
-									<span>Quản lý Đơn hàng</span>
-								</div>
-								{expandedMenus.order ? (
-									<ChevronDown className="w-3.5 h-3.5 text-brand-muted" />
-								) : (
-									<ChevronRight className="w-3.5 h-3.5 text-brand-muted" />
+							{/* Quản lý Đơn hàng */}
+							<div>
+								<button
+									onClick={() => toggleExpand("order")}
+									className="w-full flex items-center justify-between px-3 py-1.5 rounded text-xs font-bold text-brand-dark hover:bg-brand-light-soft cursor-pointer"
+								>
+									<div className="flex items-center gap-2.5">
+										<Package className="w-4 h-4 text-brand-muted" />
+										<span>Quản lý Đơn hàng</span>
+									</div>
+									{expandedMenus.order ? (
+										<ChevronDown className="w-3.5 h-3.5 text-brand-muted" />
+									) : (
+										<ChevronRight className="w-3.5 h-3.5 text-brand-muted" />
+									)}
+								</button>
+								{expandedMenus.order && (
+									<div className="pl-3 mt-1 space-y-0.5 border-l border-brand-border ml-4">
+										<Link
+											to="/seller/dashboard/orders"
+											className={getSubLinkClass(
+												"/seller/dashboard/orders",
+											)}
+										>
+											Đơn hàng
+										</Link>
+										<Link
+											to="/seller/dashboard/refunds"
+											className={getSubLinkClass(
+												"/seller/dashboard/refunds",
+											)}
+										>
+											Các yêu cầu hoàn tiền
+										</Link>
+									</div>
 								)}
-							</button>
-							{expandedMenus.order && (
-								<div className="pl-3 mt-1 space-y-0.5 border-l border-brand-border ml-4">
-									<Link
-										to="/seller/dashboard/orders"
-										className={getSubLinkClass(
-											"/seller/dashboard/orders",
-										)}
-									>
-										Đơn hàng
-									</Link>
-									<Link
-										to="/seller/dashboard/refunds"
-										className={getSubLinkClass(
-											"/seller/dashboard/refunds",
-										)}
-									>
-										Các yêu cầu hoàn tiền
-									</Link>
-								</div>
-							)}
-						</div>
+							</div>
 
-						{/* Khuyến mãi */}
-						<div>
-							<button
-								onClick={() => toggleExpand("discount")}
-								className="w-full flex items-center justify-between px-3 py-1.5 rounded text-xs font-bold text-brand-dark hover:bg-brand-light-soft cursor-pointer"
-							>
-								<div className="flex items-center gap-2.5">
-									<Percent className="w-4 h-4 text-brand-muted" />
-									<span>Khuyến mãi</span>
-								</div>
-								{expandedMenus.discount ? (
-									<ChevronDown className="w-3.5 h-3.5 text-brand-muted" />
-								) : (
-									<ChevronRight className="w-3.5 h-3.5 text-brand-muted" />
+							{/* Khuyến mãi */}
+							<div>
+								<button
+									onClick={() => toggleExpand("discount")}
+									className="w-full flex items-center justify-between px-3 py-1.5 rounded text-xs font-bold text-brand-dark hover:bg-brand-light-soft cursor-pointer"
+								>
+									<div className="flex items-center gap-2.5">
+										<Percent className="w-4 h-4 text-brand-muted" />
+										<span>Khuyến mãi</span>
+									</div>
+									{expandedMenus.discount ? (
+										<ChevronDown className="w-3.5 h-3.5 text-brand-muted" />
+									) : (
+										<ChevronRight className="w-3.5 h-3.5 text-brand-muted" />
+									)}
+								</button>
+								{expandedMenus.discount && (
+									<div className="pl-3 mt-1 space-y-0.5 border-l border-brand-border ml-4">
+										<Link
+											to="/seller/dashboard/coupons"
+											className={getSubLinkClass(
+												"/seller/dashboard/coupons",
+											)}
+										>
+											Mã giảm giá
+										</Link>
+										<Link
+											to="/seller/dashboard/flashsale"
+											className={getSubLinkClass(
+												"/seller/dashboard/flashsale",
+											)}
+										>
+											Flash Sale
+										</Link>
+									</div>
 								)}
-							</button>
-							{expandedMenus.discount && (
-								<div className="pl-3 mt-1 space-y-0.5 border-l border-brand-border ml-4">
-									<Link
-										to="/seller/dashboard/coupons"
-										className={getSubLinkClass(
-											"/seller/dashboard/coupons",
-										)}
-									>
-										Mã giảm giá
-									</Link>
-									<Link
-										to="/seller/dashboard/flashsale"
-										className={getSubLinkClass(
-											"/seller/dashboard/flashsale",
-										)}
-									>
-										Flash Sale
-									</Link>
-								</div>
-							)}
-						</div>
+							</div>
 
-						{/* Khách hàng */}
-						<div>
-							<button
-								onClick={() => toggleExpand("customer")}
-								className="w-full flex items-center justify-between px-3 py-1.5 rounded text-xs font-bold text-brand-dark hover:bg-brand-light-soft cursor-pointer"
-							>
-								<div className="flex items-center gap-2.5">
-									<Users className="w-4 h-4 text-brand-muted" />
-									<span>Khách hàng</span>
-								</div>
-								{expandedMenus.customer ? (
-									<ChevronDown className="w-3.5 h-3.5 text-brand-muted" />
-								) : (
-									<ChevronRight className="w-3.5 h-3.5 text-brand-muted" />
+							{/* Khách hàng */}
+							<div>
+								<button
+									onClick={() => toggleExpand("customer")}
+									className="w-full flex items-center justify-between px-3 py-1.5 rounded text-xs font-bold text-brand-dark hover:bg-brand-light-soft cursor-pointer"
+								>
+									<div className="flex items-center gap-2.5">
+										<Users className="w-4 h-4 text-brand-muted" />
+										<span>Khách hàng</span>
+									</div>
+									{expandedMenus.customer ? (
+										<ChevronDown className="w-3.5 h-3.5 text-brand-muted" />
+									) : (
+										<ChevronRight className="w-3.5 h-3.5 text-brand-muted" />
+									)}
+								</button>
+								{expandedMenus.customer && (
+									<div className="pl-3 mt-1 space-y-0.5 border-l border-brand-border ml-4">
+										<Link
+											to="/seller/dashboard/reviews"
+											className={getSubLinkClass(
+												"/seller/dashboard/reviews",
+											)}
+										>
+											Đánh giá sản phẩm
+										</Link>
+										<Link
+											to="/seller/dashboard/qa"
+											className={getSubLinkClass(
+												"/seller/dashboard/qa",
+											)}
+										>
+											Hỏi đáp sản phẩm
+										</Link>
+										<Link
+											to="/seller/dashboard/followers"
+											className={getSubLinkClass(
+												"/seller/dashboard/followers",
+											)}
+										>
+											Người theo dõi
+										</Link>
+									</div>
 								)}
-							</button>
-							{expandedMenus.customer && (
-								<div className="pl-3 mt-1 space-y-0.5 border-l border-brand-border ml-4">
-									<Link
-										to="/seller/dashboard/reviews"
-										className={getSubLinkClass(
-											"/seller/dashboard/reviews",
-										)}
-									>
-										Đánh giá sản phẩm
-									</Link>
-									<Link
-										to="/seller/dashboard/qa"
-										className={getSubLinkClass(
-											"/seller/dashboard/qa",
-										)}
-									>
-										Hỏi đáp sản phẩm
-									</Link>
-									<Link
-										to="/seller/dashboard/followers"
-										className={getSubLinkClass(
-											"/seller/dashboard/followers",
-										)}
-									>
-										Người theo dõi
-									</Link>
-								</div>
-							)}
-						</div>
+							</div>
 
-						{/* Ví Người Bán */}
-						<div>
-							<button
-								onClick={() => toggleExpand("wallet")}
-								className="w-full flex items-center justify-between px-3 py-1.5 rounded text-xs font-bold text-brand-dark hover:bg-brand-light-soft cursor-pointer"
-							>
-								<div className="flex items-center gap-2.5">
-									<Wallet className="w-4 h-4 text-brand-muted" />
-									<span>Ví Người Bán</span>
-								</div>
-								{expandedMenus.wallet ? (
-									<ChevronDown className="w-3.5 h-3.5 text-brand-muted" />
-								) : (
-									<ChevronRight className="w-3.5 h-3.5 text-brand-muted" />
+							{/* Ví Người Bán */}
+							<div>
+								<button
+									onClick={() => toggleExpand("wallet")}
+									className="w-full flex items-center justify-between px-3 py-1.5 rounded text-xs font-bold text-brand-dark hover:bg-brand-light-soft cursor-pointer"
+								>
+									<div className="flex items-center gap-2.5">
+										<Wallet className="w-4 h-4 text-brand-muted" />
+										<span>Ví Người Bán</span>
+									</div>
+									{expandedMenus.wallet ? (
+										<ChevronDown className="w-3.5 h-3.5 text-brand-muted" />
+									) : (
+										<ChevronRight className="w-3.5 h-3.5 text-brand-muted" />
+									)}
+								</button>
+								{expandedMenus.wallet && (
+									<div className="pl-3 mt-1 space-y-0.5 border-l border-brand-border ml-4">
+										<Link
+											to="/seller/dashboard/balance"
+											className={getSubLinkClass(
+												"/seller/dashboard/balance",
+											)}
+										>
+											Số dư
+										</Link>
+										<Link
+											to="/seller/dashboard/transactions"
+											className={getSubLinkClass(
+												"/seller/dashboard/transactions",
+											)}
+										>
+											Lịch sử giao dịch
+										</Link>
+										<Link
+											to="/seller/dashboard/withdrawals"
+											className={getSubLinkClass(
+												"/seller/dashboard/withdrawals",
+											)}
+										>
+											Yêu cầu rút tiền
+										</Link>
+									</div>
 								)}
-							</button>
-							{expandedMenus.wallet && (
-								<div className="pl-3 mt-1 space-y-0.5 border-l border-brand-border ml-4">
-									<Link
-										to="/seller/dashboard/balance"
-										className={getSubLinkClass(
-											"/seller/dashboard/balance",
-										)}
-									>
-										Số dư
-									</Link>
-									<Link
-										to="/seller/dashboard/transactions"
-										className={getSubLinkClass(
-											"/seller/dashboard/transactions",
-										)}
-									>
-										Lịch sử giao dịch
-									</Link>
-									<Link
-										to="/seller/dashboard/withdrawals"
-										className={getSubLinkClass(
-											"/seller/dashboard/withdrawals",
-										)}
-									>
-										Yêu cầu rút tiền
-									</Link>
-								</div>
-							)}
-						</div>
+							</div>
 
-						{/* Báo cáo */}
-						<div>
-							<button
-								onClick={() => toggleExpand("report")}
-								className="w-full flex items-center justify-between px-3 py-1.5 rounded text-xs font-bold text-brand-dark hover:bg-brand-light-soft cursor-pointer"
-							>
-								<div className="flex items-center gap-2.5">
-									<BarChart3 className="w-4 h-4 text-brand-muted" />
-									<span>Báo cáo</span>
-								</div>
-								{expandedMenus.report ? (
-									<ChevronDown className="w-3.5 h-3.5 text-brand-muted" />
-								) : (
-									<ChevronRight className="w-3.5 h-3.5 text-brand-muted" />
+							{/* Báo cáo */}
+							<div>
+								<button
+									onClick={() => toggleExpand("report")}
+									className="w-full flex items-center justify-between px-3 py-1.5 rounded text-xs font-bold text-brand-dark hover:bg-brand-light-soft cursor-pointer"
+								>
+									<div className="flex items-center gap-2.5">
+										<BarChart3 className="w-4 h-4 text-brand-muted" />
+										<span>Báo cáo</span>
+									</div>
+									{expandedMenus.report ? (
+										<ChevronDown className="w-3.5 h-3.5 text-brand-muted" />
+									) : (
+										<ChevronRight className="w-3.5 h-3.5 text-brand-muted" />
+									)}
+								</button>
+								{expandedMenus.report && (
+									<div className="pl-3 mt-1 space-y-0.5 border-l border-brand-border ml-4">
+										<Link
+											to="/seller/dashboard/revenue"
+											className={getSubLinkClass(
+												"/seller/dashboard/revenue",
+											)}
+										>
+											Doanh thu
+										</Link>
+										<Link
+											to="/seller/dashboard/top-products"
+											className={getSubLinkClass(
+												"/seller/dashboard/top-products",
+											)}
+										>
+											Sản phẩm bán chạy
+										</Link>
+										<Link
+											to="/seller/dashboard/sales-perf"
+											className={getSubLinkClass(
+												"/seller/dashboard/sales-perf",
+											)}
+										>
+											Hiệu suất bán hàng
+										</Link>
+										<Link
+											to="/seller/dashboard/customer-stats"
+											className={getSubLinkClass(
+												"/seller/dashboard/customer-stats",
+											)}
+										>
+											Thống kê khách hàng
+										</Link>
+									</div>
 								)}
-							</button>
-							{expandedMenus.report && (
-								<div className="pl-3 mt-1 space-y-0.5 border-l border-brand-border ml-4">
-									<Link
-										to="/seller/dashboard/revenue"
-										className={getSubLinkClass(
-											"/seller/dashboard/revenue",
-										)}
-									>
-										Doanh thu
-									</Link>
-									<Link
-										to="/seller/dashboard/top-products"
-										className={getSubLinkClass(
-											"/seller/dashboard/top-products",
-										)}
-									>
-										Sản phẩm bán chạy
-									</Link>
-									<Link
-										to="/seller/dashboard/sales-perf"
-										className={getSubLinkClass(
-											"/seller/dashboard/sales-perf",
-										)}
-									>
-										Hiệu suất bán hàng
-									</Link>
-									<Link
-										to="/seller/dashboard/customer-stats"
-										className={getSubLinkClass(
-											"/seller/dashboard/customer-stats",
-										)}
-									>
-										Thống kê khách hàng
-									</Link>
-								</div>
-							)}
-						</div>
+							</div>
 
-						{/* Cài đặt Shop */}
-						<div>
-							<button
-								onClick={() => toggleExpand("settings")}
-								className="w-full flex items-center justify-between px-3 py-1.5 rounded text-xs font-bold text-brand-dark hover:bg-brand-light-soft cursor-pointer"
-							>
-								<div className="flex items-center gap-2.5">
-									<Settings className="w-4 h-4 text-brand-muted" />
-									<span>Cài đặt Shop</span>
-								</div>
-								{expandedMenus.settings ? (
-									<ChevronDown className="w-3.5 h-3.5 text-brand-muted" />
-								) : (
-									<ChevronRight className="w-3.5 h-3.5 text-brand-muted" />
+							{/* Cài đặt Shop */}
+							<div>
+								<button
+									onClick={() => toggleExpand("settings")}
+									className="w-full flex items-center justify-between px-3 py-1.5 rounded text-xs font-bold text-brand-dark hover:bg-brand-light-soft cursor-pointer"
+								>
+									<div className="flex items-center gap-2.5">
+										<Settings className="w-4 h-4 text-brand-muted" />
+										<span>Cài đặt Shop</span>
+									</div>
+									{expandedMenus.settings ? (
+										<ChevronDown className="w-3.5 h-3.5 text-brand-muted" />
+									) : (
+										<ChevronRight className="w-3.5 h-3.5 text-brand-muted" />
+									)}
+								</button>
+								{expandedMenus.settings && (
+									<div className="pl-3 mt-1 space-y-0.5 border-l border-brand-border ml-4">
+										<Link
+											to="/seller/dashboard/settings"
+											className={getSubLinkClass(
+												"/seller/dashboard/settings",
+											)}
+										>
+											Thông tin shop
+										</Link>
+									</div>
 								)}
-							</button>
-							{expandedMenus.settings && (
-								<div className="pl-3 mt-1 space-y-0.5 border-l border-brand-border ml-4">
-									<Link
-										to="/seller/dashboard/settings"
-										className={getSubLinkClass(
-											"/seller/dashboard/settings",
-										)}
-									>
-										Thông tin shop
-									</Link>
-								</div>
-							)}
-						</div>
-					</nav>
-				</aside>
+							</div>
+						</nav>
+					</aside>
+				)}
 
 				{/* NỘI DUNG CHÍNH */}
 				<main className="flex-1 overflow-y-auto p-3 flex flex-col">
-					<div className="flex-1 bg-white border border-brand-border rounded-[2px] shadow-[0_1px_3px_rgba(0,0,0,0.02)] p-6">
+					<div className="flex-1 bg-white border border-brand-border rounded-xs shadow-[0_1px_3px_rgba(0,0,0,0.02)] p-6">
 						<Outlet />
 					</div>
 				</main>

@@ -16,17 +16,9 @@ namespace Ecommerce.Services.Sellers.Api.Features.Shops.Queries.GetMySellerProfi
 
 public record ShopDto(
     long Id,
-    long OwnerUserId,
     string Name,
     string Description,
-    string? LogoUrl,
-    string Status,
-    string RecipientName,
-    string Phone,
-    string AddressLine,
-    long ProvinceId,
-    long DistrictId,
-    long WardId);
+    string? LogoUrl);
 
 public record SellerProfileDto(
     SellerKycDto? Kyc,
@@ -65,17 +57,9 @@ public class GetMySellerProfileQueryHandler(
             var shops = (await shopRepo.GetAllAsync(s => s.OwnerUserId == request.UserId))
                 .Select(s => new ShopDto(
                     s.Id,
-                    s.OwnerUserId,
                     s.Name,
                     s.Description,
-                    s.LogoUrl,
-                    s.Status.ToString(),
-                    s.PickUpAddress.RecipientName,
-                    s.PickUpAddress.Phone,
-                    s.PickUpAddress.AddressLine,
-                    s.PickUpAddress.ProvinceId,
-                    s.PickUpAddress.DistrictId,
-                    s.PickUpAddress.WardId)).ToList();
+                    s.LogoUrl)).ToList();
 
             var profileDto = new SellerProfileDto(kycDto, shops);
             return Result<SellerProfileDto>.Success(profileDto);

@@ -20,7 +20,7 @@ public class VariantRepository(ProductDbContext context) : GenericEfRepository<P
         return await context.ProductVariants
             .FromSqlRaw(sql, parameterValues)
             .Include(x => x.Product)
-            .Include(x => x.Options)
+            .Include(x => x.VariantOptions)
             .ThenInclude(o => o.OptionValue)
             .ThenInclude(ov => ov.Option)
             .ToListAsync(cancellationToken);

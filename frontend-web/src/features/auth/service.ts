@@ -1,4 +1,6 @@
 import api from "../../shared/lib/axios";
+import { queryClient } from "../../shared/lib/react-query";
+import { authQueryKeys } from "./api/queryKeys";
 import { useAuthStore } from "./store";
 
 export const authService = {
@@ -9,8 +11,8 @@ export const authService = {
 		});
 		const { accessToken } = response.data;
 
-		// Khởi chạy lưu trữ token và load profile
-		await useAuthStore.getState().loginSuccess(accessToken);
+		useAuthStore.getState().setAccessToken(accessToken);
+		await queryClient.invalidateQueries({ queryKey: authQueryKeys.me });
 
 		return accessToken;
 	},
@@ -41,6 +43,7 @@ export const authService = {
 	},
 
 	async logout(): Promise<void> {
+		queryClient.removeQueries({ queryKey: authQueryKeys.me });
 		useAuthStore.getState().clearState();
 	},
 };

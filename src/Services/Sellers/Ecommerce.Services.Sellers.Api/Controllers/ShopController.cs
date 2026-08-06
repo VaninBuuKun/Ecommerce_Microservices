@@ -7,6 +7,7 @@ using Ecommerce.Services.Sellers.Api.Features.Shops.Commands.ActivateShop;
 using Ecommerce.Services.Sellers.Api.Features.Shops.Commands.BanShop;
 using Ecommerce.Services.Sellers.Api.Features.Shops.Commands.CreateShop;
 using Ecommerce.Services.Sellers.Api.Features.Shops.Commands.SuspendShop;
+using Ecommerce.Services.Sellers.Api.Features.Shops.Commands.UpdateShop;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -49,6 +50,38 @@ public class ShopController(ISender sender, ICurrentUserService currentUserServi
             Name: request.Name,
             Description: request.Description,
             LogoUrl: request.LogoUrl
+        );
+
+        var result = await sender.Send(command);
+        if (!result.IsSuccess)
+        {
+            return StatusCode((int)result.ErrorCode.ToHttpStatusCode(), result.Message);
+        }
+
+        return Ok(result.Value);
+    }
+
+    [HttpPut("{id:long}")]
+    [Authorize]
+    public async Task<IActionResult> UpdateShop(long id, [FromBody] UpdateShopRequest request)
+    {
+        if (!currentUserService.IsAuthenticated)
+        {
+            return Unauthorized("Tài khoản chưa được xác thực danh tính.");
+        }
+
+        var command = new UpdateShopCommand(
+            ShopId: id,
+            OwnerUserId: currentUserService.UserId,
+            Name: request.Name,
+            Description: request.Description,
+            LogoUrl: request.LogoUrl,
+            RecipientName: request.RecipientName,
+            Phone: request.Phone,
+            AddressLine: request.AddressLine,
+            ProvinceId: request.ProvinceId,
+            DistrictId: request.DistrictId,
+            WardId: request.WardId
         );
 
         var result = await sender.Send(command);
@@ -116,4 +149,16 @@ public record CreateShopRequest(
     string Name,
     string Description,
     string LogoUrl
+);
+
+public record UpdateShopRequest(
+    string Name,
+    string Description,
+    string? LogoUrl,
+    string RecipientName,
+    string Phone,
+    string AddressLine,
+    long ProvinceId,
+    long DistrictId,
+    long WardId
 );
