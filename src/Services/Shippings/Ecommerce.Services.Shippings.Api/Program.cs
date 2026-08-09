@@ -46,7 +46,6 @@ try
         o.Address = new Uri(builder.Configuration["Services:SellerGrpcUrl"] ?? "http://localhost:5043");
     });
     // builder.Services.AddHostedService<LocationSyncJob>();
-
     builder.Services.Configure<ForwardedHeadersOptions>(options =>
     {
         options.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
@@ -67,8 +66,6 @@ try
             o.UseBusOutbox();
         });
     });
-
-    builder.Services.AddHostedService<LocationSyncJob>();
 
     builder.Services.AddBuildingBlocksInfrastructure(builder.Configuration);
     builder.Services.AddBuildingBlocsAuth(builder.Configuration);

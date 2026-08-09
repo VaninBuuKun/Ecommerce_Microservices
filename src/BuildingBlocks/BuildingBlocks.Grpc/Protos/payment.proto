@@ -4,6 +4,36 @@ option csharp_namespace = "BuildingBlocks.Grpc.Services";
 
 service PaymentGrpc {
   rpc CreatePayment (CreatePaymentGrpcRequest) returns (CreatePaymentGrpcResponse);
+  rpc GetPaymentMethod(GetPaymentMethodRequest) returns (GetPaymentMethodResponse);
+  rpc GetPaymentByOrder(GetPaymentByOrderRequest) returns (GetPaymentByOrderResponse);
+}
+
+message GetPaymentByOrderRequest {
+  string order_id = 1;
+}
+
+message GetPaymentByOrderResponse {
+  bool found = 1;
+  string payment_id = 2;
+  string status = 5;
+  string paymentUrl = 6;
+  string method_title = 7;
+  string provider_name = 8;
+  string iconUrl = 9;
+}
+
+message GetPaymentMethodRequest {
+  int64 id = 1;
+}
+
+message GetPaymentMethodResponse {
+  bool found = 1;
+  int64 id = 2;
+  string title = 3;
+  string sub_title = 4;
+  string provider_name = 5;
+  string icon_url = 6;
+  bool is_active = 7;
 }
 
 message CreatePaymentGrpcRequest {

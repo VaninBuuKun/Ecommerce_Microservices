@@ -73,9 +73,8 @@ public class InitVariantsCommandHandler(
                 }
 
                 var createdVariant = product.AddVariant(
-                    varDto.Sku,
                     varDto.Price,
-                    varDto.AvailableStocks,
+                    varDto.AvailableStock,
                     optionValueIds,
                     varDto.Weight ?? 0,
                     varDto.Length ?? 0,

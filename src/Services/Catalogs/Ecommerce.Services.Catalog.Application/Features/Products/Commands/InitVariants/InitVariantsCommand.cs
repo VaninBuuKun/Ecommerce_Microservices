@@ -32,7 +32,7 @@ public record VariantOptionValueDto(
 public record VariantDto(
     string? Sku, 
     decimal Price, 
-    int AvailableStocks, 
+    int AvailableStock, 
     List<VariantOptionValueDto> OptionValues,
     double? Weight = null,
     double? Length = null,

@@ -15,7 +15,8 @@ public class GetCategoriesQueryHandler(IEfUnitOfWork unitOfWork, IMapper mapper)
         {
             var cateRepo = unitOfWork.Repository<Category, Guid>();
             
-            var categories = await cateRepo.GetAllAsync(predicate: cat => cat.ParentId == null &&cat.IsActive == true, cancellationToken: cancellationToken);
+            var spec = new CategoryTreeSpec();
+            var categories = await cateRepo.GetListAsync(spec, cancellationToken);
             
             var response = mapper.Map<List<CategoryDto>>(categories);
             

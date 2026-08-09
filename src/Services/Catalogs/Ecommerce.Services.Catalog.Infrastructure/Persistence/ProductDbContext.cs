@@ -97,6 +97,9 @@ public class ProductDbContext(DbContextOptions<ProductDbContext> options, IInMem
             entity.Navigation(p => p.Variants)
                   .UsePropertyAccessMode(PropertyAccessMode.Field);
             
+            entity.Property(p => p.Price).HasColumnType("decimal(18,2)").HasDefaultValue(0);
+            entity.Property(p => p.DiscountPrice).HasColumnType("decimal(18,2)").HasDefaultValue(0);
+            entity.Property(p => p.AvailableStock).HasDefaultValue(0);
             entity.Property(p => p.Weight).HasDefaultValue(0);
             entity.Property(p => p.Height).HasDefaultValue(0);
             entity.Property(p => p.Width).HasDefaultValue(0);
@@ -136,7 +139,6 @@ public class ProductDbContext(DbContextOptions<ProductDbContext> options, IInMem
         {
             entity.HasKey(v => v.Id);
             entity.Property(v => v.Price).HasColumnType("decimal(18,2)");
-            entity.Property(v => v.Sku).HasMaxLength(50);
             
 
             entity.HasMany(v => v.VariantOptions)
@@ -155,7 +157,7 @@ public class ProductDbContext(DbContextOptions<ProductDbContext> options, IInMem
             entity.HasOne(vo => vo.OptionValue)
                   .WithMany()
                   .HasForeignKey(vo => vo.OptionValueId)
-                  .OnDelete(DeleteBehavior.Restrict);
+                  .OnDelete(DeleteBehavior.Cascade);
         });
     }
 }

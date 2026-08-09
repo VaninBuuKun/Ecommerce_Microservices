@@ -21,6 +21,12 @@ public class GetVariantByIdQueryHandler(IEfUnitOfWork unitOfWork, IMapper mapper
 
             if (variant == null)
             {
+                var product = await unitOfWork.Repository<Product, Guid>().GetByIdAsync(query.VariantId, cancellationToken);
+                if (product != null)
+                {
+                    var productDto = mapper.Map<VariantDto>(product);
+                    return Result<VariantDto>.Success(productDto);
+                }
                 return  Result<VariantDto>.Failure("Variant not found", EErrorCode.NotFound);
             }
             var response = mapper.Map<VariantDto>(variant);

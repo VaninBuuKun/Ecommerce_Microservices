@@ -43,10 +43,6 @@ public class CartGrpcService(ISender sender, IMapper mapper) : CartGrpc.CartGrpc
                         UnitPrice = item.UnitPrice.ToString(),
                         ShopId = item.ShopId,
                         AvailableStocks = item.AvailableStocks,
-                        Weight = item.Weight,
-                        Length = item.Length,
-                        Width = item.Width,
-                        Height = item.Height
                     });
                 }
             }

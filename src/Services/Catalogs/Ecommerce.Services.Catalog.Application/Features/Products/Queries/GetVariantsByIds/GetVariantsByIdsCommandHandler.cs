@@ -15,13 +15,27 @@ public class GetVariantsByIdsCommandHandler(IEfUnitOfWork unitOfWork, IMapper ma
     public async Task<Result<List<VariantDto>>> Handle(GetVariantsByIdsQuery request, CancellationToken cancellationToken)
     {
         var productVariantRepository = unitOfWork.Repository<ProductVariant, Guid>();
+        var productRepository = unitOfWork.Repository<Product, Guid>();
         
-        var spec = new VariantsAndOptionsSpec(request.VariantIds);
+        var results = new List<VariantDto>();
 
-        var productVariants = await productVariantRepository.GetListAsync(spec, cancellationToken: cancellationToken);
+        if (request.VariantIds != null && request.VariantIds.Any())
+        {
+            var spec = new VariantsAndOptionsSpec(request.VariantIds);
+            var productVariants = await productVariantRepository.GetListAsync(spec, cancellationToken: cancellationToken);
+            
+            results.AddRange(mapper.Map<List<VariantDto>>(productVariants));
+        }
 
-        var result = mapper.Map<List<VariantDto>>(productVariants);
+        if (request.ProductIds != null && request.ProductIds.Any())
+        {
+            var products = await productRepository.GetAllAsync(
+                p => request.ProductIds.Contains(p.Id),
+                cancellationToken: cancellationToken
+            );
+            results.AddRange(mapper.Map<List<VariantDto>>(products));
+        }
 
-        return Result<List<VariantDto>>.Success(result);
+        return Result<List<VariantDto>>.Success(results);
     }
 }

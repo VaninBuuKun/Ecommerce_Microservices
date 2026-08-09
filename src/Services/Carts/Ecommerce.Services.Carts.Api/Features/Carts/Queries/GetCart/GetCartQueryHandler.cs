@@ -47,8 +47,16 @@ public class GetCartQueryHandler(
                 });
             }
 
-            var variantIds = cart.Items.Select(i => i.ProductVariantId.ToString()).ToList();
-            var listProductResult = await productService.GetProductVariantListAsync(variantIds);
+            var variantIds = cart.Items
+                .Where(i => i.ProductVariantId.HasValue && i.ProductVariantId.Value != Guid.Empty)
+                .Select(i => i.ProductVariantId.Value.ToString())
+                .ToList();
+            var productIds = cart.Items
+                .Where(i => !i.ProductVariantId.HasValue || i.ProductVariantId.Value == Guid.Empty)
+                .Select(i => i.ProductId.ToString())
+                .ToList();
+
+            var listProductResult = await productService.GetProductVariantListAsync(variantIds, productIds);
             
             if (!listProductResult.IsSuccess)
             {
@@ -62,9 +70,15 @@ public class GetCartQueryHandler(
             var flatItems = mapper.Map<List<CartItemResponse>>(cart.Items);
             foreach (var item in flatItems)
             {
-                if (productDist.TryGetValue(item.ProductVariantId, out var productInfo))
+                var lookupKey = (item.ProductVariantId != Guid.Empty) ? item.ProductVariantId : item.ProductId;
+                if (productDist.TryGetValue(lookupKey, out var productInfo))
                 {
-                    mapper.Map(productInfo, item);
+                    item.ProductName = productInfo.ProductName;
+                    item.VariantName = productInfo.VariantName;
+                    item.UnitPrice = productInfo.UnitPrice;
+                    item.AvailableStocks = (int)productInfo.AvailableStocks;
+                    item.ShopId = productInfo.ShopId;
+                    item.ThumbnailUrl = productInfo.ThumbnailUrl;
                 }
             }
 

@@ -200,7 +200,7 @@ public class CreateOrderCommandHandler(
                     CreatedAt = DateTime.UtcNow,
                     CustomerId = subOrder.CustomerId,
                     ShopId = subOrder.ShopId,
-                    TotalAmount = subOrder.SubTotal,
+                    TotalAmount = subOrder.GrandTotal,
                     ShippingAddress = order.ShippingAddress,
                     RecipientName = order.RecipientName,
                     RecipientPhone = order.RecipientPhone,

@@ -106,4 +106,36 @@ public async Task<IActionResult> Refresh()
     });
 }
 
+    [HttpPost("logout")]
+    public async Task<IActionResult> Logout()
+    {
+        if (Request.Cookies.TryGetValue("refresh_token", out var refreshToken) && !string.IsNullOrEmpty(refreshToken))
+        {
+            try
+            {
+                var client = httpClientFactory.CreateClient(HttpClientConstansts.IdentityClientName);
+                var body = new Dictionary<string, string>
+                {
+                    { "client_id", "api-client" },
+                    { "token", refreshToken },
+                    { "token_type_hint", "refresh_token" }
+                };
+                var encodedContext = new FormUrlEncodedContent(body);
+                await client.PostAsync("/connect/revocation", encodedContext);
+            }
+            catch
+            {
+                // Ignore and proceed to delete cookie
+            }
+        }
+
+        Response.Cookies.Delete("refresh_token", new CookieOptions
+        {
+            HttpOnly = true,
+            Secure = false,
+            SameSite = SameSiteMode.Lax
+        });
+
+        return NoContent();
+    }
 }

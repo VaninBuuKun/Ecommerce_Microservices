@@ -1,6 +1,3 @@
-using System;
-using System.Threading;
-using System.Threading.Tasks;
 using BuildingBlocks.Grpc.Services;
 using BuildingBlocks.Shared.Commons;
 using BuildingBlocks.Shared.Enums;

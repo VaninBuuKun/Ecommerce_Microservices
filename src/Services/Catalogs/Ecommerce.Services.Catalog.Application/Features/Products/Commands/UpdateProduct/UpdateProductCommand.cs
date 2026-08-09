@@ -19,12 +19,9 @@ public record UpdateProductCommand(
     Guid Id, 
     string Name, 
     string Description, 
-    double Weight, 
-    double Length, 
-    double Width, 
-    double Height,
     string? ThumbnailUrl,
     string? VideoUrl,
-    List<string> ImageUrls
+    List<string> ImageUrls,
+    Guid? CategoryId
 ) : ICommand<ProductResponse>;
 

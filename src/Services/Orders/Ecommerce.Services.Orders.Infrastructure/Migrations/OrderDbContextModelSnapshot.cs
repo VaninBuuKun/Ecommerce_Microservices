@@ -241,6 +241,9 @@ namespace Ecommerce.Services.Orders.Infrastructure.Migrations
                     b.Property<Guid>("SubOrderId")
                         .HasColumnType("uuid");
 
+                    b.Property<string>("ThumbnailUrl")
+                        .HasColumnType("text");
+
                     b.Property<decimal>("UnitPrice")
                         .HasColumnType("decimal(18,2)");
 
