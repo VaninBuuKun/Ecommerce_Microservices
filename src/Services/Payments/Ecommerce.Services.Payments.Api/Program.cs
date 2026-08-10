@@ -1,56 +1,25 @@
-using System.Reflection;
 using System.Text.Json.Serialization;
-using BuildingBlocks.Application;
-using BuildingBlocks.Auth;
-using BuildingBlocks.EfCore;
-using BuildingBlocks.EfCore.Persistence.Commons;
 using BuildingBlocks.Logging;
-using BuildingBlocks.Shared.InfrastructureInterfaces.Persistence.EFCore;
-using BuildingBlocks.Web.Extensions;
-using Ecommerce.Services.Payments.Api.Models.Interfaces;
 using Ecommerce.Services.Payments.Api.Models.Settings;
-using Ecommerce.Services.Payments.Api.Persistances;
-using Ecommerce.Services.Payments.Api.Services;
-using BuildingBlocks.Messaging;
-using Microsoft.EntityFrameworkCore;
+using Ecommerce.Services.Payments.Api.Configurations;
+using Ecommerce.Services.Payments.Api.GrpcServers;
 using Microsoft.AspNetCore.HttpOverrides;
 using Scalar.AspNetCore;
 using Serilog;
-using Serilog.Core;
-using MassTransit;
 
 var builder = WebApplication.CreateBuilder(args);
-builder.AddCustomSerilog("paymentApi");
+builder.AddCustomSerilog("PaymentService");
+builder.AddCustomTracing("PaymentService");
 Log.Information("Payment Service starting......");
 try
 {
-    //MyDi
     builder.Services.AddControllers()
         .AddJsonOptions(options =>
         {
             options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
         });
-    builder.Services.AddGrpc();
-    var connectionString = builder.Configuration.GetConnectionString("Database");
-    builder.Services.AddHttpContextAccessor();
     
-    // Register Seller gRPC client
-    builder.Services.AddGrpcClient<BuildingBlocks.Grpc.Services.SellerGrpc.SellerGrpcClient>(o =>
-    {
-        o.Address = new Uri(builder.Configuration["Services:SellerGrpcUrl"] ?? throw new InvalidOperationException("SellerGrpcUrl is missing."));
-    });
-    builder.Services.AddDbContext<PaymentDbContext>(options =>
-        options.UseNpgsql(connectionString));
-    builder.Services.AddScoped<IPaymentMethodService, PaymentMethodService>();
-    builder.Services.AddScoped<IPaymentService, PaymentService>();
-    builder.Services.AddScoped<IWalletService, WalletService>();
-    builder.Services.AddScoped<IWithdrawalService, WithdrawalService>();
-    builder.Services.AddScoped<IEfUnitOfWork, EfUnitOfWork<PaymentDbContext>>();
-    builder.Services.AddScoped<PaymentGatewayFactory>();
-    builder.Services.AddScoped<IPaymentGateway, MomoPaymentGateway>();
-    builder.Services.AddScoped<IPaymentGateway, CODPaymentGateway>();
-    builder.Services.AddScoped<IPaymentGateway, VNPayPaymentGateway>();
-    builder.Services.AddHttpClient();
+    
     builder.Services.Configure<MomoSettings>(builder.Configuration.GetSection("Momo"));
     builder.Services.Configure<VNPaySettings>(builder.Configuration.GetSection("VNPay"));
     builder.Services.Configure<ForwardedHeadersOptions>(options =>
@@ -63,24 +32,8 @@ try
         options.KnownNetworks.Clear();
         options.KnownProxies.Clear();
     });
-
-
-
-    //BuildingBlocks
-    builder.Services.AddBuildingBlocksWeb(builder.Configuration);
-    builder.Services.AddMasstransitEventBus(builder.Configuration, config =>
-    {
-        config.AddConsumers(Assembly.GetExecutingAssembly());
-        
-        config.AddEntityFrameworkOutbox<PaymentDbContext>(o =>
-        {
-            o.UsePostgres();
-            o.UseBusOutbox();
-        });
-    });
-    builder.Services.AddBuildingBlocksInfrastructure(builder.Configuration);
-    builder.Services.AddBuildingBlocsAuth(builder.Configuration);
-    builder.Services.AddBuildingBlocksApplication(Assembly.GetExecutingAssembly());
+    
+    builder.Services.AddInfrastructureConfiguration(builder.Configuration);
 
     var app = builder.Build();
 
@@ -89,10 +42,12 @@ try
         app.MapOpenApi();
         app.MapScalarApiReference();
     }
-
-    app.UseHttpsRedirection();
+    else
+    {
+        app.UseHttpsRedirection();
+    }
     app.UseCors("CorsPolicy");
-    app.MapGrpcService<Ecommerce.Services.Payments.Api.GrpcServers.PaymentGrpcServer>();
+    app.MapGrpcService<PaymentGrpcServer>();
     app.MapControllers();
     app.Run();
 }

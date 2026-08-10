@@ -5,7 +5,11 @@ using Microsoft.Extensions.Configuration;
 using Ecommerce.Services.Orders.Infrastructure.Persistence;
 using BuildingBlocks.Shared.InfrastructureInterfaces.Persistence.EFCore;
 using BuildingBlocks.EfCore.Persistence.Commons;
+using BuildingBlocks.Grpc.Services;
 using BuildingBlocks.Messaging;
+using Ecommerce.Services.Orders.Application.Services;
+using Ecommerce.Services.Orders.Infrastructure.BackgroundServices;
+using Ecommerce.Services.Orders.Infrastructure.GrpcClients;
 using Ecommerce.Services.Orders.Infrastructure.Sagas;
 using MassTransit;
 using Microsoft.EntityFrameworkCore;
@@ -39,8 +43,46 @@ public static class DependencyInjection
             });
         });
         
+        //Grpc
+        services.AddGrpc();
+        AppContext.SetSwitch("System.Net.Http.SocketsHttpHandler.Http2UnencryptedSupport", true);
+        services.AddGrpcClient<ProductGrpc.ProductGrpcClient>(o =>
+        {
+            o.Address = new Uri(configuration["Services:ProductGrpcUrl"] ?? throw new InvalidOperationException("ProductGrpcUrl is missing."));
+        });
+        services.AddGrpcClient<CartGrpc.CartGrpcClient>(o =>
+        {
+            o.Address = new Uri(configuration["Services:CartGrpcUrl"] ?? throw new InvalidOperationException("CartGrpcUrl is missing."));
+        });
+        services.AddGrpcClient<PaymentGrpc.PaymentGrpcClient>(o =>
+        {
+            o.Address = new Uri(configuration["Services:PaymentGrpcUrl"] ?? throw new InvalidOperationException("PaymentGrpcUrl is missing."));
+        });
+        services.AddGrpcClient<SellerGrpc.SellerGrpcClient>(o =>
+        {
+            o.Address = new Uri(configuration["Services:SellerGrpcUrl"] ?? throw new InvalidOperationException("SellerGrpcUrl is missing."));
+        });
+        services.AddGrpcClient<IdentityGrpc.IdentityGrpcClient>(o =>
+        {
+            o.Address = new Uri(configuration["Services:IdentityGrpcUrl"] ?? throw new InvalidOperationException("IdentityGrpcUrl is missing."));
+        });
+        services.AddGrpcClient<ShippingGrpc.ShippingGrpcClient>(o =>
+        {
+            o.Address = new Uri(configuration["Services:ShippingGrpcUrl"] ?? throw new InvalidOperationException("ShippingGrpcUrl is missing."));
+        });
+        
+        
+        //Services
+        services.AddScoped<ICartService, CartClientService>();
+        services.AddScoped<IProductService, ProductClientService>();
+        services.AddScoped<IPaymentService, PaymentClientService>();
+        services.AddScoped<ISellerService, SellerClientService>();
+        services.AddScoped<IIdentityService, IdentityClientService>();
+        services.AddScoped<IShippingService, ShippingClientService>();
+        
+        //Repo
         services.AddScoped<IEfUnitOfWork, EfUnitOfWork<OrderDbContext>>();
-        services.AddHostedService<Ecommerce.Services.Orders.Infrastructure.BackgroundServices.AutoCompleteOrdersBackgroundService>();
+        services.AddHostedService<AutoCompleteOrdersBackgroundService>();
         
         return services;
     }
