@@ -16,9 +16,10 @@ public class MyProductDto
     public string Name { get; set; } = string.Empty;
     public string Description { get; set; } = string.Empty;
     public decimal Price { get; set; }
+    public decimal DiscountPrice { get; set; }
     public string ThumbnailUrl { get; set; }
     public long AvailableStock { get; set; }
-    public ProductStatus Status { get; set; }
+    public string Status { get; set; } = string.Empty;
     
     public List<MyVariantDto> Variants { get; set; }
 }

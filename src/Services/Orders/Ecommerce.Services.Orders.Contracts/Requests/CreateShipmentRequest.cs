@@ -1,9 +1,10 @@
 using System;
 using System.Collections.Generic;
+using BuildingBlocks.Shared.InfrastructureInterfaces.Messaging;
 
 namespace Ecommerce.Services.Orders.Contracts.Requests;
 
-public class CreateShipmentRequest
+public class CreateShipmentRequest : IIntegrationEvent
 {
     public Guid SubOrderId { get; set; }
     public Guid OrderId { get; set; }
@@ -18,6 +19,7 @@ public class CreateShipmentRequest
     public double Width { get; set; }
     public double Length { get; set; }
     public decimal CodAmount { get; set; }
+    public bool IsReturn { get; set; }
     public List<ShipmentItemData> Items { get; set; } = new();
 }
 

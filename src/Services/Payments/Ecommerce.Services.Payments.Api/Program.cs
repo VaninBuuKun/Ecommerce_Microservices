@@ -92,7 +92,7 @@ try
 
     app.UseHttpsRedirection();
     app.UseCors("CorsPolicy");
-    app.MapGrpcService<Ecommerce.Services.Payments.Api.GrpcServers.PaymentGrpcService>();
+    app.MapGrpcService<Ecommerce.Services.Payments.Api.GrpcServers.PaymentGrpcServer>();
     app.MapControllers();
     app.Run();
 }

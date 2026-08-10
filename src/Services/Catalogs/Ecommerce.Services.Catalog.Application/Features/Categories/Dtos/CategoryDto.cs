@@ -7,4 +7,5 @@ public class CategoryDto
     public string? Description { get; set; }
     public string? ParentId { get; set; }
     public string? IconUrl { get; set; }
+    public List<CategoryDto> SubCategories { get; set; } = new();
 }

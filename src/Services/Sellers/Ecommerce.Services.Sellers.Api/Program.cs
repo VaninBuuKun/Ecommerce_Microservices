@@ -43,7 +43,12 @@ try
     {
         o.Address = new Uri(builder.Configuration["Services:ShippingGrpcUrl"] ?? "http://localhost:5071");
     });
+    builder.Services.AddGrpcClient<BuildingBlocks.Grpc.Services.PaymentGrpc.PaymentGrpcClient>(o =>
+    {
+        o.Address = new Uri(builder.Configuration["Services:PaymentGrpcUrl"] ?? "http://localhost:5053");
+    });
     builder.Services.AddScoped<Ecommerce.Services.Sellers.Api.Services.IShippingService, Ecommerce.Services.Sellers.Api.Services.ShippingService>();
+    builder.Services.AddScoped<Ecommerce.Services.Sellers.Api.Services.IPaymentService, Ecommerce.Services.Sellers.Api.Services.PaymentService>();
 
     // Cấu hình Building Blocks
     builder.Services.AddBuildingBlocksWeb(builder.Configuration);

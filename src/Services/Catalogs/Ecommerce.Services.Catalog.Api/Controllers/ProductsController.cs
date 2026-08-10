@@ -1,13 +1,13 @@
 using BuildingBlocks.Auth;
 using Ecommerce.Services.Catalog.Api.Models.Dtos;
+using Ecommerce.Services.Catalog.Application.Features.Products.Commands.BulkUpdateVariants;
 using Ecommerce.Services.Catalog.Application.Features.Products.Commands.CreateProduct;
 using Ecommerce.Services.Catalog.Application.Features.Products.Commands.DeleteProduct;
 using Ecommerce.Services.Catalog.Application.Features.Products.Commands.UpdateProduct;
 using Ecommerce.Services.Catalog.Application.Features.Products.Commands.SetupProductVariants;
-using Ecommerce.Services.Catalog.Application.Features.Products.Commands.CreateProductVariant;
-using Ecommerce.Services.Catalog.Application.Features.Products.Commands.UpdateProductVariant;
 using Ecommerce.Services.Catalog.Application.Features.Products.Commands.DeleteProductVariant;
 using Ecommerce.Services.Catalog.Application.Features.Products.Commands.InitSingleVariant;
+using Ecommerce.Services.Catalog.Application.Features.Products.Commands.ToggleProductStatus;
 using Ecommerce.Services.Catalog.Application.Features.Products.Queries.GetMyProducts;
 using Ecommerce.Services.Catalog.Application.Features.Products.Queries.GetProductById;
 using Ecommerce.Services.Catalog.Application.Features.Products.Queries.GetProducts;
@@ -45,9 +45,9 @@ public class ProductsController(ISender sender, ICurrentUserService userService)
     [HttpGet("me")]
     [Authorize]
     public async Task<IActionResult> GetMyProducts(
-        [FromQuery] int page, [FromQuery] int pageSize, [FromQuery] long ShopId)
+        [FromQuery] int page, [FromQuery] int pageSize, [FromQuery] long ShopId, [FromQuery] string? searchTerm)
     {
-        var result = await sender.Send(new GetMyProductsQuery(ShopId, userService.UserId, page, pageSize));
+        var result = await sender.Send(new GetMyProductsQuery(ShopId, userService.UserId, page, pageSize, searchTerm));
 
         if (result.IsSuccess)
         {
@@ -122,13 +122,10 @@ public class ProductsController(ISender sender, ICurrentUserService userService)
             id,
             request.Name,
             request.Description,
-            request.Weight,
-            request.Length,
-            request.Width,
-            request.Height,
             request.ThumbnailUrl,
             request.VideoUrl,
-            request.ImageUrls
+            request.ImageUrls,
+            request.CategoryId
         ));
 
         if (result.IsSuccess)
@@ -139,18 +136,18 @@ public class ProductsController(ISender sender, ICurrentUserService userService)
         return StatusCode(result.GetHttpStatusCode(), result.Message);
     }
 
-    [HttpPut("{id}/single-variant")]
-    public async Task<IActionResult> SetupSingleVariant(Guid id, [FromBody] SetupSingleVariantRequest request)
+    [HttpPut("{id}/sale")]
+    public async Task<IActionResult> UpdateProductSale(Guid id, [FromBody] UpdateProductSaleRequest request)
     {
-        var result = await sender.Send(new InitSingleVariantCommand(
+        var result = await sender.Send(new UpdateProductSaleCommand(
             id,
             request.Price,
-            request.AvailableStocks,
-            request.Sku,
+            request.AvailableStock,
             request.Weight,
             request.Length,
             request.Width,
-            request.Height
+            request.Height,
+            request.DiscountPrice
         ));
 
         if (result.IsSuccess)
@@ -174,10 +171,23 @@ public class ProductsController(ISender sender, ICurrentUserService userService)
         return StatusCode(result.GetHttpStatusCode(), result.Message);
     }
 
+    [HttpPut("{id}/toggle-status")]
+    public async Task<IActionResult> ToggleProductStatus(Guid id)
+    {
+        var result = await sender.Send(new ToggleProductStatusCommand(id));
+
+        if (result.IsSuccess)
+        {
+            return Ok(result.Value);
+        }
+        
+        return StatusCode(result.GetHttpStatusCode(), result.Message);
+    }
+
     [HttpPut("{id}/variants")]
     public async Task<IActionResult> BulkUpdateVariants(Guid id, [FromBody] BulkUpdateVariantsRequest request)
     {
-        var result = await sender.Send(new BulkUpdateVariantsCommand(id, request.Variants));
+        var result = await sender.Send(new BulkUpdateVariantsCommand(id, request.Options, request.Variants));
 
         if (result.IsSuccess)
         {
@@ -212,29 +222,7 @@ public class ProductsController(ISender sender, ICurrentUserService userService)
 
         return StatusCode(result.GetHttpStatusCode(), result.Message);
     }
-
-    [HttpPost("{productId}/variants")]
-    public async Task<IActionResult> AddProductVariant(Guid productId, [FromBody] CreateProductVariantRequest request)
-    {
-        var result = await sender.Send(new CreateProductVariantCommand(
-            productId,
-            request.Sku,
-            request.Price,
-            request.AvailableStocks,
-            request.OptionValueIds,
-            request.Weight,
-            request.Length,
-            request.Width,
-            request.Height
-        ));
-
-        if (result.IsSuccess)
-        {
-            return Ok(result.Value);
-        }
-
-        return StatusCode(result.GetHttpStatusCode(), result.Message);
-    }
+    
 
     [HttpDelete("variants/{id}")]
     public async Task<IActionResult> DeleteProductVariant(Guid id)
@@ -250,38 +238,28 @@ public class ProductsController(ISender sender, ICurrentUserService userService)
     }
 }
 
-public class SetupSingleVariantCommand : IRequest<object>
-{
-    public SetupSingleVariantCommand(Guid id, decimal requestPrice, int requestAvailableStocks, string? requestSku, double? requestWeight, double? requestLength, double? requestWidth, double? requestHeight)
-    {
-        throw new NotImplementedException();
-    }
-}
-
 public record UpdateProductRequest(
     string Name,
     string Description,
+    string? ThumbnailUrl,
+    string? VideoUrl,
+    List<string> ImageUrls,
+    Guid? CategoryId
+);
+
+public record UpdateProductSaleRequest(
+    decimal Price,
+    int AvailableStock,
     double Weight,
     double Length,
     double Width,
     double Height,
-    string? ThumbnailUrl,
-    string? VideoUrl,
-    List<string> ImageUrls
-);
-
-public record SetupSingleVariantRequest(
-    decimal Price,
-    int AvailableStocks,
-    string? Sku = null,
-    double? Weight = null,
-    double? Length = null,
-    double? Width = null,
-    double? Height = null
+    decimal DiscountPrice
 );
 
 public record BulkUpdateVariantsRequest(
-    List<BulkUpdateVariantDto> Variants
+    List<BulkUpdateVariantDto> Variants,
+    List<BulkUpdateOptionDto> Options
 );
 
 public record CreateProductVariantRequest(string? Sku, decimal Price, int AvailableStocks, List<Guid> OptionValueIds, double? Weight = null, double? Length = null, double? Width = null, double? Height = null);

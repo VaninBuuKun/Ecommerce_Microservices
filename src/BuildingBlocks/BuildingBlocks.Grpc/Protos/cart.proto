@@ -27,6 +27,7 @@ message RpcCartItemDto {
   double length = 16;
   double width = 17;
   double height = 18;
+  string thumbnailUrl = 19;
 } 
 
 message GetCartByIdResponse {

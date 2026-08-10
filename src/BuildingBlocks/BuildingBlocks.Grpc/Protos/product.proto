@@ -25,6 +25,7 @@ message  GetVariantByIdResponse {
 //
 message GetVariantsByIdsRequest {
   repeated string variantIds = 1;
+  repeated string productIds = 2;
 }
 message GetVariantsByIdsResponse {
   repeated RpcVariantDto Variants = 1;
@@ -42,6 +43,7 @@ message RpcVariantDto {
   double length = 9;
   double width = 10;
   double height = 11;
+  string thumbnailUrl = 12;
 }
 
 message ReserveStockRequest {
@@ -57,16 +59,3 @@ message ReserveStockResponse {
   bool isSuccess = 1;
   string errorMessage = 3;
 }
-
-message RpcReservedStockItemDto {
-  int64 shopId = 1;
-  string variantId = 2;
-  int32 quantity = 3;
-  int32 availableStocks = 4;
-  string productName = 5;
-  string variantName = 6;
-  string unitPrice = 7;
-}
-
-
-

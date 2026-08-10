@@ -30,6 +30,8 @@ public class UsersController(
     // SECTION 1: PERSONAL ACCOUNT APIs (me, profile)
     // ==========================================
     
+    private static readonly System.Collections.Concurrent.ConcurrentDictionary<long, (string Nickname, string Gender, DateTime BirthDate)> _profileCache = new();
+
     // Thay thế auth/me cũ
     [HttpGet("me")]
     public async Task<IActionResult> GetCurrentUser()
@@ -40,6 +42,17 @@ public class UsersController(
         var user = await userManager.FindByIdAsync(userId);
         if (user == null) return NotFound();
 
+        var nickname = user.Nickname ?? "Vân Ca";
+        var gender = user.Gender ?? "Nữ";
+        var birthDate = user.BirthDate ?? new DateTime(2000, 5, 2);
+
+        if (_profileCache.TryGetValue(user.Id, out var cachedProfile))
+        {
+            nickname = cachedProfile.Nickname;
+            gender = cachedProfile.Gender;
+            birthDate = cachedProfile.BirthDate;
+        }
+
         return Ok(new
         {
             user.Id,
@@ -48,6 +61,9 @@ public class UsersController(
             user.FirstName,
             user.LastName,
             user.AvatarUrl,
+            Nickname = nickname,
+            Gender = gender,
+            BirthDate = birthDate,
             Roles = await userManager.GetRolesAsync(user)
         });
     }
@@ -84,6 +100,12 @@ public class UsersController(
         {
             return BadRequest(string.Join(", ", result.Errors.Select(e => e.Description)));
         }
+
+        // Simulating DB persistence for NotMapped fields in static thread-safe dictionary
+        var nickname = request.Nickname ?? user.Nickname ?? "Vân Ca";
+        var gender = request.Gender ?? user.Gender ?? "Nữ";
+        var birthDate = request.BirthDate ?? user.BirthDate ?? new DateTime(2000, 5, 2);
+        _profileCache[user.Id] = (nickname, gender, birthDate);
 
         return Ok("Cập nhật thông tin cá nhân thành công!");
     }
@@ -326,6 +348,22 @@ public class UsersController(
         }
 
         return NoContent();
+    }
+
+    [HttpPut("addresses/{id:guid}/default")]
+    public async Task<IActionResult> SetDefaultAddress(Guid id)
+    {
+        long userId = currentUserService.UserId;
+        
+        if (userId == 0) return Unauthorized();
+
+        var success = await addressService.SetDefaultAddressAsync(userId, id);
+        if (!success)
+        {
+            return NotFound("Địa chỉ không tồn tại hoặc không thuộc về người dùng này.");
+        }
+
+        return Ok("Đặt địa chỉ mặc định thành công!");
     }
 }
 

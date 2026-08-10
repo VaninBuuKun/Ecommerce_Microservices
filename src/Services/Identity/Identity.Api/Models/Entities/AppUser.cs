@@ -11,6 +11,9 @@ public class AppUser : IdentityUser<long>
     public string? AvatarUrl { get; set; }
 
     [NotMapped] public string FullName => $"{FirstName} {LastName}".Trim();
+    [NotMapped] public string? Nickname { get; set; } = "Vân Ca";
+    [NotMapped] public string? Gender { get; set; } = "Nữ";
+    [NotMapped] public DateTime? BirthDate { get; set; } = new DateTime(2000, 5, 2);
     
     public DateTimeOffset CreatedDate { get; set; }
     

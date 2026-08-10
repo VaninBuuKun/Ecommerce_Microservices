@@ -1,11 +1,7 @@
-using System;
-using System.Threading.Tasks;
-using BuildingBlocks.Shared.Commons;
 using Ecommerce.Services.Orders.Contracts.Events;
 using Ecommerce.Services.Payments.Api.Models.Enums;
 using Ecommerce.Services.Payments.Api.Models.Interfaces;
 using MassTransit;
-using Microsoft.Extensions.Logging;
 
 namespace Ecommerce.Services.Payments.Api.Consumers;
 
@@ -25,7 +21,7 @@ public class RefundApprovedConsumer(
             var result = await walletService.ProcessRefundAsync(
                 @event.CustomerId, 
                 @event.RefundRequestId, // Truyền trực tiếp RefundRequestId làm ReferenceId
-                @event.RefundAmount, 
+                @event.CustomerRefundAmount, 
                 TransactionReason.OrderRefund, 
                 $"Hoàn tiền đơn hàng {@event.SubOrderId} được duyệt bởi cửa hàng."
             );
@@ -33,6 +29,20 @@ public class RefundApprovedConsumer(
             if (!result.IsSuccess)
             {
                 throw new Exception($"Failed to process wallet refund: {result.Message}");
+            }
+
+            // Trừ tiền trực tiếp từ ví của Shop
+            var debitResult = await walletService.DebitWalletAsync(
+                @event.ShopOwnerUserId,
+                @event.RefundRequestId,
+                @event.RefundAmount,
+                TransactionReason.OrderRefund,
+                $"Trừ tiền hoàn đơn hàng {@event.SubOrderId} hoàn trả về ví khách hàng."
+            );
+            
+            if (!debitResult.IsSuccess)
+            {
+                logger.LogWarning("Không thể trừ tiền từ ví của Shop Owner {@event.ShopOwnerUserId}: {Message}", @event.ShopOwnerUserId, debitResult.Message);
             }
 
             logger.LogInformation("Successfully processed RefundApprovedEvent for SubOrder {SubOrderId}", @event.SubOrderId);

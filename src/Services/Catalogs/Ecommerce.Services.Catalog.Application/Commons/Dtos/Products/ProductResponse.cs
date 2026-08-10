@@ -13,16 +13,21 @@ public class ProductResponse
     public int ReviewCount { get; set; }
     public int RatingSum { get; set; }
     
+    public decimal Price { get; set; }
     public decimal PriceDisplay { get; set; }
+    public decimal DiscountPrice { get; set; }
+    public int AvailableStock { get; set; }
     public string Status { get; set; } = string.Empty;
-    public string MainImageUrl { get; set; } = string.Empty;
-    public string? ThumbnailUrl { get; set; }
+    public string ThumbnailUrl { get; set; }
     public string? VideoUrl { get; set; }
     public List<string> ImageUrls { get; set; } = new();
     public double Weight { get; set; }
     public double Length { get; set; }
     public double Width { get; set; }
     public double Height { get; set; }
+    public Guid? CategoryId { get; set; }
+    public string? CategoryName { get; set; }
+    public string? ParentCategoryName { get; set; }
     public List<ProductOptionDto> Options { get; set; } = new();
     public List<ProductVariantDto> Variants { get; set; } = new();
 }
@@ -48,8 +53,14 @@ public class ProductVariantDto
     public Guid Id { get; set; }
     public string? Sku { get; set; }
     public decimal Price { get; set; }
-    public int AvailableStocks { get; set; }
+    public decimal? DiscountPrice { get; set; }
+    public int AvailableStock { get; set; }
     public int ReservedStocks { get; set; }
+    public double Weight { get; set; }
+    public double Length { get; set; }
+    public double Width { get; set; }
+    public double Height { get; set; }
+    public string VariantName { get; set; } = string.Empty;
     public List<ProductVariantOptionDto> VariantOptions { get; set; } = new();
 }
 

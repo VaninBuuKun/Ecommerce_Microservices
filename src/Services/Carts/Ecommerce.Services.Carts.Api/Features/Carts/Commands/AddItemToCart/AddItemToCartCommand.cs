@@ -31,7 +31,7 @@ public class AddItemToCartCommandHandler(
             var key = CartCacheKey.GetCartCacheKey(customerId);
             var cart = await cacheService.GetAsync<Cart>(key, cancellationToken) ?? new Cart(customerId);
 
-            var itemResponse = cart.Items.FirstOrDefault(x => x.ProductVariantId == request.ProductVariantId);
+            var itemResponse = cart.Items.FirstOrDefault(x => x.ProductVariantId == request.ProductVariantId || x.ProductId == request.ProductVariantId);
 
             if (itemResponse is not null)
             {
@@ -65,7 +65,8 @@ public class AddItemToCartCommandHandler(
 
                 itemResponse = new CartItem
                 {
-                    ProductVariantId = request.ProductVariantId,
+                    ProductId = product.ProductId,
+                    ProductVariantId = product.VariantId == Guid.Empty ? product.ProductId : product.VariantId,
                     Quantity = request.Quantity
                 };
                 cart.Items.Add(itemResponse);

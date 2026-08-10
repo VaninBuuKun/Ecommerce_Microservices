@@ -26,7 +26,7 @@ public class Shipment : EntityTrackingBase<Guid>
     public long RecipientWardId { get; set; }
     public long ShopId { get; set; }
     public DateTime? ExpectedDeliveryDate { get; set; }
-
+    public bool IsRefund { get; set; }
     public string? FailureReason { get; set; }
     public string? TrackingLogs { get; set; } // JSON format of delivery stages
 }

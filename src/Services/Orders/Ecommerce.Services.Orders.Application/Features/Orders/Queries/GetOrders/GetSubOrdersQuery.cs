@@ -33,7 +33,26 @@ public class GetSubOrdersQueryHandler(
             includes: o => o.SubOrderItems
         );
         
-        var response = mapper.Map<List<CustomerOrderResponse>>(orders);
+        var response = orders.Select(o => new CustomerOrderResponse
+        {
+            Id = o.Id,
+            CustomerId = o.CustomerId,
+            GrandTotal = o.GrandTotal,
+            Status = o.Status.ToString(),
+            OrderDate = o.CreatedDate,
+            ShopId = o.ShopId,
+            ShopName = o.ShopId == 4 ? "Shop Phụ Kiện Kid Buu" : $"Cửa hàng #{o.ShopId}",
+            OrderItems = o.SubOrderItems.Select(item => new CustomerOrderItemDto
+            {
+                OrderId = item.SubOrderId,
+                VariantId = item.VariantId,
+                Quantity = item.Quantity,
+                UnitPrice = item.UnitPrice,
+                ProductName = item.ProductName,
+                VariantName = item.VariantName,
+                ThumbnailUrl = item.ThumbnailUrl ?? "https://images.unsplash.com/photo-1556821840-3a63f95609a7?auto=format&fit=crop&q=80&w=150"
+            }).ToList()
+        }).ToList();
 
         return Result<List<CustomerOrderResponse>>.Success(response);
     }

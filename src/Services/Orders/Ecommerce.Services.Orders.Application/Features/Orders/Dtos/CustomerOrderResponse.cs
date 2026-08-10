@@ -3,10 +3,13 @@ namespace Ecommerce.Services.Orders.Application.Features.Orders.Dtos;
 public class CustomerOrderResponse
 {
     public Guid Id { get; set; }
-    public int CustomerId { get; set; }
-    public decimal TotalPrice { get; set; }
+    public long CustomerId { get; set; }
+    public decimal GrandTotal { get; set; }
+    public string Status { get; set; } = string.Empty;
     
     public DateTimeOffset OrderDate { get; set; }
+    public long ShopId { get; set; }
+    public string ShopName { get; set; } = string.Empty;
     public DateTimeOffset? LastModifiedDate { get; set; }
     
     public long PaymentMethodId { get; set; }

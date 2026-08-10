@@ -106,6 +106,11 @@ public class SubOrderStateMachine : MassTransitStateMachine<SubOrderSagaState>
 
         During(PackageReady,
             When(SubOrderShipped)
+                .PublishAsync(context => context.Init<SubOrderStatusChangedEvent>(new SubOrderStatusChangedEvent
+                {
+                    SubOrderId = context.Saga.CorrelationId,
+                    Status = "Shipping"
+                }))
                 .TransitionTo(Shipping),
 
             When(SubOrderRejected)

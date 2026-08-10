@@ -1,6 +1,8 @@
 using System;
 using System.Threading.Tasks;
 using Ecommerce.Services.Catalog.Application.Features.Categories.Commands.CreateCategory;
+using Ecommerce.Services.Catalog.Application.Features.Categories.Commands.UpdateCategory;
+using Ecommerce.Services.Catalog.Application.Features.Categories.Commands.DeleteCategory;
 using Ecommerce.Services.Catalog.Application.Features.Categories.Queries.GetCategories;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
@@ -31,6 +33,39 @@ public class CategoriesController(ISender sender) : ControllerBase
         return StatusCode(result.GetHttpStatusCode(), result.Message);
     }
 
+    [HttpPut("{id:guid}")]
+    [Authorize(Roles = "Admin")]
+    public async Task<IActionResult> UpdateCategory(Guid id, [FromBody] UpdateCategoryRequest request)
+    {
+        var result = await sender.Send(new UpdateCategoryCommand(
+            id,
+            request.Name,
+            request.Description,
+            request.ParentId
+        ));
+
+        if (result.IsSuccess)
+        {
+            return Ok(result.Value);
+        }
+
+        return StatusCode(result.GetHttpStatusCode(), result.Message);
+    }
+
+    [HttpDelete("{id:guid}")]
+    [Authorize(Roles = "Admin")]
+    public async Task<IActionResult> DeleteCategory(Guid id)
+    {
+        var result = await sender.Send(new DeleteCategoryCommand(id));
+
+        if (result.IsSuccess)
+        {
+            return Ok(result.Value);
+        }
+
+        return StatusCode(result.GetHttpStatusCode(), result.Message);
+    }
+
     [HttpGet]
     public async Task<IActionResult> GetCategories()
     {
@@ -45,3 +80,4 @@ public class CategoriesController(ISender sender) : ControllerBase
 }
 
 public record CreateCategoryRequest(string Name, string Description, string? IconUrl, Guid? ParentId);
+public record UpdateCategoryRequest(string Name, string Description, Guid? ParentId);

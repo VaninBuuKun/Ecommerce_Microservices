@@ -22,7 +22,7 @@ public class GetMyProductsQueryHandler(IEfUnitOfWork unitOfWork, ISellerService 
                 return Result<List<MyProductDto>>.Failure(IsOwnerResult);
             }
             
-            var spec = new ProductTreeSpec(command.ShopId, command.pageSize, command.page);
+            var spec = new ProductTreeSpec(command.ShopId, command.pageSize, command.page, command.searchTerm ?? "");
             var products = await _productRepository.GetListAsync(spec, cancellationToken);
 
             
@@ -38,8 +38,10 @@ public class GetMyProductsQueryHandler(IEfUnitOfWork unitOfWork, ISellerService 
                         Name = product.Name,
                         Description = product.Description,
                         ThumbnailUrl = product.ThumbnailUrl,
-                        Price = 0,
+                        Price = product.Price,
+                        DiscountPrice = product.DiscountPrice,
                         AvailableStock = 0,
+                        Status = product.Status == ProductStatus.Active ? "Active" : "Inactive",
                     });
                 }
                 else if (product.Variants.Count == 1 && product.Variants.First().VariantOptions.Count == 0)
@@ -51,8 +53,10 @@ public class GetMyProductsQueryHandler(IEfUnitOfWork unitOfWork, ISellerService 
                         Name = product.Name,
                         Description = product.Description,
                         ThumbnailUrl = product.ThumbnailUrl,
-                        Price = variant.Price,
+                        Price = product.Price,
+                        DiscountPrice = product.DiscountPrice,
                         AvailableStock = variant.AvailableStocks,
+                        Status = product.Status == ProductStatus.Active ? "Active" : "Inactive",
                     });
                 }
                 else
@@ -63,18 +67,30 @@ public class GetMyProductsQueryHandler(IEfUnitOfWork unitOfWork, ISellerService 
                         Name = product.Name,
                         Description = product.Description,
                         ThumbnailUrl = product.ThumbnailUrl,
-                        Price = product.Variants.Any() ? product.Variants.Min(v => v.Price) : 0,
+                        Price = product.Price,
+                        DiscountPrice = product.DiscountPrice,
                         AvailableStock = product.Variants.Sum(v => v.AvailableStocks),
-                        Variants = product.Variants.Select(v => new MyVariantDto
-                        {
-                            VariantName = v.GetVariantName(),
-                            Price = v.Price,
-                            AvailableStock = v.AvailableStocks,
-                            ThumbnailUrl = v.VariantOptions
+                        Status = product.Status == ProductStatus.Active ? "Active" : "Inactive",
+                        Variants = product.Variants
+                            .OrderBy(v => v.VariantOptions
                                 .OrderBy(vo => vo.OptionValue.Option.SortOrder)
-                                .Select(vo => vo.OptionValue.ImageUrl)
-                                .FirstOrDefault(url => !string.IsNullOrEmpty(url)) ?? product.ThumbnailUrl ?? ""
-                        }).ToList()
+                                .Select(vo => vo.OptionValue.SortOrder)
+                                .FirstOrDefault())
+                            .ThenBy(v => v.VariantOptions
+                                .OrderBy(vo => vo.OptionValue.Option.SortOrder)
+                                .Skip(1)
+                                .Select(vo => vo.OptionValue.SortOrder)
+                                .FirstOrDefault())
+                            .Select(v => new MyVariantDto
+                            {
+                                VariantName = v.GetVariantName(),
+                                Price = v.Price,
+                                AvailableStock = v.AvailableStocks,
+                                ThumbnailUrl = v.VariantOptions
+                                    .OrderBy(vo => vo.OptionValue.Option.SortOrder)
+                                    .Select(vo => vo.OptionValue.ImageUrl)
+                                    .FirstOrDefault(url => !string.IsNullOrEmpty(url)) ?? product.ThumbnailUrl ?? ""
+                            }).ToList()
                     });
                 }
             }

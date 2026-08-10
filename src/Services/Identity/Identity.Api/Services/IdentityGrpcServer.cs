@@ -41,4 +41,29 @@ public class IdentityGrpcServer(AppDbContext dbContext, ILogger<IdentityGrpcServ
             AddressLine = address.AddressLine
         };
     }
+
+    public override async Task<GetUserResponse> GetUser(GetUserRequest request, ServerCallContext context)
+    {
+        logger.LogInformation("gRPC Request to get user details: UserId: {UserId}", request.UserId);
+
+        var user = await dbContext.Users
+            .FirstOrDefaultAsync(u => u.Id == request.UserId);
+
+        if (user == null)
+        {
+            logger.LogWarning("User not found: UserId: {UserId}", request.UserId);
+            return new GetUserResponse { Found = false };
+        }
+
+        return new GetUserResponse
+        {
+            Found = true,
+            Id = user.Id,
+            Email = user.Email ?? string.Empty,
+            Phone = user.PhoneNumber ?? string.Empty,
+            FirstName = user.FirstName ?? string.Empty,
+            LastName = user.LastName ?? string.Empty,
+            AvatarUrl = user.AvatarUrl ?? string.Empty
+        };
+    }
 }

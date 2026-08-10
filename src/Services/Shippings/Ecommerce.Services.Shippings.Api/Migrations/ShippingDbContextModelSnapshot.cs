@@ -113,6 +113,9 @@ namespace Ecommerce.Services.Shippings.Api.Migrations
                     b.Property<double>("Height")
                         .HasColumnType("double precision");
 
+                    b.Property<bool>("IsRefund")
+                        .HasColumnType("boolean");
+
                     b.Property<DateTimeOffset?>("LastModifiedDate")
                         .HasColumnType("timestamp with time zone");
 

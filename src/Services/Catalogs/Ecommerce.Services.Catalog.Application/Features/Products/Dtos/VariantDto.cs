@@ -13,4 +13,5 @@ public class VariantDto
     public double Length { get; set; }
     public double Width { get; set; }
     public double Height { get; set; }
+    public string ThumbnailUrl { get; set; } = string.Empty;
 }

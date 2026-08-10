@@ -39,8 +39,9 @@ public class ProductGrpcService(ISender sender, ILogger<ProductGrpcService> logg
     //Hỗ trợ cho việc lấy full thông tin cho cart
     public override async Task<GetVariantsByIdsResponse> GetVariantsByIds(GetVariantsByIdsRequest request, ServerCallContext context)
     {
-        var variantIds = request.VariantIds.Select(id => Guid.Parse(id)).ToList();
-        var result = await sender.Send(new GetVariantsByIdsQuery(variantIds));
+        var variantIds = request.VariantIds.Where(id => !string.IsNullOrEmpty(id)).Select(id => Guid.Parse(id)).ToList();
+        var productIds = request.ProductIds.Where(id => !string.IsNullOrEmpty(id)).Select(id => Guid.Parse(id)).ToList();
+        var result = await sender.Send(new GetVariantsByIdsQuery(variantIds, productIds));
 
         if (!result.IsSuccess)
         {
@@ -65,6 +66,7 @@ public class ProductGrpcService(ISender sender, ILogger<ProductGrpcService> logg
             variant.Length = variantDto.Length;
             variant.Width = variantDto.Width;
             variant.Height = variantDto.Height;
+            variant.ThumbnailUrl = variantDto.ThumbnailUrl ?? "";
             response.Variants.Add(variant);
         }
         return response;

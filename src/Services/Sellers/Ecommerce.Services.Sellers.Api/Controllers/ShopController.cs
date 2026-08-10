@@ -36,6 +36,24 @@ public class ShopController(ISender sender, ICurrentUserService currentUserServi
         return Ok(result.Value);
     }
 
+    [HttpGet("{id:long}")]
+    [Authorize]
+    public async Task<IActionResult> GetShopById(long id)
+    {
+        if (!currentUserService.IsAuthenticated)
+        {
+            return Unauthorized("Tài khoản chưa được xác thực danh tính.");
+        }
+
+        var result = await sender.Send(new Ecommerce.Services.Sellers.Api.Features.Shops.Queries.GetShopById.GetShopByIdQuery(id, currentUserService.UserId));
+        if (!result.IsSuccess)
+        {
+            return StatusCode((int)result.ErrorCode.ToHttpStatusCode(), result.Message);
+        }
+
+        return Ok(result.Value);
+    }
+
     [HttpPost]
     [Authorize]
     public async Task<IActionResult> CreateShop([FromBody] CreateShopRequest request)

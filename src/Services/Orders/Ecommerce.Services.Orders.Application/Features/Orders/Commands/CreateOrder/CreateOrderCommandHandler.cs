@@ -175,7 +175,7 @@ public class CreateOrderCommandHandler(
                 // Dựng đơn hàng trực tiếp bằng thông tin giỏ hàng chi tiết
                 foreach (var item in selectedItems)
                 {
-                    order.AddOrderItem(item.ShopId, item.VariantId, item.ProductName, item.VariantName, item.UnitPrice, item.Quantity);
+                    order.AddOrderItem(item.ShopId, item.VariantId, item.ProductName, item.VariantName, item.UnitPrice, item.Quantity, item.ThumbnailUrl);
                 }
 
                 // Áp đặt phí vận chuyển đã đóng băng trong CheckoutSession cho từng Shop
@@ -200,7 +200,7 @@ public class CreateOrderCommandHandler(
                     CreatedAt = DateTime.UtcNow,
                     CustomerId = subOrder.CustomerId,
                     ShopId = subOrder.ShopId,
-                    TotalAmount = subOrder.SubTotal,
+                    TotalAmount = subOrder.GrandTotal,
                     ShippingAddress = order.ShippingAddress,
                     RecipientName = order.RecipientName,
                     RecipientPhone = order.RecipientPhone,

@@ -31,7 +31,7 @@ public class UpdateQuantityCommandHandler(
                 return Result.Failure("Cart not found", EErrorCode.NotFound);
             }
 
-            var existingItem = cart.Items.FirstOrDefault(x => x.ProductVariantId == request.ProductId);
+            var existingItem = cart.Items.FirstOrDefault(x => x.ProductVariantId == request.ProductId || x.ProductId == request.ProductId);
 
             if (existingItem is null)
             {

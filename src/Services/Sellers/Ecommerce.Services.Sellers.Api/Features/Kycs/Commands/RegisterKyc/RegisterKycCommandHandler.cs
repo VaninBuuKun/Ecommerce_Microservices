@@ -4,10 +4,13 @@ using BuildingBlocks.Shared.Enums;
 using BuildingBlocks.Shared.InfrastructureInterfaces.InMemoryBus;
 using BuildingBlocks.Shared.InfrastructureInterfaces.Persistence.EFCore;
 using Ecommerce.Services.Sellers.Api.Models.Entities;
+using Ecommerce.Services.Sellers.Api.Services;
+
 namespace Ecommerce.Services.Sellers.Api.Features.Kycs.Commands.RegisterKyc;
 
 public class RegisterKycCommandHandler(
     IEfUnitOfWork unitOfWork,
+    IPaymentService paymentService,
     ILogger<RegisterKycCommandHandler> logger)
     : ICommandHandler<RegisterKycCommand, SellerKyc>
 {
@@ -17,6 +20,14 @@ public class RegisterKycCommandHandler(
 
         try
         {
+            // RÀNG BUỘC: Kiểm tra ví đã được kích hoạt hay chưa trước khi nộp KYC
+            var walletCheck = await paymentService.CheckShopWalletAsync(request.UserId, cancellationToken);
+            if (!walletCheck.IsSuccess)
+            {
+                logger.LogWarning("RegisterKycCommand: Thao tác bị chặn. User {UserId} chưa kích hoạt ví điện tử liên kết. Reason: {Reason}", request.UserId, walletCheck.Message);
+                return Result<SellerKyc>.Failure(walletCheck.Message ?? "Tài khoản của bạn chưa kích hoạt hoặc đăng ký ví điện tử liên kết. Vui lòng tạo ví trước khi đăng ký làm Người bán hàng.", walletCheck.ErrorCode);
+            }
+
             if (string.IsNullOrWhiteSpace(request.IdentityCardFrontUrl) || string.IsNullOrWhiteSpace(request.IdentityCardBackUrl))
             {
                 return Result<SellerKyc>.Failure("Vui lòng cung cấp ảnh mặt trước và mặt sau căn cước công dân.", EErrorCode.InvalidInput);

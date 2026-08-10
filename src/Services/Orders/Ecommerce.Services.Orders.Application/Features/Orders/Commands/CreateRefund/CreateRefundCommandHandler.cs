@@ -13,11 +13,14 @@ using Ecommerce.Services.Orders.Domain;
 using Ecommerce.Services.Orders.Domain.Enums;
 using Microsoft.Extensions.Logging;
 
+using Ecommerce.Services.Orders.Application.Services;
+
 namespace Ecommerce.Services.Orders.Application.Features.Orders.Commands.CreateRefund;
 
 public class CreateRefundCommandHandler(
     IEfUnitOfWork unitOfWork,
     IEventPublisher publisher,
+    IPaymentService paymentService,
     ILogger<CreateRefundCommandHandler> logger)
     : CommandHandler<CreateRefundCommand, RefundRequestDto>
 {
@@ -26,6 +29,13 @@ public class CreateRefundCommandHandler(
         logger.LogInformation("Creating refund request for SubOrder {SubOrderId} by Customer {CustomerId}", command.SubOrderId, command.CustomerId);
         try
         {
+            // RÀNG BUỘC: Khách hàng yêu cầu hoàn trả phải kích hoạt ví điện tử liên kết trước
+            var walletCheck = await paymentService.CheckWalletAsync(command.CustomerId, 0m, cancellationToken);
+            if (!walletCheck.IsSuccess)
+            {
+                return Result<RefundRequestDto>.Failure("Bạn cần đăng ký và kích hoạt ví điện tử liên kết để nhận tiền hoàn trả trước khi tạo yêu cầu hoàn tiền.", EErrorCode.ValidationErrors);
+            }
+
             var subOrderRepo = unitOfWork.Repository<SubOrder, Guid>();
             var refundRepo = unitOfWork.Repository<RefundRequest, Guid>();
 
@@ -68,7 +78,7 @@ public class CreateRefundCommandHandler(
                 SubOrderId = subOrder.Id,
                 CustomerId = command.CustomerId,
                 ShopId = subOrder.ShopId,
-                RefundAmount = subOrder.GrandTotal, // Hoàn trả toàn bộ số tiền thanh toán (bao gồm ship hoặc theo chính sách)
+                RefundAmount = subOrder.ShippingFee, // Hoàn trả toàn bộ số tiền thanh toán (bao gồm ship hoặc theo chính sách)
                 Reason = command.Reason.Trim(),
                 Status = RefundStatus.Pending
             };

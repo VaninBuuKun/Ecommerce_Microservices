@@ -13,6 +13,7 @@ public interface IAddressService
     Task<List<UserAddress>> GetAddressesByUserIdAsync(long userId);
     Task<UserAddress> CreateAddressAsync(long userId, CreateAddressDto dto);
     Task<bool> DeleteAddressAsync(long userId, Guid addressId);
+    Task<bool> SetDefaultAddressAsync(long userId, Guid addressId);
 }
 
 public class CreateAddressDto
@@ -102,6 +103,29 @@ public class AddressService(AppDbContext dbContext) : IAddressService
             }
         }
 
+        return true;
+    }
+
+    public async Task<bool> SetDefaultAddressAsync(long userId, Guid addressId)
+    {
+        var target = await dbContext.UserAddresses
+            .FirstOrDefaultAsync(a => a.Id == addressId && a.UserId == userId);
+        if (target == null)
+        {
+            return false;
+        }
+
+        var defaultAddresses = await dbContext.UserAddresses
+            .Where(a => a.UserId == userId && a.IsDefault)
+            .ToListAsync();
+
+        foreach (var addr in defaultAddresses)
+        {
+            addr.IsDefault = false;
+        }
+
+        target.IsDefault = true;
+        await dbContext.SaveChangesAsync();
         return true;
     }
 }

@@ -30,18 +30,16 @@ public class UpdateProductCommandHandler(
                 return Result<ProductResponse>.Failure("Product Not Found", EErrorCode.NotFound);
             }
 
-            // Update basic details including weight, dimensions, images, thumbnail and video url
+            // Update basic info: name, description, images, category
             existsProduct.UpdateDetails(
                 command.Name, 
-                command.Description, 
-                command.Weight, 
-                command.Length, 
-                command.Width, 
-                command.Height,
+                command.Description,
                 command.ThumbnailUrl,
                 command.VideoUrl,
                 command.ImageUrls
             );
+
+            existsProduct.SetCategory(command.CategoryId);
 
             _productRepository.Update(existsProduct);
             await unitOfWork.SaveChangesAsync(cancellationToken);

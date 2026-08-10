@@ -36,7 +36,13 @@ public static class DependencyInjection
             o.Address = new Uri(configuration["GrpcSettings:SellerUrl"] ?? "http://localhost:5004");
         });
 
+        services.AddGrpcClient<BuildingBlocks.Grpc.Services.PaymentGrpc.PaymentGrpcClient>(o =>
+        {
+            o.Address = new Uri(configuration["GrpcSettings:PaymentUrl"] ?? "http://localhost:5053");
+        });
+
         services.AddScoped<Ecommerce.Services.Catalog.Application.Commons.Interfaces.ISellerService, Ecommerce.Services.Catalog.Infrastructure.GrpcClients.SellerClientService>();
+        services.AddScoped<Ecommerce.Services.Catalog.Application.Commons.Interfaces.IPaymentService, Ecommerce.Services.Catalog.Infrastructure.GrpcClients.PaymentClientService>();
         services.AddScoped<Ecommerce.Services.Catalog.Application.Common.Interfaces.IStorageService, Ecommerce.Services.Catalog.Infrastructure.Storage.S3StorageService>();
 
         return services;

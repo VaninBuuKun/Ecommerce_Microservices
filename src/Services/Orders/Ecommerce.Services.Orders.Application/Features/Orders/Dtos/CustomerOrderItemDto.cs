@@ -8,4 +8,5 @@ public class CustomerOrderItemDto
     public decimal UnitPrice { get; set; }
     public string ProductName { get; set; }
     public string VariantName { get; set; }
+    public string? ThumbnailUrl { get; set; }
 }   

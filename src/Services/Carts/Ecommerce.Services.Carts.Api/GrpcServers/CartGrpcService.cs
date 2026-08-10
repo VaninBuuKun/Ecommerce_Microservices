@@ -6,6 +6,7 @@ using Ecommerce.Services.Carts.Api.Features.Carts.Queries.GetBasicCart;
 using Ecommerce.Services.Carts.Api.Features.Carts.Queries.GetCart;
 using Grpc.Core;
 using MapsterMapper;
+using MassTransit.InMemoryTransport;
 using MediatR;
 
 namespace Ecommerce.Services.Carts.Api.GrpcServers;
@@ -43,10 +44,7 @@ public class CartGrpcService(ISender sender, IMapper mapper) : CartGrpc.CartGrpc
                         UnitPrice = item.UnitPrice.ToString(),
                         ShopId = item.ShopId,
                         AvailableStocks = item.AvailableStocks,
-                        Weight = item.Weight,
-                        Length = item.Length,
-                        Width = item.Width,
-                        Height = item.Height
+                        ThumbnailUrl = item.ThumbnailUrl
                     });
                 }
             }

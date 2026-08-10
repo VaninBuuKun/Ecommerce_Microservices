@@ -1,0 +1,154 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
+using BuildingBlocks.Shared.Commons;
+using BuildingBlocks.Shared.Enums;
+using BuildingBlocks.Shared.InfrastructureInterfaces.InMemoryBus;
+using BuildingBlocks.Shared.InfrastructureInterfaces.Persistence.EFCore;
+using Ecommerce.Services.Orders.Application.Commons.Dtos.Payments;
+using Ecommerce.Services.Orders.Application.Commons.Dtos.Users;
+using Ecommerce.Services.Orders.Application.Features.Orders.Dtos;
+using Ecommerce.Services.Orders.Application.Services;
+using Ecommerce.Services.Orders.Domain;
+using Microsoft.Extensions.Logging;
+
+namespace Ecommerce.Services.Orders.Application.Features.Orders.Queries.GetSubOrderDetail;
+
+public class SubOrderDetailDto
+{
+    public Guid Id { get; set; }
+    public Guid OrderId { get; set; }
+    public long CustomerId { get; set; }
+    public long ShopId { get; set; }
+    public decimal SubTotal { get; set; }
+    public decimal ShippingFee { get; set; }
+    public decimal SellerDiscount { get; set; }
+    public decimal PlatformDiscount { get; set; }
+    public decimal GrandTotal { get; set; }
+    public string Status { get; set; } = string.Empty;
+    public bool IsOnlinePayment { get; set; }
+    public DateTimeOffset CreatedDate { get; set; }
+    public DateTimeOffset? DeliveredDate { get; set; }
+    
+    // User details aggregated from Identity service
+    public UserDetailDto? User { get; set; }
+    
+    // Shipping Address info (constructed from Order parent properties)
+    public UserAddressDto? ShippingAddress { get; set; }
+    
+    // Payment Method details aggregated from Payments service
+    public PaymentDto? PaymentDto { get; set; }
+    
+    // Items
+    public List<CustomerOrderItemDto> OrderItems { get; set; } = new();
+}
+
+public record GetSubOrderDetailQuery(Guid SubOrderId, long UserId, bool IsSeller) : IQuery<SubOrderDetailDto>;
+
+public class GetSubOrderDetailQueryHandler(
+    IEfUnitOfWork unitOfWork,
+    IIdentityService identityService,
+    IPaymentService paymentService,
+    ISellerService sellerService,
+    ILogger<GetSubOrderDetailQueryHandler> logger)
+    : IQueryHandler<GetSubOrderDetailQuery, SubOrderDetailDto>
+{
+    public async Task<Result<SubOrderDetailDto>> Handle(GetSubOrderDetailQuery request, CancellationToken cancellationToken)
+    {
+        try
+        {
+            logger.LogInformation("Getting detailed sub-order {SubOrderId}", request.SubOrderId);
+
+            var subOrderRepo = unitOfWork.Repository<SubOrder, Guid>();
+            var subOrder = await subOrderRepo.FirstOrDefaultAsync(
+                predicate: o => o.Id == request.SubOrderId,
+                includes: [o => o.SubOrderItems, o => o.Order]
+            );
+
+            if (subOrder == null)
+            {
+                return Result<SubOrderDetailDto>.Failure("Đơn hàng không tồn tại", EErrorCode.NotFound);
+            }
+
+            // If seller query, check shop ownership
+            if (request.IsSeller)
+            {
+                var validationResult = await sellerService.ValidateShopOwnerAsync(subOrder.ShopId, request.UserId, cancellationToken);
+                if (!validationResult.IsSuccess || !validationResult.Value)
+                {
+                    return Result<SubOrderDetailDto>.Failure("Bạn không có quyền truy cập đơn hàng này", EErrorCode.Forbidden);
+                }
+            }
+            else
+            {
+                if (subOrder.CustomerId != request.UserId)
+                {
+                    return Result<SubOrderDetailDto>.Failure("Bạn không có quyền truy cập đơn hàng này", EErrorCode.Forbidden);
+                }
+            }
+
+            // Aggregate user details and payment method details in parallel using Task.WhenAll
+            var userTask = identityService.GetUserAsync(subOrder.CustomerId);
+            var paymentTask = paymentService.GetPaymentByOrderAsync(subOrder.OrderId, cancellationToken);
+
+            await Task.WhenAll(userTask, paymentTask);
+
+            var userResult = await userTask;
+            var paymentResult = await paymentTask;
+
+            var dto = new SubOrderDetailDto
+            {
+                Id = subOrder.Id,
+                OrderId = subOrder.OrderId,
+                CustomerId = subOrder.CustomerId,
+                ShopId = subOrder.ShopId,
+                SubTotal = subOrder.SubTotal,
+                ShippingFee = subOrder.ShippingFee,
+                SellerDiscount = subOrder.SellerDiscount,
+                PlatformDiscount = subOrder.PlatformDiscount,
+                GrandTotal = subOrder.GrandTotal,
+                Status = subOrder.Status.ToString(),
+                IsOnlinePayment = subOrder.IsOnlinePayment,
+                CreatedDate = subOrder.CreatedDate,
+                DeliveredDate = subOrder.DeliveredDate,
+                
+                // Aggregated user details
+                User = userResult.IsSuccess ? userResult.Value : null,
+                
+                // Aggregated payment method details
+                PaymentDto = paymentResult.IsSuccess ? paymentResult.Value : null,
+                
+                // Map shipping address from order details
+                ShippingAddress = new UserAddressDto
+                {
+                    Id = Guid.Empty.ToString(),
+                    UserId = subOrder.CustomerId,
+                    RecipientName = subOrder.Order.RecipientName,
+                    Phone = subOrder.Order.RecipientPhone,
+                    WardId = subOrder.Order.RecipientWardId,
+                    AddressLine = subOrder.Order.ShippingAddress
+                },
+
+                // Items list
+                OrderItems = subOrder.SubOrderItems.Select(item => new CustomerOrderItemDto
+                {
+                    VariantId = item.VariantId,
+                    ProductName = item.ProductName,
+                    VariantName = item.VariantName,
+                    UnitPrice = item.UnitPrice,
+                    Quantity = item.Quantity,
+                    ThumbnailUrl = item.ThumbnailUrl
+                }).ToList()
+            };
+
+            return Result<SubOrderDetailDto>.Success(dto);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "GetSubOrderDetailQuery: Lỗi khi lấy chi tiết đơn hàng con: {SubOrderId}", request.SubOrderId);
+            return Result<SubOrderDetailDto>.Failure(ex.Message, EErrorCode.InternalServerError);
+        }
+    }
+}

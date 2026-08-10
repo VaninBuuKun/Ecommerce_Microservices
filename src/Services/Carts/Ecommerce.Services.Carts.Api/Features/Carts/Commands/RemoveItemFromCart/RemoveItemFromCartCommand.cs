@@ -31,7 +31,7 @@ public class RemoveItemFromCartCommandHandler(
                 return Result.Failure("Không tìm thấy giỏ hàng", EErrorCode.NotFound);
             }
 
-            cart.Items.RemoveAll(x => x.ProductVariantId == request.ProductVariantId);
+            cart.Items.RemoveAll(x => x.ProductVariantId == request.ProductVariantId || x.ProductId == request.ProductVariantId);
 
             await cacheService.SetAsync(key, cart, CartExpiry, cancellationToken);
 

@@ -57,6 +57,12 @@ try
         .AddInMemoryApiScopes(IdentityServerConfig.ApiScopes) // Load cấu hình scopes
         .AddInMemoryClients(IdentityServerConfig.Clients) // Load cấu hình clients
         .AddAspNetIdentity<AppUser>() // Kết nối Duende với ASP.NET Identity để nó dùng UserManager kiểm tra mật khẩu
+        .AddOperationalStore(options =>
+        {
+            options.ConfigureDbContext = b => b.UseNpgsql(
+                builder.Configuration.GetConnectionString("Database"),
+                dbOptions => dbOptions.MigrationsAssembly(typeof(Program).Assembly.GetName().Name));
+        })
         .AddDeveloperSigningCredential() // Tự sinh cặp khóa RSA (chỉ dùng trong môi trường dev)
         .AddProfileService<ProfileService>();
 
@@ -106,6 +112,9 @@ try
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
         var userManager = scope.ServiceProvider.GetRequiredService<UserManager<AppUser>>();
         db.Database.Migrate(); // Tự tạo bảng nếu chưa có
+        
+        var persistedGrantDb = scope.ServiceProvider.GetRequiredService<Duende.IdentityServer.EntityFramework.DbContexts.PersistedGrantDbContext>();
+        persistedGrantDb.Database.Migrate();
         
         var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole<long>>>();
         await SeedDataExtensions.SeedUserAndRoleAsync(userManager, roleManager);

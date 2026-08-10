@@ -38,7 +38,8 @@ public class CartClientService(CartGrpc.CartGrpcClient client) : ICartService
                     Weight = item.Weight,
                     Length = item.Length,
                     Width = item.Width,
-                    Height = item.Height
+                    Height = item.Height,
+                    ThumbnailUrl = item.ThumbnailUrl
                 });
             }
 

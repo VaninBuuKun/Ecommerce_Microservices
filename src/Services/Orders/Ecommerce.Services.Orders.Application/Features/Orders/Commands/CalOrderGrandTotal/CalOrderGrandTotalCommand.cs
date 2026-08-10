@@ -8,6 +8,5 @@ namespace Ecommerce.Services.Orders.Application.Features.Orders.Commands.CalOrde
 public record CalOrderGrandTotalCommand(
     long CustomerId, 
     Guid UserAddressId, 
-    Dictionary<long, string>? ShopShippingSelections,
     Guid? CheckoutSessionId = null
 ) : ICommand<CalOrderGrandTotalResponse>;

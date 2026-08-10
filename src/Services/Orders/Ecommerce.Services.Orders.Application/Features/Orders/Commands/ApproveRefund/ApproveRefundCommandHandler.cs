@@ -21,6 +21,7 @@ public class ApproveRefundCommandHandler(
     IEfUnitOfWork unitOfWork,
     IEventPublisher publisher,
     ISellerService sellerService,
+    IPaymentService paymentService,
     ILogger<ApproveRefundCommandHandler> logger)
     : CommandHandler<ApproveRefundCommand>
 {
@@ -60,6 +61,21 @@ public class ApproveRefundCommandHandler(
             var itemsRepo = unitOfWork.Repository<SubOrderItem, Guid>();
             var subOrderItems = await itemsRepo.GetAllAsync(i => i.SubOrderId == subOrder.Id, null, cancellationToken);
 
+            // Lấy thông tin vận chuyển của Shop để biết OwnerUserId
+            var shopInfoResult = await sellerService.GetShopShippingInfoAsync(refundRequest.ShopId, cancellationToken);
+            if (!shopInfoResult.IsSuccess || shopInfoResult.Value == null)
+            {
+                return Result.Failure("Không lấy được thông tin vận chuyển của cửa hàng.", EErrorCode.NotFound);
+            }
+            var shopInfo = shopInfoResult.Value;
+
+            // RÀNG BUỘC: Kiểm tra số dư ví điện tử của Shop Owner xem có đủ hoàn trả
+            var checkWalletResult = await paymentService.CheckWalletAsync(command.SellerId, refundRequest.RefundAmount, cancellationToken);
+            if (!checkWalletResult.IsSuccess)
+            {
+                return Result.Failure(checkWalletResult.Message ?? "Ví của người bán không đủ số dư hoặc chưa đăng ký liên kết.", EErrorCode.ValidationErrors);
+            }
+
             // Cập nhật Refund Request
             refundRequest.Status = RefundStatus.Approved;
             refundRequest.SellerNote = command.SellerNote?.Trim();
@@ -69,16 +85,26 @@ public class ApproveRefundCommandHandler(
             subOrder.UpdateSubOrderStatus(SubOrderStatus.Refunded);
             subOrderRepo.Update(subOrder);
 
-            // 1. Publish RefundApprovedEvent để Payment Service cộng tiền vào ví Customer
+            // 1. Publish RefundApprovedEvent để Payment Service cộng tiền vào ví Customer và trừ ví Seller
             await publisher.PublishAsync(new RefundApprovedEvent
             {
                 SubOrderId = subOrder.Id,
                 RefundRequestId = refundRequest.Id,
                 CustomerId = subOrder.CustomerId,
-                RefundAmount = refundRequest.RefundAmount
+                RefundAmount = refundRequest.RefundAmount,
+                CustomerRefundAmount = subOrder.GrandTotal,
+                ShopOwnerUserId = command.SellerId,
             }, cancellationToken);
 
-             if (subOrderItems.Any())
+            // 2. Tạo vận đơn hoàn hàng (Reverse Waybill) bằng cách báo gửi yêu cầu IsReturn
+            await publisher.PublishAsync(new CreateShipmentRequest
+            {
+                SubOrderId = subOrder.Id,
+                OrderId = subOrder.OrderId,
+                IsReturn = true
+            }, cancellationToken);
+
+            if (subOrderItems.Any())
             {
                 await publisher.PublishAsync(new ReleaseStocksRequest
                 {

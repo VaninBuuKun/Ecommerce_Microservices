@@ -3,14 +3,14 @@ using Ecommerce.Services.Catalog.Application.Commons.Dtos.Products;
 
 namespace Ecommerce.Services.Catalog.Application.Features.Products.Commands.InitSingleVariant;
 
-public record InitSingleVariantCommand(
+public record UpdateProductSaleCommand(
     Guid ProductId,
     decimal Price,
     int AvailableStocks,
-    string? Sku = null,
-    double? Weight = null,
-    double? Length = null,
-    double? Width = null,
-    double? Height = null
+    double Weight,
+    double Length,
+    double Width,
+    double Height,
+    decimal DiscountPrice
 ) : ICommand<ProductResponse>;
 

@@ -144,6 +144,11 @@ namespace Ecommerce.Services.Catalog.Infrastructure.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("char(36)");
 
+                    b.Property<int>("AvailableStock")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasDefaultValue(0);
+
                     b.Property<double>("AverageRating")
                         .HasColumnType("double");
 
@@ -153,6 +158,11 @@ namespace Ecommerce.Services.Catalog.Infrastructure.Migrations
                     b.Property<string>("Description")
                         .IsRequired()
                         .HasColumnType("longtext");
+
+                    b.Property<decimal>("DiscountPrice")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("decimal(18,2)")
+                        .HasDefaultValue(0m);
 
                     b.Property<double>("Height")
                         .ValueGeneratedOnAdd()
@@ -171,6 +181,11 @@ namespace Ecommerce.Services.Catalog.Infrastructure.Migrations
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasColumnType("longtext");
+
+                    b.Property<decimal>("Price")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("decimal(18,2)")
+                        .HasDefaultValue(0m);
 
                     b.Property<int>("RatingSum")
                         .HasColumnType("int");
@@ -293,6 +308,9 @@ namespace Ecommerce.Services.Catalog.Infrastructure.Migrations
                     b.Property<DateTimeOffset>("CreatedDate")
                         .HasColumnType("datetime(6)");
 
+                    b.Property<decimal>("DiscountPrice")
+                        .HasColumnType("decimal(65,30)");
+
                     b.Property<double?>("Height")
                         .HasColumnType("double");
 
@@ -313,10 +331,6 @@ namespace Ecommerce.Services.Catalog.Infrastructure.Migrations
 
                     b.Property<int>("ReservedStocks")
                         .HasColumnType("int");
-
-                    b.Property<string>("Sku")
-                        .HasMaxLength(50)
-                        .HasColumnType("varchar(50)");
 
                     b.Property<double?>("Weight")
                         .HasColumnType("double");
@@ -431,7 +445,7 @@ namespace Ecommerce.Services.Catalog.Infrastructure.Migrations
                     b.HasOne("Ecommerce.Services.Catalog.Domain.Products.ProductOptionValue", "OptionValue")
                         .WithMany()
                         .HasForeignKey("OptionValueId")
-                        .OnDelete(DeleteBehavior.Restrict)
+                        .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
                     b.HasOne("Ecommerce.Services.Catalog.Domain.Products.ProductVariant", "Variant")

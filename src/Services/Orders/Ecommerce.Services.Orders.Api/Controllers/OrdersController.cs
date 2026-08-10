@@ -33,7 +33,7 @@ public class OrdersController(ICurrentUserService currentUserService) : CleanV1C
         var result = await _sender.SendAsync(new GetSubOrdersQuery(UserId), cancellationToken);
 
         return result.IsSuccess 
-            ? Ok(result) 
+            ? Ok(result.Value) 
             : StatusCode(result.GetHttpStatusCode(), result);
     }
 
@@ -65,7 +65,6 @@ public class OrdersController(ICurrentUserService currentUserService) : CleanV1C
         var result = await _sender.SendAsync(new CalOrderGrandTotalCommand(
             UserId,
             request.UserAddressId,
-            request.ShopShippingSelections,
             request.CheckoutSessionId
         ), cancellationToken);
 
@@ -93,10 +92,28 @@ public class OrdersController(ICurrentUserService currentUserService) : CleanV1C
     /// Lấy danh sách các đơn hàng con (SubOrder) của cửa hàng (dành cho Seller)
     /// </summary>
     [HttpGet("shop/{shopId:long}/suborders")]
-    [ProducesResponseType(typeof(List<CustomerOrderResponse>), StatusCodes.Status200OK)]
-    public async Task<IActionResult> GetSubOrdersByShop(long shopId, CancellationToken cancellationToken)
+    [ProducesResponseType(typeof(Ecommerce.Services.Orders.Application.Features.Orders.Queries.GetSubOrdersByShop.PagedOrdersResponse), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetSubOrdersByShop(
+        long shopId, 
+        [FromQuery] int pageNumber = 1, 
+        [FromQuery] int pageSize = 5, 
+        [FromQuery] string? status = null,
+        CancellationToken cancellationToken = default)
     {
-        var result = await _sender.SendAsync(new GetSubOrdersByShopQuery(shopId, UserId), cancellationToken);
+        var result = await _sender.SendAsync(new GetSubOrdersByShopQuery(shopId, UserId, pageNumber, pageSize, status), cancellationToken);
+
+        return result.IsSuccess 
+            ? Ok(result) 
+            : StatusCode(result.GetHttpStatusCode(), result);
+    }
+
+    /// <summary>
+    /// Lấy thông tin chi tiết của đơn hàng con (SubOrder) dùng Task.WhenAll kết nối các service
+    /// </summary>
+    [HttpGet("suborder/{subOrderId:guid}/detail")]
+    public async Task<IActionResult> GetSubOrderDetail(Guid subOrderId, [FromQuery] bool isSeller, CancellationToken cancellationToken)
+    {
+        var result = await _sender.SendAsync(new Ecommerce.Services.Orders.Application.Features.Orders.Queries.GetSubOrderDetail.GetSubOrderDetailQuery(subOrderId, UserId, isSeller), cancellationToken);
 
         return result.IsSuccess 
             ? Ok(result) 
@@ -162,8 +179,21 @@ public class OrdersController(ICurrentUserService currentUserService) : CleanV1C
     [ProducesResponseType(StatusCodes.Status200OK)]
     public async Task<IActionResult> CancelSubOrder(Guid subOrderId, [FromQuery] string reason, CancellationToken cancellationToken)
     {
-        var userId = currentUserService.UserId;
         var result = await _sender.SendAsync(new CancelSubOrderCommand(subOrderId, UserId, reason), cancellationToken);
+
+        return result.IsSuccess 
+            ? Ok(result) 
+            : StatusCode(result.GetHttpStatusCode(), result);
+    }
+
+    /// <summary>
+    /// Khách hàng xác nhận đã nhận hàng thành công và kết thúc đơn hàng
+    /// </summary>
+    [HttpPut("suborder/{subOrderId:guid}/complete")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    public async Task<IActionResult> CompleteSubOrder(Guid subOrderId, CancellationToken cancellationToken)
+    {
+        var result = await _sender.SendAsync(new Ecommerce.Services.Orders.Application.Features.Orders.Commands.CompleteOrder.CompleteSubOrderCommand(subOrderId, UserId), cancellationToken);
 
         return result.IsSuccess 
             ? Ok(result) 

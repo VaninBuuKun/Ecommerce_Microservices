@@ -27,7 +27,7 @@ public class ClearCartCommandHandler(
                 return Result.Failure("Không tìm thấy giỏ hàng", EErrorCode.NotFound);
             }
 
-            int removedCount = cart.Items.RemoveAll(x => request.VariantIds.Contains(x.ProductVariantId));
+            int removedCount = cart.Items.RemoveAll(x => request.VariantIds.Contains(x.ProductVariantId ?? x.ProductId));
 
             await cacheService.SetAsync(key, cart, CartExpiry, cancellationToken);
             

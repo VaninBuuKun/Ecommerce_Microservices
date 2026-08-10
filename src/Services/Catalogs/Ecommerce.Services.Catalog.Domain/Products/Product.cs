@@ -20,6 +20,11 @@ public class Product : AggregateRoot<Guid>
     // Phân cấp Category
     public Guid? CategoryId { get; private set; }
     public Category? Category { get; private set; }
+    
+    // Giá sản phẩm (min price của các variants hoặc giá của single variant)
+    public decimal Price { get; private set; }
+    public decimal DiscountPrice { get; private set; }
+    public int AvailableStock { get; private set; }
 
     // Thông tin Ratings & Reviews (2NF)
     public double AverageRating { get; private set; }
@@ -49,7 +54,7 @@ public class Product : AggregateRoot<Guid>
         ShopId = shopId;
         Name = name;
         Description = description;
-        Status = ProductStatus.Draft;
+        Status = ProductStatus.Active;
         Weight = weight;
         Length = length;
         Width = width;
@@ -59,19 +64,23 @@ public class Product : AggregateRoot<Guid>
 
     // ========== Update ==========
 
-    public void UpdateDetails(string name, string description, double weight, double length, double width, double height, string? thumbnailUrl, string? videoUrl, List<string> imageUrls)
+    public void UpdateDetails(string name, string description, string? thumbnailUrl, string? videoUrl, List<string> imageUrls)
     {
         Check(new ProductNameCannotBeEmptyRule(name));
         Name = name;
         Description = description;
+        ThumbnailUrl = thumbnailUrl;
+        VideoUrl = videoUrl;
+        ImageUrls = imageUrls ?? new List<string>();
+    }
+
+    public void UpdateShippingDimensions(double weight, double length, double width, double height)
+    {
         Weight = weight;
         Length = length;
         Width = width;
         Height = height;
-        ThumbnailUrl = thumbnailUrl;
-        VideoUrl = videoUrl;
-        ImageUrls = imageUrls ?? new List<string>();
-    }   
+    }
 
     // ========== Options & Option Values ==========
 
@@ -112,7 +121,7 @@ public class Product : AggregateRoot<Guid>
 
     // ========== Variants ==========
 
-    public ProductVariant AddVariant(string? sku, decimal price, int availableStocks, List<Guid> optionValueIds, double weight = 0, double length = 0, double width = 0, double height = 0)
+    public ProductVariant AddVariant(decimal price, int availableStocks, List<Guid> optionValueIds, double weight = 0, double length = 0, double width = 0, double height = 0, decimal? discountPrice = null)
     {
         Check(new ProductPriceMustBePositiveRule(price));
         Check(new ProductStocksCannotBeNegativeRule(availableStocks));
@@ -139,13 +148,14 @@ public class Product : AggregateRoot<Guid>
             }
         }
         
-        var createdVariant = new ProductVariant(Id, sku, price, availableStocks, weight, length, width, height);
+        var createdVariant = new ProductVariant(Id, price, availableStocks, weight, length, width, height, discountPrice);
         foreach (var optionValueId in optionValueIds)
         {
             createdVariant.AddOption(new ProductVariantOption(createdVariant.Id, optionValueId));
         }
         
         _variants.Add(createdVariant);
+        SyncProductPrice();
         
         return createdVariant;
     }
@@ -156,6 +166,30 @@ public class Product : AggregateRoot<Guid>
                       ?? throw new InvalidOperationException("Variant not found or already deleted.");
 
         variant.SoftDelete();
+        SyncProductPrice();
+    }
+
+    public void SyncProductPrice()
+    {
+        if (Variants.Any())
+        {
+            Price = Variants.Min(v => v.Price);
+            DiscountPrice = Variants.Min(v => v.DiscountPrice);
+            AvailableStock = Variants.Sum(v => v.AvailableStocks);
+        }
+    }
+
+    public void UpdateSingleProductInfo(decimal price, decimal discountPrice, int availableStock)
+    {
+        Price = price;
+        DiscountPrice = discountPrice;
+        AvailableStock = availableStock;
+    }
+
+    public void UpdatePrice(decimal price, decimal? discountPrice = null)
+    {
+        Price = price;
+        DiscountPrice = discountPrice ?? price;
     }
 
     public void ClearVariantsAndOptions()
@@ -194,23 +228,22 @@ public class Product : AggregateRoot<Guid>
         ReviewCount += 1;
         AverageRating = Math.Round((double)totalRatingSum / ReviewCount, 1);
     }
-
-    public void AddProductImage(string imageUrl, bool isMain = false)
-    {
-        if (isMain)
-        {
-            foreach (var img in Images)
-            {
-                img.SetAsMain(false);
-            }
-        }
-        Images.Add(new ProductImage(Id, imageUrl, isMain));
-    }
-
     // ========== Factory Methods ==========
 
     public static Product CreateNewProduct(long shopId, string name, string description, string thumbnailUrl, double weight = 0, double length = 0, double width = 0, double height = 0)
     {
         return new Product(shopId, name, description, thumbnailUrl, weight, length, width, height);
+    }
+
+    public void UpdateSaleInfo(int availableStock, double weight, double length, double width, double height,
+        decimal price, decimal? discountPrice = null)
+    {
+        AvailableStock = availableStock;
+        Weight = weight;
+        Length = length;
+        Width = width;
+        Height = height;
+        Price = price;
+        DiscountPrice = discountPrice ?? price;
     }
 }

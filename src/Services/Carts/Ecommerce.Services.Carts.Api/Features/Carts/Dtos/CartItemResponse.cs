@@ -11,8 +11,5 @@ public class CartItemResponse
     public string  VariantName  { get; set; } = string.Empty;
     public int AvailableStocks { get; set; } 
     public bool IsSelected { get; set; }
-    public double Weight { get; set; }
-    public double Length { get; set; }
-    public double Width { get; set; }
-    public double Height { get; set; }
+    public string ThumbnailUrl { get; set; } = string.Empty;
 }

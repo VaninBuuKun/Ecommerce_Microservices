@@ -10,6 +10,7 @@ public class SubOrderItem : EntityTrackingBase<Guid>
     public decimal UnitPrice { get; set; }
     public string ProductName { get; set; }
     public string VariantName { get; set; }
-    
+    public string? ThumbnailUrl { get; set; }
+        
     public SubOrder SubOrder { get; set; }
 }

@@ -30,7 +30,7 @@ public class UpdateSelectStateCommandHandler(
                 return Result.Failure("Cart not found", EErrorCode.NotFound);
             }
 
-            var existingItem = cart.Items.FirstOrDefault(x => x.ProductVariantId == request.ProductVariantId);
+            var existingItem = cart.Items.FirstOrDefault(x => x.ProductVariantId == request.ProductVariantId || x.ProductId == request.ProductVariantId);
 
             if (existingItem is null)
             {

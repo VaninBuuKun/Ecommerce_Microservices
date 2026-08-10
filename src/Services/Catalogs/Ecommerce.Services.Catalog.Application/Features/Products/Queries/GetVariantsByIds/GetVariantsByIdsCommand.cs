@@ -6,4 +6,4 @@ using MediatR;
 
 namespace Ecommerce.Services.Catalog.Application.Features.Products.Queries;
 
-public record GetVariantsByIdsQuery(List<Guid> VariantIds) : IRequest<Result<List<VariantDto>>>;
+public record GetVariantsByIdsQuery(List<Guid> VariantIds, List<Guid> ProductIds) : IRequest<Result<List<VariantDto>>>;
