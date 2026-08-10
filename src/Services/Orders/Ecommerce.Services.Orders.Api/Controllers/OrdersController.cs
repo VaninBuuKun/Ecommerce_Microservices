@@ -179,8 +179,21 @@ public class OrdersController(ICurrentUserService currentUserService) : CleanV1C
     [ProducesResponseType(StatusCodes.Status200OK)]
     public async Task<IActionResult> CancelSubOrder(Guid subOrderId, [FromQuery] string reason, CancellationToken cancellationToken)
     {
-        var userId = currentUserService.UserId;
         var result = await _sender.SendAsync(new CancelSubOrderCommand(subOrderId, UserId, reason), cancellationToken);
+
+        return result.IsSuccess 
+            ? Ok(result) 
+            : StatusCode(result.GetHttpStatusCode(), result);
+    }
+
+    /// <summary>
+    /// Khách hàng xác nhận đã nhận hàng thành công và kết thúc đơn hàng
+    /// </summary>
+    [HttpPut("suborder/{subOrderId:guid}/complete")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    public async Task<IActionResult> CompleteSubOrder(Guid subOrderId, CancellationToken cancellationToken)
+    {
+        var result = await _sender.SendAsync(new Ecommerce.Services.Orders.Application.Features.Orders.Commands.CompleteOrder.CompleteSubOrderCommand(subOrderId, UserId), cancellationToken);
 
         return result.IsSuccess 
             ? Ok(result) 

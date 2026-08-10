@@ -50,7 +50,7 @@ public sealed class Order : AggregateRoot<Guid>, IDateTracking
         return subOrder;
     }
 
-    public SubOrderItem AddOrderItem(long ShopId, Guid VariantId, string ProductName, string VariantName, decimal unitPrice, int quantity)
+    public SubOrderItem AddOrderItem(long ShopId, Guid VariantId, string ProductName, string VariantName, decimal unitPrice, int quantity, string thumbnaiLUrl)
     {
         var subOrder = SubOrderItems.SingleOrDefault(o => o.ShopId == ShopId) ?? CreateSubOrder(ShopId);
         
@@ -62,7 +62,8 @@ public sealed class Order : AggregateRoot<Guid>, IDateTracking
             UnitPrice = unitPrice,
             Quantity = quantity,
             VariantId = VariantId,
-            VariantName = VariantName
+            VariantName = VariantName,
+            ThumbnailUrl = thumbnaiLUrl
         };
         
         subOrder.AddOrderItem(orderItem);

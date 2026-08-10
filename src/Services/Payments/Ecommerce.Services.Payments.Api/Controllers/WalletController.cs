@@ -55,6 +55,20 @@ public class WalletController(IWalletService walletService, ICurrentUserService 
         return StatusCode(result.GetHttpStatusCode(), result.Message);
     }
 
+    [HttpPut("bank-accounts/{id}")]
+    public async Task<IActionResult> UpdateBankAccount([FromRoute] System.Guid id, [FromBody] AddBankAccountRequest request)
+    {
+        var userId = currentUserService.UserId;
+        var result = await walletService.UpdateBankAccount(userId, id, request);
+
+        if (result.IsSuccess)
+        {
+            return Ok(result.Value);
+        }
+
+        return StatusCode(result.GetHttpStatusCode(), result.Message);
+    }
+
     [HttpGet("bank-accounts")]
     public async Task<IActionResult> GetBankAccounts()
     {

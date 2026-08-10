@@ -139,7 +139,7 @@ public class GetSubOrderDetailQueryHandler(
                     VariantName = item.VariantName,
                     UnitPrice = item.UnitPrice,
                     Quantity = item.Quantity,
-                    ThumbnailUrl = "https://images.unsplash.com/photo-1556821840-3a63f95609a7?auto=format&fit=crop&q=80&w=150"
+                    ThumbnailUrl = item.ThumbnailUrl
                 }).ToList()
             };
 

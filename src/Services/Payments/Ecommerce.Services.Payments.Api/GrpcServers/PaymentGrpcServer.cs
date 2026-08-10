@@ -11,10 +11,10 @@ using Ecommerce.Services.Payments.Api.Models.Interfaces;
 using Grpc.Core;
 namespace Ecommerce.Services.Payments.Api.GrpcServers;
 
-public class PaymentGrpcService(
+public class PaymentGrpcServer(
     IPaymentService paymentService,
     IEfUnitOfWork unitOfWork,
-    ILogger<PaymentGrpcService> logger) : PaymentGrpc.PaymentGrpcBase
+    ILogger<PaymentGrpcServer> logger) : PaymentGrpc.PaymentGrpcBase
 {
     public override async Task<CreatePaymentGrpcResponse> CreatePayment(CreatePaymentGrpcRequest request, ServerCallContext context)
     {
@@ -130,6 +130,43 @@ public class PaymentGrpcService(
         {
             logger.LogError(ex, "Lỗi khi lấy thông tin payment gRPC theo order {OrderId}: {Message}", request.OrderId, ex.Message);
             return new GetPaymentByOrderResponse { Found = false };
+        }
+    }
+
+    public override async Task<CheckWalletResponse> CheckShopWallet(CheckWalletRequest request, ServerCallContext context)
+    {
+        logger.LogInformation("gRPC Request to check shop wallet for user: {UserId}", request.UserId);
+
+        try
+        {
+            var repo = unitOfWork.Repository<Wallet, Guid>();
+            var wallet = await repo.FirstOrDefaultAsync(w => w.UserId == request.UserId);
+            if (wallet == null)
+            {
+                return new CheckWalletResponse
+                {
+                    HasWallet = false,
+                    IsLocked = false,
+                    Balance = "0"
+                };
+            }
+
+            return new CheckWalletResponse
+            {
+                HasWallet = true,
+                IsLocked = wallet.IsLocked,
+                Balance = wallet.Balance.ToString(System.Globalization.CultureInfo.InvariantCulture)
+            };
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Lỗi khi kiểm tra ví gRPC cho user {UserId}: {Message}", request.UserId, ex.Message);
+            return new CheckWalletResponse
+            {
+                HasWallet = false,
+                IsLocked = false,
+                Balance = "0"
+            };
         }
     }
 }

@@ -126,6 +126,50 @@ public class WalletService(IEfUnitOfWork unitOfWork, IMapper mapper) : IWalletSe
         return Result<List<BankAccountDto>>.Success(dtos);
     }
 
+    public async Task<Result<BankAccountDto>> UpdateBankAccount(long userId, Guid bankAccountId, AddBankAccountRequest request)
+    {
+        var wallet = await _walletRepository.FirstOrDefaultAsync(w => w.UserId == userId);
+        if (wallet == null)
+        {
+            return Result<BankAccountDto>.Failure("Ví điện tử chưa được kích hoạt.", EErrorCode.NotFound);
+        }
+
+        var bankAccount = await _bankAccountRepository.FirstOrDefaultAsync(b => b.Id == bankAccountId && b.WalletId == wallet.Id);
+        if (bankAccount == null)
+        {
+            return Result<BankAccountDto>.Failure("Tài khoản ngân hàng không tồn tại hoặc không thuộc ví của bạn.", EErrorCode.NotFound);
+        }
+
+        if (string.IsNullOrWhiteSpace(request.BankName) || 
+            string.IsNullOrWhiteSpace(request.BankAccountNumber) || 
+            string.IsNullOrWhiteSpace(request.BankAccountHolder))
+        {
+            return Result<BankAccountDto>.Failure("Thông tin tài khoản ngân hàng không hợp lệ.", EErrorCode.ValidationErrors);
+        }
+
+        if (request.IsDefault && !bankAccount.IsDefault)
+        {
+            // Reset các tài khoản mặc định cũ của ví này
+            var defaults = await _bankAccountRepository.GetAllAsync(b => b.WalletId == wallet.Id && b.IsDefault);
+            foreach (var oldDefault in defaults)
+            {
+                oldDefault.IsDefault = false;
+                _bankAccountRepository.Update(oldDefault);
+            }
+        }
+
+        bankAccount.BankName = request.BankName.Trim();
+        bankAccount.BankAccountNumber = request.BankAccountNumber.Trim();
+        bankAccount.BankAccountHolder = request.BankAccountHolder.Trim().ToUpper();
+        bankAccount.IsDefault = request.IsDefault;
+
+        _bankAccountRepository.Update(bankAccount);
+        await unitOfWork.SaveChangesAsync();
+
+        var dto = mapper.Map<BankAccountDto>(bankAccount);
+        return Result<BankAccountDto>.Success(dto);
+    }
+
     public async Task<Result<List<WalletTransactionDto>>> GetWalletTransactions(long userId)
     {
         var wallet = await _walletRepository.FirstOrDefaultAsync(w => w.UserId == userId);
@@ -186,6 +230,74 @@ public class WalletService(IEfUnitOfWork unitOfWork, IMapper mapper) : IWalletSe
             Reason = reason,
             BalanceAfter = wallet.Balance,
             ReferenceId = refundRequestId,
+            Description = description
+        };
+        _transactionRepository.Add(transaction);
+
+        await unitOfWork.SaveChangesAsync();
+        return Result.Success();
+    }
+
+    public async Task<Result> DebitWalletAsync(long userId, Guid referenceId, decimal amount, TransactionReason reason, string description)
+    {
+        var wallet = await _walletRepository.FirstOrDefaultAsync(w => w.UserId == userId);
+        if (wallet == null)
+        {
+            return Result.Failure($"Không tìm thấy ví của người dùng {userId} để thực hiện trừ tiền hoàn trả.", EErrorCode.NotFound);
+        }
+
+        // Chống trùng lặp (Idempotency)
+        var existingTx = await _transactionRepository.FirstOrDefaultAsync(t => t.WalletId == wallet.Id && t.ReferenceId == referenceId && t.Type == TransactionType.Debit);
+        if (existingTx != null)
+        {
+            return Result.Success(); 
+        }
+
+        wallet.Balance -= amount;
+        _walletRepository.Update(wallet);
+
+        var transaction = new WalletTransaction
+        {
+            WalletId = wallet.Id,
+            Amount = amount,
+            Type = TransactionType.Debit,
+            Reason = reason,
+            BalanceAfter = wallet.Balance,
+            ReferenceId = referenceId,
+            Description = description
+        };
+        _transactionRepository.Add(transaction);
+
+        await unitOfWork.SaveChangesAsync();
+        return Result.Success();
+    }
+
+    public async Task<Result> CreditWalletAsync(long userId, Guid referenceId, decimal amount, TransactionReason reason, string description)
+    {
+        var wallet = await _walletRepository.FirstOrDefaultAsync(w => w.UserId == userId);
+        if (wallet == null)
+        {
+            return Result.Failure($"Không tìm thấy ví của người dùng {userId} để thực hiện trừ tiền hoàn trả.", EErrorCode.NotFound);
+        }
+
+        // Chống trùng lặp (Idempotency)
+        var existingTx = await _transactionRepository.FirstOrDefaultAsync(t => t.WalletId == wallet.Id && t.ReferenceId == referenceId && t.Type == TransactionType.Debit);
+        if (existingTx != null)
+        {
+            return Result.Success(); 
+        }
+
+        wallet.Balance += amount;
+        _walletRepository.Update(wallet);
+
+        var transaction = new WalletTransaction
+        {
+            WalletId = wallet.Id,
+            Amount = amount,
+            Type = TransactionType.Credit,
+            Reason = reason,
+            BalanceAfter = wallet.Balance,
+            ReferenceId = referenceId,
             Description = description
         };
         _transactionRepository.Add(transaction);

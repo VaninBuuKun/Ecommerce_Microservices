@@ -6,6 +6,7 @@ service PaymentGrpc {
   rpc CreatePayment (CreatePaymentGrpcRequest) returns (CreatePaymentGrpcResponse);
   rpc GetPaymentMethod(GetPaymentMethodRequest) returns (GetPaymentMethodResponse);
   rpc GetPaymentByOrder(GetPaymentByOrderRequest) returns (GetPaymentByOrderResponse);
+  rpc CheckShopWallet (CheckWalletRequest) returns (CheckWalletResponse);
 }
 
 message GetPaymentByOrderRequest {
@@ -46,4 +47,14 @@ message CreatePaymentGrpcResponse {
   bool success = 1;
   string paymentUrl = 2;
   string errorMessage = 3;
+}
+
+message CheckWalletRequest {
+  int64 user_id = 1;
+}
+
+message CheckWalletResponse {
+  bool has_wallet = 1;
+  bool is_locked = 2;
+  string balance = 3;
 }

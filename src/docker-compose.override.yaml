@@ -88,14 +88,14 @@ services:
       - minio_data:/data
     mem_limit: 256m
 
-  jaeger:
+  aspire-dashboard:
+    container_name: aspire-dashboard
     restart: always
     ports:
-      - "4317:4317"
-      - "16686:16686"
+      - "18888:18888" # Cổng giao diện UI mới (đẹp và hiện đại hơn nhiều)
+      - "4317:4317"   # Cổng OTLP gRPC để nhận trace/metrics từ .NET service đẩy lên
     environment:
-      - COLLECTOR_OTLP_ENABLED=true
-    mem_limit: 256m
+      - DOTNET_DASHBOARD_UNSECURED_ALLOW_ANONYMOUS=true # Cho phép truy cập không cần token đăng nhập cho dễ test local
 
 volumes:
   mysql_product_data:

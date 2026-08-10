@@ -15,6 +15,8 @@ public record ToggleProductStatusCommand(Guid ProductId) : ICommand<ProductRespo
 
 public class ToggleProductStatusCommandHandler(
     IEfUnitOfWork unitOfWork,
+    Ecommerce.Services.Catalog.Application.Commons.Interfaces.ISellerService sellerService,
+    Ecommerce.Services.Catalog.Application.Commons.Interfaces.IPaymentService paymentService,
     ILogger<ToggleProductStatusCommandHandler> logger,
     IMapper mapper
 ) : CommandHandler<ToggleProductStatusCommand, ProductResponse>
@@ -39,6 +41,24 @@ public class ToggleProductStatusCommandHandler(
             }
             else
             {
+                // Lấy thông tin Shop để tìm OwnerUserId
+                var shopInfoResult = await sellerService.GetShopShippingInfoAsync(product.ShopId);
+
+                if (!shopInfoResult.IsSuccess || shopInfoResult.Value == null)
+                {
+                    return Result<ProductResponse>.Failure(shopInfoResult.Message ?? "Không tìm thấy thông tin cửa hàng.", EErrorCode.NotFound);
+                }
+
+                var shopInfo = shopInfoResult.Value;
+
+                // Gọi sang Payments Service kiểm tra ví qua Interface
+                var walletCheckResult = await paymentService.CheckShopWalletAsync(shopInfo.OwnerUserId);
+
+                if (!walletCheckResult.IsSuccess || !walletCheckResult.Value)
+                {
+                    return Result<ProductResponse>.Failure("Cửa hàng chưa kích hoạt ví điện tử liên kết. Vui lòng kích hoạt ví trước khi kích hoạt sản phẩm lên hoạt động.", EErrorCode.ValidationErrors);
+                }
+
                 product.Activate();
             }
 

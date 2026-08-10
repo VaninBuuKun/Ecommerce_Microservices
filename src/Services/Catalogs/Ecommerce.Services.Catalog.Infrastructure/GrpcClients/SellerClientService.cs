@@ -37,4 +37,39 @@ public class SellerClientService(
             return ex.ToResultFailure<bool>();
         }
     }
+
+    public async Task<Result<ShopShippingInfoResultDto>> GetShopShippingInfoAsync(long shopId)
+    {
+        try
+        {
+            var response = await grpcClient.GetShopShippingInfoAsync(new GetShopShippingInfoRequest
+            {
+                ShopId = shopId
+            });
+
+            if (response == null)
+            {
+                return Result<ShopShippingInfoResultDto>.Failure("Không tìm thấy thông tin vận chuyển của cửa hàng.", BuildingBlocks.Shared.Enums.EErrorCode.NotFound);
+            }
+
+            var dto = new ShopShippingInfoResultDto(
+                response.ShopId,
+                response.ShopName,
+                response.Phone,
+                response.AddressLine,
+                response.WardId,
+                response.DistrictId,
+                response.ProvinceId,
+                response.OwnerUserId,
+                response.RecipientName
+            );
+
+            return Result<ShopShippingInfoResultDto>.Success(dto);
+        }
+        catch (RpcException ex)
+        {
+            logger.LogError(ex, "Lỗi gRPC khi lấy thông tin vận chuyển của shop {ShopId}: {Message}", shopId, ex.Message);
+            return ex.ToResultFailure<ShopShippingInfoResultDto>();
+        }
+    }
 }

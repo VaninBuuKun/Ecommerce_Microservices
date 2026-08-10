@@ -30,6 +30,7 @@ try
     builder.Services.AddScoped<IVariantRepository, VariantRepository>();
     builder.Services.AddScoped<IProductRepository, ProductRepository>();
     builder.Services.AddScoped<Ecommerce.Services.Catalog.Application.Commons.Interfaces.ISellerService, Ecommerce.Services.Catalog.Infrastructure.GrpcClients.SellerClientService>();
+    builder.Services.AddScoped<Ecommerce.Services.Catalog.Application.Commons.Interfaces.IPaymentService, Ecommerce.Services.Catalog.Infrastructure.GrpcClients.PaymentClientService>();
 
 //BuildingBlocks
     
@@ -41,6 +42,10 @@ try
     builder.Services.AddGrpcClient<BuildingBlocks.Grpc.Services.SellerGrpc.SellerGrpcClient>(o =>
     {
         o.Address = new Uri(builder.Configuration["Services:SellerGrpcUrl"] ?? "http://localhost:5043");
+    });
+    builder.Services.AddGrpcClient<BuildingBlocks.Grpc.Services.PaymentGrpc.PaymentGrpcClient>(o =>
+    {
+        o.Address = new Uri(builder.Configuration["Services:PaymentGrpcUrl"] ?? "http://localhost:5053");
     });
 
     var app = builder.Build();

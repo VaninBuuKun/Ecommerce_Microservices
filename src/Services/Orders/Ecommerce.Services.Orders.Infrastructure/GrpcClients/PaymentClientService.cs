@@ -111,4 +111,43 @@ public class PaymentClientService(PaymentGrpc.PaymentGrpcClient client) : IPayme
             return Result<PaymentDto>.Failure($"Lỗi khi kết nối gRPC tới Payment Service: {ex.Message}");
         }
     }
+
+    public async Task<Result<bool>> CheckWalletAsync(long userId, decimal requiredAmount = 0m, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var response = await client.CheckShopWalletAsync(new CheckWalletRequest
+            {
+                UserId = userId
+            }, cancellationToken: cancellationToken);
+
+            if (!response.HasWallet)
+            {
+                return Result<bool>.Failure("Người bán chưa đăng ký ví điện tử liên kết.", EErrorCode.NotFound);
+            }
+
+            if (response.IsLocked)
+            {
+                return Result<bool>.Failure("Ví điện tử của người bán hiện đang bị tạm khóa.", EErrorCode.Forbidden);
+            }
+
+            if (decimal.TryParse(response.Balance, CultureInfo.InvariantCulture, out var balance))
+            {
+                if (balance < requiredAmount)
+                {
+                    return Result<bool>.Failure($"Số dư ví của người bán không đủ để hoàn tiền. (Cần tối thiểu: {requiredAmount.ToString("N0", CultureInfo.GetCultureInfo("vi-VN"))}đ, Hiện có: {balance.ToString("N0", CultureInfo.GetCultureInfo("vi-VN"))}đ)", EErrorCode.ValidationErrors);
+                }
+            }
+
+            return Result<bool>.Success(true);
+        }
+        catch (Grpc.Core.RpcException ex)
+        {
+            return ex.ToResultFailure<bool>();
+        }
+        catch (Exception ex)
+        {
+            return Result<bool>.Failure($"Lỗi khi kết nối gRPC tới Payment Service: {ex.Message}");
+        }
+    }
 }

@@ -13,6 +13,8 @@ using Ecommerce.Services.Orders.Application.Features.Orders.Dtos;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 
+using Ecommerce.Services.Orders.Application.Features.Orders.Commands.CancelRefund;
+
 namespace Ecommerce.Services.Orders.Api.Controllers;
 
 [Tags("Refunds")]
@@ -86,6 +88,20 @@ public class RefundsController(ICurrentUserService currentUserService) : CleanV1
     public async Task<IActionResult> RejectRefund(Guid id, [FromBody] RejectRefundInput input, CancellationToken cancellationToken)
     {
         var command = new RejectRefundCommand(id, UserId, input.SellerNote);
+        var result = await _sender.SendAsync(command, cancellationToken);
+
+        return result.IsSuccess
+            ? Ok(result)
+            : StatusCode(result.GetHttpStatusCode(), result);
+    }
+
+    /// <summary>
+    /// Khách hàng hủy/rút yêu cầu hoàn tiền
+    /// </summary>
+    [HttpDelete("{id:guid}")]
+    public async Task<IActionResult> CancelRefund(Guid id, CancellationToken cancellationToken)
+    {
+        var command = new CancelRefundCommand(id, UserId);
         var result = await _sender.SendAsync(command, cancellationToken);
 
         return result.IsSuccess

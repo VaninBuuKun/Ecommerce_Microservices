@@ -10,6 +10,7 @@ namespace Ecommerce.Services.Sellers.Api.Features.Shops.Commands.CreateShop;
 public class CreateShopCommandHandler(
     IEfUnitOfWork unitOfWork,
     IShippingService shippingService,
+    IPaymentService paymentService,
     ILogger<CreateShopCommandHandler> logger)
     : ICommandHandler<CreateShopCommand, Shop>
 {
@@ -22,26 +23,14 @@ public class CreateShopCommandHandler(
             var shopRepo = unitOfWork.Repository<Shop, long>();
             var kycRepo = unitOfWork.Repository<SellerKyc, Guid>();
 
-            string provinceName = string.Empty;
-            string districtName = string.Empty;
-            string wardName = string.Empty;
-
-            // var locationResult = await shippingService.GetLocationNamesAsync(
-            //     request.ProvinceId, request.DistrictId, request.WardId, cancellationToken);
-            //
-            // if (locationResult.IsSuccess)
-            // {
-            //     provinceName = locationResult.Value.ProvinceName;
-            //     districtName = locationResult.Value.DistrictName;
-            //     wardName = locationResult.Value.WardName;
-            // }
-            // else
-            // {
-            //     logger.LogWarning("CreateShopCommand: Giải mã địa chỉ thất bại cho P:{P}, D:{D}, W:{W}. Reason: {Msg}",
-            //         request.ProvinceId, request.DistrictId, request.WardId, locationResult.Message);
-            //     return Result<Shop>.Failure(locationResult.Message, locationResult.ErrorCode);
-            // }
-
+            // RÀNG BUỘC: Kiểm tra ví đã được kích hoạt hay chưa
+            var walletCheck = await paymentService.CheckShopWalletAsync(request.OwnerUserId, cancellationToken);
+            if (!walletCheck.IsSuccess)
+            {
+                logger.LogWarning("CreateShopCommand: Thao tác bị chặn. User {OwnerUserId} chưa kích hoạt ví điện tử liên kết. Reason: {Reason}", request.OwnerUserId, walletCheck.Message);
+                return Result<Shop>.Failure(walletCheck.Message ?? "Tài khoản của bạn chưa kích hoạt hoặc đăng ký ví điện tử liên kết.", walletCheck.ErrorCode);
+            }
+            
             var userKyc = await kycRepo.FirstOrDefaultAsync(
                 predicate: k => k.UserId == request.OwnerUserId,
                 cancellationToken: cancellationToken
@@ -63,18 +52,6 @@ public class CreateShopCommandHandler(
                 logger.LogWarning("CreateShopCommand: User {OwnerUserId} đã đạt giới hạn tối đa 3 Shop.", request.OwnerUserId);
                 return Result<Shop>.Failure("Bạn chỉ được phép sở hữu tối đa 3 cửa hàng trên hệ thống.", EErrorCode.Forbidden);
             }
-
-            // var pickUpAddress = new PickUpAddress(
-            //     request.RecipientName,
-            //     request.Phone,
-            //     provinceName,
-            //     districtName,
-            //     wardName,
-            //     request.AddressLine,
-            //     request.ProvinceId,
-            //     request.DistrictId,
-            //     request.WardId
-            // );
 
             var shop = new Shop(
                 request.OwnerUserId,

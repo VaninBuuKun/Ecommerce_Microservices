@@ -24,33 +24,142 @@ public class CreateShipmentConsumer(
     public async Task Consume(ConsumeContext<CreateShipmentRequest> context)
     {
         var message = context.Message;
-        logger.LogInformation("Creating shipment for SubOrder {SubOrderId}, Order {OrderId}", message.SubOrderId, message.OrderId);
+        logger.LogInformation("Creating shipment for SubOrder {SubOrderId}, Order {OrderId}, IsReturn {IsReturn}", message.SubOrderId, message.OrderId, message.IsReturn);
 
         try
         {
-            var shopInfo = await sellerGrpcClient.GetShopShippingInfoAsync(new GetShopShippingInfoRequest
-            {
-                ShopId = message.ShopId
-            }, cancellationToken: context.CancellationToken);
+            string senderNameForWaybill = string.Empty;
+            string senderPhoneForWaybill = string.Empty;
+            string senderAddressForWaybill = string.Empty;
+            long senderWardIdForWaybill = 0;
 
-            var senderName = !string.IsNullOrWhiteSpace(shopInfo?.RecipientName)
-                ? shopInfo.RecipientName
-                : shopInfo?.ShopName;
+            string recipientNameForWaybill = string.Empty;
+            string recipientPhoneForWaybill = string.Empty;
+            string recipientAddressForWaybill = string.Empty;
+            long recipientWardIdForWaybill = 0;
 
-            if (shopInfo == null ||
-                string.IsNullOrWhiteSpace(senderName) ||
-                string.IsNullOrWhiteSpace(shopInfo.Phone) ||
-                string.IsNullOrWhiteSpace(shopInfo.AddressLine) ||
-                shopInfo.WardId == 0)
+            double weight = 0;
+            double length = 0;
+            double width = 0;
+            double height = 0;
+            decimal codAmountForWaybill = 0;
+            long shopId = 0;
+
+            List<CreateWaybillItemRequest> itemsForWaybill;
+
+            if (message.IsReturn)
             {
-                logger.LogError("Shop {ShopId} has invalid or incomplete shipping information. Rejecting suborder.", message.ShopId);
-                
-                await context.Publish<SubOrderRejectedEvent>(new SubOrderRejectedEvent
+                // Tìm kiếm shipment gốc đã được tạo trước đó thành công
+                var originalShipment = await dbContext.Shipments
+                    .FirstOrDefaultAsync(s => s.SubOrderId == message.SubOrderId && s.Status != ShipmentStatus.Failed, context.CancellationToken);
+
+                if (originalShipment == null)
                 {
-                    SubOrderId = message.SubOrderId,
-                    Reason = "Shop shipping information is incomplete or invalid (Missing name, phone, address, or ward code)."
-                });
-                return;
+                    logger.LogError("Không tìm thấy thông tin vận đơn gốc cho đơn hàng hoàn trả {SubOrderId}", message.SubOrderId);
+                    await context.Publish<SubOrderRejectedEvent>(new SubOrderRejectedEvent
+                    {
+                        SubOrderId = message.SubOrderId,
+                        Reason = $"Không tìm thấy vận đơn gốc cho đơn hàng hoàn trả {message.SubOrderId}."
+                    });
+                    return;
+                }
+
+                // Lấy thông tin Shop bằng gRPC
+                var shopInfo = await sellerGrpcClient.GetShopShippingInfoAsync(new GetShopShippingInfoRequest
+                {
+                    ShopId = originalShipment.ShopId
+                }, cancellationToken: context.CancellationToken);
+
+                var shopName = !string.IsNullOrWhiteSpace(shopInfo?.RecipientName)
+                    ? shopInfo.RecipientName
+                    : shopInfo?.ShopName;
+
+                if (shopInfo == null || string.IsNullOrWhiteSpace(shopName) || string.IsNullOrWhiteSpace(shopInfo.Phone) || string.IsNullOrWhiteSpace(shopInfo.AddressLine) || shopInfo.WardId == 0)
+                {
+                    logger.LogError("Shop {ShopId} has invalid or incomplete shipping information. Cannot return package.", originalShipment.ShopId);
+                    await context.Publish<SubOrderRejectedEvent>(new SubOrderRejectedEvent
+                    {
+                        SubOrderId = message.SubOrderId,
+                        Reason = "Shop shipping information is incomplete or invalid. Cannot return package."
+                    });
+                    return;
+                }
+
+                // Đảo ngược thông tin gửi/nhận
+                // Người gửi: Khách hàng (Recipient cũ)
+                senderNameForWaybill = originalShipment.RecipientName;
+                senderPhoneForWaybill = originalShipment.RecipientPhone;
+                senderAddressForWaybill = originalShipment.RecipientAddress;
+                senderWardIdForWaybill = originalShipment.RecipientWardId;
+
+                // Người nhận: Shop (thông tin lấy từ shopInfo)
+                recipientNameForWaybill = shopName;
+                recipientPhoneForWaybill = shopInfo.Phone;
+                recipientAddressForWaybill = shopInfo.AddressLine;
+                recipientWardIdForWaybill = shopInfo.WardId;
+
+                weight = originalShipment.Weight;
+                length = originalShipment.Length;
+                width = originalShipment.Width;
+                height = originalShipment.Height;
+                codAmountForWaybill = 0m;
+                shopId = originalShipment.ShopId;
+
+                itemsForWaybill = new List<CreateWaybillItemRequest>
+                {
+                    new CreateWaybillItemRequest($"Hàng hoàn trả đơn {message.SubOrderId}", "RETURN_ITEM", 1, 0)
+                };
+            }
+            else
+            {
+                var shopInfo = await sellerGrpcClient.GetShopShippingInfoAsync(new GetShopShippingInfoRequest
+                {
+                    ShopId = message.ShopId
+                }, cancellationToken: context.CancellationToken);
+
+                var shopName = !string.IsNullOrWhiteSpace(shopInfo?.RecipientName)
+                    ? shopInfo.RecipientName
+                    : shopInfo?.ShopName;
+
+                if (shopInfo == null ||
+                    string.IsNullOrWhiteSpace(shopName) ||
+                    string.IsNullOrWhiteSpace(shopInfo.Phone) ||
+                    string.IsNullOrWhiteSpace(shopInfo.AddressLine) ||
+                    shopInfo.WardId == 0)
+                {
+                    logger.LogError("Shop {ShopId} has invalid or incomplete shipping information. Rejecting suborder.", message.ShopId);
+                    
+                    await context.Publish<SubOrderRejectedEvent>(new SubOrderRejectedEvent
+                    {
+                        SubOrderId = message.SubOrderId,
+                        Reason = "Shop shipping information is incomplete or invalid (Missing name, phone, address, or ward code)."
+                    });
+                    return;
+                }
+
+                senderNameForWaybill = shopName;
+                senderPhoneForWaybill = shopInfo.Phone;
+                senderAddressForWaybill = shopInfo.AddressLine;
+                senderWardIdForWaybill = shopInfo.WardId;
+
+                recipientNameForWaybill = message.RecipientName;
+                recipientPhoneForWaybill = message.RecipientPhone;
+                recipientAddressForWaybill = message.RecipientAddress;
+                recipientWardIdForWaybill = message.RecipientWardId;
+
+                weight = message.Weight;
+                length = message.Length;
+                width = message.Width;
+                height = message.Height;
+                codAmountForWaybill = message.CodAmount;
+                shopId = message.ShopId;
+
+                itemsForWaybill = message.Items.Select(item => new CreateWaybillItemRequest(
+                    item.ProductName,
+                    item.VariantId.ToString(),
+                    item.Quantity,
+                    (int)item.UnitPrice
+                )).ToList();
             }
 
             var shippingProvider = providerFactory.GetProvider("GHN"); 
@@ -58,25 +167,20 @@ public class CreateShipmentConsumer(
             var waybillResult = await shippingProvider.CreateWaybillAsync(new CreateWaybillRequest(
                 message.SubOrderId,
                 message.OrderId,
-                senderName,
-                shopInfo.Phone,
-                shopInfo.AddressLine,
-                shopInfo.WardId,
-                message.RecipientWardId,
-                message.RecipientAddress,
-                message.RecipientName,
-                message.RecipientPhone,
-                message.Weight,
-                message.Length,
-                message.Width,
-                message.Height,
-                message.CodAmount,
-                message.Items.Select(item => new CreateWaybillItemRequest(
-                    item.ProductName,
-                    item.VariantId.ToString(),
-                    item.Quantity,
-                    (int)item.UnitPrice
-                )).ToList()
+                senderNameForWaybill,
+                senderPhoneForWaybill,
+                senderAddressForWaybill,
+                senderWardIdForWaybill,
+                recipientWardIdForWaybill,
+                recipientAddressForWaybill,
+                recipientNameForWaybill,
+                recipientPhoneForWaybill,
+                weight,
+                length,
+                width,
+                height,
+                codAmountForWaybill,
+                itemsForWaybill
             ), context.CancellationToken);
 
             var shipment = new Shipment
@@ -84,17 +188,18 @@ public class CreateShipmentConsumer(
                 Id = Guid.NewGuid(),
                 SubOrderId = message.SubOrderId,
                 OrderId = message.OrderId,
-                ShopId = message.ShopId,
-                SenderAddress = shopInfo.AddressLine,
-                RecipientAddress = message.RecipientAddress,
-                RecipientName = message.RecipientName,
-                RecipientPhone = message.RecipientPhone,
-                RecipientWardId = message.RecipientWardId,
-                Weight = message.Weight,
-                Length = message.Length,
-                Width = message.Width,
-                Height = message.Height,
-                CarrierName = shippingProvider.ProviderName
+                ShopId = shopId,
+                SenderAddress = senderAddressForWaybill,
+                RecipientAddress = recipientAddressForWaybill,
+                RecipientName = recipientNameForWaybill,
+                RecipientPhone = recipientPhoneForWaybill,
+                RecipientWardId = recipientWardIdForWaybill,
+                Weight = weight,
+                Length = length,
+                Width = width,
+                Height = height,
+                CarrierName = shippingProvider.ProviderName,
+                IsRefund =  message.IsReturn,
             };
 
             if (waybillResult.IsSuccess)

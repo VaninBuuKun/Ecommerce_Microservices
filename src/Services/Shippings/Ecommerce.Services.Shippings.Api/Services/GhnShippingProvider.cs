@@ -218,7 +218,7 @@ public class GhnShippingProvider(
 
             var payload = new
             {
-                payment_type_id = 2,
+                payment_type_id = 1,
                 note = "Cho xem hàng, không cho thử",
                 required_note = "CHOXEMHANGKHONGTHU",
                 from_name = request.SenderName,
