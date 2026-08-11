@@ -1,20 +1,12 @@
-using BuildingBlocks.Auth;
-using BuildingBlocks.Logging;
-using BuildingBlocks.Web.Extensions;
-using Ecommerce.Services.Identity.Api.Config;
+using BuildingBlocks.Logging.OTLPSerilog;
 using Ecommerce.Services.Identity.Api.Configurations;
-using Ecommerce.Services.Identity.Api.Models.Entities;
-using Ecommerce.Services.Identity.Api.Persistances;
 using Ecommerce.Services.Identity.Api.Services;
-using Identity.Extensions;
-using Microsoft.AspNetCore.Identity;
-using Microsoft.EntityFrameworkCore;
 using Scalar.AspNetCore;
 using Serilog;
 
 var builder = WebApplication.CreateBuilder(args);
 builder.AddCustomSerilog("IdentityService");
-builder.AddCustomTracing("IdentityService");
+// builder.AddCustomTracing("IdentityService");
 Log.Information("Identity Service starting......");
 try
 {

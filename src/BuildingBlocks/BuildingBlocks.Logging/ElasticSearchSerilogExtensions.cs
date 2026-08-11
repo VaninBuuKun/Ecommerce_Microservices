@@ -8,7 +8,7 @@ using Serilog.Enrichers.Span;
 
 namespace BuildingBlocks.Logging;
 
-public static class SerilogExtensions
+public static class ElasticSearchSerilogExtensions
 {
     public static void AddCustomSerilog(this WebApplicationBuilder builder, string applicationName)
     {

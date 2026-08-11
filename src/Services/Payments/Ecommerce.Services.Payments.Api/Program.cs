@@ -1,5 +1,5 @@
 using System.Text.Json.Serialization;
-using BuildingBlocks.Logging;
+using BuildingBlocks.Logging.OTLPSerilog;
 using Ecommerce.Services.Payments.Api.Models.Settings;
 using Ecommerce.Services.Payments.Api.Configurations;
 using Ecommerce.Services.Payments.Api.GrpcServers;
@@ -9,7 +9,7 @@ using Serilog;
 
 var builder = WebApplication.CreateBuilder(args);
 builder.AddCustomSerilog("PaymentService");
-builder.AddCustomTracing("PaymentService");
+// builder.AddCustomTracing("PaymentService");
 Log.Information("Payment Service starting......");
 try
 {

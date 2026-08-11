@@ -1,23 +1,14 @@
-using System.Reflection;
 using System.Text.Json.Serialization;
-using BuildingBlocks.Application;
-using BuildingBlocks.Auth;
-using BuildingBlocks.EfCore.Persistence.Commons;
-using BuildingBlocks.Logging;
-using BuildingBlocks.Shared.InfrastructureInterfaces.Persistence.EFCore;
-using BuildingBlocks.Web.Extensions;
-using Ecommerce.Services.Shippings.Api.Persistances;
+using BuildingBlocks.Logging.OTLPSerilog;
 using Ecommerce.Services.Shippings.Api.Services;
-using BuildingBlocks.Messaging;
 using Ecommerce.Services.Shippings.Api.Configurations;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.HttpOverrides;
 using Scalar.AspNetCore;
 using Serilog;
-using MassTransit;
 
 var builder = WebApplication.CreateBuilder(args);
 builder.AddCustomSerilog("ShippingService");
+// builder.AddCustomTracing("ShippingService");
 Log.Information("Shipping Service starting......");
 
 try

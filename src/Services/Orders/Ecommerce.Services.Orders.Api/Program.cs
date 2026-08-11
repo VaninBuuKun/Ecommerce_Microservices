@@ -1,5 +1,5 @@
 using BuildingBlocks.Auth;
-using BuildingBlocks.Logging;
+using BuildingBlocks.Logging.OTLPSerilog;
 using Ecommerce.Services.Orders.Infrastructure;
 using BuildingBlocks.Web.Extensions;
 using Scalar.AspNetCore;
@@ -7,9 +7,10 @@ using Ecommerce.Services.Orders.Application;
 using Serilog;
 
 var builder = WebApplication.CreateBuilder(args);
-
 // Serilog
+builder.Host.UseSerilog();
 builder.AddCustomSerilog("OrdersService");
+// builder.AddCustomTracing("OrdersService");
 Log.Information("Order Service starting......");
 try
 {

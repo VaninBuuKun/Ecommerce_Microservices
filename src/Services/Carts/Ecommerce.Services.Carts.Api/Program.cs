@@ -1,4 +1,4 @@
-using BuildingBlocks.Logging;
+using BuildingBlocks.Logging.OTLPSerilog;
 using Ecommerce.Services.Carts.Api.Configurations;
 using Ecommerce.Services.Carts.Api.Endpoints;
 using Ecommerce.Services.Carts.Api.GrpcServers;
@@ -7,11 +7,12 @@ using Serilog;
 
 var builder = WebApplication.CreateBuilder(args);
 builder.AddCustomSerilog("CartService");
-builder.AddCustomTracing("CartService");
+// builder.AddCustomTracing("CartService");
+Log.Information("Cart Service starting......");
 try
 {
     builder.Services.AddHttpContextAccessor();
-    builder.Services.AddInfrastructureConfiguration(builder.Configuration);
+    builder.Services.AddInfrastructureConfigurations(builder.Configuration);
     
     
     var app = builder.Build();

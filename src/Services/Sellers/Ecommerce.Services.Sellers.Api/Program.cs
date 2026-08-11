@@ -1,5 +1,5 @@
 using System.Text.Json.Serialization;
-using BuildingBlocks.Logging;
+using BuildingBlocks.Logging.OTLPSerilog;
 using Ecommerce.Services.Sellers.Api.Configurations;
 using Ecommerce.Services.Sellers.Api.GrpcServers;
 using Scalar.AspNetCore;
@@ -7,6 +7,7 @@ using Serilog;
 
 var builder = WebApplication.CreateBuilder(args);
 builder.AddCustomSerilog("SellerService");
+// builder.AddCustomTracing("SellerService");
 Log.Information("Seller Service starting......");
 try
 {

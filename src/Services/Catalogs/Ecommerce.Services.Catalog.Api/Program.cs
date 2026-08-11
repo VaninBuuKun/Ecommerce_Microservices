@@ -1,18 +1,15 @@
 using BuildingBlocks.Auth;
-using BuildingBlocks.Logging;
-using BuildingBlocks.EfCore;
+using BuildingBlocks.Logging.OTLPSerilog;
 using BuildingBlocks.Web.Extensions;
 using Ecommerce.Services.Catalog.Infrastructure;
 using Ecommerce.Services.Catalog.Api.GrpcServers;
 using Ecommerce.Services.Catalog.Application;
-using Ecommerce.Services.Catalog.Application.Commons.Repositories;
-using Ecommerce.Services.Catalog.Infrastructure.Repositories;
 using Scalar.AspNetCore;
 using Serilog;
 
 var builder = WebApplication.CreateBuilder(args);
-builder.AddCustomSerilog("CatalogApi");
-builder.AddCustomTracing("CatalogService");
+builder.AddCustomSerilog("CatalogService");
+// builder.AddCustomTracing("CatalogService");
 try
 {
     builder.Services.AddControllers()
