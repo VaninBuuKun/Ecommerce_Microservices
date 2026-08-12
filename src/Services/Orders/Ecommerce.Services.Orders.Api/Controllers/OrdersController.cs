@@ -65,7 +65,9 @@ public class OrdersController(ICurrentUserService currentUserService) : CleanV1C
         var result = await _sender.SendAsync(new CalOrderGrandTotalCommand(
             UserId,
             request.UserAddressId,
-            request.CheckoutSessionId
+            request.CheckoutSessionId,
+            request.PlatformVoucherCode,
+            request.ShopVoucherCodes
         ), cancellationToken);
 
         return result.IsSuccess 
@@ -213,4 +215,6 @@ public class CalculateOrderTotalRequest
     public Guid UserAddressId { get; set; }
     public Guid? CheckoutSessionId { get; set; }
     public Dictionary<long, string>? ShopShippingSelections { get; set; }
+    public string? PlatformVoucherCode { get; set; }
+    public Dictionary<long, string>? ShopVoucherCodes { get; set; }
 }

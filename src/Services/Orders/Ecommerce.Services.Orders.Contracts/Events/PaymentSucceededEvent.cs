@@ -5,4 +5,5 @@ namespace Ecommerce.Services.Orders.Contracts.Events;
 public class PaymentSucceededEvent : IIntegrationEvent
 {
     public Guid OrderId { get; set; }
+    public long CustomerId { get; set; }
 }

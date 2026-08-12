@@ -12,6 +12,11 @@ public class CheckoutSession
     public Dictionary<long, decimal> ShopShippingFees { get; set; } = new();
     public decimal SubTotal { get; set; }
     public decimal TotalShippingFee { get; set; }
+    public decimal TotalDiscount { get; set; }
+    public decimal PlatformDiscount { get; set; }
+    public Dictionary<long, decimal> ShopDiscounts { get; set; } = new();
+    public string? PlatformVoucherCode { get; set; }
+    public Dictionary<long, string> ShopVoucherCodes { get; set; } = new();
     public decimal GrandTotal { get; set; }
     public DateTime CreatedAt { get; set; }
     public DateTime ExpiresAt { get; set; }

@@ -15,4 +15,8 @@
       <ProjectReference Include="..\..\..\BuildingBlocks\BuildingBlocks.Grpc\BuildingBlocks.Grpc.csproj" />
     </ItemGroup>
 
+    <ItemGroup>
+      <Folder Include="Features\Vouchers\Dtos\" />
+    </ItemGroup>
+
 </Project>
