@@ -26,4 +26,9 @@ export const shopService = {
 		const res = await api.put(`/shop/${id}`, payload);
 		return res.data;
 	},
+
+	async getShopDetail(id: string): Promise<any> {
+		const res = await api.get(`/shop/${id}`);
+		return res.data;
+	},
 };

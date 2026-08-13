@@ -8,10 +8,12 @@ public class Shipment : EntityTrackingBase<Guid>
 {
     public Guid SubOrderId { get; set; }
     public Guid OrderId { get; set; }
+    public long CustomerId { get; set; }
     public string? WaybillCode { get; set; }
     public string CarrierName { get; set; } = "GHN";
     public decimal ShippingFee { get; set; }
     public ShipmentStatus Status { get; set; } = ShipmentStatus.Created;
+
     
     public string SenderAddress { get; set; } = string.Empty;
     public string RecipientAddress { get; set; } = string.Empty;

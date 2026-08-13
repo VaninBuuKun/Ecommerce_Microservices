@@ -83,6 +83,7 @@ public class SubOrderStateMachine : MassTransitStateMachine<SubOrderSagaState>
                 {
                     SubOrderId = context.Saga.CorrelationId,
                     OrderId = context.Saga.OrderId,
+                    CustomerId = context.Saga.CustomerId,
                     RecipientWardId = context.Saga.RecipientWardId,
                     RecipientAddress = context.Saga.ShippingAddress,
                     RecipientName = context.Saga.RecipientName,
@@ -98,6 +99,7 @@ public class SubOrderStateMachine : MassTransitStateMachine<SubOrderSagaState>
                         : JsonSerializer.Deserialize<List<ShipmentItemData>>(context.Saga.ItemsJson) ?? new List<ShipmentItemData>()
                 }))
                 .TransitionTo(PackageReady),
+
 
             When(SubOrderRejected)
                 .HandleRejectionFlow()

@@ -1,5 +1,9 @@
 import api from "../../../shared/lib/axios";
-import type { Product, PagedCursorResponse } from "../types";
+import type {
+	Product,
+	PagedCursorResponse,
+	BulkVariantsPayload,
+} from "../types";
 
 export const productService = {
 	getProducts: async (params: {
@@ -21,6 +25,7 @@ export const productService = {
 		page: number;
 		pageSize: number;
 		ShopId: number;
+		searchTerm?: string;
 	}): Promise<Product[]> => {
 		const response = await api.get<Product[]>("/products/me", { params });
 		return response.data;
@@ -46,20 +51,17 @@ export const productService = {
 		payload: {
 			name: string;
 			description: string;
-			weight: number;
-			length: number;
-			width: number;
-			height: number;
 			thumbnailUrl?: string;
 			videoUrl?: string;
 			imageUrls: string[];
+			categoryId?: string;
 		},
 	): Promise<Product> => {
 		const response = await api.put<Product>(`/products/${id}`, payload);
 		return response.data;
 	},
 
-	setupSingleVariant: async (
+	initSingleVariant: async (
 		id: string,
 		payload: {
 			price: number;
@@ -69,10 +71,11 @@ export const productService = {
 			length?: number;
 			width?: number;
 			height?: number;
+			discountPrice?: number;
 		},
 	): Promise<Product> => {
 		const response = await api.put<Product>(
-			`/products/${id}/single-variant`,
+			`/products/${id}/init-single-variant`,
 			payload,
 		);
 		return response.data;
@@ -97,6 +100,7 @@ export const productService = {
 				length?: number;
 				width?: number;
 				height?: number;
+				discountPrice?: number;
 			}[];
 		},
 	): Promise<Product> => {
@@ -109,22 +113,7 @@ export const productService = {
 
 	bulkUpdateVariants: async (
 		id: string,
-		payload: {
-			variants: {
-				id?: string;
-				sku?: string;
-				price: number;
-				availableStock: number;
-				optionValues: {
-					optionName: string;
-					valueName: string;
-				}[];
-				weight?: number;
-				length?: number;
-				width?: number;
-				height?: number;
-			}[];
-		},
+		payload: BulkVariantsPayload,
 	): Promise<Product> => {
 		const response = await api.put<Product>(
 			`/products/${id}/variants`,
@@ -136,5 +125,31 @@ export const productService = {
 	getCategories: async (): Promise<any[]> => {
 		const response = await api.get<any[]>("/categories");
 		return response.data;
+	},
+
+	deleteProduct: async (id: string) => {
+		await api.delete(`/products/${id}`);
+	},
+
+	toggleProductStatus: async (id: string): Promise<Product> => {
+		const response = await api.put<Product>(
+			`/products/${id}/toggle-status`,
+		);
+		return response.data;
+	},
+
+	updateProductSale: async (
+		id: string,
+		payload: {
+			price: number;
+			discountPrice: number | null;
+			weight: number;
+			height: number;
+			length: number;
+			width: number;
+			availabeStock: number;
+		},
+	) => {
+		await api.put(`/product/${id}/sale`);
 	},
 };

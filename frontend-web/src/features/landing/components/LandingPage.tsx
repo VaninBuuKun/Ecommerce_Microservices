@@ -1,4 +1,4 @@
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import {
 	ShoppingBag,
@@ -12,179 +12,21 @@ import {
 } from "lucide-react";
 import CategoryList from "./CategoryList";
 import { toast } from "react-toastify";
+import { useProductsQuery } from "../../catalog/hooks/useProductsQuery";
 
 export default function LandingPage() {
+	const navigate = useNavigate();
 	const scrollToSection = (id: string) => {
 		const element = document.getElementById(id);
 		if (element) {
 			element.scrollIntoView({ behavior: "smooth" });
 		}
 	};
-
-	// MOCK DATA TOP DEALS (Thu nhỏ kích thước, đúng 5 item hiển thị chuẩn khung)
-	const topDeals = [
-		{
-			id: 1,
-			name: "Áo Hoodie Streetwear Emerald",
-			price: "450.000đ",
-			originalPrice: "590.000đ",
-			rating: 4.9,
-			reviewCount: 188,
-			tag: "Flash Sale",
-			image: "https://images.unsplash.com/photo-1556821840-3a63f95609a7?auto=format&fit=crop&q=80&w=500",
-		},
-		{
-			id: 2,
-			name: "Quần Cargo Đen Technical",
-			price: "520.000đ",
-			originalPrice: "680.000đ",
-			rating: 4.8,
-			reviewCount: 142,
-			tag: "-30%",
-			image: "https://images.unsplash.com/photo-1542272604-787c3835535d?auto=format&fit=crop&q=80&w=500",
-		},
-		{
-			id: 3,
-			name: "Túi Đeo Chéo Canvas Minimalist",
-			price: "290.000đ",
-			originalPrice: "390.000đ",
-			rating: 4.7,
-			reviewCount: 65,
-			tag: "Best Seller",
-			image: "https://images.unsplash.com/photo-1553062407-98eeb64c6a62?auto=format&fit=crop&q=80&w=500",
-		},
-		{
-			id: 4,
-			name: "Áo Khoác Gió Waterproof",
-			price: "750.000đ",
-			originalPrice: "950.000đ",
-			rating: 5.0,
-			reviewCount: 55,
-			tag: "-20%",
-			image: "https://images.unsplash.com/photo-1551028719-00167b16eac5?auto=format&fit=crop&q=80&w=500",
-		},
-		{
-			id: 5,
-			name: "Kính Râm Polarized",
-			price: "390.000đ",
-			originalPrice: "490.000đ",
-			rating: 4.9,
-			reviewCount: 94,
-			tag: "Bán chạy",
-			image: "https://images.unsplash.com/photo-1511499767150-a48a237f0083?auto=format&fit=crop&q=80&w=500",
-		},
-	];
-
-	// MOCK DATA SẢN PHẨM GỢI Ý (Đúng 5 item, áp dụng đúng design card nhỏ gọn của Top Deals)
-	const suggestedProducts = [
-		{
-			id: 101,
-			name: "Áo Thun Basic Cotton",
-			price: "150.000đ",
-			originalPrice: "200.000đ",
-			rating: 4.8,
-			reviewCount: 120,
-			tag: "New",
-			image: "https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?auto=format&fit=crop&q=80&w=500",
-		},
-		{
-			id: 102,
-			name: "Nón Bucket Xám Khói",
-			price: "120.000đ",
-			originalPrice: "160.000đ",
-			rating: 4.7,
-			reviewCount: 85,
-			tag: "-25%",
-			image: "https://images.unsplash.com/photo-1588850561407-ed78c282e89b?auto=format&fit=crop&q=80&w=500",
-		},
-		{
-			id: 103,
-			name: "Ví Da Bò Handmade",
-			price: "450.000đ",
-			originalPrice: "550.000đ",
-			rating: 4.9,
-			reviewCount: 64,
-			tag: "Hot",
-			image: "https://images.unsplash.com/photo-1627123424574-724758594e93?auto=format&fit=crop&q=80&w=500",
-		},
-		{
-			id: 104,
-			name: "Áo Sơ Mi Flannel",
-			price: "320.000đ",
-			originalPrice: "420.000đ",
-			rating: 4.6,
-			reviewCount: 92,
-			tag: "-15%",
-			image: "https://images.unsplash.com/photo-1598033129183-c4f50c736f10?auto=format&fit=crop&q=80&w=500",
-		},
-		{
-			id: 105,
-			name: "Đồng Hồ Minimalist",
-			price: "1.200.000đ",
-			originalPrice: "1.500.000đ",
-			rating: 5.0,
-			reviewCount: 40,
-			tag: "Luxury",
-			image: "https://images.unsplash.com/photo-1524592094714-0f0654e20314?auto=format&fit=crop&q=80&w=500",
-		},
-		{
-			id: 106,
-			name: "Đồng Hồ Minimalist",
-			price: "1.200.000đ",
-			originalPrice: "1.500.000đ",
-			rating: 5.0,
-			reviewCount: 40,
-			tag: "Luxury",
-			image: "https://images.unsplash.com/photo-1524592094714-0f0654e20314?auto=format&fit=crop&q=80&w=500",
-		},
-		{
-			id: 107,
-			name: "Đồng Hồ Minimalist",
-			price: "1.200.000đ",
-			originalPrice: "1.500.000đ",
-			rating: 5.0,
-			reviewCount: 40,
-			tag: "Luxury",
-			image: "https://images.unsplash.com/photo-1524592094714-0f0654e20314?auto=format&fit=crop&q=80&w=500",
-		},
-		{
-			id: 108,
-			name: "Đồng Hồ Minimalist",
-			price: "1.200.000đ",
-			originalPrice: "1.500.000đ",
-			rating: 5.0,
-			reviewCount: 40,
-			tag: "Luxury",
-			image: "https://images.unsplash.com/photo-1524592094714-0f0654e20314?auto=format&fit=crop&q=80&w=500",
-		},
-		{
-			id: 109,
-			name: "Đồng Hồ Minimalist",
-			price: "1.200.000đ",
-			originalPrice: "1.500.000đ",
-			rating: 5.0,
-			reviewCount: 40,
-			tag: "Luxury",
-			image: "https://images.unsplash.com/photo-1524592094714-0f0654e20314?auto=format&fit=crop&q=80&w=500",
-		},
-	];
-
-	const testimonials = [
-		{
-			name: "Khánh Duy",
-			role: "Chủ gian hàng thời trang",
-			content:
-				"Buu Store mang lại trải nghiệm marketplace cực kỳ mượt mà. Hệ thống quản lý đơn hàng và lượng khách truy cập đều đặn giúp việc kinh doanh hiệu quả hơn hẳn.",
-			rating: 5,
-		},
-		{
-			name: "Thu Trang",
-			role: "Người mua sắm",
-			content:
-				"Tìm kiếm sản phẩm rất nhanh, giao diện tối giản, hiện đại và thanh toán tiện lợi. Rất thích các sản phẩm gợi ý tại đây.",
-			rating: 5,
-		},
-	];
+	// Load actual active products from public catalog API
+	const { data: publicProductsData } = useProductsQuery({
+		limit: 10,
+	});
+	const suggestedList = publicProductsData?.items || [];
 
 	return (
 		<div className="min-h-screen flex flex-col bg-brand-light overflow-x-hidden scroll-smooth">
@@ -316,12 +158,13 @@ export default function LandingPage() {
 						</div>
 					</div>
 
-					<div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4">
-						{topDeals.map((p) => (
+					{/* <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4">
+						{trendingList.map((p) => (
 							<motion.div
 								whileHover={{ y: -4 }}
 								key={p.id}
-								className="group flex flex-col bg-white rounded-lg overflow-hidden border border-brand-border hover:shadow-[0_6px_20px_rgba(0,0,0,0.06)] transition-all duration-200 relative"
+								onClick={() => navigate(`/products/${p.id}`)}
+								className="group flex flex-col bg-white rounded-lg overflow-hidden border border-brand-border hover:shadow-[0_6px_20px_rgba(0,0,0,0.06)] transition-all duration-200 relative cursor-pointer"
 							>
 								<div className="aspect-square w-full overflow-hidden relative bg-brand-light border-b border-brand-border">
 									<img
@@ -335,13 +178,33 @@ export default function LandingPage() {
 										</span>
 									)}
 									<div className="absolute inset-0 bg-black/10 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center justify-center gap-1 z-10">
-										<button className="p-2 bg-white text-brand-dark rounded hover:bg-brand-primary transition-colors shadow">
+										<button
+											onClick={(e) => {
+												e.stopPropagation();
+												navigate("/cart");
+											}}
+											className="p-2 bg-white text-brand-dark rounded hover:bg-brand-primary transition-colors shadow border-none cursor-pointer"
+										>
 											<ShoppingBag className="w-3.5 h-3.5" />
 										</button>
-										<button className="p-2 bg-white text-brand-dark rounded hover:bg-brand-primary transition-colors shadow">
+										<button
+											onClick={(e) => {
+												e.stopPropagation();
+												navigate(`/products/${p.id}`);
+											}}
+											className="p-2 bg-white text-brand-dark rounded hover:bg-brand-primary transition-colors shadow border-none cursor-pointer"
+										>
 											<Eye className="w-3.5 h-3.5" />
 										</button>
-										<button className="p-2 bg-white text-brand-dark rounded hover:bg-brand-primary transition-colors shadow">
+										<button
+											onClick={(e) => {
+												e.stopPropagation();
+												toast.success(
+													"Đã lưu vào danh sách yêu thích!",
+												);
+											}}
+											className="p-2 bg-white text-brand-dark rounded hover:bg-brand-primary transition-colors shadow cursor-pointer border-none"
+										>
 											<Heart className="w-3.5 h-3.5" />
 										</button>
 									</div>
@@ -376,17 +239,20 @@ export default function LandingPage() {
 												</span>
 											)}
 										</div>
-										<Link
-											to="/cart"
-											className="inline-flex items-center bg-brand-dark hover:bg-brand-primary text-white p-1.5 rounded transition-colors duration-200"
+										<button
+											onClick={(e) => {
+												e.stopPropagation();
+												navigate("/cart");
+											}}
+											className="inline-flex items-center bg-brand-dark hover:bg-brand-primary text-white p-1.5 rounded transition-colors duration-200 border-none cursor-pointer"
 										>
 											<ShoppingBag className="w-3.5 h-3.5" />
-										</Link>
+										</button>
 									</div>
 								</div>
 							</motion.div>
 						))}
-					</div>
+					</div> */}
 				</div>
 			</section>
 
@@ -407,34 +273,22 @@ export default function LandingPage() {
 				</div>
 
 				<div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4">
-					{suggestedProducts.map((p) => (
+					{suggestedList.map((p) => (
 						<motion.div
 							whileHover={{ y: -4 }}
 							key={p.id}
-							className="group flex flex-col bg-white rounded-lg overflow-hidden border border-brand-border hover:shadow-[0_6px_20px_rgba(0,0,0,0.06)] transition-all duration-200 relative"
+							onClick={() => navigate(`/products/${p.id}`)}
+							className="group flex flex-col bg-white rounded-lg overflow-hidden border border-brand-border hover:shadow-[0_6px_20px_rgba(0,0,0,0.06)] transition-all duration-200 relative cursor-pointer"
 						>
 							<div className="aspect-square w-full overflow-hidden relative bg-brand-light border-b border-brand-border">
 								<img
-									src={p.image}
+									src={p.thumbnailUrl}
 									alt={p.name}
 									className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
 								/>
-								{p.tag && (
-									<span className="absolute top-2 left-2 bg-brand-primary text-brand-dark text-[8px] font-bold uppercase px-2 py-0.5 rounded-sm tracking-wider">
-										{p.tag}
-									</span>
-								)}
-								<div className="absolute inset-0 bg-black/10 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center justify-center gap-1 z-10">
-									<button className="p-2 bg-white text-brand-dark rounded hover:bg-brand-primary transition-colors shadow">
-										<ShoppingBag className="w-3.5 h-3.5" />
-									</button>
-									<button className="p-2 bg-white text-brand-dark rounded hover:bg-brand-primary transition-colors shadow">
-										<Eye className="w-3.5 h-3.5" />
-									</button>
-									<button className="p-2 bg-white text-brand-dark rounded hover:bg-brand-primary transition-colors shadow">
-										<Heart className="w-3.5 h-3.5" />
-									</button>
-								</div>
+								<span className="absolute top-2 left-2 bg-brand-primary text-brand-dark text-[8px] font-bold uppercase px-2 py-0.5 rounded-sm tracking-wider">
+									{p.tag ?? "Best seller"}
+								</span>
 							</div>
 
 							<div className="p-3.5 flex-1 flex flex-col text-left justify-between space-y-2.5">
@@ -449,7 +303,7 @@ export default function LandingPage() {
 								<div className="flex items-center gap-1">
 									<Star className="w-3 h-3 fill-brand-primary stroke-brand-primary" />
 									<span className="text-[11px] font-bold text-brand-dark">
-										{p.rating}
+										{p.averageRating}
 									</span>
 									<span className="text-[9px] text-brand-muted">
 										({p.reviewCount})
@@ -458,20 +312,12 @@ export default function LandingPage() {
 								<div className="flex items-center justify-between pt-2 border-t border-brand-border">
 									<div className="flex flex-col">
 										<span className="font-bold text-brand-dark text-xs">
+											{p.discountPrice}
+										</span>
+										<span className="text-[9px] text-brand-muted line-through">
 											{p.price}
 										</span>
-										{p.originalPrice && (
-											<span className="text-[9px] text-brand-muted line-through">
-												{p.originalPrice}
-											</span>
-										)}
 									</div>
-									<Link
-										to="/cart"
-										className="inline-flex items-center bg-brand-dark hover:bg-brand-primary text-white p-1.5 rounded transition-colors duration-200"
-									>
-										<ShoppingBag className="w-3.5 h-3.5" />
-									</Link>
 								</div>
 							</div>
 						</motion.div>
@@ -543,53 +389,6 @@ export default function LandingPage() {
 								</p>
 							</div>
 						</div>
-					</div>
-				</div>
-			</section>
-
-			{/* 6. TESTIMONIALS */}
-			<section className="py-20 bg-brand-light-soft border-t border-brand-border">
-				<div className="max-w-4xl mx-auto px-6 text-center space-y-12">
-					<div className="space-y-2">
-						<span className="text-xs font-bold text-brand-primary uppercase tracking-widest">
-							// REVIEWS
-						</span>
-						<h2 className="text-3xl font-bold text-brand-dark tracking-tight">
-							Được Tin Dùng Bởi Cộng Đồng
-						</h2>
-					</div>
-
-					<div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-left">
-						{testimonials.map((t, i) => (
-							<div
-								key={i}
-								className="bg-white p-6 rounded-lg border border-brand-border shadow-sm flex flex-col justify-between space-y-5"
-							>
-								<p className="text-brand-dark text-sm font-medium leading-relaxed italic">
-									"{t.content}"
-								</p>
-								<div className="flex items-center justify-between border-t border-brand-border/60 pt-3">
-									<div>
-										<h4 className="font-bold text-xs text-brand-dark">
-											{t.name}
-										</h4>
-										<span className="text-[10px] text-brand-muted">
-											{t.role}
-										</span>
-									</div>
-									<div className="flex gap-0.5">
-										{Array.from({ length: t.rating }).map(
-											(_, idx) => (
-												<Star
-													key={idx}
-													className="w-3 h-3 fill-brand-primary stroke-brand-primary"
-												/>
-											),
-										)}
-									</div>
-								</div>
-							</div>
-						))}
 					</div>
 				</div>
 			</section>

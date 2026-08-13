@@ -6,6 +6,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{1027466C-46F
 		src\docker-compose.override.yaml = src\docker-compose.override.yaml
 		src\docker-compose.prod.yaml = src\docker-compose.prod.yaml
 		src\init-multiple-databases.sh = src\init-multiple-databases.sh
+		src\otel-collector-config.yaml = src\otel-collector-config.yaml
+		src\tempo-config.yaml = src\tempo-config.yaml
 	EndProjectSection
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Services", "Services", "{1CCA764A-C052-4010-B92E-BE066A0A5B0D}"
@@ -76,6 +78,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Docs", "Docs", "{3AEEC034-B
 		Docs\cookie_security_guide.md = Docs\cookie_security_guide.md
 		Docs\masstransit_saga_guide.md = Docs\masstransit_saga_guide.md
 		Docs\refund.txt = Docs\refund.txt
+		Docs\sql.txt = Docs\sql.txt
 	EndProjectSection
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "QueryDb", "QueryDb", "{9D57CF15-9990-498E-87D2-C313CD4FBCCB}"
@@ -86,9 +89,13 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "QueryDb", "QueryDb", "{9D57
 		QueryDb\Shipping.sql = QueryDb\Shipping.sql
 		QueryDb\IdentityService.sql = QueryDb\IdentityService.sql
 		QueryDb\PaymentService.sql = QueryDb\PaymentService.sql
+		QueryDb\NotificationService.sql = QueryDb\NotificationService.sql
 	EndProjectSection
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Identity", "Identity", "{FFF8B124-DA0A-4225-8888-6E5327A517E7}"
+	ProjectSection(SolutionItems) = preProject
+		Configurations\InfrastructureConfiguration.cs = Configurations\InfrastructureConfiguration.cs
+	EndProjectSection
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Identity.Api", "src\Services\Identity\Identity.Api\Identity.Api.csproj", "{31A63767-D2BF-4A90-A543-AEAD2836D228}"
 EndProject
@@ -239,6 +246,10 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "workflows", "workflows", "{
 	ProjectSection(SolutionItems) = preProject
 		.github\workflows\cd-docker-deploy.yaml = .github\workflows\cd-docker-deploy.yaml
 	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Notifications", "Notifications", "{6CDA1CBC-A1EE-0A76-8E11-75063EA3D8D8}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Ecommerce.Services.Notifications.Api", "src\Services\Notifications\Ecommerce.Services.Notifications.Api\Ecommerce.Services.Notifications.Api.csproj", "{5178FBF4-A523-4D96-810A-27BA362EF0C1}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -574,6 +585,18 @@ Global
 		{9EA0D126-B801-4255-B44A-5C7F5DBD0EF1}.Release|x64.Build.0 = Release|Any CPU
 		{9EA0D126-B801-4255-B44A-5C7F5DBD0EF1}.Release|x86.ActiveCfg = Release|Any CPU
 		{9EA0D126-B801-4255-B44A-5C7F5DBD0EF1}.Release|x86.Build.0 = Release|Any CPU
+		{5178FBF4-A523-4D96-810A-27BA362EF0C1}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{5178FBF4-A523-4D96-810A-27BA362EF0C1}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{5178FBF4-A523-4D96-810A-27BA362EF0C1}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{5178FBF4-A523-4D96-810A-27BA362EF0C1}.Debug|x64.Build.0 = Debug|Any CPU
+		{5178FBF4-A523-4D96-810A-27BA362EF0C1}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{5178FBF4-A523-4D96-810A-27BA362EF0C1}.Debug|x86.Build.0 = Debug|Any CPU
+		{5178FBF4-A523-4D96-810A-27BA362EF0C1}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{5178FBF4-A523-4D96-810A-27BA362EF0C1}.Release|Any CPU.Build.0 = Release|Any CPU
+		{5178FBF4-A523-4D96-810A-27BA362EF0C1}.Release|x64.ActiveCfg = Release|Any CPU
+		{5178FBF4-A523-4D96-810A-27BA362EF0C1}.Release|x64.Build.0 = Release|Any CPU
+		{5178FBF4-A523-4D96-810A-27BA362EF0C1}.Release|x86.ActiveCfg = Release|Any CPU
+		{5178FBF4-A523-4D96-810A-27BA362EF0C1}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -619,5 +642,7 @@ Global
 		{6749F3DD-1C18-D3B8-E069-BA7AB59F77E1} = {1CCA764A-C052-4010-B92E-BE066A0A5B0D}
 		{9EA0D126-B801-4255-B44A-5C7F5DBD0EF1} = {6749F3DD-1C18-D3B8-E069-BA7AB59F77E1}
 		{DD565378-BF66-4A09-9993-C94CF3800138} = {175030A3-FCEC-496B-B6C1-D5BB9786D821}
+		{6CDA1CBC-A1EE-0A76-8E11-75063EA3D8D8} = {1CCA764A-C052-4010-B92E-BE066A0A5B0D}
+		{5178FBF4-A523-4D96-810A-27BA362EF0C1} = {6CDA1CBC-A1EE-0A76-8E11-75063EA3D8D8}
 	EndGlobalSection
 EndGlobal

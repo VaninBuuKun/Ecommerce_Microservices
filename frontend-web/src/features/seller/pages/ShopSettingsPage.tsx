@@ -3,7 +3,7 @@ import { useParams } from "react-router-dom";
 import { Save, Loader2, Landmark, ShieldCheck } from "lucide-react";
 import { toast } from "react-toastify";
 import { UploadImage } from "../../../shared";
-import { useSellerProfileQuery, useUpdateShopMutation } from "../hooks";
+import { useSellerProfileQuery, useUpdateShopMutation, useShopDetailQuery } from "../hooks";
 import { useSellerStore } from "../stores";
 import {
 	useProvincesQuery,
@@ -14,10 +14,12 @@ import {
 export function ShopSettingsPage() {
 	const { shopId } = useParams<{ shopId?: string }>();
 	const { activeShop } = useSellerStore();
+	const currentShopId = shopId || activeShop?.id?.toString();
+	const { data: shopDetail, isLoading: isShopLoading } = useShopDetailQuery(currentShopId);
 	const { data: profile, isLoading: isProfileLoading } = useSellerProfileQuery();
 	const updateShopMutation = useUpdateShopMutation();
 
-	const resolvedShop = activeShop ?? profile?.shops.find((shop) => String(shop.id) === shopId);
+	const resolvedShop = shopDetail || activeShop || profile?.shops.find((shop) => String(shop.id) === shopId);
 	const kyc = profile?.kyc;
 
 	// UI States
@@ -48,7 +50,14 @@ export function ShopSettingsPage() {
 			setDescription(resolvedShop.description || "");
 			setLogoUrl(resolvedShop.logoUrl || "");
 
-			if (resolvedShop.pickUpAddress) {
+			if ("recipientName" in resolvedShop && resolvedShop.recipientName) {
+				setRecipientName(resolvedShop.recipientName || "");
+				setPhone(resolvedShop.phone || "");
+				setSelectedProvinceId(resolvedShop.provinceId || undefined);
+				setSelectedDistrictId(resolvedShop.districtId || undefined);
+				setSelectedWardId(resolvedShop.wardId || undefined);
+				setAddressline(resolvedShop.addressLine || "");
+			} else if (resolvedShop.pickUpAddress) {
 				setRecipientName(resolvedShop.pickUpAddress.recipientName || "");
 				setPhone(resolvedShop.pickUpAddress.phone || "");
 				setSelectedProvinceId(resolvedShop.pickUpAddress.provinceId || undefined);
@@ -126,7 +135,7 @@ export function ShopSettingsPage() {
 
 	const isSaving = updateShopMutation.isPending;
 
-	if (isProfileLoading) {
+	if (isProfileLoading || isShopLoading) {
 		return (
 			<div className="flex flex-col items-center justify-center py-24 text-brand-muted text-xs gap-3 font-sans">
 				<Loader2 className="w-8 h-8 animate-spin text-brand-primary" />

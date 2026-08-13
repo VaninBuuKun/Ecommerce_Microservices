@@ -13,6 +13,9 @@ function mapUserProfile(response: any): UserProfile {
 		avatarUrl:
 			response.avatarUrl ||
 			"https://img-c.udemycdn.com/user/75x75/274127471_84ee_8.jpg",
+		nickname: response.nickname || "",
+		gender: response.gender || "Nam",
+		birthDate: response.birthDate || "",
 	};
 }
 

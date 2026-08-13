@@ -1,0 +1,243 @@
+import React, { useState } from "react";
+import { X, MapPin, Loader2 } from "lucide-react";
+import { toast } from "react-toastify";
+import { useCreateAddressMutation } from "../hooks/useCheckoutQueries";
+import {
+	useProvincesQuery,
+	useDistrictsQuery,
+	useWardsQuery,
+} from "../../catalog/hooks/useLocationQueries";
+import type { UserAddress } from "../types";
+
+interface NewAddressModalProps {
+	isOpen: boolean;
+	onClose: () => void;
+	onSuccess?: (newAddress: UserAddress) => void;
+	onBackToAddressList?: () => void;
+}
+
+export function NewAddressModal({
+	isOpen,
+	onClose,
+	onSuccess,
+	onBackToAddressList,
+}: NewAddressModalProps) {
+	const [newRecipientName, setNewRecipientName] = useState("");
+	const [newPhone, setNewPhone] = useState("");
+	const [newAddressLine, setNewAddressLine] = useState("");
+	const [isDefaultAddress, setIsDefaultAddress] = useState(false);
+
+	const [selectedProvinceId, setSelectedProvinceId] = useState<number | undefined>();
+	const [selectedDistrictId, setSelectedDistrictId] = useState<number | undefined>();
+	const [selectedWardId, setSelectedWardId] = useState<number | undefined>();
+
+	const { data: provinces } = useProvincesQuery();
+	const { data: districts } = useDistrictsQuery(selectedProvinceId);
+	const { data: wards } = useWardsQuery(selectedDistrictId);
+
+	const createAddressMutation = useCreateAddressMutation();
+
+	if (!isOpen) return null;
+
+	const handleAddAddress = (e: React.FormEvent) => {
+		e.preventDefault();
+		if (!selectedProvinceId || !selectedDistrictId || !selectedWardId) {
+			toast.error("Vui lòng chọn đầy đủ Tỉnh/Huyện/Xã");
+			return;
+		}
+
+		createAddressMutation.mutate(
+			{
+				recipientName: newRecipientName,
+				phone: newPhone,
+				provinceId: selectedProvinceId,
+				districtId: selectedDistrictId,
+				wardId: selectedWardId,
+				addressLine: newAddressLine,
+				isDefault: isDefaultAddress,
+			},
+			{
+				success: (createdAddr: any) => {
+					toast.success("Thêm địa chỉ giao hàng mới thành công!");
+					onSuccess?.(createdAddr);
+					// Reset form
+					setNewRecipientName("");
+					setNewPhone("");
+					setNewAddressLine("");
+					setIsDefaultAddress(false);
+					setSelectedProvinceId(undefined);
+					setSelectedDistrictId(undefined);
+					setSelectedWardId(undefined);
+					onClose();
+				},
+				error: (err: any) => {
+					toast.error(err?.response?.data || "Không thể thêm địa chỉ mới");
+				},
+			} as any
+		);
+	};
+
+	return (
+		<div className="fixed inset-0 bg-brand-dark/40 backdrop-blur-sm flex items-center justify-center p-4 z-50 overflow-y-auto">
+			<div className="bg-white border border-brand-border rounded-2xl max-w-lg w-full p-6 shadow-2xl space-y-4 text-left relative animate-in fade-in zoom-in-95 duration-200 font-sans">
+				<button
+					onClick={onClose}
+					className="absolute top-4 right-4 p-1 rounded-full hover:bg-brand-light-soft text-brand-muted hover:text-brand-dark cursor-pointer border-none bg-transparent"
+				>
+					<X className="w-5 h-5" />
+				</button>
+
+				<h2 className="text-sm font-black text-brand-dark flex items-center gap-2 border-b border-brand-border pb-3">
+					<MapPin className="w-5 h-5 text-brand-primary" />
+					Thêm địa chỉ giao hàng mới
+				</h2>
+
+				<form onSubmit={handleAddAddress} className="space-y-4">
+					<div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+						<div>
+							<label className="block text-[11px] font-bold text-brand-dark mb-1">
+								Họ và tên người nhận
+							</label>
+							<input
+								type="text"
+								required
+								placeholder="Ví dụ: Nguyễn Văn A"
+								value={newRecipientName}
+								onChange={(e) => setNewRecipientName(e.target.value)}
+								className="w-full h-9 px-3 text-xs bg-white border border-brand-border rounded-lg focus:outline-none focus:border-brand-primary"
+							/>
+						</div>
+						<div>
+							<label className="block text-[11px] font-bold text-brand-dark mb-1">
+								Số điện thoại
+							</label>
+							<input
+								type="text"
+								required
+								placeholder="Ví dụ: 0987654321"
+								value={newPhone}
+								onChange={(e) => setNewPhone(e.target.value)}
+								className="w-full h-9 px-3 text-xs bg-white border border-brand-border rounded-lg focus:outline-none focus:border-brand-primary"
+							/>
+						</div>
+					</div>
+
+					{/* Location Selectors */}
+					<div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+						<div>
+							<label className="block text-[11px] font-bold text-brand-dark mb-1">
+								Tỉnh / Thành phố
+							</label>
+							<select
+								required
+								value={selectedProvinceId || ""}
+								onChange={(e) => {
+									setSelectedProvinceId(Number(e.target.value));
+									setSelectedDistrictId(undefined);
+									setSelectedWardId(undefined);
+								}}
+								className="w-full h-9 px-2 text-xs bg-white border border-brand-border rounded-lg focus:outline-none focus:border-brand-primary cursor-pointer"
+							>
+								<option value="">-- Chọn Tỉnh --</option>
+								{provinces?.map((p) => (
+									<option key={p.id} value={p.id}>
+										{p.displayName}
+									</option>
+								))}
+							</select>
+						</div>
+
+						<div>
+							<label className="block text-[11px] font-bold text-brand-dark mb-1">
+								Quận / Huyện
+							</label>
+							<select
+								required
+								disabled={!selectedProvinceId}
+								value={selectedDistrictId || ""}
+								onChange={(e) => {
+									setSelectedDistrictId(Number(e.target.value));
+									setSelectedWardId(undefined);
+								}}
+								className="w-full h-9 px-2 text-xs bg-white border border-brand-border rounded-lg focus:outline-none focus:border-brand-primary cursor-pointer"
+							>
+								<option value="">-- Chọn Huyện --</option>
+								{districts?.map((d) => (
+									<option key={d.id} value={d.id}>
+										{d.displayName}
+									</option>
+								))}
+							</select>
+						</div>
+
+						<div>
+							<label className="block text-[11px] font-bold text-brand-dark mb-1">
+								Phường / Xã
+							</label>
+							<select
+								required
+								disabled={!selectedDistrictId}
+								value={selectedWardId || ""}
+								onChange={(e) => setSelectedWardId(Number(e.target.value))}
+								className="w-full h-9 px-2 text-xs bg-white border border-brand-border rounded-lg focus:outline-none focus:border-brand-primary cursor-pointer"
+							>
+								<option value="">-- Chọn Xã --</option>
+								{wards?.map((w) => (
+									<option key={w.id} value={w.id}>
+										{w.displayName}
+									</option>
+								))}
+							</select>
+						</div>
+					</div>
+
+					<div>
+						<label className="block text-[11px] font-bold text-brand-dark mb-1">
+							Số nhà, tên đường
+						</label>
+						<input
+							type="text"
+							required
+							placeholder="Ví dụ: 123 Đường Lê Lợi"
+							value={newAddressLine}
+							onChange={(e) => setNewAddressLine(e.target.value)}
+							className="w-full h-9 px-3 text-xs bg-white border border-brand-border rounded-lg focus:outline-none focus:border-brand-primary"
+						/>
+					</div>
+
+					<label className="flex items-center gap-2 py-1 select-none cursor-pointer">
+						<input
+							type="checkbox"
+							checked={isDefaultAddress}
+							onChange={(e) => setIsDefaultAddress(e.target.checked)}
+							className="accent-brand-primary w-4 h-4"
+						/>
+						<span className="text-xs text-brand-dark font-semibold">
+							Đặt làm địa chỉ mặc định
+						</span>
+					</label>
+
+					<div className="flex gap-3 pt-3 border-t border-brand-border/60">
+						<button
+							type="button"
+							onClick={onBackToAddressList || onClose}
+							className="flex-1 h-9 border border-brand-border hover:bg-brand-light-soft text-brand-dark font-bold text-xs rounded-lg transition-colors cursor-pointer bg-white"
+						>
+							Hủy bỏ
+						</button>
+						<button
+							type="submit"
+							disabled={createAddressMutation.isPending}
+							className="flex-1 h-9 bg-brand-primary hover:bg-brand-primary-deep text-brand-dark font-black text-xs rounded-lg transition-colors cursor-pointer border-none flex items-center justify-center gap-1.5"
+						>
+							{createAddressMutation.isPending && (
+								<Loader2 className="w-3.5 h-3.5 animate-spin" />
+							)}
+							Lưu lại
+						</button>
+					</div>
+				</form>
+			</div>
+		</div>
+	);
+}
