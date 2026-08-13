@@ -43,7 +43,26 @@ export const authService = {
 	},
 
 	async logout(): Promise<void> {
-		queryClient.removeQueries({ queryKey: authQueryKeys.me });
-		useAuthStore.getState().clearState();
+		try {
+			await api.post("/app-auth/logout");
+		} catch (error) {
+			console.error("Lỗi khi gọi API logout trên server:", error);
+		} finally {
+			queryClient.clear();
+			useAuthStore.getState().clearState();
+		}
+	},
+
+	async updateProfile(data: {
+		firstName?: string;
+		lastName?: string;
+		avatarUrl?: string;
+		nickname?: string;
+		gender?: string;
+		birthDate?: string;
+	}): Promise<any> {
+		const response = await api.put("/users/profile", data);
+		await queryClient.invalidateQueries({ queryKey: authQueryKeys.me });
+		return response.data;
 	},
 };

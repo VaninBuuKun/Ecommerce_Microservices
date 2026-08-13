@@ -36,7 +36,7 @@ public class MomoPaymentGateway(IOptions<MomoSettings> settings, IHttpClientFact
                            $"&partnerCode={_settings.PartnerCode}" +
                            $"&redirectUrl={redirectUrl}" +
                            $"&requestId={requestId}" +
-                           $"&requestType=captureWallet"; 
+                           $"&requestType=payWithATM"; 
         
 
         var signature = HmacSha256(_settings.SecretKey, rawSignature);
@@ -54,7 +54,7 @@ public class MomoPaymentGateway(IOptions<MomoSettings> settings, IHttpClientFact
             orderInfo = "Thanh toán đơn hàng",
             redirectUrl = redirectUrl,
             ipnUrl = ipnUrl,
-            requestType = "captureWallet",
+            requestType = "payWithATM",
             extraData = extraData,
             lang = "vi",
             signature

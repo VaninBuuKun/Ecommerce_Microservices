@@ -4,6 +4,9 @@ export interface UserProfile {
 	firstName: string;
 	lastName: string;
 	avatarUrl: string;
+	nickname?: string;
+	gender?: string;
+	birthDate?: string;
 }
 
 export interface AuthState {

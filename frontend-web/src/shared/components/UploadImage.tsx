@@ -42,8 +42,14 @@ export default function UploadImage({
 			const publicUrl = uploadUrl.split("?")[0];
 
 			onChange(publicUrl);
+			if (!value) {
+				setPreview("");
+			}
 		} finally {
 			setIsUploading(false);
+			if (inputRef.current) {
+				inputRef.current.value = "";
+			}
 		}
 	};
 

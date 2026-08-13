@@ -7,9 +7,12 @@ using BuildingBlocks.Shared.Commons;
 using BuildingBlocks.Shared.Enums;
 using BuildingBlocks.Shared.InfrastructureInterfaces.Caching;
 using BuildingBlocks.Shared.InfrastructureInterfaces.InMemoryBus;
+using BuildingBlocks.Shared.InfrastructureInterfaces.Persistence.EFCore;
 using Ecommerce.Services.Orders.Application.Commons.Dtos.Cart;
 using Ecommerce.Services.Orders.Application.Features.Orders.Dtos;
 using Ecommerce.Services.Orders.Application.Services;
+using Ecommerce.Services.Orders.Domain;
+using Ecommerce.Services.Orders.Domain.Enums;
 using Microsoft.Extensions.Logging;
 
 namespace Ecommerce.Services.Orders.Application.Features.Orders.Commands.CalOrderGrandTotal;
@@ -20,9 +23,13 @@ public class CalOrderGrandTotalCommandHandler(
     IShippingService shippingService,
     IIdentityService identityService,
     ICacheService cacheService,
+    IEfUnitOfWork unitOfWork,
     ILogger<CalOrderGrandTotalCommandHandler> logger)
     : ICommandHandler<CalOrderGrandTotalCommand, CalOrderGrandTotalResponse>
 {
+    private IGenericEfRepository<Voucher, Guid> voucherRepo => unitOfWork.Repository<Voucher, Guid>();
+    private IGenericEfRepository<VoucherUsage, Guid> voucherUsageRepo => unitOfWork.Repository<VoucherUsage, Guid>();
+
     public async Task<Result<CalOrderGrandTotalResponse>> Handle(CalOrderGrandTotalCommand command, CancellationToken cancellationToken)
     {
         var customerId = command.CustomerId;
@@ -67,6 +74,7 @@ public class CalOrderGrandTotalCommandHandler(
             var groupedItems = selectedItems.GroupBy(item => item.ShopId);
             var batchRequests = new List<ShippingFeeRequestItem>();
             var shopNames = new Dictionary<long, string>();
+            var shopSubTotals = new Dictionary<long, decimal>();
 
             // Chuẩn bị dữ liệu và thông tin shop gửi hàng
             foreach (var shopGroup in groupedItems)
@@ -101,9 +109,12 @@ public class CalOrderGrandTotalCommandHandler(
                     totalHeight
                 ));
 
+                decimal shopSubTotal = 0;
                 foreach (var item in shopItems)
                 {
-                    subTotal += item.UnitPrice * item.Quantity;
+                    var itemSubTotal = item.UnitPrice * item.Quantity;
+                    subTotal += itemSubTotal;
+                    shopSubTotal += itemSubTotal;
                     checkoutSessionItems.Add(new CheckoutSessionItem
                     {
                         VariantId = item.VariantId,
@@ -111,6 +122,7 @@ public class CalOrderGrandTotalCommandHandler(
                         UnitPrice = item.UnitPrice
                     });
                 }
+                shopSubTotals[shopId] = shopSubTotal;
             }
 
             // Gọi dịch vụ tính phí ship hàng loạt qua 1 cuộc gọi gRPC duy nhất
@@ -137,7 +149,126 @@ public class CalOrderGrandTotalCommandHandler(
                 shopShippings[feeResponse.ShopId] = feeResponse.Fee;
             }
 
-            var grandTotal = subTotal + totalShippingFee;
+            // --- VOUCHER CALCULATION LOGIC ---
+            decimal platformDiscount = 0;
+            var shopDiscounts = new Dictionary<long, decimal>();
+            var appliedShopVouchers = new Dictionary<long, string>();
+
+            var now = DateTimeOffset.UtcNow;
+
+            // 1. Apply Shop Vouchers
+            if (command.ShopVoucherCodes != null)
+            {
+                foreach (var kvp in command.ShopVoucherCodes)
+                {
+                    var shopId = kvp.Key;
+                    var code = kvp.Value;
+
+                    if (string.IsNullOrWhiteSpace(code) || !shopSubTotals.TryGetValue(shopId, out var shopSubTotal))
+                    {
+                        continue;
+                    }
+
+                    var voucher = await voucherRepo.FirstOrDefaultAsync(v => 
+                        v.Code == code && 
+                        v.Scope == VoucherScope.Shop && 
+                        v.ShopId == shopId && 
+                        v.IsActive && 
+                        v.StartDate <= now && 
+                        now <= v.EndDate,
+                        cancellationToken: cancellationToken);
+
+
+                    if (voucher == null)
+                    {
+                        return Result<CalOrderGrandTotalResponse>.Failure($"Voucher shop '{code}' không khả dụng hoặc đã hết hạn", EErrorCode.InvalidInput);
+                    }
+
+                    if (shopSubTotal < voucher.MinOrderValue)
+                    {
+                        return Result<CalOrderGrandTotalResponse>.Failure($"Voucher shop '{code}' yêu cầu đơn tối thiểu {voucher.MinOrderValue}", EErrorCode.InvalidInput);
+                    }
+
+                    if (voucher.UsageCount >= voucher.MaxUsageCount)
+                    {
+                        return Result<CalOrderGrandTotalResponse>.Failure($"Voucher shop '{code}' đã hết lượt sử dụng", EErrorCode.InvalidInput);
+                    }
+
+                    var userUsageCount = await voucherUsageRepo.CountAsync(u => u.VoucherId == voucher.Id && u.UserId == customerId, cancellationToken);
+                    if (userUsageCount >= voucher.MaxUsagePerUser)
+                    {
+                        return Result<CalOrderGrandTotalResponse>.Failure($"Bạn đã đạt giới hạn sử dụng voucher shop '{code}'", EErrorCode.InvalidInput);
+                    }
+
+                    decimal discount = 0;
+                    if (voucher.DiscountType == DiscountType.Percentage)
+                    {
+                        discount = Math.Round(shopSubTotal * voucher.DiscountValue / 100, 2);
+                        if (voucher.MaxDiscountAmount.HasValue && discount > voucher.MaxDiscountAmount.Value)
+                        {
+                            discount = voucher.MaxDiscountAmount.Value;
+                        }
+                    }
+                    else
+                    {
+                        discount = Math.Min(voucher.DiscountValue, shopSubTotal);
+                    }
+
+                    shopDiscounts[shopId] = discount;
+                    appliedShopVouchers[shopId] = code;
+                }
+            }
+
+            // 2. Apply Platform Voucher
+            if (!string.IsNullOrWhiteSpace(command.PlatformVoucherCode))
+            {
+                var code = command.PlatformVoucherCode;
+                var voucher = await voucherRepo.FirstOrDefaultAsync(v => 
+                    v.Code == code && 
+                    v.Scope == VoucherScope.Platform && 
+                    v.IsActive && 
+                    v.StartDate <= now && 
+                    now <= v.EndDate,
+                    cancellationToken: cancellationToken);
+
+
+                if (voucher == null)
+                {
+                    return Result<CalOrderGrandTotalResponse>.Failure($"Voucher sàn '{code}' không khả dụng hoặc đã hết hạn", EErrorCode.InvalidInput);
+                }
+
+                if (subTotal < voucher.MinOrderValue)
+                {
+                    return Result<CalOrderGrandTotalResponse>.Failure($"Voucher sàn '{code}' yêu cầu đơn tối thiểu {voucher.MinOrderValue}", EErrorCode.InvalidInput);
+                }
+
+                if (voucher.UsageCount >= voucher.MaxUsageCount)
+                {
+                    return Result<CalOrderGrandTotalResponse>.Failure($"Voucher sàn '{code}' đã hết lượt sử dụng", EErrorCode.InvalidInput);
+                }
+
+                var userUsageCount = await voucherUsageRepo.CountAsync(u => u.VoucherId == voucher.Id && u.UserId == customerId, cancellationToken);
+                if (userUsageCount >= voucher.MaxUsagePerUser)
+                {
+                    return Result<CalOrderGrandTotalResponse>.Failure($"Bạn đã đạt giới hạn sử dụng voucher sàn '{code}'", EErrorCode.InvalidInput);
+                }
+
+                if (voucher.DiscountType == DiscountType.Percentage)
+                {
+                    platformDiscount = Math.Round(subTotal * voucher.DiscountValue / 100, 2);
+                    if (voucher.MaxDiscountAmount.HasValue && platformDiscount > voucher.MaxDiscountAmount.Value)
+                    {
+                        platformDiscount = voucher.MaxDiscountAmount.Value;
+                    }
+                }
+                else
+                {
+                    platformDiscount = Math.Min(voucher.DiscountValue, subTotal);
+                }
+            }
+
+            decimal totalDiscount = platformDiscount + shopDiscounts.Values.Sum();
+            var grandTotal = Math.Max(0, subTotal + totalShippingFee - totalDiscount);
 
             // Tạo hoặc tái sử dụng CheckoutSessionId
             var checkoutSessionId = command.CheckoutSessionId ?? Guid.NewGuid();
@@ -150,6 +281,11 @@ public class CalOrderGrandTotalCommandHandler(
                 ShopShippingFees = shopShippings,
                 SubTotal = subTotal,
                 TotalShippingFee = totalShippingFee,
+                TotalDiscount = totalDiscount,
+                PlatformDiscount = platformDiscount,
+                ShopDiscounts = shopDiscounts,
+                PlatformVoucherCode = command.PlatformVoucherCode,
+                ShopVoucherCodes = appliedShopVouchers,
                 GrandTotal = grandTotal,
                 CreatedAt = DateTime.UtcNow,
                 ExpiresAt = DateTime.UtcNow.AddMinutes(15)
@@ -175,11 +311,18 @@ public class CalOrderGrandTotalCommandHandler(
                     Quantity = item.Quantity
                 }).ToList();
 
+                shopSubTotals.TryGetValue(shopId, out var shopSub);
+                shopDiscounts.TryGetValue(shopId, out var shopDisc);
+                appliedShopVouchers.TryGetValue(shopId, out var shopVCode);
+
                 shopGroups.Add(new CheckoutShopGroupDto
                 {
                     ShopId = shopId,
                     ShopName = shopNames.TryGetValue(shopId, out var name) ? name : $"Shop {shopId}",
                     ShippingFee = shopShippings.TryGetValue(shopId, out var fee) ? fee : 0,
+                    SubTotalForShop = shopSub,
+                    ShopDiscount = shopDisc,
+                    VoucherCode = shopVCode,
                     Items = shopItems
                 });
             }
@@ -191,6 +334,8 @@ public class CalOrderGrandTotalCommandHandler(
                 ShopGroups = shopGroups,
                 SubTotal = subTotal,
                 TotalShippingFee = totalShippingFee,
+                TotalDiscount = totalDiscount,
+                PlatformDiscount = platformDiscount,
                 GrandTotal = grandTotal
             });
         }

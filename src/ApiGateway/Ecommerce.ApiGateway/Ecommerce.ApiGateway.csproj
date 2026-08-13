@@ -15,4 +15,8 @@
       <Folder Include="Extensions\" />
     </ItemGroup>
 
+    <ItemGroup>
+      <ProjectReference Include="..\..\BuildingBlocks\BuildingBlocks.Logging\BuildingBlocks.Logging.csproj" />
+    </ItemGroup>
+
 </Project>

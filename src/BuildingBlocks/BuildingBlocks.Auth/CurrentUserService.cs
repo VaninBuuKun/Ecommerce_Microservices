@@ -34,4 +34,14 @@ public class CurrentUserService(IHttpContextAccessor accessor) : ICurrentUserSer
     }
     
     public bool IsAuthenticated => accessor.HttpContext?.User?.Identity?.IsAuthenticated ?? false;
+    public bool IsAdmin
+    {
+        get
+        {
+            var user = accessor.HttpContext?.User;
+            if (user == null) return false;
+            
+            return user.IsInRole("Admin");
+        }
+    }
 }

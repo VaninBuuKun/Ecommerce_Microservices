@@ -1,11 +1,7 @@
-using System;
-using System.Threading;
-using System.Threading.Tasks;
 using BuildingBlocks.Grpc.Extensions;
 using BuildingBlocks.Grpc.Services;
 using BuildingBlocks.Shared.Commons;
 using BuildingBlocks.Shared.Enums;
-using Microsoft.Extensions.Logging;
 
 namespace Ecommerce.Services.Sellers.Api.Services;
 

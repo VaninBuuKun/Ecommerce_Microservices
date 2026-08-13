@@ -49,30 +49,30 @@ services:
       - RABBITMQ_DEFAULT_USER=guest
       - RABBITMQ_DEFAULT_PASS=guest
 
-  elasticsearch:
-    container_name: ecommerce_elasticsearch
-    restart: always
-    environment:
-      - discovery.type=single-node
-      - xpack.security.enabled=false
-      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
-    ports:
-      - "9200:9200"
-      - "9300:9300"
-    volumes:
-      - elasticsearch_data:/usr/share/elasticsearch/data
-    mem_limit: 1g
-
-  kibana:
-    container_name: ecommerce_kibana
-    restart: always
-    environment:
-      - ELASTICSEARCH_HOSTS=http://elasticsearch:9200
-    ports:
-      - "5601:5601"
-    depends_on:
-      - elasticsearch
-    mem_limit: 512m
+#  elasticsearch:
+#    container_name: ecommerce_elasticsearch
+#    restart: always
+#    environment:
+#      - discovery.type=single-node
+#      - xpack.security.enabled=false
+#      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+#    ports:
+#      - "9200:9200"
+#      - "9300:9300"
+#    volumes:
+#      - elasticsearch_data:/usr/share/elasticsearch/data
+#    mem_limit: 1g
+#
+#  kibana:
+#    container_name: ecommerce_kibana
+#    restart: always
+#    environment:
+#      - ELASTICSEARCH_HOSTS=http://elasticsearch:9200
+#    ports:
+#      - "5601:5601"
+#    depends_on:
+#      - elasticsearch
+#    mem_limit: 512m
 
   minio:
     container_name: ecommerce_minio
@@ -88,15 +88,42 @@ services:
       - minio_data:/data
     mem_limit: 256m
 
-  aspire-dashboard:
-    container_name: aspire-dashboard
-    restart: always
+#  aspire-dashboard:
+#    container_name: aspire-dashboard
+#    restart: always
+#    ports:
+#      - "18888:18888" # Cổng giao diện UI mới (đẹp và hiện đại hơn nhiều)
+#      - "4317:4317"   # Cổng OTLP gRPC để nhận trace/metrics từ .NET service đẩy lên
+#    environment:
+#      - DOTNET_DASHBOARD_UNSECURED_ALLOW_ANONYMOUS=true # Cho phép truy cập không cần token đăng nhập cho dễ test local
+  
+  otel-collector:
+    command: [ "--config=/etc/otel-collector-config.yaml" ]
+    volumes:
+      - ./otel-collector-config.yaml:/etc/otel-collector-config.yaml #bind file to file
     ports:
-      - "18888:18888" # Cổng giao diện UI mới (đẹp và hiện đại hơn nhiều)
-      - "4317:4317"   # Cổng OTLP gRPC để nhận trace/metrics từ .NET service đẩy lên
-    environment:
-      - DOTNET_DASHBOARD_UNSECURED_ALLOW_ANONYMOUS=true # Cho phép truy cập không cần token đăng nhập cho dễ test local
+      - "4317:4317" # Cổng gRPC để .NET đẩy dữ liệu vào
 
+  loki:
+    ports:
+      - "3100:3100"
+    volumes:
+      - loki_data:/loki
+
+  grafana:
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin # Mật khẩu đăng nhập mặc định là admin
+  tempo:
+    restart: always
+    user: "0:0"
+    command: [ "-config.file=/etc/tempo.yaml" ]
+    volumes:
+      - ./tempo-config.yaml:/etc/tempo.yaml
+      - tempo_data:/tmp/tempo
+    ports:
+      - "3200:3200"
 volumes:
   mysql_product_data:
     driver: local
@@ -107,4 +134,8 @@ volumes:
   elasticsearch_data:
     driver: local
   minio_data:
+    driver: local
+  loki_data:
+    driver: local
+  tempo_data:
     driver: local

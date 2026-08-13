@@ -10,10 +10,13 @@ import {
 	Bell,
 } from "lucide-react";
 import { useAuthStore, authService } from "../features/auth";
+import { useCartQuery } from "../features/cart/hooks/useCartQuery";
 
 export default function Header() {
 	const navigate = useNavigate();
 	const { user, isInitializing } = useAuthStore();
+	const { data: cart } = useCartQuery();
+
 	const [showSearchSuggestions, setShowSearchSuggestions] = useState(false);
 	const [showCartDropdown, setShowCartDropdown] = useState(false);
 	const [showNotificationDropdown, setShowNotificationDropdown] =
@@ -50,20 +53,9 @@ export default function Header() {
 		"Kính Râm Polarized Cao Cấp",
 	];
 
-	const mockCartItems = [
-		{
-			id: 1,
-			name: "Áo Hoodie Streetwear Emerald Accent",
-			price: "450.000đ",
-			image: "https://images.unsplash.com/photo-1556821840-3a63f95609a7?auto=format&fit=crop&q=80&w=150",
-		},
-		{
-			id: 2,
-			name: "Quần Cargo Đen Technical Kaki",
-			price: "520.000đ",
-			image: "https://images.unsplash.com/photo-1542272604-787c3835535d?auto=format&fit=crop&q=80&w=150",
-		},
-	];
+	// Flatten all items from shop groups to preview in dropdown
+	const previewCartItems = cart?.shopGroups?.flatMap((group) => group.items) || [];
+	const totalCartItemsCount = previewCartItems.length;
 
 	const mockNotifications = [
 		{
@@ -197,9 +189,11 @@ export default function Header() {
 								className="relative w-8 h-8 text-brand-dark hover:bg-brand-primary/10 rounded transition-colors flex items-center justify-center cursor-pointer"
 							>
 								<ShoppingBag className="w-4.5 h-4.5" />
-								<span className="absolute top-0 right-0 bg-brand-primary text-brand-dark font-black text-[9px] w-4 h-4 rounded-full flex items-center justify-center">
-									2
-								</span>
+								{totalCartItemsCount > 0 && (
+									<span className="absolute top-0 right-0 bg-brand-primary text-brand-dark font-black text-[9px] w-4 h-4 rounded-full flex items-center justify-center">
+										{totalCartItemsCount}
+									</span>
+								)}
 							</button>
 
 							{showCartDropdown && (
@@ -210,26 +204,32 @@ export default function Header() {
 										</span>
 
 										<div className="space-y-3 max-h-48 overflow-y-auto">
-											{mockCartItems.map((item) => (
-												<div
-													key={item.id}
-													className="flex items-center gap-3"
-												>
-													<img
-														src={item.image}
-														alt={item.name}
-														className="w-10 h-10 object-cover rounded border border-brand-border"
-													/>
-													<div className="flex-1 min-w-0">
-														<h4 className="text-xs font-bold text-brand-dark truncate">
-															{item.name}
-														</h4>
-														<span className="text-[10px] text-brand-primary font-bold">
-															{item.price}
-														</span>
-													</div>
+											{previewCartItems.length === 0 ? (
+												<div className="text-center py-4 text-[11px] text-brand-muted font-medium">
+													Giỏ hàng trống
 												</div>
-											))}
+											) : (
+												previewCartItems.map((item) => (
+													<div
+														key={item.productVariantId}
+														className="flex items-center gap-3"
+													>
+														<img
+															src={item.thumbnailUrl || "https://images.unsplash.com/photo-1556821840-3a63f95609a7?auto=format&fit=crop&q=80&w=150"}
+															alt={item.productName}
+															className="w-10 h-10 object-cover rounded border border-brand-border"
+														/>
+														<div className="flex-1 min-w-0">
+															<h4 className="text-[11px] font-bold text-brand-dark truncate">
+																{item.productName}
+															</h4>
+															<span className="text-[10px] text-brand-primary font-bold">
+																{item.unitPrice.toLocaleString("vi-VN")}đ
+															</span>
+														</div>
+													</div>
+												))
+											)}
 										</div>
 
 										<div className="border-t border-brand-border mt-3 pt-2.5 flex justify-end">
@@ -238,7 +238,7 @@ export default function Header() {
 													setShowCartDropdown(false);
 													navigate("/cart");
 												}}
-												className="px-4 py-1.5 bg-brand-dark text-white rounded text-[10px] font-bold hover:bg-brand-primary hover:text-brand-dark transition-colors cursor-pointer"
+												className="px-4 py-1.5 bg-brand-dark text-white rounded text-[10px] font-bold hover:bg-brand-primary hover:text-brand-dark transition-colors cursor-pointer border-none"
 											>
 												Xem giỏ hàng
 											</button>

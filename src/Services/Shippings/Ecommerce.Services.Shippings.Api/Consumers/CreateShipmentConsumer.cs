@@ -188,6 +188,7 @@ public class CreateShipmentConsumer(
                 Id = Guid.NewGuid(),
                 SubOrderId = message.SubOrderId,
                 OrderId = message.OrderId,
+                CustomerId = message.CustomerId,
                 ShopId = shopId,
                 SenderAddress = senderAddressForWaybill,
                 RecipientAddress = recipientAddressForWaybill,
@@ -201,6 +202,7 @@ public class CreateShipmentConsumer(
                 CarrierName = shippingProvider.ProviderName,
                 IsRefund =  message.IsReturn,
             };
+
 
             if (waybillResult.IsSuccess)
             {

@@ -6,6 +6,7 @@ using BuildingBlocks.Shared.InfrastructureInterfaces.Persistence.EFCore;
 using Ecommerce.Services.Orders.Contracts.Events;
 using Ecommerce.Services.Shippings.Api.Models.Entities;
 using Ecommerce.Services.Shippings.Api.Models.Enums;
+using MassTransit;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 
@@ -15,7 +16,7 @@ namespace Ecommerce.Services.Shippings.Api.Controllers;
 [Route("api/shipping-[controller]")]
 public class WebhooksController(
     IEfUnitOfWork unitOfWork,
-    IEventPublisher publisher,
+    IPublishEndpoint publisher,
     ILogger<WebhooksController> logger) : ControllerBase
 {
     [HttpPost("ghn")]
@@ -63,45 +64,96 @@ public class WebhooksController(
             {
                 return BadRequest("Missing status");
             }
-            logger.LogInformation("Updating shipment {WaybillCode} status to {Status}", waybillCode, status);
+
+            ShipmentStatus targetStatus;
+            string logMessage;
+            IIntegrationEvent ? eventToPublish = null;
+            string? failureReason = null;
 
             switch (status)
             {
                 case "picking":
                 case "storing":
-                    shipment.Status = ShipmentStatus.Picking;
-                    shipment.TrackingLogs += $"\n[{DateTime.UtcNow}] Courier is picking up the package.";
+                    targetStatus = ShipmentStatus.Picking;
+                    logMessage = "Courier is picking up the package.";
                     break;
                 
                 case "delivering":
-                    shipment.Status = ShipmentStatus.InTransit;
-                    shipment.TrackingLogs += $"\n[{DateTime.UtcNow}] Package is in transit.";
-                    // If Saga didn't transition to Shipping yet:
-                    await publisher.PublishAsync(new SubOrderShippedEvent { SubOrderId = shipment.SubOrderId });
+                    targetStatus = ShipmentStatus.InTransit;
+                    logMessage = "Package is in transit.";
+                    eventToPublish = new SubOrderShippedEvent 
+                    { 
+                        SubOrderId = shipment.SubOrderId,
+                        OrderId = shipment.OrderId,
+                        CustomerId = shipment.CustomerId
+                    };
                     break;
 
+
+
                 case "delivered":
-                    shipment.Status = ShipmentStatus.Delivered;
-                    shipment.TrackingLogs += $"\n[{DateTime.UtcNow}] Package delivered successfully.";
-                    await publisher.PublishAsync(new SubOrderDeliveredEvent { SubOrderId = shipment.SubOrderId });
+                    targetStatus = ShipmentStatus.Delivered;
+                    logMessage = "Package delivered successfully.";
+                    eventToPublish = new SubOrderDeliveredEvent { SubOrderId = shipment.SubOrderId };
                     break;
 
                 case "cancelled":
                 case "returned":
-                    shipment.Status = status == "cancelled" ? ShipmentStatus.Cancelled : ShipmentStatus.Returned;
-                    shipment.FailureReason = ghnData.TryGetValue("reason", out var reasonObj) ? reasonObj?.ToString() : "Cancelled by carrier/user";
-                    shipment.TrackingLogs += $"\n[{DateTime.UtcNow}] Package rejected/returned. Reason: {shipment.FailureReason}";
-                    await publisher.PublishAsync(new SubOrderRejectedEvent { SubOrderId = shipment.SubOrderId, Reason = shipment.FailureReason });
+                    targetStatus = status == "cancelled" ? ShipmentStatus.Cancelled : ShipmentStatus.Returned;
+                    failureReason = ghnData.TryGetValue("reason", out var reasonObj) ? reasonObj?.ToString() : "Cancelled by carrier/user";
+                    logMessage = $"Package rejected/returned. Reason: {failureReason}";
+                    eventToPublish = new SubOrderRejectedEvent { SubOrderId = shipment.SubOrderId, Reason = failureReason };
                     break;
 
                 default:
                     logger.LogWarning("Unknown GHN webhook status: {Status}", status);
-                    break;
+                    return Ok();
             }
 
-            shipmentRepo.Update(shipment);
-            await unitOfWork.SaveChangesAsync();
+            // 1. Kiểm tra trạng thái kết thúc: Nếu đơn đã hoàn thành/hủy/hoàn hàng thì chặn mọi thay đổi phía sau
+            if (shipment.Status == ShipmentStatus.Delivered || 
+                shipment.Status == ShipmentStatus.Cancelled || 
+                shipment.Status == ShipmentStatus.Returned)
+            {
+                logger.LogWarning("Shipment {WaybillCode} is already in terminal status {CurrentStatus}. Ignoring incoming status {TargetStatus}", 
+                    waybillCode, shipment.Status, targetStatus);
+                return NoContent();
+            }
 
+            // 2. Chặn trường hợp trạng thái bị lùi ngược thời gian (Out-of-order backward)
+            if (shipment.Status == ShipmentStatus.InTransit && targetStatus == ShipmentStatus.Picking)
+            {
+                logger.LogWarning("Received backward status {TargetStatus} for shipment {WaybillCode} which is already {CurrentStatus}. Ignoring.", 
+                    targetStatus, waybillCode, shipment.Status);
+                return NoContent();
+            }
+
+            // 3. Kiểm tra trùng lặp: Nếu status hiện tại đã giống hệt targetStatus thì bỏ qua
+            if (shipment.Status == targetStatus)
+            {
+                logger.LogInformation("Webhook status {Status} is identical to current shipment status. Skipping update for waybill: {WaybillCode}", 
+                    status, waybillCode);
+                return NoContent();
+            }
+
+            logger.LogInformation("Updating shipment {WaybillCode} status from {OldStatus} to {NewStatus}", waybillCode, shipment.Status, targetStatus);
+
+            shipment.Status = targetStatus;
+            shipment.TrackingLogs += $"\n[{DateTime.UtcNow}] {logMessage}";
+            
+            if (failureReason != null)
+            {
+                shipment.FailureReason = failureReason;
+            }
+            shipmentRepo.Update(shipment);
+            
+            if (eventToPublish != null)
+            {
+                await publisher.Publish((object)eventToPublish);
+            }
+            
+            await unitOfWork.SaveChangesAsync();
+            
             return NoContent();
         }
         catch (Exception ex)
