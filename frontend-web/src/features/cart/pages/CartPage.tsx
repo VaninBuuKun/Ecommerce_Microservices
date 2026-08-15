@@ -90,7 +90,12 @@ export default function CartPage() {
 
 	// Compute subtotal using the local quantities to make checkout summary instantly reactive
 	const subTotal = selectedItems.reduce(
-		(sum, item) => sum + item.unitPrice * (localQuantities[item.productVariantId] ?? item.quantity),
+		(sum, item) => {
+			const activePrice = item.discountPrice && item.discountPrice > 0 && item.discountPrice < item.unitPrice
+				? item.discountPrice
+				: item.unitPrice;
+			return sum + activePrice * (localQuantities[item.productVariantId] ?? item.quantity);
+		},
 		0,
 	);
 
@@ -227,7 +232,7 @@ export default function CartPage() {
 						</div>
 
 						{/* Shop groups */}
-						<div className="space-y-5">
+						<div className="space-y-6">
 							{shopGroups.map((group) => (
 								<div
 									key={group.shopId}
@@ -241,85 +246,128 @@ export default function CartPage() {
 										</span>
 									</div>
 
-									{/* Group items */}
-									<div className="divide-y divide-brand-border/60">
-										{group.items.map((item) => (
-											<div
-												key={item.productVariantId}
-												className={`flex items-start gap-3 p-4 bg-white transition-all ${item.isSelected ? "bg-brand-primary/5" : ""
-													}`}
-											>
-												{/* Selection Checkbox */}
-												<button
-													onClick={() => handleToggleSelect(item.productVariantId, item.isSelected)}
-													className="mt-4 border-none bg-transparent cursor-pointer p-0 text-brand-dark flex-shrink-0"
-												>
-													{item.isSelected ? (
-														<CheckSquare className="w-4 h-4 text-brand-primary" />
-													) : (
-														<Square className="w-4 h-4 text-brand-muted" />
-													)}
-												</button>
+									{/* Group items in Table format */}
+									<div className="overflow-x-auto">
+										<table className="w-full min-w-[700px] border-collapse text-left text-xs font-semibold text-brand-dark">
+											<thead>
+												<tr className="bg-brand-light-soft/10 border-b border-brand-border text-brand-muted uppercase text-[10px] tracking-wider font-bold">
+													<th className="py-3 px-4 w-[45%]">Sản phẩm</th>
+													<th className="py-3 px-4 w-[15%]">Đơn giá</th>
+													<th className="py-3 px-4 w-[18%]">Số lượng</th>
+													<th className="py-3 px-4 w-[15%]">Số tiền</th>
+													<th className="py-3 px-4 w-[7%] text-center">Xóa</th>
+												</tr>
+											</thead>
+											<tbody className="divide-y divide-brand-border/60">
+												{group.items.map((item) => {
+													const activePrice = item.discountPrice && item.discountPrice > 0 && item.discountPrice < item.unitPrice
+														? item.discountPrice
+														: item.unitPrice;
+													const currentQty = localQuantities[item.productVariantId] ?? item.quantity;
+													const itemTotal = activePrice * currentQty;
 
-												{/* Product Thumbnail */}
-												<img
-													src={item.thumbnailUrl}
-													alt={item.productName}
-													className="w-16 h-16 object-cover rounded-lg border border-brand-border flex-shrink-0"
-												/>
-
-												{/* Details */}
-												<div className="flex-1 min-w-0 space-y-1.5">
-													<div className="space-y-0.5 text-left">
-														<h3 className="font-extrabold text-brand-dark text-xs truncate hover:text-brand-primary transition-colors">
-															{item.productName}
-														</h3>
-														{item.variantName && (
-															<span className="inline-block text-[10px] font-bold text-brand-muted bg-brand-light-soft px-1.5 py-0.5 rounded-sm">
-																Phân loại: {item.variantName}
-															</span>
-														)}
-													</div>
-
-													{/* Price Display */}
-													<div className="flex items-baseline gap-1.5">
-														<span className="font-extrabold text-brand-dark text-xs">
-															{item.unitPrice.toLocaleString("vi-VN")}đ
-														</span>
-													</div>
-												</div>
-
-												{/* Quantity and Delete Controls */}
-												<div className="flex flex-col items-end justify-between self-stretch pl-2">
-													<button
-														onClick={() => removeItemMutation.mutate(item.productVariantId)}
-														className="p-1 text-brand-muted hover:text-red-500 rounded bg-transparent border-none cursor-pointer transition-colors"
-														title="Xóa sản phẩm"
-													>
-														<Trash2 className="w-3.5 h-3.5" />
-													</button>
-
-													<div className="flex items-center border border-brand-border rounded-lg overflow-hidden h-7 bg-brand-light-soft/30">
-														<button
-															onClick={() => handleQuantityChange(item.productVariantId, item.quantity, -1, item.availableStocks)}
-															className="px-2 h-full flex items-center justify-center border-none bg-transparent hover:bg-brand-border/20 cursor-pointer text-brand-muted transition-colors"
+													return (
+														<tr
+															key={item.productVariantId}
+															className={`transition-colors hover:bg-brand-light-soft/5 ${
+																item.isSelected ? "bg-brand-primary/5 hover:bg-brand-primary/8" : ""
+															}`}
 														>
-															<Minus className="w-2.5 h-2.5" />
-														</button>
-														<span className="w-8 text-center text-xs font-bold text-brand-dark">
-															{localQuantities[item.productVariantId] ?? item.quantity}
-														</span>
-														<button
-															onClick={() => handleQuantityChange(item.productVariantId, item.quantity, 1, item.availableStocks)}
-															className="px-2 h-full flex items-center justify-center border-none bg-transparent hover:bg-brand-border/20 cursor-pointer text-brand-muted transition-colors"
-															disabled={(localQuantities[item.productVariantId] ?? item.quantity) >= item.availableStocks}
-														>
-															<Plus className="w-2.5 h-2.5" />
-														</button>
-													</div>
-												</div>
-											</div>
-										))}
+															{/* Cột sản phẩm */}
+															<td className="py-4 px-4 flex items-center gap-3">
+																<button
+																	onClick={() => handleToggleSelect(item.productVariantId, item.isSelected)}
+																	className="border-none bg-transparent cursor-pointer p-0 text-brand-dark flex-shrink-0"
+																>
+																	{item.isSelected ? (
+																		<CheckSquare className="w-4.5 h-4.5 text-brand-primary" />
+																	) : (
+																		<Square className="w-4.5 h-4.5 text-brand-muted" />
+																	)}
+																</button>
+
+																<img
+																	src={item.thumbnailUrl}
+																	alt={item.productName}
+																	className="w-14 h-14 object-cover rounded-lg border border-brand-border flex-shrink-0"
+																/>
+
+																<div className="min-w-0 space-y-1">
+																	<h3 className="font-extrabold text-brand-dark text-xs truncate max-w-[280px]" title={item.productName}>
+																		{item.productName}
+																	</h3>
+																	{item.variantName && (
+																		<span className="inline-block text-[9px] font-bold text-brand-muted bg-brand-light-soft px-1.5 py-0.5 rounded-sm">
+																			Phân loại: {item.variantName}
+																		</span>
+																	)}
+																</div>
+															</td>
+
+															{/* Cột đơn giá */}
+															<td className="py-4 px-4">
+																<div className="flex flex-col gap-0.5">
+																	{item.discountPrice && item.discountPrice < item.unitPrice ? (
+																		<>
+																			<span className="font-extrabold text-brand-primary-deep text-xs">
+																				{item.discountPrice.toLocaleString("vi-VN")}đ
+																			</span>
+																			<span className="text-[10px] text-brand-muted line-through font-bold">
+																				{item.unitPrice.toLocaleString("vi-VN")}đ
+																			</span>
+																		</>
+																	) : (
+																		<span className="font-extrabold text-brand-dark text-xs">
+																			{item.unitPrice.toLocaleString("vi-VN")}đ
+																		</span>
+																	)}
+																</div>
+															</td>
+
+															{/* Cột số lượng */}
+															<td className="py-4 px-4">
+																<div className="flex items-center border border-brand-border rounded-lg overflow-hidden h-7 w-24 bg-brand-light-soft/30">
+																	<button
+																		onClick={() => handleQuantityChange(item.productVariantId, item.quantity, -1, item.availableStocks)}
+																		className="w-7 h-full flex items-center justify-center border-none bg-transparent hover:bg-brand-border/20 cursor-pointer text-brand-muted transition-colors"
+																	>
+																		<Minus className="w-2.5 h-2.5" />
+																	</button>
+																	<span className="flex-1 text-center text-xs font-bold text-brand-dark">
+																		{currentQty}
+																	</span>
+																	<button
+																		onClick={() => handleQuantityChange(item.productVariantId, item.quantity, 1, item.availableStocks)}
+																		className="w-7 h-full flex items-center justify-center border-none bg-transparent hover:bg-brand-border/20 cursor-pointer text-brand-muted transition-colors"
+																		disabled={currentQty >= item.availableStocks}
+																	>
+																		<Plus className="w-2.5 h-2.5" />
+																	</button>
+																</div>
+															</td>
+
+															{/* Cột tổng tiền */}
+															<td className="py-4 px-4">
+																<span className="font-extrabold text-brand-primary-deep text-xs">
+																	{itemTotal.toLocaleString("vi-VN")}đ
+																</span>
+															</td>
+
+															{/* Cột thao tác xóa */}
+															<td className="py-4 px-4 text-center">
+																<button
+																	onClick={() => removeItemMutation.mutate(item.productVariantId)}
+																	className="p-1 text-brand-muted hover:text-red-500 rounded bg-transparent border-none cursor-pointer transition-colors"
+																	title="Xóa sản phẩm"
+																>
+																	<Trash2 className="w-4 h-4" />
+																</button>
+															</td>
+														</tr>
+													);
+												})}
+											</tbody>
+										</table>
 									</div>
 								</div>
 							))}

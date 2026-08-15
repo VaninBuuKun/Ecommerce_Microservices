@@ -223,9 +223,22 @@ export default function Header() {
 															<h4 className="text-[11px] font-bold text-brand-dark truncate">
 																{item.productName}
 															</h4>
-															<span className="text-[10px] text-brand-primary font-bold">
-																{item.unitPrice.toLocaleString("vi-VN")}đ
-															</span>
+															<div className="flex items-center gap-1.5">
+																{item.discountPrice && item.discountPrice < item.unitPrice ? (
+																	<>
+																		<span className="text-[10px] text-brand-primary-deep font-black">
+																			{item.discountPrice.toLocaleString("vi-VN")}đ
+																		</span>
+																		<span className="text-[8px] text-brand-muted line-through font-bold">
+																			{item.unitPrice.toLocaleString("vi-VN")}đ
+																		</span>
+																	</>
+																) : (
+																	<span className="text-[10px] text-brand-primary-deep font-black">
+																		{item.unitPrice.toLocaleString("vi-VN")}đ
+																	</span>
+																)}
+															</div>
 														</div>
 													</div>
 												))

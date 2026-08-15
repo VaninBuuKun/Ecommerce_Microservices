@@ -4,6 +4,7 @@ export interface CartItemDto {
 	shopId: number;
 	quantity: number;
 	unitPrice: number;
+	discountPrice: number;
 	productName: string;
 	variantName: string;
 	availableStocks: number;

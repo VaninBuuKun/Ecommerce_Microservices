@@ -63,6 +63,14 @@ export const orderService = {
 		return response.data;
 	},
 
+	// Lấy danh sách voucher khả dụng cho checkout
+	getAvailableVouchers: async (shopId?: number | null): Promise<any> => {
+		const url = shopId ? `/vouchers/available?shopId=${shopId}` : "/vouchers/available";
+		const response = await api.get<any>(url);
+		return response.data?.value || response.data;
+	},
+
+
 	// Lấy danh sách đơn hàng của Shop dành cho Seller (hỗ trợ phân trang và lọc ở BE)
 	getShopSubOrders: async (
 		shopId: string,

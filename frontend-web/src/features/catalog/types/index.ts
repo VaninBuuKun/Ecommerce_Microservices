@@ -64,6 +64,12 @@ export interface Product {
 	categoryId: string;
 	categoryName?: string;
 	parentCategoryName?: string;
+	shopId: number;
+	shopName?: string;
+	shopPhone?: string;
+	shopAddress?: string;
+	shopRecipient?: string;
+	shopOwnerId?: number;
 	tag: string | null;
 }
 

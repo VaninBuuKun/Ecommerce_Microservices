@@ -155,6 +155,8 @@ function PlaceholderView({ title }: { title: string }) {
 	);
 }
 
+import CouponsView from "./CouponsView";
+
 export default function SellerDashboard() {
 	return (
 		<Routes>
@@ -181,7 +183,7 @@ export default function SellerDashboard() {
 			/>
 			<Route
 				path="coupons"
-				element={<PlaceholderView title="Mã giảm giá Khuyến mãi" />}
+				element={<CouponsView />}
 			/>
 			<Route
 				path="flashsale"
@@ -234,3 +236,4 @@ export default function SellerDashboard() {
 		</Routes>
 	);
 }
+

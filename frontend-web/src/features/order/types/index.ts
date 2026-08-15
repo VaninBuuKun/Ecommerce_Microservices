@@ -23,7 +23,10 @@ export interface CalculateOrderTotalRequest {
 	userAddressId: string;
 	checkoutSessionId?: string | null;
 	shopShippingSelections?: Record<number, string> | null;
+	platformVoucherCode?: string | null;
+	shopVoucherCodes?: Record<number, string> | null;
 }
+
 
 export interface CheckoutItemDto {
 	variantId: string;

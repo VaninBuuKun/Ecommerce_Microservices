@@ -7,8 +7,12 @@ import {
 	Heart,
 	Truck,
 	Loader2,
+	Store,
+	MessageCircle,
+	Edit,
 } from "lucide-react";
 import { useProductByIdQuery } from "../hooks";
+import { useSellerProfileQuery } from "../../seller/hooks";
 import { useAddItemToCartMutation } from "../../cart/hooks/useAddItemToCartMutation";
 import { toast } from "react-toastify";
 import {
@@ -264,6 +268,13 @@ export default function ProductDetailPage() {
 		);
 	};
 
+	const { data: sellerProfile } = useSellerProfileQuery();
+	
+	const isOwnProduct = useMemo(() => {
+		if (!product || !sellerProfile) return false;
+		return sellerProfile.shops?.some(shop => Number(shop.id) === Number(product.shopId));
+	}, [product, sellerProfile]);
+
 	// 1. CHẶN VĂNG LỖI KHI ĐANG LOADING
 	if (isLoading) {
 		return (
@@ -433,40 +444,119 @@ export default function ProductDetailPage() {
 
 					{/* Actions */}
 					<div className="flex flex-wrap items-center gap-3 pt-3 border-t border-brand-border/60">
-						<button
-							type="button"
-							onClick={handleAddToCart}
-							className="h-10 px-4 border border-brand-primary text-brand-primary-deep bg-brand-primary/10 hover:bg-brand-primary/20 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5"
-						>
-							<ShoppingBag className="w-4 h-4" />
-							Thêm vào giỏ hàng
-						</button>
-						<button
-							type="button"
-							onClick={handleBuyNow}
-							className="h-10 px-6 bg-brand-primary hover:bg-brand-primary-deep text-brand-dark rounded-lg text-xs font-extrabold transition-all cursor-pointer"
-						>
-							Mua ngay
-						</button>
-						<button
-							type="button"
-							onClick={() => setIsFavorite(!isFavorite)}
-							className={`p-2.5 rounded-lg border border-brand-border cursor-pointer transition-colors ${isFavorite
-									? "text-red-500 bg-red-50 border-red-200"
-									: "text-brand-muted hover:text-brand-dark"
-								}`}
-							title="Yêu thích"
-						>
-							<Heart
-								className={`w-4 h-4 ${isFavorite ? "fill-red-500" : ""}`}
-							/>
-						</button>
+						{isOwnProduct ? (
+							<Link
+								to={`/seller/${product.shopId}/dashboard/products/edit/${product.id}`}
+								className="h-10 px-6 bg-brand-dark hover:bg-black text-brand-primary rounded-lg text-xs font-extrabold transition-all cursor-pointer flex items-center gap-2 border border-brand-border"
+							>
+								<Edit className="w-4 h-4" />
+								Chỉnh sửa sản phẩm của bạn
+							</Link>
+						) : (
+							<>
+								<button
+									type="button"
+									onClick={handleAddToCart}
+									className="h-10 px-4 border border-brand-primary text-brand-primary-deep bg-brand-primary/10 hover:bg-brand-primary/20 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5"
+								>
+									<ShoppingBag className="w-4 h-4" />
+									Thêm vào giỏ hàng
+								</button>
+								<button
+									type="button"
+									onClick={handleBuyNow}
+									className="h-10 px-6 bg-brand-primary hover:bg-brand-primary-deep text-brand-dark rounded-lg text-xs font-extrabold transition-all cursor-pointer"
+								>
+									Mua ngay
+								</button>
+								<button
+									type="button"
+									onClick={() => setIsFavorite(!isFavorite)}
+									className={`p-2.5 rounded-lg border border-brand-border cursor-pointer transition-colors ${isFavorite
+										? "text-red-500 bg-red-50 border-red-200"
+										: "text-brand-muted hover:text-brand-dark"
+										}`}
+									title="Yêu thích"
+								>
+									<Heart
+										className={`w-4 h-4 ${isFavorite ? "fill-red-500" : ""}`}
+									/>
+								</button>
+							</>
+						)}
 					</div>
+				</div>
+			</div>
+
+			{/* Shop Information Card */}
+			<div className="bg-white rounded-2xl border border-brand-border shadow-sm p-5 mb-6 flex flex-col md:flex-row items-center justify-between gap-6 text-left">
+				<div className="flex items-center gap-4">
+					<div className="w-16 h-16 rounded-full bg-brand-primary/10 flex items-center justify-center border border-brand-primary/20 shrink-0">
+						<Store className="w-8 h-8 text-brand-primary-deep" />
+					</div>
+					<div>
+						<h3 className="font-black text-brand-dark text-sm">
+							{product.shopName || `Cửa hàng #${product.shopId}`}
+						</h3>
+						{product.shopAddress && (
+							<p className="text-[10px] text-brand-muted mt-0.5 font-semibold">
+								Địa chỉ: <span className="text-brand-dark">{product.shopAddress}</span>
+							</p>
+						)}
+						{product.shopPhone && (
+							<p className="text-[10px] text-brand-muted mt-0.5 font-semibold">
+								Hotline: <span className="text-brand-dark">{product.shopPhone}</span>
+							</p>
+						)}
+						<div className="flex items-center gap-4 mt-2 text-[10px] text-brand-muted font-bold">
+							<span>Phản hồi chat: <strong className="text-brand-dark">99% (Rất Nhanh)</strong></span>
+							<span className="w-1.5 h-1.5 rounded-full bg-brand-border" />
+							<span>Người nhận: <strong className="text-brand-dark">{product.shopRecipient || "Đại diện Shop"}</strong></span>
+						</div>
+					</div>
+				</div>
+				<div className="flex items-center gap-2.5 w-full md:w-auto">
+					{isOwnProduct ? (
+						<Link
+							to={`/seller/${product.shopId}/dashboard`}
+							className="flex-1 md:flex-initial h-9 px-4 border border-brand-dark text-white bg-brand-dark hover:bg-black rounded-xl text-xs font-black transition-all flex items-center justify-center gap-1.5"
+						>
+							Bảng điều khiển
+						</Link>
+					) : (
+						<>
+							<button
+								type="button"
+								onClick={() => {
+									const storeName = product.shopName || `Shop #${product.shopId}`;
+									window.dispatchEvent(
+										new CustomEvent("open-shop-chat", {
+											detail: {
+												shopId: Number(product.shopId),
+												shopName: storeName,
+											},
+										})
+									);
+								}}
+								className="flex-1 md:flex-initial h-9 px-4 border border-brand-primary text-brand-primary-deep bg-brand-primary/10 hover:bg-brand-primary/20 rounded-xl text-xs font-black transition-all cursor-pointer flex items-center justify-center gap-1.5"
+							>
+								<MessageCircle className="w-4 h-4" />
+								Chat với Người Bán
+							</button>
+							<Link
+								to={`/shop/${product.shopId}`}
+								className="flex-1 md:flex-initial h-9 px-4 border border-brand-border hover:bg-brand-light-soft text-brand-dark rounded-xl text-xs font-black transition-all flex items-center justify-center"
+							>
+								Xem Cửa Hàng
+							</Link>
+						</>
+					)}
 				</div>
 			</div>
 
 			{/* Description Section */}
 			<ProductDescription description={product.description} />
+
 
 			{/* Related Products Grid */}
 			<RelatedProducts

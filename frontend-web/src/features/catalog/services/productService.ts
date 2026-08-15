@@ -150,6 +150,6 @@ export const productService = {
 			availabeStock: number;
 		},
 	) => {
-		await api.put(`/product/${id}/sale`);
+		await api.put(`/products/${id}/sale`, payload);
 	},
 };

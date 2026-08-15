@@ -72,6 +72,18 @@ export function usePaymentMethodsQuery() {
 	});
 }
 
+export function useAvailableVouchersQuery(shopId?: number | null, enabled: boolean = true) {
+	return useQuery({
+		queryKey: ["availableVouchers", shopId],
+		queryFn: () => orderService.getAvailableVouchers(shopId),
+		enabled: enabled, // Chỉ kích hoạt gọi API khi điều kiện enabled là true
+		staleTime: 0,     // Dữ liệu coi như hết hạn ngay lập tức
+		gcTime: 0,        // Không giữ lại cache khi unmount/đóng modal (Bản v5 dùng gcTime, v4 dùng cacheTime: 0)
+		refetchOnMount: "always", // Luôn refetch mỗi khi component mount/kích hoạt
+	});
+}
+
+
 export function useShopSubOrdersQuery(
 	shopId?: string,
 	pageNumber = 1,
