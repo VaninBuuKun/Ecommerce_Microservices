@@ -27,7 +27,8 @@ public class ProfileService(UserManager<AppUser> userManager) : IProfileService
 
             foreach (var role in userRoles)
             {
-                claims.Add(new Claim(ClaimTypes.Role , role));
+                claims.Add(new Claim(ClaimTypes.Role, role));
+                claims.Add(new Claim("role", role));
             }
 
             context.IssuedClaims.AddRange(claims);

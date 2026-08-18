@@ -11,6 +11,7 @@ public class UserDto
     public string? AvatarUrl { get; set; }
     public IList<string> Roles { get; set; } = new List<string>();
     public bool IsLockedOut { get; set; }
+    public bool IsActive { get; set; } = true;
 }
 
 public class UserListResponse

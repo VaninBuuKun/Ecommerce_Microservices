@@ -80,6 +80,7 @@ public class CreateRefundCommandHandler(
                 ShopId = subOrder.ShopId,
                 RefundAmount = subOrder.ShippingFee, // Hoàn trả toàn bộ số tiền thanh toán (bao gồm ship hoặc theo chính sách)
                 Reason = command.Reason.Trim(),
+                Medias = command.Medias ?? new List<string>(),
                 Status = RefundStatus.Pending
             };
             refundRepo.Add(refundRequest);
@@ -107,6 +108,7 @@ public class CreateRefundCommandHandler(
                 ShopId = refundRequest.ShopId,
                 RefundAmount = refundRequest.RefundAmount,
                 Reason = refundRequest.Reason,
+                Medias = refundRequest.Medias,
                 Status = refundRequest.Status.ToString(),
                 CreatedDate = refundRequest.CreatedDate
             };

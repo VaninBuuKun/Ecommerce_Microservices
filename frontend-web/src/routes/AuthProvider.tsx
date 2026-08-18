@@ -1,6 +1,5 @@
 import { useEffect, type ReactNode } from "react";
-import { useAuthStore } from "../features/auth";
-import { useCurrentUserQuery } from "../features/auth/hooks";
+import { useAuthStore, useCurrentUserQuery } from "@/domains/auth";
 
 interface AuthProviderProps {
 	children: ReactNode;

@@ -97,6 +97,7 @@ public class OrderDbContext(DbContextOptions<OrderDbContext> options, IInMemoryB
             entity.Property(r => r.Reason).IsRequired().HasMaxLength(1000);
             entity.Property(r => r.SellerNote).HasMaxLength(1000);
             entity.Property(r => r.Status).HasConversion<string>();
+            entity.Property(r => r.Medias);
 
             entity.HasOne(r => r.SubOrder)
                   .WithMany()

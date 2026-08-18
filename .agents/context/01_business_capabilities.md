@@ -27,7 +27,8 @@ This document provides a detailed breakdown of all implemented backend APIs, gRP
   - `CreateOrderCommandHandler`: Creates parent Order and splits into SubOrders per Shop.
   - `SellerConfirmSubOrderCommandHandler`, `SellerRejectSubOrderCommandHandler`, `SellerPackageReadyCommandHandler`
   - `CompleteSubOrderCommandHandler`, `CancelSubOrderCommandHandler`
-  - `CreateRefundCommandHandler`, `ApproveRefundCommandHandler`, `RejectRefundCommandHandler`, `CancelRefundCommandHandler`
+  - `CreateRefundCommandHandler`: Supports List<string> Medias for refund evidence images.
+  - `ApproveRefundCommandHandler`, `RejectRefundCommandHandler`, `CancelRefundCommandHandler`
   - `CreateVoucherCommandHandler`, `UpdateVoucherCommandHandler`
 - **Queries**:
   - `GetOrderByIdQueryHandler`, `GetSubOrdersQuery`, `GetSubOrdersByShopQueryHandler`, `GetSubOrderDetailQuery`
@@ -43,6 +44,7 @@ This document provides a detailed breakdown of all implemented backend APIs, gRP
   - `ActivateShopCommandHandler`, `SuspendShopCommandHandler`, `BanShopCommandHandler`
 - **Queries**:
   - `GetMyKycQuery`, `GetMySellerProfileQuery`, `GetPublicShopByIdQuery`, `GetPublicShopsByOwnerIdQuery`
+  - `GetAllShopsQueryHandler` (CQRS Query `GET /api/shop/all` for Admin with pagination, search & status filter)
   - `ValidateShopOwnerQueryHandler` (gRPC), `GetShopsByIdsQueryHandler` (gRPC), `GetShopShippingInfoQueryHandler` (gRPC)
 
 ## 5. Payments Service (PostgreSQL)
@@ -62,7 +64,20 @@ This document provides a detailed breakdown of all implemented backend APIs, gRP
   - `LocationSyncJob`: Cron job syncing GHN location hierarchy.
   - `CalculateBatchShippingFeeQueryHandler` (gRPC & REST): GHN API fee calculation.
   - `CreateShipmentConsumer`: MassTransit Consumer creating GHN waybills.
-  - `WebhooksController`: Receives GHN status updates (`Delivered`, `Shipped`).
+  - `WebhooksController`: Receives GHN status updates (`Delivered`, `Shipped`, `Picking`, `Returned`, `Cancelled`).
+  - `ShipmentsController`: `GET /api/shipments` for Admin shipment management.
 
 ## 7. Identity Service (PostgreSQL)
 - OAuth2 / OIDC JWT Authentication, `UserAddresses` CRUD.
+- **Custom Resource Owner Password Validator**: Validates `IsActive` (`account_disabled`), `IsLockedOutAsync` (`account_locked`), and invalid credentials with corresponding Gateway error responses.
+- **Users & Roles Management**: `UsersController` (`POST /api/users` Admin Create User, `POST /api/users/{id}/lock` & `unlock` synced with `IsActive`), `RolesController` (Full Role CRUD for Admin: `Admin`, `Manager`, `User`, `Staff`).
+
+## 8. Frontend ACO Architecture (Apps - Components - Domains)
+- **Directory Structure**:
+  - `src/apps/`: Entry pages for customer (`/`, `/cart`, `/checkout`, `/product/:id`), seller (`/seller/select-shop`, `/seller/:shopId/dashboard`), auth (`/login`, `/register`), admin (`/admin`).
+  - `src/domains/`: Domain logic grouped by boundary (`auth`, `catalog`, `cart`, `order`, `seller`, `kyc`, `address`, `wallet`, `shipping`). Contains `api/`, `hooks/`, `stores/`, `types/`, `components/`.
+  - `src/shared/`: Cross-cutting utilities, helpers (`formatPrice`, `formatStock`, `authHelper`).
+- **State & Query Integration**:
+  - `useAuthStore` (Zustand) & `useSellerStore` (Zustand): Domain stores.
+  - TanStack Query v5 custom hooks per domain (`useCatalog`, `useCart`, `useKyc`, `useSeller`).
+

@@ -1,6 +1,6 @@
 import { Outlet } from 'react-router-dom';
 import Header from '../components/Header';
-import ChatFloatingWidget from '../features/seller/components/ChatFloatingWidget';
+import { ChatFloatingWidget } from '@/domains/seller';
 
 export default function MainLayout() {
   return (

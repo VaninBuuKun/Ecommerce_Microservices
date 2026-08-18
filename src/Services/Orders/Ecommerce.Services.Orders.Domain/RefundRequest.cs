@@ -11,6 +11,7 @@ public class RefundRequest : EntityTrackingBase<Guid>
     public long ShopId { get; set; }
     public decimal RefundAmount { get; set; }
     public string Reason { get; set; } = string.Empty;
+    public List<string> Medias { get; set; } = new();
     public string? SellerNote { get; set; }
     public RefundStatus Status { get; set; }
 

@@ -9,8 +9,8 @@ import {
 	Store,
 	Bell,
 } from "lucide-react";
-import { useAuthStore, authService } from "../features/auth";
-import { useCartQuery } from "../features/cart/hooks/useCartQuery";
+import { useAuthStore, authService } from "@/domains/auth";
+import { useCartQuery } from "@/domains/cart";
 import { checkIsAdmin } from "../shared/utils/authHelper";
 
 export default function Header() {
@@ -373,9 +373,7 @@ export default function Header() {
 										/>
 										<div className="min-w-0">
 											<h4 className="text-sm font-bold text-brand-dark truncate leading-tight text-left">
-												{user.firstName +
-													" " +
-													user.lastName}
+												{user.fullName || `${user.firstName || ""} ${user.lastName || ""}`.trim() || user.email}
 											</h4>
 											<span className="text-xs text-brand-muted truncate block text-left">
 												{user.email}

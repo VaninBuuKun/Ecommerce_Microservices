@@ -79,7 +79,8 @@ Hệ thống Thương mại Điện tử Marketplace doanh nghiệp được ph�
    - Quản lý giao dịch và truy vấn qua `IEfUnitOfWork` và `IGenericEfRepository<T>`.
 5. **MassTransit Saga & Transactional Outbox Pattern**:
    - Đảm bảo tính nhất quán dữ liệu sự kiện giữa database commit và RabbitMQ message publish.
-6. **Frontend React 19**:
+6. **Frontend React 19 ACO Architecture**:
+   - Tách biệt rõ ràng theo cấu trúc 3 tầng: `apps/` (Các trang hoàn chỉnh phân theo vai trò User/Seller/Admin/Auth), `domains/` (Domain logic, API, Hooks, Types, Sub-components) và `shared/` (Utilities dùng chung).
    - Modal Popups bắt buộc dùng `createPortal(..., document.body)` với `z-10000`.
    - Error handling bắt lỗi theo HTTP Status Code (400, 404, 500) và `Result.ErrorCode`.
 

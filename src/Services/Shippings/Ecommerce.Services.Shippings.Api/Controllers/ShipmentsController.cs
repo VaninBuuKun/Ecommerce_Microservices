@@ -93,6 +93,39 @@ public class ShipmentsController(IShippingProvider shippingProvider) : Controlle
         }
         return StatusCode(result.GetHttpStatusCode(), result.Message);
     }
+
+    [HttpGet]
+    public async Task<IActionResult> GetShipments(
+        [FromServices] Ecommerce.Services.Shippings.Api.Persistances.ShippingDbContext dbContext,
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 10,
+        [FromQuery] string? search = null)
+    {
+        var query = dbContext.Shipments.AsQueryable();
+
+        if (!string.IsNullOrEmpty(search))
+        {
+            var searchUpper = search.ToUpper();
+            query = query.Where(s => (s.WaybillCode != null && s.WaybillCode.ToUpper().Contains(searchUpper)) ||
+                                     s.RecipientName.ToUpper().Contains(searchUpper) ||
+                                     s.RecipientPhone.Contains(searchUpper));
+        }
+
+        var totalCount = await Microsoft.EntityFrameworkCore.EntityFrameworkQueryableExtensions.CountAsync(query);
+        var items = await Microsoft.EntityFrameworkCore.EntityFrameworkQueryableExtensions.ToListAsync(
+            query.OrderByDescending(s => s.CreatedDate)
+                 .Skip((page - 1) * pageSize)
+                 .Take(pageSize)
+        );
+
+        return Ok(new
+        {
+            Items = items,
+            TotalCount = totalCount,
+            Page = page,
+            PageSize = pageSize
+        });
+    }
 }
 
 public record PreviewFeeItem(Guid VariantId, int Quantity);

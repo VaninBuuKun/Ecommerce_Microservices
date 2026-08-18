@@ -30,7 +30,20 @@ public class UsersController(
     // SECTION 1: PERSONAL ACCOUNT APIs (me, profile)
     // ==========================================
     
-    private static readonly System.Collections.Concurrent.ConcurrentDictionary<long, (string Nickname, string Gender, DateTime BirthDate)> _profileCache = new();
+    private static readonly System.Collections.Concurrent.ConcurrentDictionary<long, (string Gender, DateTime? BirthDate)> _profileCache = new();
+
+    private static string? NormalizeGender(string? input)
+    {
+        if (string.IsNullOrWhiteSpace(input)) return null;
+        var lower = input.Trim().ToLower();
+        return lower switch
+        {
+            "male" or "nam" => "Male",
+            "female" or "nữ" or "nu" => "Female",
+            "other" or "khác" or "khac" => "Other",
+            _ => null
+        };
+    }
 
     // Thay thế auth/me cũ
     [HttpGet("me")]
@@ -42,13 +55,11 @@ public class UsersController(
         var user = await userManager.FindByIdAsync(userId);
         if (user == null) return NotFound();
 
-        var nickname = user.Nickname ?? "Vân Ca";
-        var gender = user.Gender ?? "Nữ";
-        var birthDate = user.BirthDate ?? new DateTime(2000, 5, 2);
+        var gender = user.Gender ?? "Female";
+        DateTime? birthDate = user.BirthDate;
 
         if (_profileCache.TryGetValue(user.Id, out var cachedProfile))
         {
-            nickname = cachedProfile.Nickname;
             gender = cachedProfile.Gender;
             birthDate = cachedProfile.BirthDate;
         }
@@ -61,7 +72,6 @@ public class UsersController(
             user.FirstName,
             user.LastName,
             user.AvatarUrl,
-            Nickname = nickname,
             Gender = gender,
             BirthDate = birthDate,
             Roles = await userManager.GetRolesAsync(user)
@@ -91,9 +101,23 @@ public class UsersController(
         var user = await userManager.FindByIdAsync(currentUserId!);
         if (user == null) return NotFound();
 
+        if (!string.IsNullOrEmpty(request.Gender))
+        {
+            var normalizedGender = NormalizeGender(request.Gender);
+            if (normalizedGender == null)
+            {
+                return BadRequest("Giới tính không hợp lệ. Vui lòng chọn Male, Female hoặc Other.");
+            }
+            user.Gender = normalizedGender;
+        }
+
         user.FirstName = request.FirstName ?? user.FirstName;
         user.LastName = request.LastName ?? user.LastName;
         user.AvatarUrl = request.AvatarUrl ?? user.AvatarUrl;
+        if (request.BirthDate.HasValue)
+        {
+            user.BirthDate = request.BirthDate.Value;
+        }
 
         var result = await userManager.UpdateAsync(user);
         if (!result.Succeeded)
@@ -101,13 +125,58 @@ public class UsersController(
             return BadRequest(string.Join(", ", result.Errors.Select(e => e.Description)));
         }
 
-        // Simulating DB persistence for NotMapped fields in static thread-safe dictionary
-        var nickname = request.Nickname ?? user.Nickname ?? "Vân Ca";
-        var gender = request.Gender ?? user.Gender ?? "Nữ";
-        var birthDate = request.BirthDate ?? user.BirthDate ?? new DateTime(2000, 5, 2);
-        _profileCache[user.Id] = (nickname, gender, birthDate);
+        var genderToCache = user.Gender ?? "Female";
+        var birthDateToCache = user.BirthDate;
+        _profileCache[user.Id] = (genderToCache, birthDateToCache);
 
         return Ok("Cập nhật thông tin cá nhân thành công!");
+    }
+
+    // Endpoint dành cho Admin tạo tài khoản mới kèm vai trò
+    [HttpPost]
+    [Authorize(AuthenticationSchemes = IdentityServerConstants.LocalApi.AuthenticationScheme, Roles = "Admin")]
+    public async Task<IActionResult> CreateUserByAdmin([FromBody] CreateUserByAdminRequest request)
+    {
+        var existingUser = await userManager.FindByEmailAsync(request.Email);
+        if (existingUser != null)
+        {
+            return BadRequest("Email này đã được sử dụng!");
+        }
+
+        var newUser = new AppUser
+        {
+            UserName = request.Email,
+            Email = request.Email,
+            FirstName = request.FirstName,
+            LastName = request.LastName,
+            AvatarUrl = request.AvatarUrl,
+            EmailConfirmed = true,
+            CreatedDate = DateTimeOffset.UtcNow
+        };
+
+        var result = await userManager.CreateAsync(newUser, request.Password);
+        if (!result.Succeeded)
+        {
+            return BadRequest(string.Join(", ", result.Errors.Select(e => e.Description)));
+        }
+
+        var roleName = string.IsNullOrWhiteSpace(request.Role) ? "User" : request.Role;
+        if (!await roleManager.RoleExistsAsync(roleName))
+        {
+            await roleManager.CreateAsync(new IdentityRole<long>(roleName));
+        }
+
+        await userManager.AddToRoleAsync(newUser, roleName);
+
+        return Ok(new
+        {
+            newUser.Id,
+            newUser.Email,
+            newUser.FirstName,
+            newUser.LastName,
+            newUser.AvatarUrl,
+            Roles = new[] { roleName }
+        });
     }
 
     // ==========================================
@@ -164,7 +233,8 @@ public class UsersController(
                 LastName = u.LastName,
                 AvatarUrl = u.AvatarUrl,
                 Roles = roles,
-                IsLockedOut = isLockedOut
+                IsLockedOut = isLockedOut,
+                IsActive = u.IsActive
             });
         }
 
@@ -265,13 +335,14 @@ public class UsersController(
         var user = await userManager.FindByIdAsync(id.ToString());
         if (user == null) return NotFound("Không tìm thấy người dùng!");
 
+        user.IsActive = false;
         var result = await userManager.SetLockoutEndDateAsync(user, DateTimeOffset.UtcNow.AddYears(100));
         if (!result.Succeeded)
         {
             return BadRequest(string.Join(", ", result.Errors.Select(e => e.Description)));
         }
 
-        return Ok("Đã khóa tài khoản thành công!");
+        return Ok("Đã cấm/khóa tài khoản người dùng thành công!");
     }
 
     [HttpPost("{id:long}/unlock")]
@@ -281,13 +352,14 @@ public class UsersController(
         var user = await userManager.FindByIdAsync(id.ToString());
         if (user == null) return NotFound("Không tìm thấy người dùng!");
 
+        user.IsActive = true;
         var result = await userManager.SetLockoutEndDateAsync(user, null);
         if (!result.Succeeded)
         {
             return BadRequest(string.Join(", ", result.Errors.Select(e => e.Description)));
         }
 
-        return Ok("Đã mở khóa tài khoản thành công!");
+        return Ok("Đã mở khóa tài khoản người dùng thành công!");
     }
 
     // ==========================================
