@@ -7,6 +7,7 @@ import type {
 } from "../types";
 import { queryClient } from "../../../shared/lib/react-query";
 import { CART_QUERY_KEY } from "../../cart/queryKeys";
+import api from "../../../shared/lib/axios";
 
 export const ADDRESSES_QUERY_KEY = ["addresses"];
 
@@ -288,5 +289,25 @@ export function useCancelRefundMutation() {
 			queryClient.invalidateQueries({ queryKey: ["myRefundRequests"] });
 			queryClient.invalidateQueries({ queryKey: ["customerOrders"] });
 		},
+	});
+}
+
+export function useCreateWithdrawMutation() {
+	const queryClient = useQueryClient();
+	return useMutation({
+		mutationFn: (data: { amount: number; bankAccountId: string }) =>
+			api.post("/withdrawals", data).then((r) => r.data),
+		onSuccess: () => {
+			queryClient.invalidateQueries({ queryKey: ["userWallet"] });
+			queryClient.invalidateQueries({ queryKey: ["userWalletTransactions"] });
+			queryClient.invalidateQueries({ queryKey: ["myWithdrawals"] });
+		},
+	});
+}
+
+export function useMyWithdrawalsQuery() {
+	return useQuery({
+		queryKey: ["myWithdrawals"],
+		queryFn: () => api.get("/withdrawals").then((r) => r.data?.value || r.data || []),
 	});
 }

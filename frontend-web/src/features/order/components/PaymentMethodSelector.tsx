@@ -1,14 +1,6 @@
-import React from "react";
-import { CreditCard } from "lucide-react";
+import type { PaymentMethod } from "../types";
 
-interface PaymentMethod {
-	id: string;
-	title: string;
-	subTitle?: string;
-	providerName: string;
-	iconUrl?: string;
-	isActive: boolean;
-}
+import { CreditCard } from "lucide-react";
 
 interface PaymentMethodSelectorProps {
 	paymentMethods: PaymentMethod[] | undefined;

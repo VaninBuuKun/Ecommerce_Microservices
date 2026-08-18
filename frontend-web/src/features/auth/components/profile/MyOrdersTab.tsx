@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import { Search, Loader2 } from "lucide-react";
 import { toast } from "react-toastify";
 import { useCustomerOrdersQuery } from "../../../order/hooks/useCheckoutQueries";

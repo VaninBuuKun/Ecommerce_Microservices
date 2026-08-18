@@ -100,8 +100,9 @@ namespace Ecommerce.Services.Orders.Infrastructure.Migrations
                     b.Property<long>("ShopId")
                         .HasColumnType("bigint");
 
-                    b.Property<int>("Status")
-                        .HasColumnType("integer");
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasColumnType("text");
 
                     b.Property<Guid>("SubOrderId")
                         .HasColumnType("uuid");
@@ -196,6 +197,9 @@ namespace Ecommerce.Services.Orders.Infrastructure.Migrations
                     b.Property<long>("PlatformDiscount")
                         .HasColumnType("bigint");
 
+                    b.Property<Guid?>("PlatformVoucherId")
+                        .HasColumnType("uuid");
+
                     b.Property<long>("SellerDiscount")
                         .HasColumnType("bigint");
 
@@ -205,8 +209,12 @@ namespace Ecommerce.Services.Orders.Infrastructure.Migrations
                     b.Property<long>("ShopId")
                         .HasColumnType("bigint");
 
-                    b.Property<int>("Status")
-                        .HasColumnType("integer");
+                    b.Property<Guid?>("ShopVoucherId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasColumnType("text");
 
                     b.Property<long>("SubTotal")
                         .HasColumnType("bigint");
@@ -229,6 +237,9 @@ namespace Ecommerce.Services.Orders.Infrastructure.Migrations
 
                     b.Property<DateTimeOffset?>("LastModifiedDate")
                         .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("ProductId")
+                        .HasColumnType("uuid");
 
                     b.Property<string>("ProductName")
                         .IsRequired()
@@ -259,6 +270,103 @@ namespace Ecommerce.Services.Orders.Infrastructure.Migrations
                     b.HasIndex("SubOrderId");
 
                     b.ToTable("OrderItems");
+                });
+
+            modelBuilder.Entity("Ecommerce.Services.Orders.Domain.Voucher", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Code")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<long?>("CreatedByUserId")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTimeOffset>("CreatedDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("DiscountType")
+                        .HasColumnType("integer");
+
+                    b.Property<decimal>("DiscountValue")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<DateTimeOffset>("EndDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean");
+
+                    b.Property<DateTimeOffset?>("LastModifiedDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<decimal?>("MaxDiscountAmount")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<long>("MaxUsageCount")
+                        .HasColumnType("bigint");
+
+                    b.Property<long>("MaxUsagePerUser")
+                        .HasColumnType("bigint");
+
+                    b.Property<decimal>("MinOrderValue")
+                        .HasColumnType("numeric");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<int>("Scope")
+                        .HasColumnType("integer");
+
+                    b.Property<long?>("ShopId")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTimeOffset>("StartDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<long>("UsageCount")
+                        .IsConcurrencyToken()
+                        .HasColumnType("bigint");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("Vouchers");
+                });
+
+            modelBuilder.Entity("Ecommerce.Services.Orders.Domain.VoucherUsage", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<decimal>("DiscountAmount")
+                        .HasColumnType("numeric");
+
+                    b.Property<Guid?>("OrderId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("SubOrderId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset>("UsedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<long>("UserId")
+                        .HasColumnType("bigint");
+
+                    b.Property<Guid>("VoucherId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("VoucherId");
+
+                    b.ToTable("VoucherUsages");
                 });
 
             modelBuilder.Entity("Ecommerce.Services.Orders.Infrastructure.Sagas.SubOrderSagaState", b =>
@@ -527,6 +635,17 @@ namespace Ecommerce.Services.Orders.Infrastructure.Migrations
                         .IsRequired();
 
                     b.Navigation("SubOrder");
+                });
+
+            modelBuilder.Entity("Ecommerce.Services.Orders.Domain.VoucherUsage", b =>
+                {
+                    b.HasOne("Ecommerce.Services.Orders.Domain.Voucher", "Voucher")
+                        .WithMany()
+                        .HasForeignKey("VoucherId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Voucher");
                 });
 
             modelBuilder.Entity("MassTransit.EntityFrameworkCoreIntegration.OutboxMessage", b =>

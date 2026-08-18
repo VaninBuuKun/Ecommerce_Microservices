@@ -17,6 +17,11 @@ public class CreateVoucherCommandHandler(IEfUnitOfWork unitOfWork, ILogger<Creat
     {
         try
         {
+            if (command.voucherRequest.StartDate < DateTimeOffset.UtcNow)
+            {
+                return Result<VoucherDto>.Failure("Start date must be in the future.", EErrorCode.Conflict);
+            }
+            
             if (command.voucherRequest.StartDate >= command.voucherRequest.EndDate)
             {
                 return Result<VoucherDto>.Failure("Start date must be before end date.", EErrorCode.Conflict);
@@ -32,6 +37,8 @@ public class CreateVoucherCommandHandler(IEfUnitOfWork unitOfWork, ILogger<Creat
             var voucher = mapper.Map<Voucher>(command.voucherRequest);
             voucher.Scope = command.IsAdmin ? VoucherScope.Platform : VoucherScope.Shop;
             voucher.CreatedByUserId = command.UserId;
+            
+            voucherRepo.Add(voucher);
             await unitOfWork.SaveChangesAsync(cancellationToken);
 
             return Result<VoucherDto>.Success(mapper.Map<VoucherDto>(voucher));

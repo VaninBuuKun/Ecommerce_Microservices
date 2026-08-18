@@ -89,8 +89,9 @@ namespace Ecommerce.Services.Payments.Api.Migrations
                     b.Property<string>("PaymentUrl")
                         .HasColumnType("text");
 
-                    b.Property<int>("Status")
-                        .HasColumnType("integer");
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasColumnType("text");
 
                     b.HasKey("Id");
 
@@ -244,8 +245,12 @@ namespace Ecommerce.Services.Payments.Api.Migrations
                     b.Property<long?>("ProcessedByAdminId")
                         .HasColumnType("bigint");
 
-                    b.Property<int>("Status")
-                        .HasColumnType("integer");
+                    b.Property<string>("ProofImageUrl")
+                        .HasColumnType("text");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasColumnType("text");
 
                     b.Property<long>("UserId")
                         .HasColumnType("bigint");

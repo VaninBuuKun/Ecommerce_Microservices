@@ -1,50 +1,49 @@
-using System;
+using System.Linq;
 using System.Threading.Tasks;
 using BuildingBlocks.Grpc.Services;
-using BuildingBlocks.Shared.InfrastructureInterfaces.Persistence.EFCore;
-using Ecommerce.Services.Sellers.Api.Models.Entities;
+using Ecommerce.Services.Sellers.Api.Features.Shops.Queries.GetShopsByIds;
+using Ecommerce.Services.Sellers.Api.Features.Shops.Queries.GetShopShippingInfo;
+using Ecommerce.Services.Sellers.Api.Features.Shops.Queries.ValidateShopOwner;
 using Grpc.Core;
+using MediatR;
 
 namespace Ecommerce.Services.Sellers.Api.GrpcServers;
 
-public class SellerGrpcServer(IEfUnitOfWork unitOfWork) : SellerGrpc.SellerGrpcBase
+public class SellerGrpcServer(ISender sender) : SellerGrpc.SellerGrpcBase
 {
-    private readonly IGenericEfRepository<Shop, long> _shopRepository = unitOfWork.Repository<Shop, long>();
-
     public override async Task<ValidateShopOwnerResponse> ValidateShopOwner(ValidateShopOwnerRequest request, ServerCallContext context)
     {
-        var shop = await _shopRepository.FirstOrDefaultAsync(s => s.Id == request.ShopId);
-        
-        if (shop == null)
+        var result = await sender.Send(new ValidateShopOwnerQuery(request.ShopId, request.UserId), context.CancellationToken);
+
+        if (!result.IsSuccess || result.Value == null)
         {
-            return new ValidateShopOwnerResponse 
-            { 
-                IsOwner = false,
-                IsActive = false
-            };
+            return new ValidateShopOwnerResponse { IsOwner = false, IsActive = false };
         }
 
         return new ValidateShopOwnerResponse
         {
-            IsOwner = shop.OwnerUserId == request.UserId,
-            ShopName = shop.Name,
-            IsActive = shop.Status == ShopStatus.Active
+            IsOwner = result.Value.IsOwner,
+            ShopName = result.Value.ShopName,
+            IsActive = result.Value.IsActive
         };
     }
 
     public override async Task<GetShopsByIdsResponse> GetShopsByIds(GetShopsByIdsRequest request, ServerCallContext context)
     {
         var shopIds = request.ShopIds.ToList();
-        var shops = await _shopRepository.GetAllAsync(s => shopIds.Contains(s.Id));
+        var result = await sender.Send(new GetShopsByIdsQuery(shopIds), context.CancellationToken);
 
         var response = new GetShopsByIdsResponse();
-        foreach (var shop in shops)
+        if (result.IsSuccess && result.Value != null)
         {
-            response.Shops.Add(new ShopGrpcModel
+            foreach (var shop in result.Value)
             {
-                ShopId = shop.Id,
-                Name = shop.Name
-            });
+                response.Shops.Add(new ShopGrpcModel
+                {
+                    ShopId = shop.ShopId,
+                    Name = shop.Name
+                });
+            }
         }
 
         return response;
@@ -52,23 +51,53 @@ public class SellerGrpcServer(IEfUnitOfWork unitOfWork) : SellerGrpc.SellerGrpcB
 
     public override async Task<GetShopShippingInfoResponse> GetShopShippingInfo(GetShopShippingInfoRequest request, ServerCallContext context)
     {
-        var shop = await _shopRepository.FirstOrDefaultAsync(s => s.Id == request.ShopId);
-        if (shop == null)
+        var result = await sender.Send(new GetShopShippingInfoQuery(request.ShopId), context.CancellationToken);
+
+        if (!result.IsSuccess || result.Value == null)
         {
-            throw new RpcException(new Status(StatusCode.NotFound, $"Shop with ID {request.ShopId} not found."));
+            throw new RpcException(new Status(StatusCode.NotFound, result.Message ?? $"Không tìm thấy cửa hàng ID {request.ShopId}"));
         }
 
+        var shop = result.Value;
         return new GetShopShippingInfoResponse
         {
-            ShopId = shop.Id,
-            ShopName = shop.Name,
-            Phone = shop.PickUpAddress?.Phone ?? string.Empty,
-            AddressLine = shop.PickUpAddress?.AddressLine ?? string.Empty,
-            WardId = shop.PickUpAddress?.WardId ?? 0,
-            DistrictId = shop.PickUpAddress?.DistrictId ?? 0,
-            ProvinceId = shop.PickUpAddress?.ProvinceId ?? 0,
+            ShopId = shop.ShopId,
+            ShopName = shop.ShopName,
+            Phone = shop.Phone,
+            AddressLine = shop.AddressLine,
+            WardId = shop.WardId,
+            DistrictId = shop.DistrictId,
+            ProvinceId = shop.ProvinceId,
             OwnerUserId = shop.OwnerUserId,
-            RecipientName = shop.PickUpAddress?.RecipientName ?? string.Empty
+            RecipientName = shop.RecipientName
         };
+    }
+
+    public override async Task<GetShopsShippingInfoResponse> GetShopsShippingInfo(GetShopsShippingInfoRequest request, ServerCallContext context)
+    {
+        var shopIds = request.ShopIds.ToList();
+        var result = await sender.Send(new GetShopsShippingInfoQuery(shopIds), context.CancellationToken);
+
+        var response = new GetShopsShippingInfoResponse();
+        if (result.IsSuccess && result.Value != null)
+        {
+            foreach (var shop in result.Value)
+            {
+                response.ShopsShippingInfo.Add(new GetShopShippingInfoResponse
+                {
+                    ShopId = shop.ShopId,
+                    ShopName = shop.ShopName,
+                    Phone = shop.Phone,
+                    AddressLine = shop.AddressLine,
+                    WardId = shop.WardId,
+                    DistrictId = shop.DistrictId,
+                    ProvinceId = shop.ProvinceId,
+                    OwnerUserId = shop.OwnerUserId,
+                    RecipientName = shop.RecipientName
+                });
+            }
+        }
+
+        return response;
     }
 }

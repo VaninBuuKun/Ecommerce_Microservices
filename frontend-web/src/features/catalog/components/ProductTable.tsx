@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import { ProductRow } from "./ProductRow";
 import type { Product } from "../types";
 

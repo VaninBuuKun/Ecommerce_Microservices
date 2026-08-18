@@ -23,6 +23,7 @@ import {
 	ProductDescription,
 	RelatedProducts,
 } from "../components/product-details";
+import { ProductReviewsSection } from "../components/product-details/ProductReviewsSection";
 
 export default function ProductDetailPage() {
 	const { id } = useParams<{ id: string }>();
@@ -444,46 +445,88 @@ export default function ProductDetailPage() {
 
 					{/* Actions */}
 					<div className="flex flex-wrap items-center gap-3 pt-3 border-t border-brand-border/60">
-						{isOwnProduct ? (
-							<Link
-								to={`/seller/${product.shopId}/dashboard/products/edit/${product.id}`}
-								className="h-10 px-6 bg-brand-dark hover:bg-black text-brand-primary rounded-lg text-xs font-extrabold transition-all cursor-pointer flex items-center gap-2 border border-brand-border"
-							>
-								<Edit className="w-4 h-4" />
-								Chỉnh sửa sản phẩm của bạn
-							</Link>
-						) : (
-							<>
-								<button
-									type="button"
-									onClick={handleAddToCart}
-									className="h-10 px-4 border border-brand-primary text-brand-primary-deep bg-brand-primary/10 hover:bg-brand-primary/20 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5"
-								>
-									<ShoppingBag className="w-4 h-4" />
-									Thêm vào giỏ hàng
-								</button>
-								<button
-									type="button"
-									onClick={handleBuyNow}
-									className="h-10 px-6 bg-brand-primary hover:bg-brand-primary-deep text-brand-dark rounded-lg text-xs font-extrabold transition-all cursor-pointer"
-								>
-									Mua ngay
-								</button>
-								<button
-									type="button"
-									onClick={() => setIsFavorite(!isFavorite)}
-									className={`p-2.5 rounded-lg border border-brand-border cursor-pointer transition-colors ${isFavorite
-										? "text-red-500 bg-red-50 border-red-200"
-										: "text-brand-muted hover:text-brand-dark"
-										}`}
-									title="Yêu thích"
-								>
-									<Heart
-										className={`w-4 h-4 ${isFavorite ? "fill-red-500" : ""}`}
-									/>
-								</button>
-							</>
-						)}
+						{(() => {
+							const parseJwt = (token: string) => {
+								try {
+									const base64Url = token.split(".")[1];
+									const base64 = base64Url.replace(/-/g, "+").replace(/_/g, "/");
+									const jsonPayload = decodeURIComponent(
+										window
+											.atob(base64)
+											.split("")
+											.map((c) => "%" + ("00" + c.charCodeAt(0).toString(16)).slice(-2))
+											.join(""),
+									);
+									return JSON.parse(jsonPayload);
+								} catch {
+									return null;
+								}
+							};
+							const checkIsAdmin = () => {
+								const token = localStorage.getItem("accessToken");
+								if (!token) return false;
+								const payload = parseJwt(token);
+								if (!payload) return false;
+								const roles = payload.role || payload["http://schemas.microsoft.com/ws/2008/06/identity/claims/role"];
+								if (Array.isArray(roles)) {
+									return roles.includes("Admin") || roles.includes("admin");
+								}
+								return roles === "Admin" || roles === "admin" || payload.email === "admin@system.com";
+							};
+
+							if (checkIsAdmin()) {
+								return (
+									<div className="p-3 bg-amber-50 text-amber-800 border border-amber-200 rounded-xl text-[11px] font-bold">
+										Tài khoản quản trị viên đang trong chế độ quan sát sản phẩm. Không thể mua hàng.
+									</div>
+								);
+							}
+
+							if (isOwnProduct) {
+								return (
+									<Link
+										to={`/seller/${product.shopId}/dashboard/products/edit/${product.id}`}
+										className="h-10 px-6 bg-brand-dark hover:bg-black text-brand-primary rounded-lg text-xs font-extrabold transition-all cursor-pointer flex items-center gap-2 border border-brand-border"
+									>
+										<Edit className="w-4 h-4" />
+										Chỉnh sửa sản phẩm của bạn
+									</Link>
+								);
+							}
+
+							return (
+								<>
+									<button
+										type="button"
+										onClick={handleAddToCart}
+										className="h-10 px-4 border border-brand-primary text-brand-primary-deep bg-brand-primary/10 hover:bg-brand-primary/20 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5"
+									>
+										<ShoppingBag className="w-4 h-4" />
+										Thêm vào giỏ hàng
+									</button>
+									<button
+										type="button"
+										onClick={handleBuyNow}
+										className="h-10 px-6 bg-brand-primary hover:bg-brand-primary-deep text-brand-dark rounded-lg text-xs font-extrabold transition-all cursor-pointer"
+									>
+										Mua ngay
+									</button>
+									<button
+										type="button"
+										onClick={() => setIsFavorite(!isFavorite)}
+										className={`p-2.5 rounded-lg border border-brand-border cursor-pointer transition-colors ${isFavorite
+											? "text-red-500 bg-red-50 border-red-200"
+											: "text-brand-muted hover:text-brand-dark"
+											}`}
+										title="Yêu thích"
+									>
+										<Heart
+											className={`w-4 h-4 ${isFavorite ? "fill-red-500" : ""}`}
+										/>
+									</button>
+								</>
+							);
+						})()}
 					</div>
 				</div>
 			</div>
@@ -491,11 +534,17 @@ export default function ProductDetailPage() {
 			{/* Shop Information Card */}
 			<div className="bg-white rounded-2xl border border-brand-border shadow-sm p-5 mb-6 flex flex-col md:flex-row items-center justify-between gap-6 text-left">
 				<div className="flex items-center gap-4">
-					<div className="w-16 h-16 rounded-full bg-brand-primary/10 flex items-center justify-center border border-brand-primary/20 shrink-0">
+					<div 
+						onClick={() => navigate(`/shops/${product.shopId}`)}
+						className="w-16 h-16 rounded-full bg-brand-primary/10 flex items-center justify-center border border-brand-primary/20 shrink-0 cursor-pointer hover:opacity-80 transition-all"
+					>
 						<Store className="w-8 h-8 text-brand-primary-deep" />
 					</div>
 					<div>
-						<h3 className="font-black text-brand-dark text-sm">
+						<h3 
+							onClick={() => navigate(`/shops/${product.shopId}`)}
+							className="font-black text-brand-dark text-sm cursor-pointer hover:underline"
+						>
 							{product.shopName || `Cửa hàng #${product.shopId}`}
 						</h3>
 						{product.shopAddress && (
@@ -544,7 +593,7 @@ export default function ProductDetailPage() {
 								Chat với Người Bán
 							</button>
 							<Link
-								to={`/shop/${product.shopId}`}
+								to={`/shops/${product.shopId}`}
 								className="flex-1 md:flex-initial h-9 px-4 border border-brand-border hover:bg-brand-light-soft text-brand-dark rounded-xl text-xs font-black transition-all flex items-center justify-center"
 							>
 								Xem Cửa Hàng
@@ -557,6 +606,8 @@ export default function ProductDetailPage() {
 			{/* Description Section */}
 			<ProductDescription description={product.description} />
 
+			{/* Ratings & Reviews System */}
+			<ProductReviewsSection productId={product.id} />
 
 			{/* Related Products Grid */}
 			<RelatedProducts

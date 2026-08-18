@@ -16,7 +16,6 @@ public class ProductDbContext(DbContextOptions<ProductDbContext> options, IInMem
     public DbSet<Category> Categories { get; set; }
     public DbSet<ProductImage> ProductImages { get; set; }
     public DbSet<ProductReview> ProductReviews { get; set; }
-    public DbSet<ProductReviewImage> ProductReviewImages { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -46,16 +45,12 @@ public class ProductDbContext(DbContextOptions<ProductDbContext> options, IInMem
             entity.Property(pr => pr.Comment).HasMaxLength(2000);
             entity.Property(pr => pr.Rating).IsRequired();
 
-            entity.HasMany(pr => pr.Images)
-                  .WithOne()
-                  .HasForeignKey(pri => pri.ProductReviewId)
-                  .OnDelete(DeleteBehavior.Cascade);
-        });
-
-        modelBuilder.Entity<ProductReviewImage>(entity =>
-        {
-            entity.HasKey(pri => pri.Id);
-            entity.Property(pri => pri.ImageUrl).HasMaxLength(1000).IsRequired();
+            entity.Property(pr => pr.Media)
+                  .HasConversion(
+                      v => System.Text.Json.JsonSerializer.Serialize(v, (System.Text.Json.JsonSerializerOptions)null),
+                      v => System.Text.Json.JsonSerializer.Deserialize<List<string>>(v, (System.Text.Json.JsonSerializerOptions)null) ?? new List<string>()
+                  )
+                  .HasColumnType("json");
         });
 
         modelBuilder.Entity<Product>(entity =>

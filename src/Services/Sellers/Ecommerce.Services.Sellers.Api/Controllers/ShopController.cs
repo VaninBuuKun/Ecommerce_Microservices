@@ -8,6 +8,8 @@ using Ecommerce.Services.Sellers.Api.Features.Shops.Commands.BanShop;
 using Ecommerce.Services.Sellers.Api.Features.Shops.Commands.CreateShop;
 using Ecommerce.Services.Sellers.Api.Features.Shops.Commands.SuspendShop;
 using Ecommerce.Services.Sellers.Api.Features.Shops.Commands.UpdateShop;
+using Ecommerce.Services.Sellers.Api.Features.Shops.Queries.GetPublicShopById;
+using Ecommerce.Services.Sellers.Api.Features.Shops.Queries.GetPublicShopsByOwnerId;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -46,6 +48,30 @@ public class ShopController(ISender sender, ICurrentUserService currentUserServi
         }
 
         var result = await sender.Send(new Ecommerce.Services.Sellers.Api.Features.Shops.Queries.GetShopById.GetShopByIdQuery(id, currentUserService.UserId));
+        if (!result.IsSuccess)
+        {
+            return StatusCode((int)result.ErrorCode.ToHttpStatusCode(), result.Message);
+        }
+
+        return Ok(result.Value);
+    }
+
+    [HttpGet("{id:long}/public")]
+    public async Task<IActionResult> GetPublicShopById(long id)
+    {
+        var result = await sender.Send(new GetPublicShopByIdQuery(id));
+        if (!result.IsSuccess)
+        {
+            return StatusCode((int)result.ErrorCode.ToHttpStatusCode(), result.Message);
+        }
+
+        return Ok(result.Value);
+    }
+
+    [HttpGet("owner/{ownerUserId:long}")]
+    public async Task<IActionResult> GetPublicShopsByOwnerId(long ownerUserId)
+    {
+        var result = await sender.Send(new GetPublicShopsByOwnerIdQuery(ownerUserId));
         if (!result.IsSuccess)
         {
             return StatusCode((int)result.ErrorCode.ToHttpStatusCode(), result.Message);

@@ -54,7 +54,7 @@ public class Product : AggregateRoot<Guid>
         ShopId = shopId;
         Name = name;
         Description = description;
-        Status = ProductStatus.Active;
+        Status = ProductStatus.Inactive;
         Weight = weight;
         Length = length;
         Width = width;

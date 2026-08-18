@@ -30,9 +30,10 @@ public class ProductsController(ISender sender, ICurrentUserService userService)
         [FromQuery] double? minRating,
         [FromQuery] string? cursor,
         [FromQuery] int limit = 10,
-        [FromQuery] string sortBy = "name")
+        [FromQuery] string sortBy = "name",
+        [FromQuery] long? shopId = null)
     {
-        var result = await sender.Send(new GetProductsQuery(searchTerm, categoryId, minRating, cursor, limit, sortBy));
+        var result = await sender.Send(new GetProductsQuery(searchTerm, categoryId, minRating, cursor, limit, sortBy, shopId));
 
         if (result.IsSuccess)
         {
@@ -49,6 +50,31 @@ public class ProductsController(ISender sender, ICurrentUserService userService)
     {
         var result = await sender.Send(new GetMyProductsQuery(ShopId, userService.UserId, page, pageSize, searchTerm));
 
+        if (result.IsSuccess)
+        {
+            return Ok(result.Value);
+        }
+        return StatusCode(result.GetHttpStatusCode(), result.Message);
+    }
+
+    [HttpGet("{productId}/reviews")]
+    public async Task<IActionResult> GetReviews(
+        Guid productId,
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 10)
+    {
+        var result = await sender.Send(new Ecommerce.Services.Catalog.Application.Features.Reviews.Queries.GetProductReviews.GetProductReviewsQuery(productId, page, pageSize));
+        if (result.IsSuccess)
+        {
+            return Ok(result.Value);
+        }
+        return StatusCode(result.GetHttpStatusCode(), result.Message);
+    }
+
+    [HttpGet("{productId}/reviews/summary")]
+    public async Task<IActionResult> GetReviewsSummary(Guid productId)
+    {
+        var result = await sender.Send(new Ecommerce.Services.Catalog.Application.Features.Reviews.Queries.GetProductReviewsSummary.GetProductReviewsSummaryQuery(productId));
         if (result.IsSuccess)
         {
             return Ok(result.Value);

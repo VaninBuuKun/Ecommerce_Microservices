@@ -260,11 +260,12 @@ export default function CheckoutPage() {
 				checkoutSessionId: checkoutSessionId,
 			},
 			{
-				onSuccess: (data) => {
-					if (data.paymentUrl) {
-						window.location.href = data.paymentUrl;
+				onSuccess: (res: any) => {
+					const orderData = res?.value || res;
+					if (orderData?.paymentUrl) {
+						window.location.href = orderData.paymentUrl;
 					} else {
-						setCreatedOrderId(data.id);
+						setCreatedOrderId(orderData?.id);
 						setIsSuccess(true);
 					}
 				},
@@ -376,6 +377,14 @@ export default function CheckoutPage() {
 						checkoutMutation={checkoutMutation}
 						calculateTotalMutation={calculateTotalMutation}
 						handlePlaceOrder={handlePlaceOrder}
+						hasSelectedAddress={!!selectedAddress}
+						onRetryCalculate={() => {
+							if (selectedAddress) {
+								triggerRecalculate(selectedAddress.id);
+							} else {
+								toast.info("Vui lòng chọn địa chỉ giao hàng!");
+							}
+						}}
 					/>
 				</div>
 			</div>

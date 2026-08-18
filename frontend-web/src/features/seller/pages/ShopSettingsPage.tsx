@@ -97,6 +97,12 @@ export function ShopSettingsPage() {
 			return;
 		}
 
+		const phoneRegex = /^(03|05|07|08|09|843|845|847|848|849)[0-9]{8}$/;
+		if (!phoneRegex.test(phone)) {
+			toast.error("Số điện thoại lấy hàng không hợp lệ. Vui lòng nhập số di động Việt Nam (ví dụ: 0912345678 hoặc 84912345678).");
+			return;
+		}
+
 		try {
 			await updateShopMutation.mutateAsync({
 				id: resolvedShop.id,
@@ -130,6 +136,15 @@ export function ShopSettingsPage() {
 			toast.success("Cập nhật thông tin shop thành công!");
 		} catch (err: any) {
 			toast.error(`Cập nhật thất bại: ${err?.message || "Lỗi kết nối API"}`);
+		}
+	};
+
+	const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+		const cleaned = e.target.value.replace(/[^0-9]/g, "");
+		if (cleaned.startsWith("84")) {
+			setPhone(cleaned.slice(0, 11));
+		} else {
+			setPhone(cleaned.slice(0, 10));
 		}
 	};
 
@@ -249,7 +264,7 @@ export function ShopSettingsPage() {
 										<input
 											type="text"
 											value={phone}
-											onChange={(e) => setPhone(e.target.value)}
+											onChange={handlePhoneChange}
 											placeholder="Số điện thoại liên hệ..."
 											className="w-full h-8 px-3 border border-brand-border rounded-lg text-xs focus:outline-none"
 										/>

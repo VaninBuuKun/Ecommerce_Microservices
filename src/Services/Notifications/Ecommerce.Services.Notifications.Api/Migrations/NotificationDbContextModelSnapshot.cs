@@ -33,30 +33,50 @@ namespace Ecommerce.Services.Notifications.Api.Migrations
                         .HasMaxLength(2000)
                         .HasColumnType("character varying(2000)");
 
+                    b.Property<Guid>("RoomId")
+                        .HasColumnType("uuid");
+
                     b.Property<long>("SenderId")
                         .HasColumnType("bigint");
-
-                    b.Property<string>("SenderName")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("character varying(100)");
-
-                    b.Property<string>("SenderRole")
-                        .IsRequired()
-                        .HasMaxLength(20)
-                        .HasColumnType("character varying(20)");
 
                     b.Property<DateTimeOffset>("SentAt")
                         .HasColumnType("timestamp with time zone");
 
-                    b.Property<Guid>("SubOrderId")
+                    b.HasKey("Id");
+
+                    b.HasIndex("RoomId");
+
+                    b.ToTable("ChatMessages");
+                });
+
+            modelBuilder.Entity("Ecommerce.Services.Notifications.Api.Models.ChatRoom", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
+
+                    b.Property<long>("BuyerUserId")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTimeOffset>("LastActiveAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("LastMessage")
+                        .IsRequired()
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<long>("ShopId")
+                        .HasColumnType("bigint");
 
                     b.HasKey("Id");
 
-                    b.HasIndex("SubOrderId");
+                    b.HasIndex("LastActiveAt");
 
-                    b.ToTable("ChatMessages");
+                    b.HasIndex("ShopId", "BuyerUserId")
+                        .IsUnique();
+
+                    b.ToTable("ChatRooms");
                 });
 
             modelBuilder.Entity("Ecommerce.Services.Notifications.Api.Models.Notification", b =>

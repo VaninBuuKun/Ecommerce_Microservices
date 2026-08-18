@@ -84,4 +84,47 @@ public class SellerClientService(
             return Result<ShopShippingInfoDto>.Failure($"Lỗi hệ thống khi lấy thông tin vận chuyển của cửa hàng: {ex.Message}", EErrorCode.InternalServerError);
         }
     }
+
+    public async Task<Result<List<ShopShippingInfoDto>>> GetShopsShippingInfoAsync(List<long> shopIds, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            logger.LogInformation("Calling Seller gRPC to get shipping info for {Count} shops", shopIds.Count);
+            
+            var request = new GetShopsShippingInfoRequest();
+            request.ShopIds.AddRange(shopIds);
+
+            var response = await client.GetShopsShippingInfoAsync(request, cancellationToken: cancellationToken);
+
+            if (response == null || response.ShopsShippingInfo == null)
+            {
+                return Result<List<ShopShippingInfoDto>>.Failure("Không tìm thấy thông tin vận chuyển của các cửa hàng", EErrorCode.NotFound);
+            }
+
+            var result = response.ShopsShippingInfo.Select(info => new ShopShippingInfoDto
+            {
+                ShopId = info.ShopId,
+                ShopName = info.ShopName,
+                Phone = info.Phone,
+                AddressLine = info.AddressLine,
+                WardId = info.WardId,
+                DistrictId = info.DistrictId,
+                ProvinceId = info.ProvinceId,
+                RecipientName = info.RecipientName
+            }).ToList();
+
+            return Result<List<ShopShippingInfoDto>>.Success(result);
+        }
+        catch (RpcException ex)
+        {
+            logger.LogError(ex, "gRPC error getting shipping info for shops");
+            return ex.ToResultFailure<List<ShopShippingInfoDto>>();
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Unexpected error getting shipping info for shops");
+            return Result<List<ShopShippingInfoDto>>.Failure($"Lỗi hệ thống khi lấy thông tin vận chuyển các cửa hàng: {ex.Message}", EErrorCode.InternalServerError);
+        }
+    }
 }
+

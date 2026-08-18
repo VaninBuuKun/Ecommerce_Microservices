@@ -19,8 +19,9 @@ public class SellerRevenueConsumer(
     public async Task Consume(ConsumeContext<SubOrderCompletedEvent> context)
     {
         var @event = context.Message;
-        logger.LogInformation("Processing SubOrderCompletedEvent. ShopId: {ShopId}, Amount: {Amount}, SubOrderId: {SubOrderId}",
-            @event.ShopId, @event.TotalAmount, @event.SubOrderId);
+        var netRevenue = @event.TotalAmount - @event.PlatformDiscount; // Sàn tự bỏ ra phần PlatformDiscount, không ảnh hưởng seller
+        logger.LogInformation("Processing SubOrderCompletedEvent. ShopId: {ShopId}, GrandTotal: {Total}, PlatformDiscount: {Discount}, NetRevenue: {Net}, SubOrderId: {SubOrderId}",
+            @event.ShopId, @event.TotalAmount, @event.PlatformDiscount, netRevenue, @event.SubOrderId);
 
         try
         {
@@ -54,26 +55,26 @@ public class SellerRevenueConsumer(
                 walletRepo.Add(wallet);
             }
 
-            // 3. Cộng tiền doanh thu vào ví
-            wallet.Balance += @event.TotalAmount;
+            // 3. Cộng doanh thu thực tế vào ví (đã trừ PlatformDiscount do sàn tự bỏ ra)
+            wallet.Balance += netRevenue;
             walletRepo.Update(wallet);
 
             // 4. Tạo giao dịch biến động số dư
             var transaction = new WalletTransaction
             {
                 WalletId = wallet.Id,
-                Amount = @event.TotalAmount,
+                Amount = netRevenue,
                 Type = TransactionType.Credit,
                 Reason = TransactionReason.SellerRevenue,
                 BalanceAfter = wallet.Balance,
                 ReferenceId = @event.SubOrderId,
-                Description = $"Cộng doanh thu đơn hàng {@event.SubOrderId} hoàn tất."
+                Description = $"Cộng doanh thu đơn hàng {@event.SubOrderId} hoàn tất. (Tổng: {@event.TotalAmount:N0}đ - Sàn trợ giá: {@event.PlatformDiscount:N0}đ)"
             };
             transactionRepo.Add(transaction);
 
             await unitOfWork.SaveChangesAsync();
-            logger.LogInformation("Successfully credited revenue of {Amount} to Seller {OwnerUserId} for SubOrder {SubOrderId}",
-                @event.TotalAmount, ownerUserId, @event.SubOrderId);
+            logger.LogInformation("Successfully credited net revenue of {NetRevenue} (gross: {Total}, platform discount: {Discount}) to Seller {OwnerUserId} for SubOrder {SubOrderId}",
+                netRevenue, @event.TotalAmount, @event.PlatformDiscount, ownerUserId, @event.SubOrderId);
         }
         catch (Exception ex)
         {

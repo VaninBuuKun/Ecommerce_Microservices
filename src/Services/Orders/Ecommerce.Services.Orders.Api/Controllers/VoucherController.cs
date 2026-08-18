@@ -41,7 +41,7 @@ public class VoucherController(ISender sender, ICurrentUserService userService) 
         [FromQuery] int page = 1,
         [FromQuery] int pageSize = 10,
         [FromQuery] string? code = null,
-        [FromQuery] DiscountType? discountType = DiscountType.FixedAmount,
+        [FromQuery] DiscountType? discountType = null,
         [FromQuery] bool? usageLimit = null,
         [FromQuery] DateTimeOffset? startDate = null,
         [FromQuery] DateTimeOffset? endDate = null,
@@ -57,9 +57,10 @@ public class VoucherController(ISender sender, ICurrentUserService userService) 
 
     /// <summary>Lấy danh sách voucher khả dụng cho checkout của người dùng hiện tại</summary>
     [HttpGet("available")]
-    public async Task<IActionResult> GetAvailableVouchers()
+    public async Task<IActionResult> GetAvailableVouchers([FromQuery] long? shopId = null)
     {
-        var result = await sender.Send(new GetAvailableVouchersQuery());
+        var customerId = userService.UserId;
+        var result = await sender.Send(new GetAvailableVouchersQuery(customerId, shopId));
 
         return result.IsSuccess
             ? Ok(result.Value)

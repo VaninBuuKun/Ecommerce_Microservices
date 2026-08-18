@@ -26,6 +26,23 @@ public static class DependencyInjection
                 ValidateAudience = false,
                 ValidateIssuer = false, 
             };
+
+            // Custom event handler to allow SignalR passing JWT token in URL query string
+            options.Events = new JwtBearerEvents
+            {
+                OnMessageReceived = context =>
+                {
+                    var accessToken = context.Request.Query["access_token"];
+
+                    // If request path is for the hub, grab token from query string
+                    var path = context.HttpContext.Request.Path;
+                    if (!string.IsNullOrEmpty(accessToken) && path.StartsWithSegments("/hubs"))
+                    {
+                        context.Token = accessToken;
+                    }
+                    return Task.CompletedTask;
+                }
+            };
         });
 
         services.AddAuthorization();

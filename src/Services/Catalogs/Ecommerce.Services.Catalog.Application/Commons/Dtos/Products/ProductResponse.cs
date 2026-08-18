@@ -28,9 +28,16 @@ public class ProductResponse
     public Guid? CategoryId { get; set; }
     public string? CategoryName { get; set; }
     public string? ParentCategoryName { get; set; }
+    public long ShopId { get; set; }
+    public string ShopName { get; set; } = string.Empty;
+    public string ShopPhone { get; set; } = string.Empty;
+    public string ShopAddress { get; set; } = string.Empty;
+    public string ShopRecipient { get; set; } = string.Empty;
+    public long ShopOwnerId { get; set; }
     public List<ProductOptionDto> Options { get; set; } = new();
     public List<ProductVariantDto> Variants { get; set; } = new();
 }
+
 
 public class ProductOptionDto
 {

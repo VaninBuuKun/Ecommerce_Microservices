@@ -12,6 +12,11 @@ import SellerDashboard from "../features/seller/pages/SellerDashboard";
 import AdminLayout from "../layouts/AdminLayout";
 import AdminDashboard from "../features/admin/pages/AdminDashboard";
 
+import UserProfilePublicPage from "../features/auth/pages/UserProfilePublicPage";
+import ShopProfilePublicPage from "../features/seller/pages/ShopProfilePublicPage";
+
+import { checkIsAdmin } from "../shared/utils/authHelper";
+
 export default function AppRoutes() {
 	return (
 		<Routes>
@@ -23,6 +28,8 @@ export default function AppRoutes() {
 				<Route path="products/:id" element={<ProductDetailPage />} />
 				<Route path="profile" element={<UserProfilePage />} />
 				<Route path="orders" element={<UserProfilePage />} />
+				<Route path="users/:userId" element={<UserProfilePublicPage />} />
+				<Route path="shops/:shopId" element={<ShopProfilePublicPage />} />
 				<Route
 					path="*"
 					element={
@@ -77,45 +84,8 @@ export default function AppRoutes() {
 	);
 }
 
-function parseJwt(token: string) {
-	try {
-		const base64Url = token.split(".")[1];
-		const base64 = base64Url.replace(/-/g, "+").replace(/_/g, "/");
-		const jsonPayload = decodeURIComponent(
-			window
-				.atob(base64)
-				.split("")
-				.map(function (c) {
-					return "%" + ("00" + c.charCodeAt(0).toString(16)).slice(-2);
-				})
-				.join(""),
-		);
-		return JSON.parse(jsonPayload);
-	} catch {
-		return null;
-	}
-}
-
-function isAdmin() {
-	const token = localStorage.getItem("accessToken");
-	if (!token) return false;
-	const payload = parseJwt(token);
-	if (!payload) return false;
-	const roles =
-		payload.role ||
-		payload["http://schemas.microsoft.com/ws/2008/06/identity/claims/role"];
-	if (Array.isArray(roles)) {
-		return roles.includes("Admin") || roles.includes("admin");
-	}
-	return (
-		roles === "Admin" ||
-		roles === "admin" ||
-		payload.email === "admin@system.com"
-	);
-}
-
 function AdminGuard({ children }: { children: React.ReactNode }) {
-	if (!isAdmin()) {
+	if (!checkIsAdmin()) {
 		return <Navigate to="/" replace />;
 	}
 	return <>{children}</>;

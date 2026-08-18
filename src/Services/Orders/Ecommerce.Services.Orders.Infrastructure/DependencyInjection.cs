@@ -11,6 +11,7 @@ using Ecommerce.Services.Orders.Application.Services;
 using Ecommerce.Services.Orders.Infrastructure.BackgroundServices;
 using Ecommerce.Services.Orders.Infrastructure.GrpcClients;
 using Ecommerce.Services.Orders.Infrastructure.Sagas;
+using Ecommerce.Services.Orders.Infrastructure.Repositories;
 using MassTransit;
 using Microsoft.EntityFrameworkCore;
 
@@ -79,6 +80,8 @@ public static class DependencyInjection
         services.AddScoped<ISellerService, SellerClientService>();
         services.AddScoped<IIdentityService, IdentityClientService>();
         services.AddScoped<IShippingService, ShippingClientService>();
+        services.AddScoped<IVoucherValidationService, VoucherValidationService>();
+        services.AddScoped<IVoucherRepository, VoucherRepository>();
         
         //Repo
         services.AddScoped<IEfUnitOfWork, EfUnitOfWork<OrderDbContext>>();

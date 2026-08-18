@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Loader2, AlertTriangle } from "lucide-react";
 import { 
@@ -7,7 +7,7 @@ import {
 	useCompleteSubOrderMutation,
 	useCreateRefundMutation
 } from "../../../order/hooks/useCheckoutQueries";
-import { getOrderStatusBadge, getOrderStatusInfo } from "../../../order/utils/statusHelper";
+import { getOrderStatusBadge } from "../../../order/utils/statusHelper";
 
 interface CustomerOrderDetailViewProps {
 	subOrderId: string;
@@ -268,10 +268,30 @@ export function CustomerOrderDetailView({ subOrderId, onBack }: CustomerOrderDet
 						<span>Giảm giá vận chuyển</span>
 						<span>-0đ</span>
 					</div>
-					<div className="flex justify-between text-emerald-600">
-						<span>Giảm giá</span>
-						<span>-{Number(detail.sellerDiscount + detail.platformDiscount).toLocaleString("vi-VN")}đ</span>
-					</div>
+					{detail.shopVoucherCode && (
+						<div className="flex justify-between text-emerald-600">
+							<span className="flex items-center gap-1">
+								<span className="px-1.5 py-0.5 bg-emerald-100 text-emerald-800 text-[9px] rounded font-black uppercase">Shop Voucher</span>
+								<span className="font-mono text-[10px]">[{detail.shopVoucherCode}]</span>
+							</span>
+							<span>-{Number(detail.sellerDiscount).toLocaleString("vi-VN")}đ</span>
+						</div>
+					)}
+					{detail.platformVoucherCode && (
+						<div className="flex justify-between text-emerald-600">
+							<span className="flex items-center gap-1">
+								<span className="px-1.5 py-0.5 bg-orange-100 text-orange-800 text-[9px] rounded font-black uppercase">Platform Voucher</span>
+								<span className="font-mono text-[10px]">[{detail.platformVoucherCode}]</span>
+							</span>
+							<span>-{Number(detail.platformDiscount).toLocaleString("vi-VN")}đ</span>
+						</div>
+					)}
+					{!detail.shopVoucherCode && !detail.platformVoucherCode && (detail.sellerDiscount + detail.platformDiscount > 0) && (
+						<div className="flex justify-between text-emerald-600">
+							<span>Giảm giá</span>
+							<span>-{Number(detail.sellerDiscount + detail.platformDiscount).toLocaleString("vi-VN")}đ</span>
+						</div>
+					)}
 					<div className="flex justify-between border-t border-brand-border/60 pt-2 text-xs">
 						<span className="text-brand-dark font-black">Tổng cộng</span>
 						<span className="text-sm font-black text-red-600">

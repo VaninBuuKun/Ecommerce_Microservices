@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import { Plus, Trash2, AlertCircle } from "lucide-react";
 import { z } from "zod";
 import { NumberInput, UploadSmallImage } from "../../../shared";

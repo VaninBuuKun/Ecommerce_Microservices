@@ -1,4 +1,3 @@
-import React from "react";
 import { Store, Ticket, X } from "lucide-react";
 
 interface OrderItemsListProps {

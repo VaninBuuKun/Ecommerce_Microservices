@@ -1,0 +1,73 @@
+# 04. Senior Frontend Coding Standards & Architecture
+
+This document defines the strict frontend architecture, library stack, and coding conventions for the React 19 web application.
+
+---
+
+## 🛠️ 1. Fixed Library Stack (Strict Standard)
+
+All frontend development MUST strictly adhere to the following approved library stack. Do NOT install alternative libraries for the same purpose.
+
+| Category | Approved Library | Version | Purpose |
+| :--- | :--- | :--- | :--- |
+| **Framework** | React + TypeScript | `v19` / `v5` | Core UI Library & Type Safety |
+| **Build Tool** | Vite | `v8` | Fast HMR & Production Bundling |
+| **Styling & Icons** | Tailwind CSS + Lucide React | `v4` / `v1` | Utility-First Styling & Modern Icons |
+| **Animations** | Framer Motion | `v12` | Smooth Micro-animations & Transitions |
+| **Server State** | TanStack Query | `v5` | Data Fetching, Caching, & Synchronization |
+| **Global UI State**| Zustand | `v5` | Lightweight Global UI State Management |
+| **Form & Validation**| React Hook Form + Zod | `v7` / `v3` | Performant Form Management & Schema Validation |
+| **HTTP Client** | Axios | `v1` | Global Interceptor & API Request Handler |
+| **UI Primitives** | Radix UI | Latest | Unstyled Accessible Primitives (Popover, Dropdown) |
+| **Toast Feedback** | React Toastify | `v11` | Application Notifications |
+| **Routing** | React Router DOM | `v7` | Declarative Client-Side Routing |
+
+---
+
+## 🏗️ 2. Feature-Driven Folder Structure
+
+All features MUST be organized under `src/features/[featureDomain]/`:
+
+```
+src/features/[featureName]/
+├── components/          # UI Components isolated to this feature
+├── hooks/               # Custom TanStack Query hooks (e.g., useCheckoutQueries.ts)
+├── services/            # Axios API calls (e.g., checkoutService.ts)
+├── types/               # TypeScript DTOs & Interfaces
+└── stores/              # Feature-specific Zustand store (if needed)
+```
+
+Shared code lives in `src/shared/`:
+- `shared/components/`: Reusable UI elements (Button, Input, Badge, Modal, Loader).
+- `shared/lib/`: Axios instance, QueryClient setup, utility helpers.
+- `shared/types/`: Global DTOs (e.g., `Result<T>`, `Pagination<T>`).
+
+---
+
+## 📐 3. Senior Coding Rules & Best Practices
+
+### Rule A: State Management Separation
+- **Server Data**: ALWAYS managed via `useQuery` / `useMutation`. NEVER sync API responses into `useState` or `Zustand` unless performing local optimism.
+- **Client UI State**: Managed via `Zustand` (e.g., selected cart items, active tab, sidebar state).
+
+### Rule B: Error Handling Standard
+- Catch API errors in `useMutation` / `useQuery` via:
+  ```typescript
+  onError: (err: any) => {
+      const message = err?.response?.data?.message || err?.response?.data || "Có lỗi xảy ra";
+      toast.error(message);
+  }
+  ```
+- HTTP `>= 500` errors are caught by Global Axios Interceptor.
+- Form Validation errors are caught by `Zod` before reaching API.
+
+### Rule C: Modal Overlay Portal Rule
+- ALL Modals, Dialogs, and Floating Popups MUST use `createPortal(children, document.body)` with `z-10000` to avoid parent `overflow: hidden` or stacking context bugs.
+
+### Rule E: Domain Isolation & No Cross-Feature Coupling (STRICT SENIOR RULE)
+- **NO Direct Cross-Feature Imports**: A feature module (e.g., `src/features/seller/`) MUST NOT directly import internal hooks or services from an unrelated feature module (e.g., `src/features/order/`).
+- **Shared Domains Extraction**:
+  - If a resource (such as `Wallet`, `UserAddresses`, `Locations`, `Auth`) is used across multiple features, it MUST be extracted into a dedicated domain folder (e.g., `src/features/wallet/`) or `src/shared/hooks/`.
+  - Example: `useWalletQuery` belongs to `src/features/wallet/` or `src/shared/`, NOT inside `src/features/order/hooks/useCheckoutQueries.ts`.
+- **Actor Domain Separation**:
+  - Keep Customer features (`checkout`, `catalog`), Seller Center features (`seller`), and Admin features (`admin`) strictly separated.

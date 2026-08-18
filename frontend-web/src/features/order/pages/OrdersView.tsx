@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import { useParams } from "react-router-dom";
 import {
 	RefreshCw,
@@ -24,6 +24,7 @@ import { SubOrderDetailView } from "../components/sellerOrder/SubOrderDetailView
 import { CancelOrderModal } from "../components/sellerOrder/CancelOrderModal";
 import { PackageReadyModal } from "../components/sellerOrder/PackageReadyModal";
 import { getOrderStatusBadge } from "../utils/statusHelper";
+import React from "react";
 
 export function OrdersView() {
 	const { shopId } = useParams<{ shopId?: string }>();
@@ -275,47 +276,47 @@ export function OrdersView() {
 												<div className="flex justify-end items-center gap-1.5">
 													{order.status ===
 														"AwaitingConfirmation" && (
-														<>
-															<button
-																onClick={() =>
-																	handleConfirm(
-																		order.id,
-																	)
-																}
-																className="p-1 text-emerald-600 hover:bg-emerald-50 border border-emerald-200 rounded cursor-pointer transition-all inline-flex items-center gap-1 text-[10px] font-bold"
-																title="Xác nhận"
-															>
-																<Check className="w-3.5 h-3.5" />
-																Xác nhận
-															</button>
-															<button
-																onClick={() =>
-																	setCancelingOrderId(
-																		order.id,
-																	)
-																}
-																className="p-1 text-red-600 hover:bg-red-50 border border-red-200 rounded cursor-pointer transition-all inline-flex items-center gap-1 text-[10px] font-bold"
-																title="Hủy đơn"
-															>
-																<X className="w-3.5 h-3.5" />
-																Hủy đơn
-															</button>
-														</>
-													)}
+															<>
+																<button
+																	onClick={() =>
+																		handleConfirm(
+																			order.id,
+																		)
+																	}
+																	className="p-1 text-emerald-600 hover:bg-emerald-50 border border-emerald-200 rounded cursor-pointer transition-all inline-flex items-center gap-1 text-[10px] font-bold"
+																	title="Xác nhận"
+																>
+																	<Check className="w-3.5 h-3.5" />
+																	Xác nhận
+																</button>
+																<button
+																	onClick={() =>
+																		setCancelingOrderId(
+																			order.id,
+																		)
+																	}
+																	className="p-1 text-red-600 hover:bg-red-50 border border-red-200 rounded cursor-pointer transition-all inline-flex items-center gap-1 text-[10px] font-bold"
+																	title="Hủy đơn"
+																>
+																	<X className="w-3.5 h-3.5" />
+																	Hủy đơn
+																</button>
+															</>
+														)}
 													{order.status ===
 														"Processing" && (
-														<button
-															onClick={() =>
-																setPackingOrderId(
-																	order.id,
-																)
-															}
-															className="px-2 py-1 text-purple-600 hover:bg-purple-50 border border-purple-200 rounded cursor-pointer transition-all inline-flex items-center gap-1 text-[10px] font-bold"
-														>
-															<Package className="w-3.5 h-3.5" />
-															Đóng gói xong
-														</button>
-													)}
+															<button
+																onClick={() =>
+																	setPackingOrderId(
+																		order.id,
+																	)
+																}
+																className="px-2 py-1 text-purple-600 hover:bg-purple-50 border border-purple-200 rounded cursor-pointer transition-all inline-flex items-center gap-1 text-[10px] font-bold"
+															>
+																<Package className="w-3.5 h-3.5" />
+																Đóng gói xong
+															</button>
+														)}
 
 													{/* Details toggle button */}
 													<button

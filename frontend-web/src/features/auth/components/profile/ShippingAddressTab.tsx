@@ -1,5 +1,5 @@
-import React, { useState } from "react";
-import { MapPin, Plus, Trash2, ShieldCheck, Loader2 } from "lucide-react";
+import { useState } from "react";
+import { Plus, Trash2, ShieldCheck, Loader2 } from "lucide-react";
 import { toast } from "react-toastify";
 import {
 	useAddressesQuery,

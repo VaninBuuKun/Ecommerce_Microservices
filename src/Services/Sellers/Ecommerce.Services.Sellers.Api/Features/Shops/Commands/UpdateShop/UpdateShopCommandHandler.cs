@@ -1,13 +1,9 @@
-using System;
-using System.Threading;
-using System.Threading.Tasks;
 using BuildingBlocks.Shared.Commons;
 using BuildingBlocks.Shared.Enums;
 using BuildingBlocks.Shared.InfrastructureInterfaces.InMemoryBus;
 using BuildingBlocks.Shared.InfrastructureInterfaces.Persistence.EFCore;
 using Ecommerce.Services.Sellers.Api.Models.Entities;
 using Ecommerce.Services.Sellers.Api.Services;
-using Microsoft.Extensions.Logging;
 
 namespace Ecommerce.Services.Sellers.Api.Features.Shops.Commands.UpdateShop;
 

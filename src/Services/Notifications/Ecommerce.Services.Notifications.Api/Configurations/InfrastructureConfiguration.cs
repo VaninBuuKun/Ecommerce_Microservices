@@ -31,6 +31,7 @@ public static class InfrastructureConfiguration
 
         services.AddBuildingBlocksConfigurations(configuration);
         services.AddServiceConfigurations(configuration);
+        services.AddGrpcConfigurations(configuration);
 
         services.AddHttpContextAccessor();
     }

@@ -197,6 +197,23 @@ public class UsersController(
         });
     }
 
+    [HttpGet("{id:long}/public")]
+    [AllowAnonymous]
+    public async Task<IActionResult> GetPublicUser(long id)
+    {
+        var user = await userManager.FindByIdAsync(id.ToString());
+        if (user == null) return NotFound("Không tìm thấy người dùng!");
+
+        return Ok(new
+        {
+            user.Id,
+            user.FullName,
+            user.FirstName,
+            user.LastName,
+            user.AvatarUrl
+        });
+    }
+
     [HttpPut("{id:long}")]
     public async Task<IActionResult> UpdateUser(long id, [FromBody] UpdateProfileRequest request)
     {

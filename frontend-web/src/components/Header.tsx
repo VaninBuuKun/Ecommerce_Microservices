@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import { useAuthStore, authService } from "../features/auth";
 import { useCartQuery } from "../features/cart/hooks/useCartQuery";
+import { checkIsAdmin } from "../shared/utils/authHelper";
 
 export default function Header() {
 	const navigate = useNavigate();
@@ -52,6 +53,8 @@ export default function Header() {
 		"Túi Đeo Chéo Canvas Minimalist",
 		"Kính Râm Polarized Cao Cấp",
 	];
+
+	const isSystemAdmin = checkIsAdmin();
 
 	// Flatten all items from shop groups to preview in dropdown
 	const previewCartItems = cart?.shopGroups?.flatMap((group) => group.items) || [];
@@ -106,6 +109,11 @@ export default function Header() {
 							STORE
 						</span>
 					</span>
+					{isSystemAdmin && (
+						<span className="px-2 py-0.5 bg-amber-100 text-amber-800 border border-amber-200 text-[8px] font-black uppercase rounded animate-pulse">
+							Admin Mode
+						</span>
+					)}
 				</Link>
 
 				{/* Thanh Search thông minh (Chiều cao h-8 chuẩn) */}
@@ -136,11 +144,11 @@ export default function Header() {
 							<div className="mt-1">
 								{mockSuggestions
 									.filter((s) =>
-										s
-											.toLowerCase()
-											.includes(
-												searchQuery.toLowerCase(),
-											),
+									s
+										.toLowerCase()
+										.includes(
+											searchQuery.toLowerCase(),
+										),
 									)
 									.map((suggestion, idx) => (
 										<button
@@ -162,156 +170,168 @@ export default function Header() {
 
 			{/* KHỐI BÊN PHẢI: Kênh bán + Giỏ hàng + Auth Slot (Tất cả có h-8 chuẩn) */}
 			<div className="flex items-center gap-3 shrink-0 ml-auto h-8">
-				{/* Chỉ hiển thị Kênh người bán và Giỏ hàng khi ĐÃ ĐĂNG NHẬP */}
+				{/* Chỉ hiển thị Kênh người bán và Giỏ hàng khi ĐÃ ĐĂNG NHẬP và KHÔNG PHẢI ADMIN */}
 				{!isInitializing && user && (
 					<>
-						{/* Kênh người bán (h-8) */}
-						<Link
-							to="/seller"
-							className="hidden md:flex items-center gap-1.5 h-8 px-2.5 text-xs font-bold text-brand-dark rounded hover:bg-brand-primary/15 hover:text-brand-primary-deep transition-colors"
-						>
-							<Store className="w-3.5 h-3.5" />
-							Kênh người bán
-						</Link>
+						{!isSystemAdmin && (
+							<>
+								{/* Kênh người bán (h-8) */}
+								<Link
+									to="/seller"
+									className="hidden md:flex items-center gap-1.5 h-8 px-2.5 text-xs font-bold text-brand-dark rounded hover:bg-brand-primary/15 hover:text-brand-primary-deep transition-colors"
+								>
+									<Store className="w-3.5 h-3.5" />
+									Kênh người bán
+								</Link>
 
-						<span className="text-brand-border hidden md:inline">
-							|
-						</span>
-
-						{/* GIỎ HÀNG (h-8 w-8) */}
-						<div
-							className="relative flex items-center"
-							onMouseEnter={() => setShowCartDropdown(true)}
-							onMouseLeave={() => setShowCartDropdown(false)}
-						>
-							<button
-								onClick={() => navigate("/cart")}
-								className="relative w-8 h-8 text-brand-dark hover:bg-brand-primary/10 rounded transition-colors flex items-center justify-center cursor-pointer"
-							>
-								<ShoppingBag className="w-4.5 h-4.5" />
-								{totalCartItemsCount > 0 && (
-									<span className="absolute top-0 right-0 bg-brand-primary text-brand-dark font-black text-[9px] w-4 h-4 rounded-full flex items-center justify-center">
-										{totalCartItemsCount}
-									</span>
-								)}
-							</button>
-
-							{showCartDropdown && (
-								<div className="absolute right-0 top-full pt-1.5 w-72 z-50">
-									<div className="bg-white border border-brand-border rounded shadow-xl p-3 text-left">
-										<span className="block text-xs font-bold text-brand-dark border-b border-brand-border pb-2 mb-2">
-											Giỏ hàng của tôi
-										</span>
-
-										<div className="space-y-3 max-h-48 overflow-y-auto">
-											{previewCartItems.length === 0 ? (
-												<div className="text-center py-4 text-[11px] text-brand-muted font-medium">
-													Giỏ hàng trống
-												</div>
-											) : (
-												previewCartItems.map((item) => (
-													<div
-														key={item.productVariantId}
-														className="flex items-center gap-3"
-													>
-														<img
-															src={item.thumbnailUrl || "https://images.unsplash.com/photo-1556821840-3a63f95609a7?auto=format&fit=crop&q=80&w=150"}
-															alt={item.productName}
-															className="w-10 h-10 object-cover rounded border border-brand-border"
-														/>
-														<div className="flex-1 min-w-0">
-															<h4 className="text-[11px] font-bold text-brand-dark truncate">
-																{item.productName}
-															</h4>
-															<div className="flex items-center gap-1.5">
-																{item.discountPrice && item.discountPrice < item.unitPrice ? (
-																	<>
-																		<span className="text-[10px] text-brand-primary-deep font-black">
-																			{item.discountPrice.toLocaleString("vi-VN")}đ
-																		</span>
-																		<span className="text-[8px] text-brand-muted line-through font-bold">
-																			{item.unitPrice.toLocaleString("vi-VN")}đ
-																		</span>
-																	</>
-																) : (
-																	<span className="text-[10px] text-brand-primary-deep font-black">
-																		{item.unitPrice.toLocaleString("vi-VN")}đ
-																	</span>
-																)}
-															</div>
-														</div>
-													</div>
-												))
-											)}
-										</div>
-
-										<div className="border-t border-brand-border mt-3 pt-2.5 flex justify-end">
-											<button
-												onClick={() => {
-													setShowCartDropdown(false);
-													navigate("/cart");
-												}}
-												className="px-4 py-1.5 bg-brand-dark text-white rounded text-[10px] font-bold hover:bg-brand-primary hover:text-brand-dark transition-colors cursor-pointer border-none"
-											>
-												Xem giỏ hàng
-											</button>
-										</div>
-									</div>
-								</div>
-							)}
-						</div>
-
-						<span className="text-brand-border hidden md:inline">
-							|
-						</span>
-
-						{/* THÔNG BÁO (h-8 w-8) */}
-						<div
-							className="relative flex items-center"
-							onMouseEnter={() =>
-								setShowNotificationDropdown(true)
-							}
-							onMouseLeave={() =>
-								setShowNotificationDropdown(false)
-							}
-						>
-							<button className="relative w-8 h-8 text-brand-dark hover:bg-brand-primary/10 rounded transition-colors flex items-center justify-center cursor-pointer">
-								<Bell className="w-4.5 h-4.5" />
-								<span className="absolute top-0 right-0 bg-red-500 text-white font-black text-[9px] w-4 h-4 rounded-full flex items-center justify-center">
-									3
+								<span className="text-brand-border hidden md:inline">
+									|
 								</span>
-							</button>
 
-							{showNotificationDropdown && (
-								<div className="absolute right-0 top-full pt-1.5 w-80 z-50">
-									<div className="bg-white border border-brand-border rounded shadow-xl p-3 text-left">
-										<span className="block text-xs font-bold text-brand-dark border-b border-brand-border pb-2 mb-2">
-											Thông báo mới nhận
-										</span>
-										<div className="space-y-2 max-h-60 overflow-y-auto">
-											{mockNotifications.map((notif) => (
-												<div
-													key={notif.id}
-													className={`p-2 rounded text-xs transition-colors ${notif.read ? "bg-transparent" : "bg-brand-light-soft border-l-2 border-brand-primary"}`}
-												>
-													<div className="flex justify-between items-start mb-0.5">
-														<h4 className="font-bold text-brand-dark">
-															{notif.title}
-														</h4>
-														<span className="text-[9px] text-brand-muted shrink-0">
-															{notif.time}
-														</span>
-													</div>
-													<p className="text-brand-muted text-[11px] leading-snug">
-														{notif.content}
-													</p>
+								{/* GIỎ HÀNG (h-8 w-8) */}
+								<div
+									className="relative flex items-center"
+									onMouseEnter={() => setShowCartDropdown(true)}
+									onMouseLeave={() => setShowCartDropdown(false)}
+								>
+									<button
+										onClick={() => navigate("/cart")}
+										className="relative w-8 h-8 text-brand-dark hover:bg-brand-primary/10 rounded transition-colors flex items-center justify-center cursor-pointer"
+									>
+										<ShoppingBag className="w-4.5 h-4.5" />
+										{totalCartItemsCount > 0 && (
+											<span className="absolute top-0 right-0 bg-brand-primary text-brand-dark font-black text-[9px] w-4 h-4 rounded-full flex items-center justify-center">
+												{totalCartItemsCount}
+											</span>
+										)}
+									</button>
+
+									{showCartDropdown && (
+										<div className="absolute right-0 top-full pt-1.5 w-72 z-50">
+											<div className="bg-white border border-brand-border rounded shadow-xl p-3 text-left">
+												<span className="block text-xs font-bold text-brand-dark border-b border-brand-border pb-2 mb-2">
+													Giỏ hàng của tôi
+												</span>
+
+												<div className="space-y-3 max-h-48 overflow-y-auto">
+													{previewCartItems.length === 0 ? (
+														<div className="text-center py-4 text-[11px] text-brand-muted font-medium">
+															Giỏ hàng trống
+														</div>
+													) : (
+														previewCartItems.map((item) => (
+															<div
+																key={item.productVariantId}
+																className="flex items-center gap-3"
+															>
+																<img
+																	src={item.thumbnailUrl || "https://images.unsplash.com/photo-1556821840-3a63f95609a7?auto=format&fit=crop&q=80&w=150"}
+																	alt={item.productName}
+																	className="w-10 h-10 object-cover rounded border border-brand-border"
+																/>
+																<div className="flex-1 min-w-0">
+																	<h4 className="text-[11px] font-bold text-brand-dark truncate">
+																		{item.productName}
+																	</h4>
+																	<div className="flex items-center gap-1.5">
+																		{item.discountPrice && item.discountPrice < item.unitPrice ? (
+																			<>
+																				<span className="text-[10px] text-brand-primary-deep font-black">
+																					{item.discountPrice.toLocaleString("vi-VN")}đ
+																				</span>
+																				<span className="text-[8px] text-brand-muted line-through font-bold">
+																					{item.unitPrice.toLocaleString("vi-VN")}đ
+																				</span>
+																			</>
+																		) : (
+																			<span className="text-[10px] text-brand-primary-deep font-black">
+																				{item.unitPrice.toLocaleString("vi-VN")}đ
+																			</span>
+																		)}
+																	</div>
+																</div>
+															</div>
+														))
+													)}
 												</div>
-											))}
+
+												<div className="border-t border-brand-border mt-3 pt-2.5 flex justify-end">
+													<button
+														onClick={() => {
+															setShowCartDropdown(false);
+															navigate("/cart");
+														}}
+														className="px-4 py-1.5 bg-brand-dark text-white rounded text-[10px] font-bold hover:bg-brand-primary hover:text-brand-dark transition-colors cursor-pointer border-none"
+													>
+														Xem giỏ hàng
+													</button>
+												</div>
+											</div>
 										</div>
-									</div>
+									)}
 								</div>
-							)}
-						</div>
+
+								<span className="text-brand-border hidden md:inline">
+									|
+								</span>
+
+								{/* THÔNG BÁO (h-8 w-8) */}
+								<div
+									className="relative flex items-center"
+									onMouseEnter={() =>
+										setShowNotificationDropdown(true)
+									}
+									onMouseLeave={() =>
+										setShowNotificationDropdown(false)
+									}
+								>
+									<button className="relative w-8 h-8 text-brand-dark hover:bg-brand-primary/10 rounded transition-colors flex items-center justify-center cursor-pointer">
+										<Bell className="w-4.5 h-4.5" />
+										<span className="absolute top-0 right-0 bg-red-500 text-white font-black text-[9px] w-4 h-4 rounded-full flex items-center justify-center">
+											3
+										</span>
+									</button>
+
+									{showNotificationDropdown && (
+										<div className="absolute right-0 top-full pt-1.5 w-80 z-50">
+											<div className="bg-white border border-brand-border rounded shadow-xl p-3 text-left">
+												<span className="block text-xs font-bold text-brand-dark border-b border-brand-border pb-2 mb-2">
+													Thông báo mới nhận
+												</span>
+												<div className="space-y-2 max-h-60 overflow-y-auto">
+													{mockNotifications.map((notif) => (
+														<div
+															key={notif.id}
+															className={`p-2 rounded text-xs transition-colors ${notif.read ? "bg-transparent" : "bg-brand-light-soft border-l-2 border-brand-primary"}`}
+														>
+															<div className="flex justify-between items-start mb-0.5">
+																<h4 className="font-bold text-brand-dark">
+																	{notif.title}
+																</h4>
+																<span className="text-[9px] text-brand-muted shrink-0">
+																	{notif.time}
+																</span>
+															</div>
+															<p className="text-brand-muted text-[11px] leading-snug">
+																{notif.content}
+															</p>
+														</div>
+													))}
+												</div>
+											</div>
+										</div>
+									)}
+								</div>
+							</>
+						)}
+						{isSystemAdmin && (
+							<Link
+								to="/admin"
+								className="flex items-center gap-1 h-8 px-2.5 bg-brand-dark text-white rounded text-[10px] font-black uppercase hover:bg-brand-primary hover:text-brand-dark transition-all shadow-sm"
+							>
+								Trang quản trị (Admin)
+							</Link>
+						)}
 					</>
 				)}
 

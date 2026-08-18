@@ -76,6 +76,7 @@ public class GetCartQueryHandler(
                     item.ProductName = productInfo.ProductName;
                     item.VariantName = productInfo.VariantName;
                     item.UnitPrice = productInfo.UnitPrice;
+                    item.DiscountPrice = productInfo.DiscountPrice;
                     item.AvailableStocks = (int)productInfo.AvailableStocks;
                     item.ShopId = productInfo.ShopId;
                     item.ThumbnailUrl = productInfo.ThumbnailUrl;

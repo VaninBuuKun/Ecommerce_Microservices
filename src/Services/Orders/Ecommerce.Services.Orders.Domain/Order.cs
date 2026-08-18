@@ -50,7 +50,7 @@ public sealed class Order : AggregateRoot<Guid>, IDateTracking
         return subOrder;
     }
 
-    public SubOrderItem AddOrderItem(long ShopId, Guid VariantId, string ProductName, string VariantName, decimal unitPrice, int quantity, string thumbnaiLUrl)
+    public SubOrderItem AddOrderItem(long ShopId, Guid productId, Guid VariantId, string ProductName, string VariantName, decimal unitPrice, int quantity, string thumbnaiLUrl)
     {
         var subOrder = SubOrderItems.SingleOrDefault(o => o.ShopId == ShopId) ?? CreateSubOrder(ShopId);
         
@@ -58,6 +58,7 @@ public sealed class Order : AggregateRoot<Guid>, IDateTracking
         var orderItem = new SubOrderItem
         {
             SubOrderId = subOrder.Id,
+            ProductId = productId,
             ProductName = ProductName,
             UnitPrice = unitPrice,
             Quantity = quantity,
@@ -84,6 +85,27 @@ public sealed class Order : AggregateRoot<Guid>, IDateTracking
             CalculateShippingFee();
             CalculateGrandTotal();
         }
+    }
+
+    public void ApplyDiscounts(long shopId, decimal sellerDiscount, decimal platformDiscount)
+    {
+        var subOrder = SubOrderItems.SingleOrDefault(o => o.ShopId == shopId);
+        if (subOrder != null)
+        {
+            subOrder.SetDiscounts((long)sellerDiscount, (long)platformDiscount);
+            CalculateTotalDiscount();
+            CalculateGrandTotal();
+        }
+    }
+
+    /// <summary>
+    /// Gán ID các voucher đã áp dụng vào SubOrder tương ứng.
+    /// Dùng để hỗ trợ rollback khi hủy đơn.
+    /// </summary>
+    public void ApplyVoucherIds(long shopId, Guid? shopVoucherId, Guid? platformVoucherId)
+    {
+        var subOrder = SubOrderItems.SingleOrDefault(o => o.ShopId == shopId);
+        subOrder?.ApplyVouchers(shopVoucherId, platformVoucherId);
     }
     
 

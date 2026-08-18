@@ -1,14 +1,17 @@
 using System;
 using System.Threading.Tasks;
-using Grpc.Core;
 using BuildingBlocks.Grpc.Services;
-using Ecommerce.Services.Identity.Api.Persistances;
-using Microsoft.EntityFrameworkCore;
+using Ecommerce.Services.Identity.Api.Features.Queries.GetUserAddress;
+using Ecommerce.Services.Identity.Api.Features.Queries.GetUserById;
+using Grpc.Core;
+using MediatR;
 using Microsoft.Extensions.Logging;
 
 namespace Ecommerce.Services.Identity.Api.Services;
 
-public class IdentityGrpcServer(AppDbContext dbContext, ILogger<IdentityGrpcServer> logger) : IdentityGrpc.IdentityGrpcBase
+public class IdentityGrpcServer(
+    ISender sender,
+    ILogger<IdentityGrpcServer> logger) : IdentityGrpc.IdentityGrpcBase
 {
     public override async Task<GetUserAddressResponse> GetUserAddress(GetUserAddressRequest request, ServerCallContext context)
     {
@@ -20,16 +23,15 @@ public class IdentityGrpcServer(AppDbContext dbContext, ILogger<IdentityGrpcServ
             return new GetUserAddressResponse { Found = false };
         }
 
-        var address = await dbContext.UserAddresses
-            .FirstOrDefaultAsync(a => a.Id == addressId && a.UserId == request.UserId);
+        var result = await sender.Send(new GetUserAddressQuery(addressId, request.UserId), context.CancellationToken);
 
-        if (address == null)
+        if (!result.IsSuccess || result.Value == null)
         {
-            logger.LogWarning("User address not found: AddressId: {AddressId}, UserId: {UserId}", 
-                request.AddressId, request.UserId);
+            logger.LogWarning("User address not found: AddressId: {AddressId}, UserId: {UserId}", request.AddressId, request.UserId);
             return new GetUserAddressResponse { Found = false };
         }
 
+        var address = result.Value;
         return new GetUserAddressResponse
         {
             Found = true,
@@ -46,24 +48,24 @@ public class IdentityGrpcServer(AppDbContext dbContext, ILogger<IdentityGrpcServ
     {
         logger.LogInformation("gRPC Request to get user details: UserId: {UserId}", request.UserId);
 
-        var user = await dbContext.Users
-            .FirstOrDefaultAsync(u => u.Id == request.UserId);
+        var result = await sender.Send(new GetUserByIdQuery(request.UserId), context.CancellationToken);
 
-        if (user == null)
+        if (!result.IsSuccess || result.Value == null)
         {
             logger.LogWarning("User not found: UserId: {UserId}", request.UserId);
             return new GetUserResponse { Found = false };
         }
 
+        var user = result.Value;
         return new GetUserResponse
         {
             Found = true,
             Id = user.Id,
-            Email = user.Email ?? string.Empty,
-            Phone = user.PhoneNumber ?? string.Empty,
-            FirstName = user.FirstName ?? string.Empty,
-            LastName = user.LastName ?? string.Empty,
-            AvatarUrl = user.AvatarUrl ?? string.Empty
+            Email = user.Email,
+            Phone = user.Phone,
+            FirstName = user.FirstName,
+            LastName = user.LastName,
+            AvatarUrl = user.AvatarUrl
         };
     }
 }

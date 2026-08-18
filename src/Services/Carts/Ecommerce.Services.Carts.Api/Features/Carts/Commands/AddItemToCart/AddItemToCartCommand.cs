@@ -54,7 +54,7 @@ public class AddItemToCartCommandHandler(
                 var isOwnerResult = await sellerService.ValidateShopOwnerAsync(product.ShopId, customerId);
                 if (!isOwnerResult.IsSuccess)
                 {
-                    return Result<CartItem>.Failure(isOwnerResult.Message ?? "Lỗi xác thực cửa hàng.", isOwnerResult.ErrorCode);
+                    return Result<CartItem>.Failure(isOwnerResult);
                 }
 
                 if (isOwnerResult.Value)

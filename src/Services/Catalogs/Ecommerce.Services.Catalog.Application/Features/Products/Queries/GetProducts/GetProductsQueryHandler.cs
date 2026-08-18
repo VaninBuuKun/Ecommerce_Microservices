@@ -57,7 +57,8 @@ public class GetProductsQueryHandler(
                 query.SortBy,
                 lastValue,
                 lastId,
-                query.Limit + 1
+                query.Limit + 1,
+                query.ShopId
             );
 
             var products = await _productRepository.GetListAsync(spec, cancellationToken);

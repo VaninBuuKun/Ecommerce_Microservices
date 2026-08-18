@@ -1,0 +1,18 @@
+syntax = "proto3";
+
+option csharp_namespace = "BuildingBlocks.Grpc.Services";
+
+package order;
+
+service OrderGrpc {
+  rpc GetCompletedSubOrderCountForProduct(GetCompletedSubOrderCountForProductRequest) returns (GetCompletedSubOrderCountForProductResponse);
+}
+
+message GetCompletedSubOrderCountForProductRequest {
+  string customer_id = 1;
+  string product_id = 2;
+}
+
+message GetCompletedSubOrderCountForProductResponse {
+  int32 count = 1;
+}

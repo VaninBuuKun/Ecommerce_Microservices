@@ -1,4 +1,3 @@
-import React from "react";
 import { Link, Outlet, useNavigate, useLocation } from "react-router-dom";
 import { 
 	ShoppingBag, 
@@ -8,7 +7,9 @@ import {
 	Users, 
 	Store,
 	LogOut,
-	ShieldAlert
+	ShieldAlert,
+	Ticket,
+	Wallet
 } from "lucide-react";
 import { useAuthStore } from "../features/auth/store";
 
@@ -110,6 +111,14 @@ export default function AdminLayout() {
 						<Link to="/admin/shops" className={getSidebarLinkClass("/admin/shops")}>
 							<Store className="w-4 h-4 text-brand-muted" />
 							<span>Quản lý Shop</span>
+						</Link>
+						<Link to="/admin/vouchers" className={getSidebarLinkClass("/admin/vouchers")}>
+							<Ticket className="w-4 h-4 text-brand-muted" />
+							<span>Quản lý Voucher</span>
+						</Link>
+						<Link to="/admin/wallets" className={getSidebarLinkClass("/admin/wallets")}>
+							<Wallet className="w-4 h-4 text-brand-muted" />
+							<span>Quản lý ví</span>
 						</Link>
 					</nav>
 				</aside>

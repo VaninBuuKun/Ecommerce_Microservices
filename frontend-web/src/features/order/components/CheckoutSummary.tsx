@@ -1,5 +1,4 @@
-import React from "react";
-import { Ticket, X, Loader2 } from "lucide-react";
+import { Ticket, X, Loader2, AlertCircle, RefreshCw, MapPin } from "lucide-react";
 
 interface CheckoutSummaryProps {
 	platformVoucher: string;
@@ -10,6 +9,8 @@ interface CheckoutSummaryProps {
 	checkoutMutation: any;
 	calculateTotalMutation: any;
 	handlePlaceOrder: () => void;
+	hasSelectedAddress: boolean;
+	onRetryCalculate?: () => void;
 }
 
 export function CheckoutSummary({
@@ -21,7 +22,17 @@ export function CheckoutSummary({
 	checkoutMutation,
 	calculateTotalMutation,
 	handlePlaceOrder,
+	hasSelectedAddress,
+	onRetryCalculate,
 }: CheckoutSummaryProps) {
+	const isCalculating = calculateTotalMutation.isPending;
+	const isCalcError = calculateTotalMutation.isError;
+
+	const fallbackSubTotal = selectedItems.reduce((sum, i) => {
+		const activePrice = i.discountPrice && i.discountPrice > 0 && i.discountPrice < i.unitPrice ? i.discountPrice : i.unitPrice;
+		return sum + activePrice * i.quantity;
+	}, 0);
+
 	return (
 		<div className="bg-white border border-brand-border rounded-xl p-5 shadow-sm text-left space-y-4 sticky top-6">
 			<h3 className="font-extrabold text-brand-dark text-sm border-b border-brand-border pb-3">
@@ -62,19 +73,51 @@ export function CheckoutSummary({
 				)}
 			</div>
 
+			{/* Hiển thị Thông báo lỗi nếu API tính toán bị lỗi */}
+			{isCalcError && (
+				<div className="p-3 bg-red-50 border border-red-200 rounded-xl space-y-2 text-left">
+					<div className="flex items-start gap-2 text-red-700">
+						<AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+						<p className="text-[11px] font-bold leading-tight">
+							Không thể tính phí vận chuyển và khuyến mãi.
+						</p>
+					</div>
+					{onRetryCalculate && (
+						<button
+							onClick={onRetryCalculate}
+							disabled={isCalculating}
+							className="w-full py-1.5 bg-red-100 hover:bg-red-200 text-red-800 text-[11px] font-bold rounded-lg transition-colors flex items-center justify-center gap-1.5 border-none cursor-pointer"
+						>
+							<RefreshCw className={`w-3 h-3 ${isCalculating ? "animate-spin" : ""}`} />
+							Thử tính lại chi phí
+						</button>
+					)}
+				</div>
+			)}
+
 			<div className="space-y-2.5 text-xs text-brand-dark">
+				{/* Tổng tiền hàng */}
 				<div className="flex justify-between font-semibold">
 					<span className="text-brand-muted">Tổng tiền hàng</span>
 					<span>
-						{(calcResult?.subTotal || selectedItems.reduce((sum, i) => {
-							const activePrice = i.discountPrice && i.discountPrice > 0 && i.discountPrice < i.unitPrice ? i.discountPrice : i.unitPrice;
-							return sum + activePrice * i.quantity;
-						}, 0)).toLocaleString("vi-VN")}đ
+						{(calcResult?.subTotal || fallbackSubTotal).toLocaleString("vi-VN")}đ
 					</span>
 				</div>
-				<div className="flex justify-between font-semibold">
+
+				{/* Phí vận chuyển */}
+				<div className="flex justify-between font-semibold items-center">
 					<span className="text-brand-muted">Tổng phí vận chuyển</span>
-					<span>{(calcResult?.totalShippingFee || 0).toLocaleString("vi-VN")}đ</span>
+					{isCalculating ? (
+						<span className="text-brand-muted flex items-center gap-1 text-[11px]">
+							<Loader2 className="w-3 h-3 animate-spin text-brand-primary" /> Đang tính...
+						</span>
+					) : !hasSelectedAddress ? (
+						<span className="text-amber-600 font-bold text-[11px]">Chưa chọn địa chỉ</span>
+					) : isCalcError ? (
+						<span className="text-red-500 font-bold text-[11px]">Chưa xác định</span>
+					) : (
+						<span>{(calcResult?.totalShippingFee || 0).toLocaleString("vi-VN")}đ</span>
+					)}
 				</div>
 
 				{/* Chi tiết giảm giá từng loại */}
@@ -105,20 +148,40 @@ export function CheckoutSummary({
 				)}
 			</div>
 
+			{/* Tổng thanh toán */}
 			<div className="border-t border-brand-border pt-4 flex items-baseline justify-between">
 				<span className="text-xs font-black text-brand-dark">Tổng thanh toán:</span>
-				<span className="text-xl font-black text-red-500">
-					{(calcResult?.grandTotal || selectedItems.reduce((sum, i) => {
-						const activePrice = i.discountPrice && i.discountPrice > 0 && i.discountPrice < i.unitPrice ? i.discountPrice : i.unitPrice;
-						return sum + activePrice * i.quantity;
-					}, 0)).toLocaleString("vi-VN")}đ
-				</span>
+				{isCalculating ? (
+					<span className="text-sm font-bold text-brand-muted flex items-center gap-1">
+						<Loader2 className="w-4 h-4 animate-spin text-brand-primary" /> Đang cập nhật...
+					</span>
+				) : !hasSelectedAddress ? (
+					<span className="text-sm font-bold text-amber-600">Cần chọn địa chỉ</span>
+				) : (
+					<span className="text-xl font-black text-red-500">
+						{(calcResult?.grandTotal || fallbackSubTotal).toLocaleString("vi-VN")}đ
+					</span>
+				)}
 			</div>
+
+			{/* Cảnh báo chưa có địa chỉ */}
+			{!hasSelectedAddress && (
+				<div className="p-2.5 bg-amber-50 border border-amber-200 rounded-lg flex items-center gap-2 text-amber-800 text-[11px] font-bold">
+					<MapPin className="w-4 h-4 shrink-0 text-amber-600" />
+					Vui lòng chọn địa chỉ nhận hàng để hoàn tất đặt hàng.
+				</div>
+			)}
 
 			<button
 				onClick={handlePlaceOrder}
-				disabled={checkoutMutation.isPending || calculateTotalMutation.isPending}
-				className="w-full h-11 bg-brand-primary hover:bg-brand-primary-deep text-brand-dark font-black text-xs rounded-xl shadow-md transition-all cursor-pointer flex items-center justify-center gap-2 border-none mt-2"
+				disabled={
+					!hasSelectedAddress ||
+					isCalculating ||
+					isCalcError ||
+					!calcResult ||
+					checkoutMutation.isPending
+				}
+				className="w-full h-11 bg-brand-primary hover:bg-brand-primary-deep text-brand-dark font-black text-xs rounded-xl shadow-md transition-all cursor-pointer flex items-center justify-center gap-2 border-none mt-2 disabled:opacity-50 disabled:cursor-not-allowed"
 			>
 				{checkoutMutation.isPending ? (
 					<>
@@ -132,3 +195,4 @@ export function CheckoutSummary({
 		</div>
 	);
 }
+

@@ -71,7 +71,7 @@ public class ToggleProductStatusCommandHandler(
         catch (Exception ex)
         {
             logger.LogError(ex, "Error toggling product status for {ProductId}", command.ProductId);
-            return Result<ProductResponse>.ValidationFailure(ex.Message);
+            return Result<ProductResponse>.Failure(ex.Message, EErrorCode.InternalServerError);
         }
     }
 }

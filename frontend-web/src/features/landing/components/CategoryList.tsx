@@ -46,9 +46,11 @@ export default function CategoryList() {
 	}
 
 	// Chia danh sách thành các cặp (mỗi cột gồm 2 item: 1 trên, 1 dưới)
+	// Nếu lẻ thì bỏ bớt 1 item cuối để giữ sự cân bằng 2 hàng hoàn hảo
+	const displayCategories = categories.length % 2 === 0 ? categories : categories.slice(0, -1);
 	const groupedCategories: Category[][] = [];
-	for (let i = 0; i < categories.length; i += 2) {
-		groupedCategories.push(categories.slice(i, i + 2));
+	for (let i = 0; i < displayCategories.length; i += 2) {
+		groupedCategories.push(displayCategories.slice(i, i + 2));
 	}
 
 	return (

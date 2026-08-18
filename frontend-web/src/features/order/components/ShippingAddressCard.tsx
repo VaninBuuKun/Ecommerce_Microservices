@@ -1,4 +1,3 @@
-import React from "react";
 import { MapPin, User, Phone } from "lucide-react";
 import type { UserAddress } from "../types";
 

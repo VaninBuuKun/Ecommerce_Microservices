@@ -387,10 +387,6 @@ export default function CartPage() {
 									{subTotal.toLocaleString("vi-VN")}đ
 								</span>
 							</div>
-							<div className="flex justify-between">
-								<span>Phí giao hàng</span>
-								<span className="text-green-600 font-bold">Miễn phí</span>
-							</div>
 						</div>
 
 						<div className="border-t border-brand-border pt-4 flex justify-between font-black text-brand-dark">

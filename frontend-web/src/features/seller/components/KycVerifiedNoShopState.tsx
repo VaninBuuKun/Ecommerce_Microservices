@@ -1,4 +1,3 @@
-import React from "react";
 import { CheckCircle2, ArrowLeft } from "lucide-react";
 
 interface Props {

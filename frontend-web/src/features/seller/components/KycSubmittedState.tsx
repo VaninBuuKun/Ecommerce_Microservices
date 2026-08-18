@@ -1,5 +1,7 @@
-import React from "react";
-import { Clock, ArrowLeft, Edit3 } from "lucide-react";
+import { useState } from "react";
+import Lightbox from "yet-another-react-lightbox";
+import "yet-another-react-lightbox/styles.css";
+import { Clock, ArrowLeft, Edit3, ZoomIn } from "lucide-react";
 
 interface Props {
 	kyc: any;
@@ -14,6 +16,23 @@ export const KycSubmittedState: React.FC<Props> = ({
 	onBack,
 	onWithdraw,
 }) => {
+	// State quản lý việc đóng/mở Lightbox và chỉ số ảnh đang xem
+	const [lightboxOpen, setLightboxOpen] = useState(false);
+	const [photoIndex, setPhotoIndex] = useState(0);
+
+	// Gom danh sách ảnh KYC vào một mảng
+	const slides = [
+		...(kyc?.identityCardFrontUrl
+			? [{ src: kyc.identityCardFrontUrl }]
+			: []),
+		...(kyc?.identityCardBackUrl ? [{ src: kyc.identityCardBackUrl }] : []),
+	];
+
+	const handleOpenImage = (index: number) => {
+		setPhotoIndex(index);
+		setLightboxOpen(true);
+	};
+
 	return (
 		<div className="text-center py-4">
 			<div className="w-12 h-12 bg-blue-50 rounded-full flex items-center justify-center mx-auto mb-4 border border-blue-200">
@@ -44,11 +63,19 @@ export const KycSubmittedState: React.FC<Props> = ({
 							Mặt trước:
 						</span>
 						{kyc?.identityCardFrontUrl && (
-							<img
-								src={kyc.identityCardFrontUrl}
-								alt="Front"
-								className="w-full h-20 object-cover rounded border border-brand-border"
-							/>
+							<div
+								className="relative group cursor-pointer overflow-hidden rounded border border-brand-border"
+								onClick={() => handleOpenImage(0)}
+							>
+								<img
+									src={kyc.identityCardFrontUrl}
+									alt="Front"
+									className="w-full aspect-[1.58/1] object-cover transition-transform duration-200 group-hover:scale-105"
+								/>
+								<div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white">
+									<ZoomIn className="w-5 h-5" />
+								</div>
+							</div>
 						)}
 					</div>
 					<div>
@@ -56,11 +83,19 @@ export const KycSubmittedState: React.FC<Props> = ({
 							Mặt sau:
 						</span>
 						{kyc?.identityCardBackUrl && (
-							<img
-								src={kyc.identityCardBackUrl}
-								alt="Back"
-								className="w-full h-20 object-cover rounded border border-brand-border"
-							/>
+							<div
+								className="relative group cursor-pointer overflow-hidden rounded border border-brand-border"
+								onClick={() => handleOpenImage(1)}
+							>
+								<img
+									src={kyc.identityCardBackUrl}
+									alt="Back"
+									className="w-full aspect-[1.58/1] object-cover transition-transform duration-200 group-hover:scale-105"
+								/>
+								<div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white">
+									<ZoomIn className="w-5 h-5" />
+								</div>
+							</div>
 						)}
 					</div>
 				</div>
@@ -79,12 +114,20 @@ export const KycSubmittedState: React.FC<Props> = ({
 					type="button"
 					onClick={onWithdraw}
 					disabled={isSubmitting}
-					className="px-4 py-2 bg-amber-500 text-white font-bold text-xs rounded hover:bg-amber-600 transition-colors cursor-pointer flex items-center gap-1 shadow-sm"
+					className="px-4 py-2 bg-amber-500 text-white font-bold text-xs rounded hover:bg-amber-600 transition-colors cursor-pointer flex items-center gap-1 shadow-sm disabled:opacity-50"
 				>
 					<Edit3 className="w-3.5 h-3.5" />
 					Chỉnh sửa / Rút lại
 				</button>
 			</div>
+
+			{/* Lightbox Component để show ảnh đè lên toàn màn hình */}
+			<Lightbox
+				open={lightboxOpen}
+				close={() => setLightboxOpen(false)}
+				index={photoIndex}
+				slides={slides}
+			/>
 		</div>
 	);
 };

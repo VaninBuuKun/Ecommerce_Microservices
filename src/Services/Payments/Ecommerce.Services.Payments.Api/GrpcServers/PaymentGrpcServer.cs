@@ -2,18 +2,21 @@ using System;
 using System.Globalization;
 using System.Threading.Tasks;
 using BuildingBlocks.Grpc.Services;
-using BuildingBlocks.Shared.Commons;
-using BuildingBlocks.Shared.InfrastructureInterfaces.Persistence.EFCore;
+using Ecommerce.Services.Payments.Api.Features.Queries.CheckShopWallet;
+using Ecommerce.Services.Payments.Api.Features.Queries.GetPaymentByOrderId;
+using Ecommerce.Services.Payments.Api.Features.Queries.GetPaymentMethodById;
 using Ecommerce.Services.Payments.Api.Models.Dtos;
-using Ecommerce.Services.Payments.Api.Models.Entities;
 using Ecommerce.Services.Payments.Api.Models.Enums;
 using Ecommerce.Services.Payments.Api.Models.Interfaces;
 using Grpc.Core;
+using MediatR;
+using Microsoft.Extensions.Logging;
+
 namespace Ecommerce.Services.Payments.Api.GrpcServers;
 
 public class PaymentGrpcServer(
     IPaymentService paymentService,
-    IEfUnitOfWork unitOfWork,
+    ISender sender,
     ILogger<PaymentGrpcServer> logger) : PaymentGrpc.PaymentGrpcBase
 {
     public override async Task<CreatePaymentGrpcResponse> CreatePayment(CreatePaymentGrpcRequest request, ServerCallContext context)
@@ -30,7 +33,6 @@ public class PaymentGrpcServer(
                 PaymentType = PaymentType.Purchase
             };
 
-            // 3. Xử lý thanh toán
             var result = await paymentService.ProcessPayment(paymentRequest);
             if (!result.IsSuccess || result.Value == null)
             {
@@ -64,109 +66,72 @@ public class PaymentGrpcServer(
     {
         logger.LogInformation("gRPC Request to get payment method: {Id}", request.Id);
 
-        try
-        {
-            var repo = unitOfWork.Repository<PaymentMethod, long>();
-            var method = await repo.GetByIdAsync(request.Id);
-            if (method == null)
-            {
-                logger.LogWarning("Payment method not found: {Id}", request.Id);
-                return new GetPaymentMethodResponse { Found = false };
-            }
+        var result = await sender.Send(new GetPaymentMethodByIdQuery(request.Id), context.CancellationToken);
 
-            return new GetPaymentMethodResponse
-            {
-                Found = true,
-                Id = method.Id,
-                Title = method.Title,
-                SubTitle = method.SubTitle ?? string.Empty,
-                ProviderName = method.ProviderName,
-                IconUrl = method.IconUrl ?? string.Empty,
-                IsActive = method.IsActive
-            };
-        }
-        catch (Exception ex)
+        if (!result.IsSuccess || result.Value == null)
         {
-            logger.LogError(ex, "Lỗi khi lấy thông tin payment method gRPC {Id}: {Message}", request.Id, ex.Message);
             return new GetPaymentMethodResponse { Found = false };
         }
+
+        var method = result.Value;
+        return new GetPaymentMethodResponse
+        {
+            Found = true,
+            Id = method.Id,
+            Title = method.Title,
+            SubTitle = method.SubTitle,
+            ProviderName = method.ProviderName,
+            IconUrl = method.IconUrl,
+            IsActive = method.IsActive
+        };
     }
 
     public override async Task<GetPaymentByOrderResponse> GetPaymentByOrder(GetPaymentByOrderRequest request, ServerCallContext context)
     {
         logger.LogInformation("gRPC Request to get payment by order: {OrderId}", request.OrderId);
 
-        try
+        if (!Guid.TryParse(request.OrderId, out var orderId))
         {
-            if (!Guid.TryParse(request.OrderId, out var orderId))
-            {
-                return new GetPaymentByOrderResponse { Found = false };
-            }
-
-            var repo = unitOfWork.Repository<Payment, Guid>();
-            var payment = await repo.FirstOrDefaultAsync(
-                predicate: p => p.OrderId == orderId,
-                includes: p => p.Method
-            );
-
-            if (payment == null)
-            {
-                logger.LogWarning("Payment not found for order: {OrderId}", request.OrderId);
-                return new GetPaymentByOrderResponse { Found = false };
-            }
-
-            return new GetPaymentByOrderResponse
-            {
-                Found = true,
-                PaymentId = payment.Id.ToString(),
-                IconUrl = payment.Method.IconUrl ?? string.Empty,
-                Status = payment.Status.ToString(),
-                MethodTitle = payment.Method?.Title ?? string.Empty,
-                ProviderName = payment.Method?.ProviderName ?? string.Empty,
-                PaymentUrl = payment.PaymentUrl ?? string.Empty
-            };
-        }
-        catch (Exception ex)
-        {
-            logger.LogError(ex, "Lỗi khi lấy thông tin payment gRPC theo order {OrderId}: {Message}", request.OrderId, ex.Message);
             return new GetPaymentByOrderResponse { Found = false };
         }
+
+        var result = await sender.Send(new GetPaymentByOrderIdQuery(orderId), context.CancellationToken);
+
+        if (!result.IsSuccess || result.Value == null)
+        {
+            return new GetPaymentByOrderResponse { Found = false };
+        }
+
+        var payment = result.Value;
+        return new GetPaymentByOrderResponse
+        {
+            Found = true,
+            PaymentId = payment.PaymentId.ToString(),
+            IconUrl = payment.IconUrl,
+            Status = payment.Status,
+            MethodTitle = payment.MethodTitle,
+            ProviderName = payment.ProviderName,
+            PaymentUrl = payment.PaymentUrl
+        };
     }
 
     public override async Task<CheckWalletResponse> CheckShopWallet(CheckWalletRequest request, ServerCallContext context)
     {
         logger.LogInformation("gRPC Request to check shop wallet for user: {UserId}", request.UserId);
 
-        try
-        {
-            var repo = unitOfWork.Repository<Wallet, Guid>();
-            var wallet = await repo.FirstOrDefaultAsync(w => w.UserId == request.UserId);
-            if (wallet == null)
-            {
-                return new CheckWalletResponse
-                {
-                    HasWallet = false,
-                    IsLocked = false,
-                    Balance = "0"
-                };
-            }
+        var result = await sender.Send(new CheckShopWalletQuery(request.UserId), context.CancellationToken);
 
-            return new CheckWalletResponse
-            {
-                HasWallet = true,
-                IsLocked = wallet.IsLocked,
-                Balance = wallet.Balance.ToString(System.Globalization.CultureInfo.InvariantCulture)
-            };
-        }
-        catch (Exception ex)
+        if (!result.IsSuccess || result.Value == null)
         {
-            logger.LogError(ex, "Lỗi khi kiểm tra ví gRPC cho user {UserId}: {Message}", request.UserId, ex.Message);
-            return new CheckWalletResponse
-            {
-                HasWallet = false,
-                IsLocked = false,
-                Balance = "0"
-            };
+            return new CheckWalletResponse { HasWallet = false, IsLocked = false, Balance = "0" };
         }
+
+        var wallet = result.Value;
+        return new CheckWalletResponse
+        {
+            HasWallet = wallet.HasWallet,
+            IsLocked = wallet.IsLocked,
+            Balance = wallet.Balance
+        };
     }
 }

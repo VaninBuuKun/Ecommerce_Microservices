@@ -11,6 +11,7 @@ public interface IWithdrawalService
     Task<Result<WithdrawalRequestDto>> CreateWithdrawal(long userId, CreateWithdrawalRequest request);
     Task<Result<List<WithdrawalRequestDto>>> GetMyWithdrawals(long userId);
     Task<Result<List<WithdrawalRequestDto>>> GetAllWithdrawals(string? status);
-    Task<Result> CompleteWithdrawal(Guid id, long adminId);
+    Task<Result> ApproveWithdrawal(Guid id, long adminId);
+    Task<Result> CompleteWithdrawal(Guid id, long adminId, CompleteWithdrawalRequest request);
     Task<Result> RejectWithdrawal(Guid id, long adminId, AdminRejectWithdrawalRequest request);
 }

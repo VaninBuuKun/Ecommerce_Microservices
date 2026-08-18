@@ -1,4 +1,3 @@
-import React from "react";
 
 // Helper render mô tả giảm giá (Xử lý cả Fixed Amount & Percentage)
 export function renderDiscountLabel(voucher: any, subTotal?: number) {

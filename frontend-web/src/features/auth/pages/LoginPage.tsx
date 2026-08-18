@@ -4,6 +4,8 @@ import { Link, useNavigate } from 'react-router-dom';
 import { authService } from '../service';
 import { Terminal } from 'lucide-react';
 
+import { checkIsAdmin } from '../../../shared/utils/authHelper';
+
 interface FormValues {
   username: string;
   password:  string;
@@ -28,7 +30,11 @@ export default function LoginPage() {
     setErrorMsg(null);
     try {
       await authService.login(data.username, data.password);
-      navigate('/');
+      if (checkIsAdmin()) {
+        navigate('/admin');
+      } else {
+        navigate('/');
+      }
     } catch (err: any) {
       setErrorMsg(err.response?.data || 'Đăng nhập không thành công. Vui lòng kiểm tra lại tài khoản.');
     }

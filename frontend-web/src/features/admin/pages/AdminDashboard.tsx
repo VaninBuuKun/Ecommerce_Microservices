@@ -3,6 +3,8 @@ import { Routes, Route, Navigate } from "react-router-dom";
 import api from "../../../shared/lib/axios";
 import { Loader2, AlertTriangle, ShieldCheck, UserCheck, Eye, RefreshCw, FolderOpen } from "lucide-react";
 import { getOrderStatusBadge } from "../../order/utils/statusHelper";
+import { AdminVouchersView } from "../components/AdminVouchersView";
+import { AdminWalletsDashboardView } from "../components/AdminWalletsDashboardView";
 
 // 1. QUẢN LÝ SẢN PHẨM (Products View)
 function AdminProductsView() {
@@ -747,6 +749,8 @@ export default function AdminDashboard() {
 			<Route path="categories" element={<AdminCategoriesView />} />
 			<Route path="users" element={<AdminUsersView />} />
 			<Route path="shops" element={<AdminShopsView />} />
+			<Route path="vouchers" element={<AdminVouchersView />} />
+			<Route path="wallets" element={<AdminWalletsDashboardView />} />
 		</Routes>
 	);
 }

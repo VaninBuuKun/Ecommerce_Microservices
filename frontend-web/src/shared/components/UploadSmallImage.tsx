@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Loader2, Image as ImageIcon } from "lucide-react";
 import { storageService } from "../services/storageService";
 

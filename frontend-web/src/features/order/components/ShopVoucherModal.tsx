@@ -1,4 +1,3 @@
-import React from "react";
 import { X, Store } from "lucide-react";
 import { useAvailableVouchersQuery } from "../hooks/useCheckoutQueries";
 import { renderDiscountLabel } from "./VoucherHelpers";

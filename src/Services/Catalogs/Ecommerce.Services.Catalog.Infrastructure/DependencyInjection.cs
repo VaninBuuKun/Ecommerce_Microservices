@@ -42,16 +42,26 @@ public static class DependencyInjection
 
         services.AddGrpcClient<BuildingBlocks.Grpc.Services.PaymentGrpc.PaymentGrpcClient>(o =>
         {
-            o.Address = new Uri(configuration["GrpcSettings:PaymentUrl"] ?? throw new InvalidOperationException("PaymentUrl is missing."));
+            o.Address = new Uri(configuration["Services:PaymentGrpcUrl"] ?? throw new InvalidOperationException("PaymentUrl is missing."));
         });
         services.AddGrpcClient<BuildingBlocks.Grpc.Services.SellerGrpc.SellerGrpcClient>(o =>
         {
             o.Address = new Uri(configuration["Services:SellerGrpcUrl"] ?? throw new InvalidOperationException("SellerGrpcUrl is missing."));
         });
+        services.AddGrpcClient<BuildingBlocks.Grpc.Services.IdentityGrpc.IdentityGrpcClient>(o =>
+        {
+            o.Address = new Uri(configuration["Services:IdentityGrpcUrl"] ?? throw new InvalidOperationException("IdentityGrpcUrl is missing."));
+        });
+        services.AddGrpcClient<BuildingBlocks.Grpc.Services.OrderGrpc.OrderGrpcClient>(o =>
+        {
+            o.Address = new Uri(configuration["Services:OrderGrpcUrl"] ?? "http://localhost:5008");
+        });
         
         //Services
         services.AddScoped<ISellerService, SellerClientService>();
         services.AddScoped<IPaymentService, PaymentClientService>();
+        services.AddScoped<IIdentityService, IdentityClientService>();
+        services.AddScoped<IOrderService, OrderClientService>();
         services.AddScoped<IStorageService,S3StorageService>();
         
         //Repo

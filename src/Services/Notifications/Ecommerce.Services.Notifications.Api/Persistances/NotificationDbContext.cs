@@ -7,6 +7,7 @@ namespace Ecommerce.Services.Notifications.Api.Persistances;
 public class NotificationDbContext(DbContextOptions<NotificationDbContext> options) : DbContext(options)
 {
     public DbSet<Notification> Notifications { get; set; }
+    public DbSet<ChatRoom> ChatRooms { get; set; }
     public DbSet<ChatMessage> ChatMessages { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -32,16 +33,28 @@ public class NotificationDbContext(DbContextOptions<NotificationDbContext> optio
             entity.HasIndex(n => n.CreatedAt);
         });
 
+        modelBuilder.Entity<ChatRoom>(entity =>
+        {
+            entity.HasKey(r => r.Id);
+            entity.Property(r => r.ShopId).IsRequired();
+            entity.Property(r => r.BuyerUserId).IsRequired();
+            entity.Property(r => r.LastMessage).HasMaxLength(1000);
+
+            // Index composite key to make Room lookup fast
+            entity.HasIndex(r => new { r.ShopId, r.BuyerUserId }).IsUnique();
+            entity.HasIndex(r => r.LastActiveAt);
+        });
+
+
         modelBuilder.Entity<ChatMessage>(entity =>
         {
             entity.HasKey(c => c.Id);
-            entity.Property(c => c.SubOrderId).IsRequired();
+            entity.Property(c => c.RoomId).IsRequired();
             entity.Property(c => c.SenderId).IsRequired();
-            entity.Property(c => c.SenderName).IsRequired().HasMaxLength(100);
-            entity.Property(c => c.SenderRole).IsRequired().HasMaxLength(20);
             entity.Property(c => c.Content).IsRequired().HasMaxLength(2000);
 
-            entity.HasIndex(c => c.SubOrderId);
+            entity.HasIndex(c => c.RoomId);
         });
     }
 }
+

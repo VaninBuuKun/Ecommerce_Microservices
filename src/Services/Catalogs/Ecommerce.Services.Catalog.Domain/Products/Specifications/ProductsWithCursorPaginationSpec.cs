@@ -12,7 +12,8 @@ public class ProductsWithCursorPaginationSpec : Specification<Product>
         string sortBy, 
         string? lastValue, 
         Guid? lastId, 
-        int limit)
+        int limit,
+        long? shopId = null)
     {
         // 1. Chỉ lấy sản phẩm đang hoạt động
         Query.Where(p => p.Status == ProductStatus.Active);
@@ -33,6 +34,12 @@ public class ProductsWithCursorPaginationSpec : Specification<Product>
         if (minRating.HasValue)
         {
             Query.Where(p => p.AverageRating >= minRating.Value);
+        }
+
+        // 4b. Filter theo ShopId
+        if (shopId.HasValue)
+        {
+            Query.Where(p => p.ShopId == shopId.Value);
         }
 
         // 5. Load Navigation Properties

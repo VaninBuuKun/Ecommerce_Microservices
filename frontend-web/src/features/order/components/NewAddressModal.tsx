@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import { X, MapPin, Loader2 } from "lucide-react";
 import { toast } from "react-toastify";
 import { useCreateAddressMutation } from "../hooks/useCheckoutQueries";
@@ -39,10 +39,26 @@ export function NewAddressModal({
 
 	if (!isOpen) return null;
 
+	const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+		const cleaned = e.target.value.replace(/[^0-9]/g, "");
+		if (cleaned.startsWith("84")) {
+			setNewPhone(cleaned.slice(0, 11));
+		} else {
+			setNewPhone(cleaned.slice(0, 10));
+		}
+	};
+
 	const handleAddAddress = (e: React.FormEvent) => {
 		e.preventDefault();
 		if (!selectedProvinceId || !selectedDistrictId || !selectedWardId) {
 			toast.error("Vui lòng chọn đầy đủ Tỉnh/Huyện/Xã");
+			return;
+		}
+
+		// Validation số điện thoại di động Việt Nam
+		const phoneRegex = /^(03|05|07|08|09|843|845|847|848|849)[0-9]{8}$/;
+		if (!phoneRegex.test(newPhone)) {
+			toast.error("Số điện thoại không hợp lệ. Vui lòng nhập số di động Việt Nam (ví dụ: 0912345678 hoặc 84912345678).");
 			return;
 		}
 
@@ -86,7 +102,7 @@ export function NewAddressModal({
 				>
 					<X className="w-5 h-5" />
 				</button>
-
+ 
 				<h2 className="text-sm font-black text-brand-dark flex items-center gap-2 border-b border-brand-border pb-3">
 					<MapPin className="w-5 h-5 text-brand-primary" />
 					Thêm địa chỉ giao hàng mới
@@ -116,7 +132,7 @@ export function NewAddressModal({
 								required
 								placeholder="Ví dụ: 0987654321"
 								value={newPhone}
-								onChange={(e) => setNewPhone(e.target.value)}
+								onChange={handlePhoneChange}
 								className="w-full h-9 px-3 text-xs bg-white border border-brand-border rounded-lg focus:outline-none focus:border-brand-primary"
 							/>
 						</div>

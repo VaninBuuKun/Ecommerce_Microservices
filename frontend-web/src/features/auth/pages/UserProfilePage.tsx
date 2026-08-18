@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { User, MapPin, Package, CreditCard, ArrowLeftRight } from "lucide-react";
 import { useAuthStore } from "../store";
@@ -114,7 +114,7 @@ export function UserProfilePage() {
 							}`}
 						>
 							<CreditCard className="w-4 h-4" />
-							Ví điện tử liên kết
+							<span>Quản lý ví</span>
 						</button>
 						<button
 							onClick={() => {
