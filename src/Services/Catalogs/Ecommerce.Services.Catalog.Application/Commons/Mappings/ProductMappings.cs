@@ -21,6 +21,7 @@ public class ProductMappings : IRegister
                 src => src.Width.HasValue && src.Width.Value > 0 ? src.Width.Value : src.Product.Width)
             .Map(dest => dest.Height,
                 src => src.Height.HasValue && src.Height.Value > 0 ? src.Height.Value : src.Product.Height)
+            .Map(dest => dest.DiscountPrice, src => src.DiscountPrice)
             .Map(dest => dest.ThumbnailUrl, src => src.GetThumbnailUrl());
 
         config.NewConfig<Product, VariantDto>()
@@ -29,6 +30,7 @@ public class ProductMappings : IRegister
             .Map(dest => dest.ProductName, src => src.Name)
             .Map(dest => dest.AvailableStocks, src => src.AvailableStock)
             .Map(dest => dest.Price, src => src.Price)
+            .Map(dest => dest.DiscountPrice, src => src.DiscountPrice)
             .Map(dest => dest.VariantName, src => "")
             .Map(dest => dest.ShopId, src => src.ShopId)
             .Map(dest => dest.Weight, src => src.Weight)

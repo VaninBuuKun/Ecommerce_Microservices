@@ -9,13 +9,17 @@ using Ecommerce.Services.Catalog.Domain.Products.Specifications;
 using MapsterMapper;
 using Microsoft.Extensions.Logging;
 
+using Ecommerce.Services.Catalog.Application.Commons.Interfaces;
+
 namespace Ecommerce.Services.Catalog.Application.Features.Products.Queries.GetProductById;
 
 public record GetProductByIdQuery(Guid Id) : IQuery<ProductResponse>;
 
 public class GetProductByIdQueryHandler(
     IEfUnitOfWork unitOfWork,
-    ILogger<GetProductByIdQueryHandler> logger, IMapper mapper)
+    ILogger<GetProductByIdQueryHandler> logger, 
+    IMapper mapper,
+    ISellerService sellerService)
     : QueryHandler<GetProductByIdQuery, ProductResponse>
 {
     private readonly IGenericEfRepository<Product, Guid> _productRepository = unitOfWork.Repository<Product, Guid>();
@@ -33,6 +37,21 @@ public class GetProductByIdQueryHandler(
             }
             
             var response = mapper.Map<ProductResponse>(product);
+
+            // Fetch shop details via gRPC
+            if (product.ShopId > 0)
+            {
+                var shopResult = await sellerService.GetShopShippingInfoAsync(product.ShopId);
+                if (shopResult.IsSuccess && shopResult.Value != null)
+                {
+                    response.ShopName = shopResult.Value.ShopName;
+                    response.ShopPhone = shopResult.Value.Phone;
+                    response.ShopAddress = shopResult.Value.AddressLine;
+                    response.ShopRecipient = shopResult.Value.RecipientName;
+                    response.ShopOwnerId = shopResult.Value.OwnerUserId;
+                }
+            }
+
             return Result<ProductResponse>.Success(response);
         }
         catch (Exception ex)
@@ -44,3 +63,4 @@ public class GetProductByIdQueryHandler(
     }
 
 }
+

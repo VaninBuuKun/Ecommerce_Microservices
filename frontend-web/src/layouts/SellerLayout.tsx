@@ -20,8 +20,7 @@ import {
 	Package,
 	Plus,
 } from "lucide-react";
-import { useSellerStore } from "../features/seller";
-import { useSellerProfileQuery } from "../features/seller/hooks";
+import { useSellerStore, useSellerProfileQuery, ChatFloatingWidget } from "@/domains/seller";
 
 export default function SellerLayout() {
 	const navigate = useNavigate();
@@ -658,6 +657,8 @@ export default function SellerLayout() {
 					</div>
 				</main>
 			</div>
+			{/* Chat floating widget for Seller */}
+			<ChatFloatingWidget />
 		</div>
 	);
 }

@@ -7,4 +7,5 @@ namespace Ecommerce.Services.Orders.Application.Features.Orders.Commands.CreateR
 public record CreateRefundCommand(
     Guid SubOrderId,
     long CustomerId,
-    string Reason) : ICommand<RefundRequestDto>;
+    string Reason,
+    List<string>? Medias = null) : ICommand<RefundRequestDto>;

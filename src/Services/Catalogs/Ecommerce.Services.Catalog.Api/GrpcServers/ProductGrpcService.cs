@@ -56,6 +56,7 @@ public class ProductGrpcService(ISender sender, ILogger<ProductGrpcService> logg
         {
             var variant = new RpcVariantDto();
             variant.UnitPrice = variantDto.Price.ToGrpcString();
+            variant.DiscountPrice = variantDto.DiscountPrice.ToGrpcString();
             variant.ProductName = variantDto.ProductName;
             variant.ProductId = variantDto.ProductId.ToString();
             variant.AvailableStocks = variantDto.AvailableStocks;

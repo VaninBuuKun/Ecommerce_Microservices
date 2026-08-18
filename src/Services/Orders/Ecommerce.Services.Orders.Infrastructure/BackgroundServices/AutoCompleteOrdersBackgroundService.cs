@@ -78,14 +78,8 @@ public class AutoCompleteOrdersBackgroundService(
                 {
                     SubOrderId = subOrder.Id,
                     ShopId = subOrder.ShopId,
-                    TotalAmount = subOrder.GrandTotal
-                }, stoppingToken);
-
-                // Publish status changed event cho Logging / Saga
-                await publisher.PublishAsync(new SubOrderStatusChangedEvent
-                {
-                    SubOrderId = subOrder.Id,
-                    Status = SubOrderStatus.Completed.ToString()
+                    TotalAmount = subOrder.GrandTotal,
+                    PlatformDiscount = subOrder.PlatformDiscount  // Sàn tự bỏ ra, không ảnh hưởng seller
                 }, stoppingToken);
             }
             catch (Exception ex)

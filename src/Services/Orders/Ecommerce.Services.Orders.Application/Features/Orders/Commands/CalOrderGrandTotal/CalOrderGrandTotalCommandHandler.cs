@@ -24,6 +24,7 @@ public class CalOrderGrandTotalCommandHandler(
     IIdentityService identityService,
     ICacheService cacheService,
     IEfUnitOfWork unitOfWork,
+    IVoucherValidationService voucherValidationService,
     ILogger<CalOrderGrandTotalCommandHandler> logger)
     : ICommandHandler<CalOrderGrandTotalCommand, CalOrderGrandTotalResponse>
 {
@@ -71,10 +72,21 @@ public class CalOrderGrandTotalCommandHandler(
 
             decimal subTotal = 0;
             var checkoutSessionItems = new List<CheckoutSessionItem>();
-            var groupedItems = selectedItems.GroupBy(item => item.ShopId);
+            var groupedItems = selectedItems.GroupBy(item => item.ShopId).ToList();
             var batchRequests = new List<ShippingFeeRequestItem>();
             var shopNames = new Dictionary<long, string>();
             var shopSubTotals = new Dictionary<long, decimal>();
+
+            // Lấy thông tin địa chỉ lấy hàng của tất cả Shop hàng loạt qua 1 cuộc gọi gRPC
+            var shopIdsForGrpc = groupedItems.Select(g => g.Key).ToList();
+            var shopsShippingInfoResult = await sellerService.GetShopsShippingInfoAsync(shopIdsForGrpc, cancellationToken);
+            if (!shopsShippingInfoResult.IsSuccess || shopsShippingInfoResult.Value == null)
+            {
+                logger.LogWarning("Không thể lấy thông tin địa chỉ của các cửa hàng: {Error}", shopsShippingInfoResult.Message);
+                return Result<CalOrderGrandTotalResponse>.Failure($"Không thể lấy thông tin địa chỉ lấy hàng của các cửa hàng", EErrorCode.NotFound);
+            }
+
+            var shopsShippingInfoDict = shopsShippingInfoResult.Value.ToDictionary(s => s.ShopId);
 
             // Chuẩn bị dữ liệu và thông tin shop gửi hàng
             foreach (var shopGroup in groupedItems)
@@ -82,15 +94,12 @@ public class CalOrderGrandTotalCommandHandler(
                 var shopId = shopGroup.Key;
                 var shopItems = shopGroup.ToList();
 
-                // Lấy thông tin địa chỉ lấy hàng của Shop
-                var shopShippingInfoResult = await sellerService.GetShopShippingInfoAsync(shopId, cancellationToken);
-                if (!shopShippingInfoResult.IsSuccess || shopShippingInfoResult.Value == null)
+                if (!shopsShippingInfoDict.TryGetValue(shopId, out var shopShippingInfo))
                 {
-                    logger.LogWarning("Không thể lấy thông tin địa chỉ của Shop {ShopId}: {Error}", shopId, shopShippingInfoResult.Message);
-                    return Result<CalOrderGrandTotalResponse>.Failure($"Không thể lấy thông tin địa chỉ lấy hàng của cửa hàng {shopId}", EErrorCode.NotFound);
+                    logger.LogWarning("Không tìm thấy thông tin địa chỉ lấy hàng cho Shop {ShopId}", shopId);
+                    return Result<CalOrderGrandTotalResponse>.Failure($"Không tìm thấy thông tin địa chỉ lấy hàng của cửa hàng {shopId}", EErrorCode.NotFound);
                 }
 
-                var shopShippingInfo = shopShippingInfoResult.Value;
                 shopNames[shopId] = shopShippingInfo.ShopName;
 
                 // Tính toán trọng lượng/kích thước gói hàng lũy kế thực tế từ sản phẩm
@@ -112,14 +121,14 @@ public class CalOrderGrandTotalCommandHandler(
                 decimal shopSubTotal = 0;
                 foreach (var item in shopItems)
                 {
-                    var itemSubTotal = item.UnitPrice * item.Quantity;
+                    var itemSubTotal = item.DiscountPrice * item.Quantity;
                     subTotal += itemSubTotal;
                     shopSubTotal += itemSubTotal;
                     checkoutSessionItems.Add(new CheckoutSessionItem
                     {
                         VariantId = item.VariantId,
                         Quantity = item.Quantity,
-                        UnitPrice = item.UnitPrice
+                        UnitPrice = item.DiscountPrice
                     });
                 }
                 shopSubTotals[shopId] = shopSubTotal;
@@ -150,122 +159,24 @@ public class CalOrderGrandTotalCommandHandler(
             }
 
             // --- VOUCHER CALCULATION LOGIC ---
-            decimal platformDiscount = 0;
-            var shopDiscounts = new Dictionary<long, decimal>();
-            var appliedShopVouchers = new Dictionary<long, string>();
+            var voucherValidationResult = await voucherValidationService.ValidateVouchersAsync(
+                customerId,
+                subTotal,
+                shopSubTotals,
+                command.PlatformVoucherCode,
+                command.ShopVoucherCodes,
+                cancellationToken
+            );
 
-            var now = DateTimeOffset.UtcNow;
-
-            // 1. Apply Shop Vouchers
-            if (command.ShopVoucherCodes != null)
+            if (!voucherValidationResult.IsSuccess)
             {
-                foreach (var kvp in command.ShopVoucherCodes)
-                {
-                    var shopId = kvp.Key;
-                    var code = kvp.Value;
-
-                    if (string.IsNullOrWhiteSpace(code) || !shopSubTotals.TryGetValue(shopId, out var shopSubTotal))
-                    {
-                        continue;
-                    }
-
-                    var voucher = await voucherRepo.FirstOrDefaultAsync(v => 
-                        v.Code == code && 
-                        v.Scope == VoucherScope.Shop && 
-                        v.ShopId == shopId && 
-                        v.IsActive && 
-                        v.StartDate <= now && 
-                        now <= v.EndDate,
-                        cancellationToken: cancellationToken);
-
-
-                    if (voucher == null)
-                    {
-                        return Result<CalOrderGrandTotalResponse>.Failure($"Voucher shop '{code}' không khả dụng hoặc đã hết hạn", EErrorCode.InvalidInput);
-                    }
-
-                    if (shopSubTotal < voucher.MinOrderValue)
-                    {
-                        return Result<CalOrderGrandTotalResponse>.Failure($"Voucher shop '{code}' yêu cầu đơn tối thiểu {voucher.MinOrderValue}", EErrorCode.InvalidInput);
-                    }
-
-                    if (voucher.UsageCount >= voucher.MaxUsageCount)
-                    {
-                        return Result<CalOrderGrandTotalResponse>.Failure($"Voucher shop '{code}' đã hết lượt sử dụng", EErrorCode.InvalidInput);
-                    }
-
-                    var userUsageCount = await voucherUsageRepo.CountAsync(u => u.VoucherId == voucher.Id && u.UserId == customerId, cancellationToken);
-                    if (userUsageCount >= voucher.MaxUsagePerUser)
-                    {
-                        return Result<CalOrderGrandTotalResponse>.Failure($"Bạn đã đạt giới hạn sử dụng voucher shop '{code}'", EErrorCode.InvalidInput);
-                    }
-
-                    decimal discount = 0;
-                    if (voucher.DiscountType == DiscountType.Percentage)
-                    {
-                        discount = Math.Round(shopSubTotal * voucher.DiscountValue / 100, 2);
-                        if (voucher.MaxDiscountAmount.HasValue && discount > voucher.MaxDiscountAmount.Value)
-                        {
-                            discount = voucher.MaxDiscountAmount.Value;
-                        }
-                    }
-                    else
-                    {
-                        discount = Math.Min(voucher.DiscountValue, shopSubTotal);
-                    }
-
-                    shopDiscounts[shopId] = discount;
-                    appliedShopVouchers[shopId] = code;
-                }
+                return Result<CalOrderGrandTotalResponse>.Failure(voucherValidationResult.Message, voucherValidationResult.ErrorCode);
             }
 
-            // 2. Apply Platform Voucher
-            if (!string.IsNullOrWhiteSpace(command.PlatformVoucherCode))
-            {
-                var code = command.PlatformVoucherCode;
-                var voucher = await voucherRepo.FirstOrDefaultAsync(v => 
-                    v.Code == code && 
-                    v.Scope == VoucherScope.Platform && 
-                    v.IsActive && 
-                    v.StartDate <= now && 
-                    now <= v.EndDate,
-                    cancellationToken: cancellationToken);
-
-
-                if (voucher == null)
-                {
-                    return Result<CalOrderGrandTotalResponse>.Failure($"Voucher sàn '{code}' không khả dụng hoặc đã hết hạn", EErrorCode.InvalidInput);
-                }
-
-                if (subTotal < voucher.MinOrderValue)
-                {
-                    return Result<CalOrderGrandTotalResponse>.Failure($"Voucher sàn '{code}' yêu cầu đơn tối thiểu {voucher.MinOrderValue}", EErrorCode.InvalidInput);
-                }
-
-                if (voucher.UsageCount >= voucher.MaxUsageCount)
-                {
-                    return Result<CalOrderGrandTotalResponse>.Failure($"Voucher sàn '{code}' đã hết lượt sử dụng", EErrorCode.InvalidInput);
-                }
-
-                var userUsageCount = await voucherUsageRepo.CountAsync(u => u.VoucherId == voucher.Id && u.UserId == customerId, cancellationToken);
-                if (userUsageCount >= voucher.MaxUsagePerUser)
-                {
-                    return Result<CalOrderGrandTotalResponse>.Failure($"Bạn đã đạt giới hạn sử dụng voucher sàn '{code}'", EErrorCode.InvalidInput);
-                }
-
-                if (voucher.DiscountType == DiscountType.Percentage)
-                {
-                    platformDiscount = Math.Round(subTotal * voucher.DiscountValue / 100, 2);
-                    if (voucher.MaxDiscountAmount.HasValue && platformDiscount > voucher.MaxDiscountAmount.Value)
-                    {
-                        platformDiscount = voucher.MaxDiscountAmount.Value;
-                    }
-                }
-                else
-                {
-                    platformDiscount = Math.Min(voucher.DiscountValue, subTotal);
-                }
-            }
+            var validationData = voucherValidationResult.Value;
+            decimal platformDiscount = validationData.PlatformDiscount;
+            var shopDiscounts = validationData.ShopDiscounts;
+            var appliedShopVouchers = validationData.ShopVouchers.ToDictionary(kvp => kvp.Key, kvp => kvp.Value.Code);
 
             decimal totalDiscount = platformDiscount + shopDiscounts.Values.Sum();
             var grandTotal = Math.Max(0, subTotal + totalShippingFee - totalDiscount);

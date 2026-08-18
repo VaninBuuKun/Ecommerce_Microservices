@@ -51,7 +51,8 @@ public static class InfrastructureConfiguration
                     dbOptions => dbOptions.MigrationsAssembly(typeof(Program).Assembly.GetName().Name));
             })
             .AddDeveloperSigningCredential() // Tự sinh cặp khóa RSA (chỉ dùng trong môi trường dev)
-            .AddProfileService<ProfileService>();
+            .AddProfileService<ProfileService>()
+            .AddResourceOwnerValidator<CustomResourceOwnerPasswordValidator>();
         
         services.AddLocalApiAuthentication();
         

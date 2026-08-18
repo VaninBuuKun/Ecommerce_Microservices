@@ -8,7 +8,9 @@ service SellerGrpc {
   rpc ValidateShopOwner(ValidateShopOwnerRequest) returns (ValidateShopOwnerResponse);
   rpc GetShopsByIds(GetShopsByIdsRequest) returns (GetShopsByIdsResponse);
   rpc GetShopShippingInfo(GetShopShippingInfoRequest) returns (GetShopShippingInfoResponse);
+  rpc GetShopsShippingInfo(GetShopsShippingInfoRequest) returns (GetShopsShippingInfoResponse);
 }
+
 
 message ValidateShopOwnerRequest {
   int64 shop_id = 1;
@@ -49,3 +51,12 @@ message GetShopShippingInfoResponse {
   int64 owner_user_id = 8;
   string recipient_name = 9;
 }
+
+message GetShopsShippingInfoRequest {
+  repeated int64 shop_ids = 1;
+}
+
+message GetShopsShippingInfoResponse {
+  repeated GetShopShippingInfoResponse shops_shipping_info = 1;
+}
+

@@ -8,6 +8,7 @@ public class ProductDto
     public string ProductName { get; set; } = string.Empty;
     public string VariantName { get; set; } = string.Empty;
     public decimal UnitPrice { get; set; }
+    public decimal DiscountPrice { get; set; }
     public decimal AvailableStocks { get; set; }
     public double Weight { get; set; }
     public double Length { get; set; }

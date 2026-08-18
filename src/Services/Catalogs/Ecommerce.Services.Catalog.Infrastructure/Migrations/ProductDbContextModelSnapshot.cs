@@ -104,6 +104,10 @@ namespace Ecommerce.Services.Catalog.Infrastructure.Migrations
                     b.Property<DateTimeOffset?>("LastModifiedDate")
                         .HasColumnType("datetime(6)");
 
+                    b.Property<string>("Media")
+                        .IsRequired()
+                        .HasColumnType("json");
+
                     b.Property<Guid>("ProductId")
                         .HasColumnType("char(36)");
 
@@ -115,27 +119,6 @@ namespace Ecommerce.Services.Catalog.Infrastructure.Migrations
                     b.HasIndex("ProductId");
 
                     b.ToTable("ProductReviews");
-                });
-
-            modelBuilder.Entity("Ecommerce.Services.Catalog.Domain.ProductReviewImage", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("char(36)");
-
-                    b.Property<string>("ImageUrl")
-                        .IsRequired()
-                        .HasMaxLength(1000)
-                        .HasColumnType("varchar(1000)");
-
-                    b.Property<Guid>("ProductReviewId")
-                        .HasColumnType("char(36)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("ProductReviewId");
-
-                    b.ToTable("ProductReviewImages");
                 });
 
             modelBuilder.Entity("Ecommerce.Services.Catalog.Domain.Products.Product", b =>
@@ -390,15 +373,6 @@ namespace Ecommerce.Services.Catalog.Infrastructure.Migrations
                     b.Navigation("Product");
                 });
 
-            modelBuilder.Entity("Ecommerce.Services.Catalog.Domain.ProductReviewImage", b =>
-                {
-                    b.HasOne("Ecommerce.Services.Catalog.Domain.ProductReview", null)
-                        .WithMany("Images")
-                        .HasForeignKey("ProductReviewId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-                });
-
             modelBuilder.Entity("Ecommerce.Services.Catalog.Domain.Products.Product", b =>
                 {
                     b.HasOne("Ecommerce.Services.Catalog.Domain.Category", "Category")
@@ -464,11 +438,6 @@ namespace Ecommerce.Services.Catalog.Infrastructure.Migrations
                     b.Navigation("Products");
 
                     b.Navigation("SubCategories");
-                });
-
-            modelBuilder.Entity("Ecommerce.Services.Catalog.Domain.ProductReview", b =>
-                {
-                    b.Navigation("Images");
                 });
 
             modelBuilder.Entity("Ecommerce.Services.Catalog.Domain.Products.Product", b =>

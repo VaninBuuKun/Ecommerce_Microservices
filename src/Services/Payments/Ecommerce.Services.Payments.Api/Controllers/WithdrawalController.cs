@@ -27,7 +27,6 @@ public class WithdrawalController(IWithdrawalService withdrawalService, ICurrent
         return StatusCode(result.GetHttpStatusCode(), result.Message);
     }
 
-    [HttpGet]
     public async Task<IActionResult> GetMyWithdrawals()
     {
         var userId = currentUserService.UserId;

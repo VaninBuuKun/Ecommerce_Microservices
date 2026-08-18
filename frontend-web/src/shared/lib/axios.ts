@@ -1,6 +1,5 @@
 import axios from "axios";
-import { useAuthStore } from "../../features/auth/store";
-import { authService } from "../../features/auth/service";
+import { useAuthStore, authService } from "@/domains/auth";
 
 const API_BASE_URL = "http://localhost:5111/api";
 export const STORAGE_BASE_URL =

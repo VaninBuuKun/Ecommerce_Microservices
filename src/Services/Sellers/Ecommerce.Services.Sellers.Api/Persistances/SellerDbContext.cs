@@ -25,7 +25,7 @@ public class SellerDbContext(DbContextOptions<SellerDbContext> options, IInMemor
             entity.Property(k => k.IdentityCardNumber).IsRequired().HasMaxLength(20);
             entity.Property(k => k.IdentityCardFrontUrl).IsRequired().HasMaxLength(500);
             entity.Property(k => k.IdentityCardBackUrl).IsRequired().HasMaxLength(500);
-            entity.Property(k => k.Status).HasConversion<int>();
+            entity.Property(k => k.Status).HasConversion<string>();
             entity.Property(k => k.RejectReason).HasMaxLength(255).IsRequired(false);
         });
 
@@ -34,7 +34,7 @@ public class SellerDbContext(DbContextOptions<SellerDbContext> options, IInMemor
             entity.HasKey(s => s.Id);
             entity.Property(s => s.Name).IsRequired().HasMaxLength(150);
             entity.Property(s => s.LogoUrl).HasMaxLength(500).IsRequired(false);
-            entity.Property(s => s.Status).HasConversion<int>();
+            entity.Property(s => s.Status).HasConversion<string>();
 
             // Cấu hình PickUpAddress thành Owned Entity phẳng trong bảng Shops
             entity.OwnsOne(s => s.PickUpAddress, address =>

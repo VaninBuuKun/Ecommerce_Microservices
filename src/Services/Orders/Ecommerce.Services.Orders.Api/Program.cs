@@ -17,6 +17,7 @@ try
     builder.Services.AddOpenApi();
     builder.Services.AddControllers();
     builder.Services.AddHttpContextAccessor();
+    builder.Services.AddGrpc();
     builder.Services.AddBuildingBlocksWeb(builder.Configuration);
     builder.Services.AddBuildingBlocsAuth(builder.Configuration);
     
@@ -36,6 +37,7 @@ try
     }
     app.UseCors("CorsPolicy");
     app.MapControllers();
+    app.MapGrpcService<Ecommerce.Services.Orders.Api.GrpcServers.OrderGrpcServer>();
 
     app.Run();
 

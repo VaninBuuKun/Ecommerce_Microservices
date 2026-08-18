@@ -33,6 +33,7 @@ public class CartClientService(CartGrpc.CartGrpcClient client) : ICartService
                     ProductName = item.ProductName,
                     VariantName = item.VariantName,
                     UnitPrice = decimal.TryParse(item.UnitPrice, out var uPrice) ? uPrice : 0,
+                    DiscountPrice = decimal.TryParse(item.DiscountPrice, out var dPrice) && dPrice > 0 ? dPrice : (decimal.TryParse(item.UnitPrice, out var uPrice2) ? uPrice2 : 0),
                     ShopId = item.ShopId,
                     AvailableStocks = item.AvailableStocks,
                     Weight = item.Weight,

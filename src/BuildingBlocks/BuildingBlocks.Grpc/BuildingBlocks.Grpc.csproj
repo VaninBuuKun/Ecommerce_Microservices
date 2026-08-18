@@ -22,6 +22,7 @@
         <Protobuf Include="Protos\seller.proto" GrpcServices="Both" />
         <Protobuf Include="Protos\shipping.proto" GrpcServices="Both" />
         <Protobuf Include="Protos\identity.proto" GrpcServices="Both" />
+        <Protobuf Include="Protos\order.proto" GrpcServices="Both" />
     </ItemGroup>
 
     <ItemGroup>

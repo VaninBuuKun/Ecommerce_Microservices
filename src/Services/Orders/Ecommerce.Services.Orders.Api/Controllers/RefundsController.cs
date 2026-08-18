@@ -29,7 +29,7 @@ public class RefundsController(ICurrentUserService currentUserService) : CleanV1
     [ProducesResponseType(typeof(RefundRequestDto), StatusCodes.Status200OK)]
     public async Task<IActionResult> CreateRefund([FromBody] CreateRefundInput input, CancellationToken cancellationToken)
     {
-        var command = new CreateRefundCommand(input.SubOrderId, UserId, input.Reason);
+        var command = new CreateRefundCommand(input.SubOrderId, UserId, input.Reason, input.Medias);
         var result = await _sender.SendAsync(command, cancellationToken);
 
         return result.IsSuccess
@@ -110,6 +110,6 @@ public class RefundsController(ICurrentUserService currentUserService) : CleanV1
     }
 }
 
-public record CreateRefundInput(Guid SubOrderId, string Reason);
+public record CreateRefundInput(Guid SubOrderId, string Reason, List<string>? Medias = null);
 public record ApproveRefundInput(string? SellerNote);
 public record RejectRefundInput(string SellerNote);

@@ -12,6 +12,7 @@ public record GetProductsQuery(
     double? MinRating, 
     string? Cursor, 
     int Limit = 10, 
-    string SortBy = "name") : IQuery<PagedCursorResponse<ProductResponse>>;
+    string SortBy = "name",
+    long? ShopId = null) : IQuery<PagedCursorResponse<ProductResponse>>;
 
 public record PagedCursorResponse<T>(IEnumerable<T> Items, string? NextCursor, bool HasNext);

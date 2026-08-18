@@ -1,28 +1,40 @@
 import { Routes, Route, Link, Navigate } from "react-router-dom";
 import MainLayout from "../layouts/MainLayout";
-import LandingPage from "../features/landing/components/LandingPage";
-import CartPage from "../features/cart/pages/CartPage";
-import CheckoutPage from "../features/order/CheckoutPage";
-import ProductDetailPage from "../features/catalog/pages/ProductDetailPage";
-import { LoginPage, RegisterPage, UserProfilePage } from "../features/auth";
-import SelectShopPage from "../features/seller/pages/SelectShopPage";
-import RegisterShopPage from "../features/seller/pages/RegisterShopPage";
+import HomePage from "@/apps/customer/pages/HomePage";
+import CartPage from "@/apps/customer/pages/CartPage";
+import CheckoutPage from "@/apps/customer/pages/CheckoutPage";
+import ProductDetailPage from "@/apps/customer/pages/ProductDetailPage";
+import UserProfilePage from "@/apps/customer/pages/UserProfilePage";
+import UserProfilePublicPage from "@/apps/customer/pages/UserProfilePublicPage";
+import ShopProfilePublicPage from "@/apps/customer/pages/ShopProfilePublicPage";
+
+import LoginPage from "@/apps/auth/pages/LoginPage";
+import RegisterPage from "@/apps/auth/pages/RegisterPage";
+
+import SelectShopPage from "@/apps/seller/pages/SelectShopPage";
+import RegisterShopPage from "@/apps/seller/pages/RegisterShopPage";
+import SellerDashboardPage from "@/apps/seller/pages/SellerDashboardPage";
 import SellerLayout from "../layouts/SellerLayout";
-import SellerDashboard from "../features/seller/pages/SellerDashboard";
+
 import AdminLayout from "../layouts/AdminLayout";
-import AdminDashboard from "../features/admin/pages/AdminDashboard";
+import AdminDashboardPage from "@/apps/admin/pages/AdminDashboardPage";
+
+import { checkIsAdmin } from "../shared/utils/authHelper";
 
 export default function AppRoutes() {
 	return (
 		<Routes>
 			{/* Các trang hiển thị đầy đủ Header & Footer */}
 			<Route path="/" element={<MainLayout />}>
-				<Route index element={<LandingPage />} />
+				<Route index element={<HomePage />} />
 				<Route path="cart" element={<CartPage />} />
 				<Route path="checkout" element={<CheckoutPage />} />
 				<Route path="products/:id" element={<ProductDetailPage />} />
+				<Route path="product/:id" element={<ProductDetailPage />} />
 				<Route path="profile" element={<UserProfilePage />} />
 				<Route path="orders" element={<UserProfilePage />} />
+				<Route path="users/:userId" element={<UserProfilePublicPage />} />
+				<Route path="shops/:shopId" element={<ShopProfilePublicPage />} />
 				<Route
 					path="*"
 					element={
@@ -31,8 +43,7 @@ export default function AppRoutes() {
 								404
 							</h1>
 							<p className="text-brand-muted mb-6">
-								Trang bạn yêu cầu không tồn tại hoặc đã bị di
-								dời.
+								Trang bạn yêu cầu không tồn tại hoặc đã bị di dời.
 							</p>
 							<Link
 								to="/"
@@ -45,17 +56,17 @@ export default function AppRoutes() {
 				/>
 			</Route>
 
-			{/* Các trang người bán */}
+			{/* Các trang người bán (Seller Apps) */}
 			<Route path="/seller" element={<SelectShopPage />} />
 			<Route path="/seller/register" element={<RegisterShopPage />} />
 			<Route
 				path="/seller/:shopId/dashboard/*"
 				element={<SellerLayout />}
 			>
-				<Route path="*" element={<SellerDashboard />} />
+				<Route path="*" element={<SellerDashboardPage />} />
 			</Route>
 			<Route path="/seller/dashboard/*" element={<SellerLayout />}>
-				<Route path="*" element={<SellerDashboard />} />
+				<Route path="*" element={<SellerDashboardPage />} />
 			</Route>
 
 			{/* Các trang Admin hệ thống */}
@@ -67,7 +78,7 @@ export default function AppRoutes() {
 					</AdminGuard>
 				}
 			>
-				<Route path="*" element={<AdminDashboard />} />
+				<Route path="*" element={<AdminDashboardPage />} />
 			</Route>
 
 			{/* Các trang Login & Register standalone (Không có Header / Footer) */}
@@ -77,45 +88,8 @@ export default function AppRoutes() {
 	);
 }
 
-function parseJwt(token: string) {
-	try {
-		const base64Url = token.split(".")[1];
-		const base64 = base64Url.replace(/-/g, "+").replace(/_/g, "/");
-		const jsonPayload = decodeURIComponent(
-			window
-				.atob(base64)
-				.split("")
-				.map(function (c) {
-					return "%" + ("00" + c.charCodeAt(0).toString(16)).slice(-2);
-				})
-				.join(""),
-		);
-		return JSON.parse(jsonPayload);
-	} catch {
-		return null;
-	}
-}
-
-function isAdmin() {
-	const token = localStorage.getItem("accessToken");
-	if (!token) return false;
-	const payload = parseJwt(token);
-	if (!payload) return false;
-	const roles =
-		payload.role ||
-		payload["http://schemas.microsoft.com/ws/2008/06/identity/claims/role"];
-	if (Array.isArray(roles)) {
-		return roles.includes("Admin") || roles.includes("admin");
-	}
-	return (
-		roles === "Admin" ||
-		roles === "admin" ||
-		payload.email === "admin@system.com"
-	);
-}
-
 function AdminGuard({ children }: { children: React.ReactNode }) {
-	if (!isAdmin()) {
+	if (!checkIsAdmin()) {
 		return <Navigate to="/" replace />;
 	}
 	return <>{children}</>;

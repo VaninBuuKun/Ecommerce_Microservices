@@ -1,3 +1,5 @@
+using System;
+using System.Collections.Generic;
 using BuildingBlocks.Shared.Domains;
 using Ecommerce.Services.Catalog.Domain.Products;
 
@@ -12,11 +14,13 @@ public class ProductReview : EntityTrackingBase<Guid>
     public DateTimeOffset CreatedDate { get; private set; }
 
     public Product Product { get; private set; } = null!;
-    public ICollection<ProductReviewImage> Images { get; private set; } = new List<ProductReviewImage>();
+    
+    // Lưu trữ danh sách các link media (ảnh/video) của đánh giá
+    public List<string> Media { get; private set; } = new();
 
     private ProductReview() {}
 
-    public ProductReview(Guid productId, long customerId, int rating, string comment)
+    public ProductReview(Guid productId, long customerId, int rating, string comment, List<string>? media = null)
     {
         if (rating < 1 || rating > 5)
         {
@@ -29,10 +33,18 @@ public class ProductReview : EntityTrackingBase<Guid>
         Rating = rating;
         Comment = comment;
         CreatedDate = DateTimeOffset.UtcNow;
+        
+        if (media != null)
+        {
+            Media = media;
+        }
     }
 
-    public void AddImage(string imageUrl)
+    public void AddMedia(string mediaUrl)
     {
-        Images.Add(new ProductReviewImage(Id, imageUrl));
+        if (!string.IsNullOrWhiteSpace(mediaUrl))
+        {
+            Media.Add(mediaUrl);
+        }
     }
 }

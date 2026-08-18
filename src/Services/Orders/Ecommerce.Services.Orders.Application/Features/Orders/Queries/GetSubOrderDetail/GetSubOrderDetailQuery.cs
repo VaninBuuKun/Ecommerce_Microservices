@@ -41,6 +41,10 @@ public class SubOrderDetailDto
     // Payment Method details aggregated from Payments service
     public PaymentDto? PaymentDto { get; set; }
     
+    // Voucher details
+    public string? ShopVoucherCode { get; set; }
+    public string? PlatformVoucherCode { get; set; }
+    
     // Items
     public List<CustomerOrderItemDto> OrderItems { get; set; } = new();
 }
@@ -98,6 +102,22 @@ public class GetSubOrderDetailQueryHandler(
             var userResult = await userTask;
             var paymentResult = await paymentTask;
 
+            // Query Voucher codes if voucher IDs exist on SubOrder
+            string? shopVoucherCode = null;
+            string? platformVoucherCode = null;
+            var voucherRepo = unitOfWork.Repository<Voucher, Guid>();
+            
+            var voucherIds = new List<Guid>();
+            if (subOrder.ShopVoucherId.HasValue) voucherIds.Add(subOrder.ShopVoucherId.Value);
+            if (subOrder.PlatformVoucherId.HasValue) voucherIds.Add(subOrder.PlatformVoucherId.Value);
+
+            if (voucherIds.Count > 0)
+            {
+                var vouchers = await voucherRepo.GetAllAsync(v => voucherIds.Contains(v.Id), cancellationToken: cancellationToken);
+                shopVoucherCode = vouchers.FirstOrDefault(v => v.Id == subOrder.ShopVoucherId)?.Code;
+                platformVoucherCode = vouchers.FirstOrDefault(v => v.Id == subOrder.PlatformVoucherId)?.Code;
+            }
+
             var dto = new SubOrderDetailDto
             {
                 Id = subOrder.Id,
@@ -114,6 +134,9 @@ public class GetSubOrderDetailQueryHandler(
                 CreatedDate = subOrder.CreatedDate,
                 DeliveredDate = subOrder.DeliveredDate,
                 
+                ShopVoucherCode = shopVoucherCode,
+                PlatformVoucherCode = platformVoucherCode,
+
                 // Aggregated user details
                 User = userResult.IsSuccess ? userResult.Value : null,
                 

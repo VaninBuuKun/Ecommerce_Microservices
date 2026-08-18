@@ -11,6 +11,7 @@ public class CartItemDto
     public string ProductName { get; set; }
     public string VariantName { get; set; }
     public decimal UnitPrice { get; set; }
+    public decimal DiscountPrice { get; set; }
     public long ShopId { get; set; }
     public int AvailableStocks { get; set; }
     public double Weight { get; set; }

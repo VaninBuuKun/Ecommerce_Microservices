@@ -26,6 +26,7 @@ public class PaymentDbContext(DbContextOptions options, IInMemoryBus bus) : EfDb
         modelBuilder.Entity<Payment>(e =>
         {
             e.Property(p => p.Amount).HasColumnType("decimal(18,2)");
+            e.Property(p => p.Status).HasConversion<string>();
         });
 
         modelBuilder.Entity<Wallet>(e =>
@@ -43,6 +44,7 @@ public class PaymentDbContext(DbContextOptions options, IInMemoryBus bus) : EfDb
         modelBuilder.Entity<WithdrawalRequest>(e =>
         {
             e.Property(w => w.Amount).HasColumnType("decimal(18,2)");
+            e.Property(w => w.Status).HasConversion<string>();
         });
     }
 }

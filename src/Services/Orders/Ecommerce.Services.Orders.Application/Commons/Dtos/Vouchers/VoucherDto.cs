@@ -4,7 +4,7 @@ namespace Ecommerce.Services.Orders.Application.Commons.Dtos.Vouchers;
 
 public class VoucherDto
 {
-    public Guid VoucherId { get; set; }
+    public Guid Id { get; set; }
     public string Code { get; set; }
     public string Name { get; set; }
     public DiscountType DiscountType { get; set; }
@@ -13,6 +13,7 @@ public class VoucherDto
     public decimal MinOrderValue  { get; set; }
     public long MaxUsageCount { get; set; }
     public long MaxUsagePerUser { get; set; }
+    public long MaxDiscountAmount { get; set; }
     public long? ShopId { get; set; }
     
     public DateTimeOffset StartDate { get; set; }

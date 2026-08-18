@@ -9,6 +9,7 @@ public static class ServiceConfigurations
     public static void AddServiceConfigurations(this IServiceCollection services, IConfiguration configuration)
     {
         services.AddScoped<INotificationService, NotificationService>();
+        services.AddScoped<IChatService, ChatService>();
 
         // SignalR — dùng JWT Bearer để authenticate connection
         // Client phải gửi token qua query string: ?access_token=...

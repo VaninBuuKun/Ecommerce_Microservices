@@ -111,7 +111,30 @@ public class WithdrawalService(IEfUnitOfWork unitOfWork, IMapper mapper) : IWith
         return Result<List<WithdrawalRequestDto>>.Success(dtos);
     }
 
-    public async Task<Result> CompleteWithdrawal(Guid id, long adminId)
+    public async Task<Result> ApproveWithdrawal(Guid id, long adminId)
+    {
+        var withdrawal = await _withdrawalRepository.GetByIdAsync(id);
+        if (withdrawal == null)
+        {
+            return Result.Failure("Yêu cầu rút tiền không tồn tại.", EErrorCode.NotFound);
+        }
+
+        if (withdrawal.Status != WithdrawalStatus.Pending)
+        {
+            return Result.Failure("Yêu cầu rút tiền này đã được xử lý trước đó và không còn ở trạng thái chờ duyệt.", EErrorCode.ValidationErrors);
+        }
+
+        // Cập nhật trạng thái sang Approved
+        withdrawal.Status = WithdrawalStatus.Approved;
+        withdrawal.ProcessedAt = DateTime.UtcNow;
+        withdrawal.ProcessedByAdminId = adminId;
+        _withdrawalRepository.Update(withdrawal);
+
+        await unitOfWork.SaveChangesAsync();
+        return Result.Success();
+    }
+
+    public async Task<Result> CompleteWithdrawal(Guid id, long adminId, CompleteWithdrawalRequest request)
     {
         var withdrawal = await _withdrawalRepository.GetByIdAsync(id);
         if (withdrawal == null)
@@ -121,11 +144,13 @@ public class WithdrawalService(IEfUnitOfWork unitOfWork, IMapper mapper) : IWith
 
         if (withdrawal.Status != WithdrawalStatus.Pending && withdrawal.Status != WithdrawalStatus.Approved)
         {
-            return Result.Failure("Yêu cầu rút tiền này đã được xử lý trước đó và không còn ở trạng thái chờ duyệt.", EErrorCode.ValidationErrors);
+            return Result.Failure("Yêu cầu rút tiền này đã được hoàn tất hoặc từ chối trước đó.", EErrorCode.ValidationErrors);
         }
 
-        // Cập nhật trạng thái
+        // Cập nhật trạng thái và thông tin chuyển khoản thực tế
         withdrawal.Status = WithdrawalStatus.Completed;
+        withdrawal.AdminNote = request.AdminNote?.Trim();
+        withdrawal.ProofImageUrl = request.ProofImageUrl?.Trim();
         withdrawal.ProcessedAt = DateTime.UtcNow;
         withdrawal.ProcessedByAdminId = adminId;
         _withdrawalRepository.Update(withdrawal);
@@ -147,9 +172,10 @@ public class WithdrawalService(IEfUnitOfWork unitOfWork, IMapper mapper) : IWith
             return Result.Failure("Yêu cầu rút tiền không tồn tại.", EErrorCode.NotFound);
         }
 
-        if (withdrawal.Status != WithdrawalStatus.Pending)
+        // Hỗ trợ từ chối khi trạng thái đang là Pending hoặc Approved theo nghiệp vụ mới
+        if (withdrawal.Status != WithdrawalStatus.Pending && withdrawal.Status != WithdrawalStatus.Approved)
         {
-            return Result.Failure("Chỉ có thể từ chối các yêu cầu rút tiền đang ở trạng thái chờ duyệt.", EErrorCode.ValidationErrors);
+            return Result.Failure("Chỉ có thể từ chối các yêu cầu rút tiền đang chờ duyệt hoặc đã duyệt chờ thanh toán.", EErrorCode.ValidationErrors);
         }
 
         var wallet = await _walletRepository.GetByIdAsync(withdrawal.WalletId);
@@ -158,7 +184,7 @@ public class WithdrawalService(IEfUnitOfWork unitOfWork, IMapper mapper) : IWith
             return Result.Failure("Ví điện tử của người dùng không tồn tại.", EErrorCode.NotFound);
         }
 
-        // 1. Cập nhật trạng thái
+        // 1. Cập nhật trạng thái sang Rejected
         withdrawal.Status = WithdrawalStatus.Rejected;
         withdrawal.AdminNote = request.AdminNote.Trim();
         withdrawal.ProcessedAt = DateTime.UtcNow;

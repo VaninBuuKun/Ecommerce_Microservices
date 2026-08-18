@@ -30,9 +30,28 @@ public class AuthController(IHttpClientFactory httpClientFactory) : ControllerBa
 
         if (!respone.IsSuccessStatusCode)
         {
-            return BadRequest("Thông tin đăng nhập không hợp lệ");
+            var errorContent = await respone.Content.ReadAsStringAsync();
+
+            // 1. Kiểm tra LỖI BỊ VÔ HIỆU HÓA BỞI ADMIN
+            if (errorContent.Contains("account_disabled") || errorContent.Contains("disabled"))
+            {
+                return BadRequest("Tài khoản của bạn đã bị quản trị viên khóa/vô hiệu hóa. Vui lòng liên hệ hỗ trợ!");
+            }
+
+            // 2. Kiểm tra LỖI BỊ KHÓA TẠM THỜI DO NHẬP SAI NHIỀU LẦN
+            if (errorContent.Contains("account_locked") || errorContent.Contains("locked") || errorContent.Contains("lockout"))
+            {
+                return BadRequest("Tài khoản đã bị tạm khóa 5 phút do nhập sai mật khẩu nhiều lần!");
+            }
+
+            // 3. Kiểm tra LỖI SAI TÀI KHOẢN / MẬT KHẨU (Trả về thông tin tài khoản và mật khẩu không chính xác)
+            if (errorContent.Contains("invalid_credentials") || errorContent.Contains("invalid_grant"))
+            {
+                return BadRequest("Thông tin tài khoản và mật khẩu không chính xác!");
+            }
+
+            return BadRequest("Thông tin tài khoản và mật khẩu không chính xác!");
         }
-        
         var tokenResponse = await respone.Content.ReadFromJsonAsync<TokenResponse>();
         
         Response.Cookies.Append("refresh_token", tokenResponse.RefreshToken ,new CookieOptions

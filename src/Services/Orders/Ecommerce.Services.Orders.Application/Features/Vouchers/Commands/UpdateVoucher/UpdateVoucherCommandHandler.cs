@@ -66,6 +66,11 @@ public class UpdateVoucherCommandHandler(
             if (req.IsActive.HasValue)
                 voucher.IsActive = req.IsActive.Value;
 
+            if (req.MaxDiscountAmount.HasValue)
+                voucher.MaxDiscountAmount = req.MaxDiscountAmount.Value;
+            
+            voucher.DiscountType = req.DiscountType; // DiscountType không nullable, luôn patch
+
             // Validate date nếu có thay đổi
             var effectiveStart = req.StartDate ?? voucher.StartDate;
             var effectiveEnd   = req.EndDate   ?? voucher.EndDate;

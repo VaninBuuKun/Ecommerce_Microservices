@@ -79,6 +79,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Docs", "Docs", "{3AEEC034-B
 		Docs\masstransit_saga_guide.md = Docs\masstransit_saga_guide.md
 		Docs\refund.txt = Docs\refund.txt
 		Docs\sql.txt = Docs\sql.txt
+		Docs\project.md = Docs\project.md
 	EndProjectSection
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "QueryDb", "QueryDb", "{9D57CF15-9990-498E-87D2-C313CD4FBCCB}"

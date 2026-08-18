@@ -32,7 +32,9 @@ public class CreateOrderCommandHandler(
     IEventPublisher publisher,
     ILogger<CreateOrderCommandHandler> logger,
     IMapper mapper,
-    ICacheService cacheService)
+    ICacheService cacheService,
+    IVoucherValidationService voucherValidationService,
+    IVoucherRepository voucherRepository)
     : CommandHandler<CreateOrderCommand, CustomerOrderResponse>
 {
     protected override async Task<Result<CustomerOrderResponse>> HandleCommandAsync(CreateOrderCommand command, CancellationToken cancellationToken)
@@ -136,12 +138,35 @@ public class CreateOrderCommandHandler(
                     logger.LogWarning("Số lượng mặt hàng {VariantId} khác biệt so với CheckoutSession {SessionId}", cartItem.VariantId, command.CheckoutSessionId);
                     return Result<CustomerOrderResponse>.Failure("Số lượng sản phẩm trong giỏ hàng đã thay đổi. Vui lòng tính toán lại tổng tiền.", EErrorCode.InvalidInput);
                 }
-                if (sessionItem.UnitPrice != cartItem.UnitPrice)
+                if (sessionItem.UnitPrice != cartItem.DiscountPrice)
                 {
-                    logger.LogWarning("Đơn giá mặt hàng {VariantId} khác biệt so với CheckoutSession {SessionId}", cartItem.VariantId, command.CheckoutSessionId);
+                    logger.LogWarning("Đơn giá mặt hàng {VariantId} ({SessionPrice}) khác biệt so với giỏ hàng thực tế ({CartPrice}) trong CheckoutSession {SessionId}", cartItem.VariantId, sessionItem.UnitPrice, cartItem.DiscountPrice, command.CheckoutSessionId);
                     return Result<CustomerOrderResponse>.Failure("Giá sản phẩm trong giỏ hàng đã thay đổi. Vui lòng tính toán lại tổng tiền.", EErrorCode.InvalidInput);
                 }
             }
+
+            // --- RE-VALIDATE VOUCHERS ON ACTUAL ORDER PLACEMENT ---
+            decimal subTotal = selectedItems.Sum(x => x.DiscountPrice * x.Quantity);
+            var shopSubTotals = selectedItems
+                .GroupBy(x => x.ShopId)
+                .ToDictionary(g => g.Key, g => g.Sum(x => x.DiscountPrice * x.Quantity));
+
+            var voucherValidationResult = await voucherValidationService.ValidateVouchersAsync(
+                customerId,
+                subTotal,
+                shopSubTotals,
+                checkoutSession.PlatformVoucherCode,
+                checkoutSession.ShopVoucherCodes,
+                cancellationToken
+            );
+
+            if (!voucherValidationResult.IsSuccess)
+            {
+                logger.LogWarning("Xác thực voucher thất bại lúc tạo đơn cho khách hàng {CustomerId}: {Message}", customerId, voucherValidationResult.Message);
+                return Result<CustomerOrderResponse>.Failure(voucherValidationResult.Message, voucherValidationResult.ErrorCode);
+            }
+
+            var validationData = voucherValidationResult.Value;
 
             var reserveItems = selectedItems.Select
                 (x => new ReserveStockItemDto(x.VariantId, x.Quantity)).ToList();
@@ -159,10 +184,15 @@ public class CreateOrderCommandHandler(
             }
 
             var orderId = Guid.NewGuid();
-            
+            var allVoucherIds = new List<Guid>();
+            if (validationData.PlatformVoucher != null)
+                allVoucherIds.Add(validationData.PlatformVoucher.Id);
+            allVoucherIds.AddRange(validationData.ShopVouchers.Values.Select(v => v.Id));
+
             try
             {
                 var orderRepo = unitOfWork.Repository<Order, Guid>();
+                var voucherUsageRepo = unitOfWork.Repository<VoucherUsage, Guid>();
                 
                 bool isOnlinePayment = command.PaymentProvider != "cod";
                 
@@ -172,10 +202,10 @@ public class CreateOrderCommandHandler(
                 };
                 orderRepo.Add(order);
 
-                // Dựng đơn hàng trực tiếp bằng thông tin giỏ hàng chi tiết
+                // Dựng đơn hàng trực tiếp bằng thông tin giỏ hàng chi tiết (dùng giá sau chiết khấu của sản phẩm)
                 foreach (var item in selectedItems)
                 {
-                    order.AddOrderItem(item.ShopId, item.VariantId, item.ProductName, item.VariantName, item.UnitPrice, item.Quantity, item.ThumbnailUrl);
+                    order.AddOrderItem(item.ShopId, item.ProductId, item.VariantId, item.ProductName, item.VariantName, item.DiscountPrice, item.Quantity, item.ThumbnailUrl);
                 }
 
                 // Áp đặt phí vận chuyển đã đóng băng trong CheckoutSession cho từng Shop
@@ -183,13 +213,96 @@ public class CreateOrderCommandHandler(
                 {
                     order.SetShippingFee(shopShipping.Key, shopShipping.Value);
                 }
+
+                // ============================================================
+                // Áp đặt giảm giá voucher và ghi nhận VoucherId vào SubOrder
+                // ============================================================
+                var now = DateTimeOffset.UtcNow;
+
+                // --- Atomic Increment UsageCount (TRƯỚC SaveChanges) ---
+                // Chỉ cần 1 câu lệnh SQL duy nhất cập nhật toàn bộ danh sách voucher
+
+                if (allVoucherIds.Count > 0)
+                {
+                    var ok = await voucherRepository.TryIncrementUsagesAsync(allVoucherIds, cancellationToken);
+                    if (!ok)
+                    {
+                        logger.LogWarning("Có voucher trong đơn hàng đã hết lượt sử dụng — compensate stock.");
+                        await CompensateStockRelease(orderId, reserveItems, cancellationToken);
+                        return Result<CustomerOrderResponse>.Failure(
+                            "Một trong số các voucher áp dụng đã hết lượt sử dụng, vui lòng đặt hàng lại.", EErrorCode.InvalidInput);
+                    }
+                }
+
+                // --- Áp discount & gán VoucherId vào từng SubOrder ---
+                foreach (var shopId in shopSubTotals.Keys)
+                {
+                    validationData.ShopDiscounts.TryGetValue(shopId, out var sellerDiscount);
+
+                    decimal shopSub = shopSubTotals[shopId];
+                    decimal platformDiscountForShop = subTotal > 0
+                        ? Math.Round(validationData.PlatformDiscount * (shopSub / subTotal), 2)
+                        : 0;
+
+                    order.ApplyDiscounts(shopId, (long)sellerDiscount, (long)platformDiscountForShop);
+
+                    // Gán VoucherId vào SubOrder để phục vụ rollback khi hủy đơn
+                    validationData.ShopVouchers.TryGetValue(shopId, out var shopVoucher);
+                    order.ApplyVoucherIds(
+                        shopId,
+                        shopVoucher?.Id,
+                        validationData.PlatformVoucher?.Id);
+                }
+
+                // --- Ghi VoucherUsage (batch, không query lại entity) ---
+                if (validationData.PlatformVoucher != null)
+                {
+                    var totalPlatformDiscount = validationData.PlatformDiscount;
+                    foreach (var subOrder in order.GetSubOrders())
+                    {
+                        decimal shopSub = shopSubTotals.TryGetValue(subOrder.ShopId, out var s) ? s : 0;
+                        decimal portionDiscount = subTotal > 0
+                            ? Math.Round(totalPlatformDiscount * (shopSub / subTotal), 2)
+                            : 0;
+
+                        voucherUsageRepo.Add(new VoucherUsage
+                        {
+                            Id = Guid.NewGuid(),
+                            VoucherId = validationData.PlatformVoucher.Id,
+                            UserId = customerId,
+                            OrderId = order.Id,
+                            SubOrderId = subOrder.Id,
+                            DiscountAmount = portionDiscount,
+                            UsedAt = now
+                        });
+                    }
+                }
+
+                foreach (var (shopId, shopVoucher) in validationData.ShopVouchers)
+                {
+                    var subOrder = order.GetSubOrders().FirstOrDefault(s => s.ShopId == shopId);
+                    if (subOrder == null) continue;
+
+                    validationData.ShopDiscounts.TryGetValue(shopId, out var shopDiscountAmount);
+                    voucherUsageRepo.Add(new VoucherUsage
+                    {
+                        Id = Guid.NewGuid(),
+                        VoucherId = shopVoucher.Id,
+                        UserId = customerId,
+                        OrderId = order.Id,
+                        SubOrderId = subOrder.Id,
+                        DiscountAmount = shopDiscountAmount,
+                        UsedAt = now
+                    });
+                }
                 
                 // Gọi gRPC Payment Service
                 var paymentResult = await paymentService.CreatePaymentAsync(order.Id, order.GrandTotal, command.PaymentProvider, cancellationToken);
                 if (!paymentResult.IsSuccess)
                 {
-                    logger.LogWarning("Không thể tạo liên kết thanh toán cho đơn hàng {OrderId}. Tiến hành giải phóng tồn kho...", orderId);
+                    logger.LogWarning("Không thể tạo liên kết thanh toán cho đơn hàng {OrderId}. Tiến hành giải phóng tồn kho và hoàn trả voucher...", orderId);
                     await CompensateStockRelease(orderId, reserveItems, cancellationToken);
+                    await CompensateVouchersRelease(allVoucherIds, cancellationToken);
                     return Result<CustomerOrderResponse>.Failure(paymentResult);
                 }
                 
@@ -243,8 +356,9 @@ public class CreateOrderCommandHandler(
             }
             catch (Exception ex)
             {
-                logger.LogError(ex, "Có lỗi xảy ra trong quá trình xử lý đơn hàng {OrderId} sau khi khóa tồn kho. Tiến hành giải phóng lại tồn kho...", orderId);
+                logger.LogError(ex, "Có lỗi xảy ra trong quá trình xử lý đơn hàng {OrderId} sau khi khóa tồn kho. Tiến hành giải phóng tồn kho và hoàn trả voucher...", orderId);
                 await CompensateStockRelease(orderId, reserveItems, cancellationToken);
+                await CompensateVouchersRelease(allVoucherIds, cancellationToken);
                 throw;
             }
         }
@@ -252,6 +366,20 @@ public class CreateOrderCommandHandler(
         {
             logger.LogError(ex, "Có lỗi xảy ra trong quá trình tạo đơn hàng cho khách hàng: {CustomerId}", customerId);
             return Result<CustomerOrderResponse>.Failure("Có lỗi xảy ra trong quá trình xử lý đơn hàng", EErrorCode.InternalServerError);
+        }
+    }
+
+    private async Task CompensateVouchersRelease(List<Guid> voucherIds, CancellationToken cancellationToken)
+    {
+        if (voucherIds == null || voucherIds.Count == 0) return;
+        try
+        {
+            logger.LogInformation("Compensate: Đang hoàn trả lượt dùng cho các voucher: {VoucherIds}", string.Join(", ", voucherIds));
+            await voucherRepository.DecrementUsagesAsync(voucherIds, cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Lỗi xảy ra trong quá trình compensate voucher.");
         }
     }
 

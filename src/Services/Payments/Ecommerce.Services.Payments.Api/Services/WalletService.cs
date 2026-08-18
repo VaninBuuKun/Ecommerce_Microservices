@@ -19,6 +19,37 @@ public class WalletService(IEfUnitOfWork unitOfWork, IMapper mapper) : IWalletSe
     private readonly IGenericEfRepository<BankAccount, Guid> _bankAccountRepository = unitOfWork.Repository<BankAccount, Guid>();
     private readonly IGenericEfRepository<WalletTransaction, Guid> _transactionRepository = unitOfWork.Repository<WalletTransaction, Guid>();
 
+    private static readonly HashSet<string> AllowedBanks = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "Vietcombank", "Techcombank", "MB Bank", "ACB", "BIDV", 
+        "VietinBank", "Agribank", "Sacombank", "VPBank", "TPBank", "VIB", "HDBank"
+    };
+
+    private static Result ValidateBankRequest(string bankName, string accountNumber, string accountHolder)
+    {
+        if (string.IsNullOrWhiteSpace(bankName) || string.IsNullOrWhiteSpace(accountNumber) || string.IsNullOrWhiteSpace(accountHolder))
+        {
+            return Result.Failure("Thông tin tài khoản ngân hàng liên kết không được để trống.", EErrorCode.ValidationErrors);
+        }
+
+        if (!AllowedBanks.Contains(bankName.Trim()))
+        {
+            return Result.Failure($"Ngân hàng '{bankName}' không nằm trong danh sách hỗ trợ của hệ thống.", EErrorCode.ValidationErrors);
+        }
+
+        if (!System.Text.RegularExpressions.Regex.IsMatch(accountHolder.Trim().ToUpper(), @"^[A-Z0-9 ]+$"))
+        {
+            return Result.Failure("Tên chủ tài khoản phải viết hoa không dấu và không chứa ký tự đặc biệt (ví dụ: NGUYEN VAN A).", EErrorCode.ValidationErrors);
+        }
+
+        if (!System.Text.RegularExpressions.Regex.IsMatch(accountNumber.Trim(), @"^[0-9]{8,15}$"))
+        {
+            return Result.Failure("Số tài khoản ngân hàng phải là chuỗi số có độ dài từ 8 đến 15 chữ số.", EErrorCode.ValidationErrors);
+        }
+
+        return Result.Success();
+    }
+
     public async Task<Result<WalletDto>> ActivateWallet(long userId, ActivateWalletRequest request)
     {
         var existingWallet = await _walletRepository.FirstOrDefaultAsync(w => w.UserId == userId);
@@ -27,11 +58,10 @@ public class WalletService(IEfUnitOfWork unitOfWork, IMapper mapper) : IWalletSe
             return Result<WalletDto>.Failure("Ví điện tử của bạn đã được kích hoạt trước đó.", EErrorCode.RecordAlreadyExists);
         }
 
-        if (string.IsNullOrWhiteSpace(request.BankName) || 
-            string.IsNullOrWhiteSpace(request.BankAccountNumber) || 
-            string.IsNullOrWhiteSpace(request.BankAccountHolder))
+        var validationResult = ValidateBankRequest(request.BankName, request.BankAccountNumber, request.BankAccountHolder);
+        if (!validationResult.IsSuccess)
         {
-            return Result<WalletDto>.Failure("Thông tin tài khoản ngân hàng liên kết không được để trống.", EErrorCode.ValidationErrors);
+            return Result<WalletDto>.Failure(validationResult.Message, EErrorCode.ValidationErrors);
         }
 
         var wallet = new Wallet
@@ -79,11 +109,10 @@ public class WalletService(IEfUnitOfWork unitOfWork, IMapper mapper) : IWalletSe
             return Result<BankAccountDto>.Failure("Ví điện tử chưa được kích hoạt. Vui lòng kích hoạt ví trước.", EErrorCode.NotFound);
         }
 
-        if (string.IsNullOrWhiteSpace(request.BankName) || 
-            string.IsNullOrWhiteSpace(request.BankAccountNumber) || 
-            string.IsNullOrWhiteSpace(request.BankAccountHolder))
+        var validationResult = ValidateBankRequest(request.BankName, request.BankAccountNumber, request.BankAccountHolder);
+        if (!validationResult.IsSuccess)
         {
-            return Result<BankAccountDto>.Failure("Thông tin tài khoản ngân hàng không hợp lệ.", EErrorCode.ValidationErrors);
+            return Result<BankAccountDto>.Failure(validationResult.Message, EErrorCode.ValidationErrors);
         }
 
         if (request.IsDefault)
@@ -140,11 +169,10 @@ public class WalletService(IEfUnitOfWork unitOfWork, IMapper mapper) : IWalletSe
             return Result<BankAccountDto>.Failure("Tài khoản ngân hàng không tồn tại hoặc không thuộc ví của bạn.", EErrorCode.NotFound);
         }
 
-        if (string.IsNullOrWhiteSpace(request.BankName) || 
-            string.IsNullOrWhiteSpace(request.BankAccountNumber) || 
-            string.IsNullOrWhiteSpace(request.BankAccountHolder))
+        var validationResult = ValidateBankRequest(request.BankName, request.BankAccountNumber, request.BankAccountHolder);
+        if (!validationResult.IsSuccess)
         {
-            return Result<BankAccountDto>.Failure("Thông tin tài khoản ngân hàng không hợp lệ.", EErrorCode.ValidationErrors);
+            return Result<BankAccountDto>.Failure(validationResult.Message, EErrorCode.ValidationErrors);
         }
 
         if (request.IsDefault && !bankAccount.IsDefault)
@@ -304,5 +332,26 @@ public class WalletService(IEfUnitOfWork unitOfWork, IMapper mapper) : IWalletSe
 
         await unitOfWork.SaveChangesAsync();
         return Result.Success();
+    }
+
+    public async Task<Result<List<WalletTransactionDto>>> GetAllTransactions()
+    {
+        var transactions = await _transactionRepository.GetAllAsync();
+        var orderedTransactions = transactions.OrderByDescending(t => t.CreatedDate).ToList();
+
+        var dtos = orderedTransactions.Select(t => new WalletTransactionDto
+        {
+            Id = t.Id,
+            WalletId = t.WalletId,
+            Amount = t.Amount,
+            Type = t.Type.ToString(),
+            Reason = t.Reason.ToString(),
+            BalanceAfter = t.BalanceAfter,
+            ReferenceId = t.ReferenceId,
+            Description = t.Description,
+            CreatedDate = t.CreatedDate
+        }).ToList();
+
+        return Result<List<WalletTransactionDto>>.Success(dtos);
     }
 }

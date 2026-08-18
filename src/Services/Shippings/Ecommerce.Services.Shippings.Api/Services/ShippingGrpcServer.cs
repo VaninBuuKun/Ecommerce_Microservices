@@ -1,40 +1,30 @@
+using System.Linq;
 using System.Threading.Tasks;
-using Grpc.Core;
 using BuildingBlocks.Grpc.Services;
-using Ecommerce.Services.Shippings.Api.Persistances;
-using Microsoft.EntityFrameworkCore;
+using Ecommerce.Services.Shippings.Api.Features.Queries.CalculateBatchShippingFee;
+using Ecommerce.Services.Shippings.Api.Features.Queries.GetLocationNames;
+using Grpc.Core;
+using MediatR;
 using Microsoft.Extensions.Logging;
 
 namespace Ecommerce.Services.Shippings.Api.Services;
 
 public class ShippingGrpcServer(
-    ShippingDbContext dbContext, 
-    GhnShippingProvider ghnShippingProvider,
+    ISender sender,
     ILogger<ShippingGrpcServer> logger) : ShippingGrpc.ShippingGrpcBase
 {
     public override async Task<GetLocationNamesResponse> GetLocationNames(GetLocationNamesRequest request, ServerCallContext context)
     {
         logger.LogInformation("gRPC Request to resolve locations: ProvinceId: {ProvinceId}, DistrictId: {DistrictId}, WardCode: {WardCode}", 
             request.ProvinceId, request.DistrictId, request.WardId);
-        
 
-        var locationInfo = await dbContext.Wards
-            .Include(w => w.District)
-                .ThenInclude(d => d.Province)
-            .Where(w => w.Id == request.WardId 
-                     && w.DistrictId == request.DistrictId 
-                     && w.District.ProvinceId == request.ProvinceId)
-            .Select(w => new
-            {
-                ProvinceName = w.District.Province.DisplayName ?? w.District.Province.Name,
-                DistrictName = w.District.DisplayName ?? w.District.Name,
-                WardName = w.DisplayName ?? w.Name
-            })
-            .FirstOrDefaultAsync(cancellationToken: context.CancellationToken);
+        var result = await sender.Send(
+            new GetLocationNamesQuery(request.ProvinceId, request.DistrictId, request.WardId), 
+            context.CancellationToken);
 
-        if (locationInfo == null)
+        if (!result.IsSuccess || result.Value == null)
         {
-            logger.LogWarning("Failed to resolve location entities with single join query: ProvinceId: {P}, DistrictId: {D}, WardCode: {W}", 
+            logger.LogWarning("Failed to resolve location entities: ProvinceId: {P}, DistrictId: {D}, WardCode: {W}", 
                 request.ProvinceId, request.DistrictId, request.WardId);
                 
             return new GetLocationNamesResponse
@@ -46,12 +36,13 @@ public class ShippingGrpcServer(
             };
         }
 
+        var loc = result.Value;
         return new GetLocationNamesResponse
         {
             IsValid = true,
-            ProvinceName = locationInfo.ProvinceName,
-            DistrictName = locationInfo.DistrictName,
-            WardName = locationInfo.WardName
+            ProvinceName = loc.ProvinceName,
+            DistrictName = loc.DistrictName,
+            WardName = loc.WardName
         };
     }
 
@@ -59,16 +50,18 @@ public class ShippingGrpcServer(
     {
         logger.LogInformation("gRPC Request to calculate batch fee for {Count} requests", request.Requests.Count);
 
-        var providerRequests = request.Requests.Select(req => new CalculateFeeRequest(
+        var items = request.Requests.Select(req => new BatchFeeItemRequest(
+            req.ShopId,
             req.SenderWardId,
-            request.RecipientWardId,
-            req.Weight,
-            req.Length,
-            req.Width,
-            req.Height
+            (int)req.Weight,
+            (int)req.Length,
+            (int)req.Width,
+            (int)req.Height
         )).ToList();
 
-        var batchResult = await ghnShippingProvider.CalculateBatchFeeAsync(providerRequests, context.CancellationToken);
+        var batchResult = await sender.Send(
+            new CalculateBatchShippingFeeQuery(request.RecipientWardId, items), 
+            context.CancellationToken);
 
         var response = new CalculateBatchFeeGrpcResponse();
 

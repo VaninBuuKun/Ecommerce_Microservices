@@ -17,4 +17,5 @@ public interface IWalletService
     Task<Result> ProcessRefundAsync(long customerId, System.Guid refundRequestId, decimal amount, Ecommerce.Services.Payments.Api.Models.Enums.TransactionReason reason, string description);
     Task<Result> DebitWalletAsync(long userId, Guid referenceId, decimal amount, TransactionReason reason, string description);
     Task<Result> CreditWalletAsync(long userId, Guid referenceId, decimal amount, TransactionReason reason, string description);
+    Task<Result<List<WalletTransactionDto>>> GetAllTransactions();
 }

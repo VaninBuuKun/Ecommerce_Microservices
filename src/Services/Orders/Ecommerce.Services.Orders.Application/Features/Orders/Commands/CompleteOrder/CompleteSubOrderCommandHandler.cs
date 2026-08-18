@@ -34,8 +34,7 @@ public class CompleteSubOrderCommandHandler(
             {
                 return Result.Failure("Đơn hàng không thuộc quyền sở hữu của bạn", EErrorCode.Forbidden);
             }
-
-            // Chỉ cho phép hoàn thành khi đơn hàng đang ở trạng thái Delivered (hoặc Shipping/Processing tùy theo nghiệp vụ, nhưng hợp lý nhất là Delivered)
+            
             if (subOrder.Status != SubOrderStatus.Delivered)
             {
                 return Result.Failure($"Không thể hoàn tất đơn hàng khi chưa được giao (Trạng thái hiện tại: {subOrder.Status})", EErrorCode.InvalidInput);
@@ -43,13 +42,6 @@ public class CompleteSubOrderCommandHandler(
 
             subOrder.UpdateSubOrderStatus(SubOrderStatus.Completed);
             subOrderRepo.Update(subOrder);
-
-            // Bắn event thông báo trạng thái thay đổi sang Completed
-            await publisher.PublishAsync(new SubOrderStatusChangedEvent
-            {
-                SubOrderId = subOrder.Id,
-                Status = SubOrderStatus.Completed.ToString()
-            }, cancellationToken);
 
             await unitOfWork.SaveChangesAsync(cancellationToken);
 

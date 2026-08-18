@@ -38,6 +38,7 @@ public class CartGrpcServer(ISender sender, IMapper mapper) : CartGrpc.CartGrpcB
                         ProductName = item.ProductName,
                         VariantName = item.VariantName,
                         UnitPrice = item.UnitPrice.ToString(),
+                        DiscountPrice = item.DiscountPrice.ToString(),
                         ShopId = item.ShopId,
                         AvailableStocks = item.AvailableStocks,
                         ThumbnailUrl = item.ThumbnailUrl

@@ -1,3 +1,5 @@
+using System.Reflection;
+using BuildingBlocks.Application;
 using BuildingBlocks.Logging.OTLPSerilog;
 using Ecommerce.Services.Identity.Api.Configurations;
 using Ecommerce.Services.Identity.Api.Services;
@@ -21,6 +23,8 @@ try
         options.Cookie.SameSite = SameSiteMode.Lax;
         options.Cookie.SecurePolicy = CookieSecurePolicy.SameAsRequest; // Tự động nhận diện HTTP hoặc HTTPS
     });
+
+    builder.Services.AddBuildingBlocksApplication(Assembly.GetExecutingAssembly());
     
     builder.Services.AddEndpointsApiExplorer();
     builder.Services.AddInfrastructureConfiguration(builder.Configuration);

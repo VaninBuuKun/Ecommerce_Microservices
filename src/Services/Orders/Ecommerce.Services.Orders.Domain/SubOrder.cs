@@ -15,6 +15,10 @@ public class SubOrder : EntityTrackingBase<Guid>
     public long PlatformDiscount { get; private set; } //Theo sàn
     public long GrandTotal { get; private set; }
     
+    // Truy vết voucher đã áp dụng để hỗ trợ rollback khi hủy đơn
+    public Guid? ShopVoucherId { get; private set; }
+    public Guid? PlatformVoucherId { get; private set; }
+    
     public SubOrderStatus Status { get; private set; }
     public bool IsOnlinePayment { get; private set; }
     public ICollection<SubOrderItem> SubOrderItems { get; set; } = new List<SubOrderItem>();
@@ -56,6 +60,24 @@ public class SubOrder : EntityTrackingBase<Guid>
     {
         ShippingFee = shippingFee;
         CalculateGrandTotal();
+    }
+
+    public void SetDiscounts(long sellerDiscount, long platformDiscount)
+    {
+        SellerDiscount = sellerDiscount;
+        PlatformDiscount = platformDiscount;
+        CalculateGrandTotal();
+    }
+
+    /// <summary>
+    /// Gắn ID voucher đã áp dụng vào SubOrder để hỗ trợ rollback khi hủy đơn.
+    /// </summary>
+    public void ApplyVouchers(Guid? shopVoucherId, Guid? platformVoucherId)
+    {
+        if (shopVoucherId.HasValue)
+            ShopVoucherId = shopVoucherId;
+        if (platformVoucherId.HasValue)
+            PlatformVoucherId = platformVoucherId;
     }
 
     // ========== Status Transition Rules ==========

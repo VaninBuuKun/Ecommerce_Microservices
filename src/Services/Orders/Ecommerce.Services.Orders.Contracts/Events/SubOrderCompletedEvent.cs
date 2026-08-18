@@ -7,5 +7,13 @@ public class SubOrderCompletedEvent : IIntegrationEvent
 {
     public Guid SubOrderId { get; init; }
     public long ShopId { get; init; }
-    public decimal TotalAmount { get; init; }
+    /// <summary>Tổng giá trị đơn hàng phụ (đơn vị VND).</summary>
+    public long TotalAmount { get; init; }
+    /// <summary>
+    /// Phần sàn tự bỏ ra giảm giá (Platform Voucher). 
+    /// Doanh thu thực tế người bán nhận = TotalAmount - PlatformDiscount.
+    /// </summary>
+    public long PlatformDiscount { get; init; }
 }
+
+

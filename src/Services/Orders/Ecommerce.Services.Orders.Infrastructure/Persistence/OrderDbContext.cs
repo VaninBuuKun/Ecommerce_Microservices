@@ -16,6 +16,8 @@ public class OrderDbContext(DbContextOptions<OrderDbContext> options, IInMemoryB
     public DbSet<SubOrderItem> OrderItems { get; set; }
     public DbSet<ShippingAddress> ShippingAddresses { get; set; }
     public DbSet<RefundRequest> RefundRequests { get; set; }
+    public DbSet<Voucher> Vouchers { get; set; }
+    public DbSet<VoucherUsage> VoucherUsages { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -55,7 +57,7 @@ public class OrderDbContext(DbContextOptions<OrderDbContext> options, IInMemoryB
         modelBuilder.Entity<SubOrder>(entity =>
         {
             entity.HasKey(s => s.Id);
-            entity.Property(s => s.Status).HasConversion<int>();
+            entity.Property(s => s.Status).HasConversion<string>();
             
             entity.Property(s => s.SubTotal).HasColumnType("bigint");
             entity.Property(s => s.ShippingFee).HasColumnType("bigint");
@@ -94,12 +96,31 @@ public class OrderDbContext(DbContextOptions<OrderDbContext> options, IInMemoryB
             entity.Property(r => r.RefundAmount).HasColumnType("decimal(18,2)");
             entity.Property(r => r.Reason).IsRequired().HasMaxLength(1000);
             entity.Property(r => r.SellerNote).HasMaxLength(1000);
-            entity.Property(r => r.Status).HasConversion<int>();
+            entity.Property(r => r.Status).HasConversion<string>();
+            entity.Property(r => r.Medias);
 
             entity.HasOne(r => r.SubOrder)
                   .WithMany()
                   .HasForeignKey(r => r.SubOrderId)
                   .OnDelete(DeleteBehavior.Cascade);
+        });
+        
+        modelBuilder.Entity<Voucher>(entity =>
+        {
+            entity.HasKey(v => v.Id);
+            entity.Property(v => v.Code).IsRequired().HasMaxLength(50);
+            entity.Property(v => v.DiscountValue).HasColumnType("decimal(18,2)"); // Hoặc bigint tùy thuộc kiểu dữ liệu trong Entity của bạn
+            entity.Property(v => v.MaxDiscountAmount).HasColumnType("decimal(18,2)");
+        });
+
+        modelBuilder.Entity<VoucherUsage>(entity =>
+        {
+            entity.HasKey(vu => vu.Id);
+            
+            entity.HasOne(vu => vu.Voucher)
+                .WithMany()
+                .HasForeignKey(vu => vu.VoucherId)
+                .OnDelete(DeleteBehavior.Cascade);
         });
     }
 }
