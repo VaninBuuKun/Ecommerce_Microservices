@@ -35,10 +35,13 @@ Welcome AI Agent! You are working on **Ecommerce Microservices**, an enterprise-
   - All Status enums in `DbContext` configuration MUST be stored as `string` using `.HasConversion<string>()`.
   - Never map enums to integer ordinals in DB.
 
-### 2. Frontend (React 19 + TypeScript + TanStack Query + Tailwind CSS v4)
+### 2. Frontend (React 19 + TypeScript + ACO Architecture + Tailwind CSS v4)
 - **Fixed Tech Stack**: React 19, TS 5.x, Vite 8, Tailwind CSS v4, TanStack Query v5, Zustand v5, React Hook Form + Zod, Axios, Framer Motion, Radix UI Primitives, React Toastify.
-- **Feature-Driven Architecture**: Code MUST be organized inside `src/features/[featureName]/` (`components/`, `hooks/`, `services/`, `types/`).
-- **Domain Isolation (NO Cross-Feature Coupling)**: A feature (`seller`) MUST NOT import internal hooks from another feature (`order`). Shared domains like `Wallet` or `Addresses` MUST live in `src/features/wallet/` or `src/shared/`.
+- **Apps - Components - Domains (ACO) Architecture**:
+  - `src/apps/`: Page entry points grouped by actor domain (`customer/`, `seller/`, `admin/`, `auth/`).
+  - `src/domains/`: Domain logic grouped by business boundary (`auth/`, `catalog/`, `cart/`, `order/`, `seller/`, `kyc/`, `address/`, `wallet/`, `shipping/`, `admin/`). Contains `api/`, `hooks/`, `stores/`, `types/`, `components/`, and `index.ts`.
+  - `src/shared/`: Cross-cutting UI primitives (`ConfirmModal`, `Header`, `Footer`), utilities, and Axios instances.
+- **Domain Isolation (NO Cross-Feature Coupling)**: Inter-domain imports MUST strictly go through domain index exports (`@/domains/[domainName]`). Never perform relative cross-domain imports.
 - **Error Handling**: Catch errors in `useMutation` via `onError: (err: any) => { const msg = err.response?.data?.message || err.response?.data; }`.
 - **Modal Popups**: All Modal Popups MUST use `createPortal(..., document.body)` with `z-10000` to prevent layout truncation or parent stacking context issues.
 - **Form Validation**: Combine `@hookform/resolvers/zod` with `react-hook-form`. Display inline red text errors with alert icons under inputs.

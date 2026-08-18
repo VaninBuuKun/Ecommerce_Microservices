@@ -24,29 +24,41 @@ All frontend development MUST strictly adhere to the following approved library 
 
 ---
 
-## 🏗️ 2. Feature-Driven Folder Structure
+## 🏗️ 2. Apps - Components - Domains (ACO) Architecture
 
-All features MUST be organized under `src/features/[featureDomain]/`:
+All frontend code MUST be organized into three distinct layers:
 
+```text
+src/
+├── apps/                # Page entry points grouped by actor/role
+│   ├── customer/pages/  # Customer pages (HomePage, CartPage, ProductDetailPage...)
+│   ├── seller/pages/    # Seller center pages (SellerDashboardPage, RegisterShopPage...)
+│   ├── admin/pages/     # Admin dashboard pages (AdminDashboardPage...)
+│   └── auth/pages/      # Auth standalone pages (LoginPage, RegisterPage...)
+│
+├── domains/             # Domain logic isolated by business boundary
+│   ├── [domainName]/    # (auth, catalog, cart, order, seller, kyc, address, wallet, shipping, admin)
+│   │   ├── api/         # Axios API calls
+│   │   ├── hooks/       # Custom TanStack Query / React hooks
+│   │   ├── stores/      # Zustand store (if needed)
+│   │   ├── types/       # TypeScript DTOs & Interfaces
+│   │   ├── components/  # Isolated domain-specific UI components
+│   │   └── index.ts     # Public API barrel export for this domain
+│
+└── shared/              # Cross-cutting UI primitives & utilities
+    ├── components/      # Reusable UI elements (ConfirmModal, Header, Footer, Button)
+    ├── utils/           # Helper utilities (authHelper, formatters)
+    └── lib/             # Global Axios instance & QueryClient setup
 ```
-src/features/[featureName]/
-├── components/          # UI Components isolated to this feature
-├── hooks/               # Custom TanStack Query hooks (e.g., useCheckoutQueries.ts)
-├── services/            # Axios API calls (e.g., checkoutService.ts)
-├── types/               # TypeScript DTOs & Interfaces
-└── stores/              # Feature-specific Zustand store (if needed)
-```
-
-Shared code lives in `src/shared/`:
-- `shared/components/`: Reusable UI elements (Button, Input, Badge, Modal, Loader).
-- `shared/lib/`: Axios instance, QueryClient setup, utility helpers.
-- `shared/types/`: Global DTOs (e.g., `Result<T>`, `Pagination<T>`).
 
 ---
 
 ## 📐 3. Senior Coding Rules & Best Practices
 
-### Rule A: State Management Separation
+### Rule A: Inter-Domain Isolation via Barrel Exports
+- ALL inter-domain imports MUST strictly go through `@/domains/[domainName]`.
+- **Allowed**: `import { AccountInfoTab } from "@/domains/auth";`
+- **Forbidden**: `import { AccountInfoTab } from "@/domains/auth/components/AccountInfoTab";` or legacy `@/features/...`.
 - **Server Data**: ALWAYS managed via `useQuery` / `useMutation`. NEVER sync API responses into `useState` or `Zustand` unless performing local optimism.
 - **Client UI State**: Managed via `Zustand` (e.g., selected cart items, active tab, sidebar state).
 
