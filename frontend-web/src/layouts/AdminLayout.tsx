@@ -11,7 +11,8 @@ import {
 	Ticket,
 	Wallet
 } from "lucide-react";
-import { useAuthStore } from "../features/auth/store";
+import { useAuthStore } from "@/domains/auth";
+
 
 export default function AdminLayout() {
 	const navigate = useNavigate();

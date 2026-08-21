@@ -10,8 +10,9 @@ import {
 	Bell,
 	Heart,
 } from "lucide-react";
-import { useAuthStore, authService } from "../features/auth";
-import { useCartQuery } from "../features/cart/hooks/useCartQuery";
+import { authService, useAuthStore } from "@/domains/auth";
+import { useCartQuery } from "@/domains/cart";
+
 import { checkIsAdmin } from "../shared/utils/authHelper";
 import { useWishlist } from "@/domains/catalog";
 import { useNotifications } from "@/domains/notification";
@@ -221,7 +222,13 @@ export default function Header() {
 																		<span className="text-[10px] text-brand-primary-deep font-black">
 																			{(item.discountPrice > 0 ? item.discountPrice : item.price)?.toLocaleString("vi-VN")}đ
 																		</span>
+																		{item.discountPrice > 0 && item.discountPrice < item.price && (
+																			<span className="text-[9px] text-brand-muted line-through font-mono">
+																				{item.price?.toLocaleString("vi-VN")}đ
+																			</span>
+																		)}
 																	</div>
+
 																</div>
 															</div>
 														))

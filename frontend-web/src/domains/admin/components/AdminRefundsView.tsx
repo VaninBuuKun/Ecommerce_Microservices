@@ -9,7 +9,8 @@ export function AdminRefundsView() {
 	const fetchRefunds = async () => {
 		try {
 			setLoading(true);
-			const response = await api.get("/v1/refunds/my-requests"); 
+			const response = await api.get("/refunds/my-requests"); 
+
 			const items = response.data?.value || response.data || [];
 			setRefunds(items);
 		} catch (err) {

@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import Lightbox from "yet-another-react-lightbox";
 import "yet-another-react-lightbox/styles.css";
 import { Clock, ArrowLeft, Edit3, ZoomIn } from "lucide-react";
@@ -16,9 +16,11 @@ export const KycSubmittedState: React.FC<Props> = ({
 	onBack,
 	onWithdraw,
 }) => {
+	// State quản lý việc đóng/mở Lightbox và chỉ số ảnh đang xem
 	const [lightboxOpen, setLightboxOpen] = useState(false);
 	const [photoIndex, setPhotoIndex] = useState(0);
 
+	// Gom danh sách ảnh KYC vào một mảng
 	const slides = [
 		...(kyc?.identityCardFrontUrl
 			? [{ src: kyc.identityCardFrontUrl }]
@@ -32,14 +34,14 @@ export const KycSubmittedState: React.FC<Props> = ({
 	};
 
 	return (
-		<div className="text-center py-4">
+		<div className="text-center py-4 font-sans text-left">
 			<div className="w-12 h-12 bg-blue-50 rounded-full flex items-center justify-center mx-auto mb-4 border border-blue-200">
 				<Clock className="w-6 h-6 text-blue-500 animate-pulse" />
 			</div>
 			<div className="inline-block px-2.5 py-1 bg-blue-100 text-blue-700 text-[11px] font-bold rounded-full mb-3">
 				Đang chờ xét duyệt
 			</div>
-			<h2 className="text-base font-bold text-brand-dark mb-2">
+			<h2 className="text-base font-bold text-brand-dark mb-2 text-center">
 				Hồ sơ KYC đã được gửi
 			</h2>
 			<p className="text-xs text-brand-muted mb-6 leading-relaxed bg-blue-50/60 border border-blue-100 p-3 rounded-lg text-left">
@@ -47,10 +49,11 @@ export const KycSubmittedState: React.FC<Props> = ({
 				trở thành người bán trên BuuStore.
 			</p>
 
+			{/* Tóm tắt thông tin đã gửi */}
 			<div className="bg-brand-light-soft p-3 rounded-lg border border-brand-border text-left mb-6 text-xs space-y-2">
 				<div className="flex justify-between">
 					<span className="text-brand-muted">Số CMND/CCCD:</span>
-					<span className="font-semibold text-brand-dark">
+					<span className="font-semibold text-brand-dark font-mono">
 						{kyc?.identityCardNumber}
 					</span>
 				</div>
@@ -118,6 +121,7 @@ export const KycSubmittedState: React.FC<Props> = ({
 				</button>
 			</div>
 
+			{/* Lightbox Component */}
 			<Lightbox
 				open={lightboxOpen}
 				close={() => setLightboxOpen(false)}

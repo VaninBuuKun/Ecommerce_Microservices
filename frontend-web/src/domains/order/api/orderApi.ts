@@ -15,13 +15,13 @@ export const orderApi = {
 
 	// Tính toán tiền hàng và phí vận chuyển
 	calculateTotal: async (data: any): Promise<any> => {
-		const response = await api.post("/v1/orders/calculate", data);
+		const response = await api.post("/orders/calculate", data);
 		return response.data;
 	},
 
 	// Thực hiện thanh toán và tạo đơn hàng chính thức
 	checkout: async (data: any): Promise<any> => {
-		const response = await api.post("/v1/orders/checkout", data);
+		const response = await api.post("/orders/checkout", data);
 		return response.data;
 	},
 
@@ -62,18 +62,18 @@ export const orderApi = {
 		if (status && status !== "All") {
 			params.append("status", status);
 		}
-		const response = await api.get(`/v1/orders/shop/${shopId}/suborders?${params.toString()}`);
+		const response = await api.get(`/orders/shop/${shopId}/suborders?${params.toString()}`);
 		return response.data?.value || response.data;
 	},
 
 	// Xác nhận đơn hàng con
 	confirmSubOrder: async (subOrderId: string): Promise<void> => {
-		await api.put(`/v1/orders/suborder/${subOrderId}/confirm`);
+		await api.put(`/orders/suborder/${subOrderId}/confirm`);
 	},
 
 	// Từ chối/hủy đơn hàng con
 	rejectSubOrder: async (subOrderId: string, reason: string): Promise<void> => {
-		await api.put(`/v1/orders/suborder/${subOrderId}/reject?reason=${encodeURIComponent(reason)}`);
+		await api.put(`/orders/suborder/${subOrderId}/reject?reason=${encodeURIComponent(reason)}`);
 	},
 
 	// Báo đóng gói xong
@@ -81,50 +81,50 @@ export const orderApi = {
 		subOrderId: string,
 		dimensions: { weight: number; length: number; width: number; height: number },
 	): Promise<void> => {
-		await api.put(`/v1/orders/suborder/${subOrderId}/package-ready`, dimensions);
+		await api.put(`/orders/suborder/${subOrderId}/package-ready`, dimensions);
 	},
 
 	// Lấy chi tiết đơn hàng con
 	getSubOrderDetail: async (subOrderId: string, isSeller = true): Promise<any> => {
-		const response = await api.get(`/v1/orders/suborder/${subOrderId}/detail?isSeller=${isSeller}`);
+		const response = await api.get(`/orders/suborder/${subOrderId}/detail?isSeller=${isSeller}`);
 		return response.data?.value || response.data;
 	},
 
 	// Lấy danh sách lịch sử mua hàng của khách hàng
 	getCustomerOrders: async (customerId: string): Promise<any[]> => {
-		const response = await api.get(`/v1/orders/customer/${customerId}`);
+		const response = await api.get(`/orders/customer/${customerId}`);
 		return response.data?.value || response.data;
 	},
 
 	// Lấy danh sách yêu cầu hoàn tiền của Shop
 	getShopRefunds: async (shopId: string): Promise<any[]> => {
-		const response = await api.get(`/v1/refunds/shop-requests/${shopId}`);
+		const response = await api.get(`/refunds/shop-requests/${shopId}`);
 		return response.data?.value || response.data;
 	},
 
 	// Chấp nhận yêu cầu hoàn tiền
 	approveRefund: async (id: string, sellerNote?: string): Promise<void> => {
-		await api.put(`/v1/refunds/${id}/approve`, { sellerNote });
+		await api.put(`/refunds/${id}/approve`, { sellerNote });
 	},
 
 	// Từ chối yêu cầu hoàn tiền
 	rejectRefund: async (id: string, sellerNote: string): Promise<void> => {
-		await api.delete(`/v1/refunds/${id}/reject`, { data: { sellerNote } });
+		await api.delete(`/refunds/${id}/reject`, { data: { sellerNote } });
 	},
 
 	// Khách hàng hủy đơn hàng con
 	cancelCustomerSubOrder: async (subOrderId: string, reason: string): Promise<void> => {
-		await api.put(`/v1/orders/suborder/${subOrderId}/cancel?reason=${encodeURIComponent(reason)}`);
+		await api.put(`/orders/suborder/${subOrderId}/cancel?reason=${encodeURIComponent(reason)}`);
 	},
 
 	// Khách hàng xác nhận đã nhận hàng
 	completeSubOrder: async (subOrderId: string): Promise<void> => {
-		await api.put(`/v1/orders/suborder/${subOrderId}/complete`);
+		await api.put(`/orders/suborder/${subOrderId}/complete`);
 	},
 
 	// Khách hàng yêu cầu hoàn tiền
 	createRefund: async (subOrderId: string, reason: string): Promise<any> => {
-		const response = await api.post("/v1/refunds", { subOrderId, reason });
+		const response = await api.post("/refunds", { subOrderId, reason });
 		return response.data;
 	},
 
@@ -166,12 +166,12 @@ export const orderApi = {
 
 	// Lấy danh sách yêu cầu hoàn tiền của khách hàng hiện tại
 	getMyRefunds: async (): Promise<any[]> => {
-		const response = await api.get("/v1/refunds/my-requests");
+		const response = await api.get("/refunds/my-requests");
 		return response.data?.value || response.data;
 	},
 
 	// Hủy/Rút yêu cầu hoàn tiền
 	cancelRefundRequest: async (id: string): Promise<void> => {
-		await api.delete(`/v1/refunds/${id}`);
+		await api.delete(`/refunds/${id}`);
 	},
 };

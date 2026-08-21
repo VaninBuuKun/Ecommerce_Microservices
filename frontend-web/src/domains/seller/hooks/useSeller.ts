@@ -6,6 +6,7 @@ export const sellerQueryKeys = {
   myShops: ["shops", "me"] as const,
   profile: ["seller", "profile"] as const,
   shopDetail: (id: string) => ["shops", id] as const,
+  vouchers: (params: any) => ["vouchers", params] as const,
 };
 
 export function useSellerProfileQuery() {
@@ -55,6 +56,45 @@ export function useUpdateShopMutation() {
       queryClient.invalidateQueries({ queryKey: sellerQueryKeys.myShops });
       queryClient.invalidateQueries({ queryKey: sellerQueryKeys.profile });
       queryClient.invalidateQueries({ queryKey: sellerQueryKeys.shopDetail(variables.id) });
+    },
+  });
+}
+
+export function useSellerVouchersQuery(params: any) {
+  return useQuery({
+    queryKey: sellerQueryKeys.vouchers(params),
+    queryFn: () => sellerApi.getVouchers(params),
+    enabled: Boolean(params?.shopId),
+  });
+}
+
+export function useCreateVoucherMutation() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (payload: any) => sellerApi.createVoucher(payload),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["vouchers"] });
+    },
+  });
+}
+
+export function useUpdateVoucherMutation() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, payload }: { id: string; payload: any }) =>
+      sellerApi.updateVoucher(id, payload),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["vouchers"] });
+    },
+  });
+}
+
+export function useDeleteVoucherMutation() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (voucherId: string) => sellerApi.deleteVoucher(voucherId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["vouchers"] });
     },
   });
 }

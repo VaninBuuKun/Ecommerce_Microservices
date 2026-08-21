@@ -6,10 +6,10 @@ import {
 } from "lucide-react";
 import { Routes, Route, Link, useParams } from "react-router-dom";
 import { useSellerStore, useSellerProfileQuery } from "@/domains/seller";
-import { ProductsView, EditProductPage } from "@/domains/catalog";
+import { EditProductPage, ProductsView } from "@/domains/catalog";
 import { ShopSettingsPage } from "./ShopSettingsPage";
-import { OrdersView, RefundRequestsView } from "@/domains/order";
-import CouponsView from "@/domains/order/components/sellerVoucher/CouponsView";
+import { OrdersView, RefundRequestsView, CouponsView } from "@/domains/order";
+
 
 // View: Tổng quan Dashboard
 function Overview() {

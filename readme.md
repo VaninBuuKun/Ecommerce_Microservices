@@ -65,7 +65,14 @@ Hệ thống Thương mại Điện tử Marketplace doanh nghiệp được ph�
 - Tự động tạo vận đơn GHN qua Event Consumer `CreateShipmentConsumer`.
 - Webhook GHN nhận trạng thái giao hàng `Delivered` ➔ `Shippings.Api` ➔ Bắn `ShipmentDeliveredEvent` ➔ `OrderService` chuyển `SubOrder` sang `Delivered` ➔ `SellerRevenueConsumer` tự động cộng tiền doanh thu vào Ví người bán.
 
+### 🛡️ E. Quản trị Hệ thống & Admin Panel (Platform Governance)
+- **Quản lý Đơn hàng Con Toàn Sàn (`Orders.Api`)**: `GetAdminSubOrdersQueryHandler` (`GET /api/orders/admin/suborders`) phân trang, lọc theo trạng thái đơn con, tìm kiếm từ khóa, và xem chi tiết `SubOrderDetail` với quyền Admin.
+- **Quản lý Cửa hàng (`Sellers.Api`)**: `GetAllShopsQueryHandler` (`GET /api/shop/all`), duyệt KYC, Ban/Unban Cửa hàng.
+- **Quản lý Người dùng & Quyền (`Identity.Api`)**: Khóa/Mở tài khoản (`/lock` & `/unlock`), gán Role (`Admin`, `Manager`, `User`, `Staff`).
+- **Quản lý Voucher & Rút tiền (`Orders.Api` & `Payments.Api`)**: Tạo Voucher Platform, phê duyệt yêu cầu rút tiền về ngân hàng của Seller/User.
+
 ---
+
 
 ## 📐 4. Standards & Architectural Design
 

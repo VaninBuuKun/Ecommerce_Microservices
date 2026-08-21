@@ -1,73 +1,252 @@
-import { useState, useEffect } from "react";
-import api from "@/core/api/axiosInstance";
-import { Loader2, RefreshCw } from "lucide-react";
-import { getOrderStatusBadge } from "@/domains/order";
+import React, { useState } from "react";
+import {
+	RefreshCw,
+	Eye,
+	EyeOff,
+	Loader2,
+	ChevronLeft,
+	ChevronRight,
+} from "lucide-react";
+import { getOrderStatusBadge, useAdminSubOrdersQuery } from "@/domains/order";
+import { SubOrderDetailView } from "@/domains/order/components/sellerOrder/SubOrderDetailView";
 
 export function AdminOrdersView() {
-	const [orders, setOrders] = useState<any[]>([]);
-	const [loading, setLoading] = useState(true);
+	const PAGE_SIZE = 10;
+	const [currentPage, setCurrentPage] = useState(1);
+	const [statusFilter, setStatusFilter] = useState("All");
+	const [searchQuery, setSearchQuery] = useState("");
 
-	const fetchOrders = async () => {
-		try {
-			setLoading(true);
-			const response = await api.get("/v1/orders/customer/1"); 
-			const items = response.data?.value || response.data || [];
-			setOrders(items);
-		} catch (err) {
-			console.error("Lỗi khi tải đơn hàng", err);
-		} finally {
-			setLoading(false);
-		}
+	// Load list of sub-orders with backend pagination and status filtering
+	const {
+		data: subOrdersPaged,
+		isLoading,
+		refetch,
+		isFetching,
+	} = useAdminSubOrdersQuery({
+		pageNumber: currentPage,
+		pageSize: PAGE_SIZE,
+		status: statusFilter === "All" ? undefined : statusFilter,
+		searchKeyword: searchQuery,
+	});
+
+	// State for expanded order details
+	const [expandedOrders, setExpandedOrders] = useState<
+		Record<string, boolean>
+	>({});
+
+	// Toggle detail expand
+	const toggleExpand = (orderId: string) => {
+		setExpandedOrders((prev) => ({
+			...prev,
+			[orderId]: !prev[orderId],
+		}));
 	};
 
-	useEffect(() => {
-		fetchOrders();
-	}, []);
+	// Helper to format order status badge
+	const getStatusBadge = (status: string) => getOrderStatusBadge(status);
+
+	const items = subOrdersPaged?.items || [];
+	const totalCount = subOrdersPaged?.totalCount || items.length || 0;
+	const totalPages = subOrdersPaged?.totalPages || Math.ceil(totalCount / PAGE_SIZE) || 1;
+
+	if (isLoading) {
+		return (
+			<div className="flex flex-col items-center justify-center py-20 text-brand-muted text-xs gap-3">
+				<Loader2 className="w-8 h-8 animate-spin text-brand-primary" />
+				Đang tải danh sách đơn hàng toàn sàn...
+			</div>
+		);
+	}
 
 	return (
-		<div className="space-y-4 text-left font-sans animate-in fade-in duration-200">
-			<div className="flex justify-between items-center pb-2.5 border-b border-brand-border">
+		<div className="space-y-4 text-left font-sans">
+			{/* Header */}
+			<div className="flex justify-between items-center pb-3 border-b border-brand-border">
 				<div>
-					<h2 className="text-sm font-black text-brand-dark uppercase tracking-wide">Quản lý đơn hàng toàn sàn</h2>
-					<p className="text-[10px] text-brand-muted font-bold mt-0.5">Danh sách các hóa đơn mua sắm và trạng thái xử lý vận chuyển</p>
+					<h2 className="text-sm font-bold text-brand-dark">
+						Quản lý Đơn hàng Toàn Sàn (Admin)
+					</h2>
+					<p className="text-[11px] text-brand-muted">
+						Xem, kiểm tra và quản lý tiến độ xử lý tất cả các đơn hàng con trên toàn hệ thống.
+					</p>
 				</div>
-				<button onClick={fetchOrders} className="p-1.5 text-brand-muted hover:text-brand-dark rounded hover:bg-brand-light-soft transition-colors cursor-pointer border-none bg-transparent">
-					<RefreshCw className="w-4 h-4" />
-				</button>
+				<div className="flex gap-2">
+					<button
+						onClick={() => refetch()}
+						disabled={isFetching}
+						className="h-8 px-3 border border-brand-border hover:bg-brand-light-soft text-brand-dark text-xs font-semibold rounded flex items-center gap-1.5 cursor-pointer disabled:opacity-60"
+					>
+						<RefreshCw
+							className={`w-3.5 h-3.5 ${isFetching ? "animate-spin" : ""}`}
+						/>
+						Làm mới
+					</button>
+				</div>
 			</div>
 
-			<div className="border border-brand-border rounded-lg bg-white overflow-hidden shadow-[0_1px_3px_rgba(0,0,0,0.02)]">
-				{loading ? (
-					<div className="flex justify-center items-center py-16 text-xs text-brand-muted gap-2">
-						<Loader2 className="w-4 h-4 animate-spin text-brand-primary" /> Đang tải danh sách đơn hàng...
-					</div>
-				) : orders.length === 0 ? (
-					<div className="text-center py-16 text-brand-muted font-bold text-xs">Không có đơn hàng nào trên hệ thống.</div>
-				) : (
-					<table className="w-full text-xs text-left border-collapse">
-						<thead>
-							<tr className="bg-brand-light-soft/50 border-b border-brand-border text-[10px] font-extrabold text-brand-muted uppercase tracking-wider select-none">
-								<th className="p-3 w-1/4">Mã đơn con</th>
-								<th className="p-3 w-1/4">Cửa hàng</th>
-								<th className="p-3 w-1/4 text-right">Tổng giá trị</th>
-								<th className="p-3 text-center w-1/6">Trạng thái</th>
-								<th className="p-3 text-center w-1/12">Hành động</th>
-							</tr>
-						</thead>
-						<tbody className="divide-y divide-brand-border">
-							{orders.map((o: any) => (
-								<tr key={o.id} className="hover:bg-brand-light-soft/10 transition-colors">
-									<td className="p-3 font-mono font-bold text-brand-dark">#{o.id.split("-")[0].toUpperCase()}</td>
-									<td className="p-3 text-brand-dark font-extrabold">{o.shopName || "Cửa hàng"}</td>
-									<td className="p-3 text-right font-black text-brand-dark">{Number(o.grandTotal).toLocaleString("vi-VN")}đ</td>
-									<td className="p-3 text-center">{getOrderStatusBadge(o.status)}</td>
-									<td className="p-3 text-center text-brand-muted font-semibold">-</td>
-								</tr>
-							))}
-						</tbody>
-					</table>
-				)}
+			{/* Bộ lọc đơn giản - y hệt Seller OrdersView */}
+			<div className="flex flex-wrap gap-2.5 p-3.5 bg-brand-light-soft border border-brand-border rounded-xl">
+				<input
+					type="text"
+					placeholder="Tìm kiếm theo Mã đơn con, Mã Shop, Mã Khách hàng..."
+					value={searchQuery}
+					onChange={(e) => {
+						setSearchQuery(e.target.value);
+						setCurrentPage(1);
+					}}
+					className="h-8 px-3 bg-white border border-brand-border rounded text-xs focus:outline-none focus:border-brand-primary min-w-60"
+				/>
+				<select
+					value={statusFilter}
+					onChange={(e) => {
+						setStatusFilter(e.target.value);
+						setCurrentPage(1); // Reset page on filter change
+					}}
+					className="h-8 px-3 bg-white border border-brand-border rounded text-xs focus:outline-none focus:border-brand-primary cursor-pointer"
+				>
+					<option value="All">Mọi trạng thái</option>
+					<option value="AwaitingPayment">Chờ thanh toán</option>
+					<option value="AwaitingConfirmation">Chờ xác nhận</option>
+					<option value="Processing">Đang xử lý</option>
+					<option value="PackageReady">Chờ shipper</option>
+					<option value="Shipping">Đang vận chuyển</option>
+					<option value="Delivered">Đã giao hàng</option>
+					<option value="Completed">Đã hoàn thành</option>
+					<option value="Cancelled">Đã hủy</option>
+				</select>
 			</div>
+
+			{/* Bảng đơn hàng - y hệt Seller OrdersView */}
+			<div className="border border-brand-border rounded-xl overflow-hidden bg-white shadow-sm">
+				<table className="w-full text-xs text-left">
+					<thead className="bg-brand-light-soft border-b border-brand-border text-brand-dark font-bold">
+						<tr>
+							<th className="p-3">Mã Đơn hàng con</th>
+							<th className="p-3">Ngày đặt</th>
+							<th className="p-3">Khách & Cửa hàng</th>
+							<th className="p-3">Tổng tiền</th>
+							<th className="p-3">Trạng thái</th>
+							<th className="p-3 text-right">Hành động</th>
+						</tr>
+					</thead>
+					<tbody className="divide-y divide-brand-border">
+						{items.length === 0 ? (
+							<tr>
+								<td
+									colSpan={6}
+									className="p-8 text-center text-brand-muted"
+								>
+									Không tìm thấy đơn hàng nào.
+								</td>
+							</tr>
+						) : (
+							items.map((order: any) => {
+								const isExpanded = !!expandedOrders[order.id];
+								return (
+									<React.Fragment key={order.id}>
+										<tr
+											className={`hover:bg-brand-light-soft/20 ${isExpanded ? "bg-brand-light-soft/10" : ""}`}
+										>
+											<td
+												className="p-3 font-bold text-brand-dark truncate max-w-40"
+												title={order.id}
+											>
+												#{String(order.id).split("-")[0].toUpperCase()}
+											</td>
+											<td className="p-3 text-brand-muted">
+												{new Date(
+													order.createdDate || order.orderDate || Date.now(),
+												).toLocaleString("vi-VN")}
+											</td>
+											<td className="p-3 text-brand-dark font-semibold">
+												<div>Shop #{order.shopId || 1}</div>
+												<div className="text-[10px] text-brand-muted">
+													User #{order.customerId || 1}
+												</div>
+											</td>
+											<td className="p-3 font-extrabold text-brand-dark">
+												{Number(order.grandTotal || 0).toLocaleString("vi-VN")}đ
+											</td>
+											<td className="p-3">
+												{getStatusBadge(order.status)}
+											</td>
+											<td className="p-3 text-right">
+												<div className="flex justify-end items-center gap-1.5">
+													{/* Details toggle button */}
+													<button
+														onClick={() => toggleExpand(order.id)}
+														className="px-2 py-1 border border-brand-border hover:bg-brand-light-soft rounded-lg text-brand-primary transition-all cursor-pointer inline-flex items-center gap-1 text-[10px] font-bold bg-white"
+														title="Xem chi tiết"
+													>
+														{isExpanded ? (
+															<>
+																<EyeOff className="w-3.5 h-3.5" />
+																Ẩn chi tiết
+															</>
+														) : (
+															<>
+																<Eye className="w-3.5 h-3.5" />
+																Chi tiết
+															</>
+														)}
+													</button>
+												</div>
+											</td>
+										</tr>
+
+										{/* Expandable Invoice details row */}
+										{isExpanded && (
+											<tr>
+												<td
+													colSpan={6}
+													className="p-4 bg-brand-light-soft/5"
+												>
+													<SubOrderDetailView
+														subOrderId={order.id}
+														isSeller={false}
+													/>
+												</td>
+											</tr>
+										)}
+									</React.Fragment>
+								);
+							})
+						)}
+					</tbody>
+				</table>
+			</div>
+
+			{/* Pagination Controls - y hệt Seller OrdersView */}
+			{totalPages > 1 && (
+				<div className="flex justify-between items-center pt-2 text-xs">
+					<span className="text-brand-muted font-bold">
+						Hiển thị trang {currentPage} trên tổng số {totalPages}{" "}
+						trang (Tổng số đơn: {totalCount})
+					</span>
+					<div className="flex gap-2">
+						<button
+							onClick={() =>
+								setCurrentPage((p) => Math.max(p - 1, 1))
+							}
+							disabled={currentPage === 1}
+							className="h-8 w-8 flex items-center justify-center border border-brand-border rounded-lg bg-white hover:bg-brand-light-soft disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+						>
+							<ChevronLeft className="w-4 h-4 text-brand-dark" />
+						</button>
+						<button
+							onClick={() =>
+								setCurrentPage((p) =>
+									Math.min(p + 1, totalPages),
+								)
+							}
+							disabled={currentPage === totalPages}
+							className="h-8 w-8 flex items-center justify-center border border-brand-border rounded-lg bg-white hover:bg-brand-light-soft disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+						>
+							<ChevronRight className="w-4 h-4 text-brand-dark" />
+						</button>
+					</div>
+				</div>
+			)}
 		</div>
 	);
 }

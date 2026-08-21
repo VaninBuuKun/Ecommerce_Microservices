@@ -1,4 +1,5 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
+import { useParams } from "react-router-dom";
 import {
 	Plus,
 	Search,
@@ -12,21 +13,55 @@ import {
 	X,
 } from "lucide-react";
 import { toast } from "react-toastify";
-import api from "@/shared/lib/axios";
+import {
+	useSellerStore,
+	useSellerProfileQuery,
+	useSellerVouchersQuery,
+	useCreateVoucherMutation,
+	useUpdateVoucherMutation,
+	useDeleteVoucherMutation,
+} from "@/domains/seller";
 
-export function AdminVouchersView() {
+export default function CouponsView() {
+	const { shopId } = useParams<{ shopId?: string }>();
+	const { activeShop } = useSellerStore();
+	const { data: profile } = useSellerProfileQuery();
+
+	const resolvedShop =
+		activeShop ??
+		profile?.shops?.find((shop: any) => String(shop.id) === shopId) ??
+		profile?.shops?.[0] ??
+		null;
+
+	const currentShopId = resolvedShop?.id ? Number(resolvedShop.id) : 0;
+
+	// State filter & search & pagination
 	const [page, setPage] = useState(1);
 	const [pageSize] = useState(8);
 	const [codeSearch, setCodeSearch] = useState("");
 	const [selectedDiscountType, setSelectedDiscountType] = useState<number | undefined>(undefined);
 	const [selectedIsActive, setSelectedIsActive] = useState<boolean | undefined>(undefined);
-	const [vouchers, setVouchers] = useState<any[]>([]);
-	const [totalCount, setTotalCount] = useState(0);
-	const [loading, setLoading] = useState(true);
 
+	// Fetch query
+	const { data, isLoading } = useSellerVouchersQuery({
+		shopId: currentShopId,
+		page,
+		pageSize,
+		code: codeSearch || undefined,
+		discountType: selectedDiscountType,
+		isActive: selectedIsActive,
+	});
+
+	// Mutations
+	const createVoucherMutation = useCreateVoucherMutation();
+	const updateVoucherMutation = useUpdateVoucherMutation();
+	const deleteVoucherMutation = useDeleteVoucherMutation();
+
+	// Modal states
 	const [showAddEditModal, setShowAddEditModal] = useState(false);
 	const [editingVoucher, setEditingVoucher] = useState<any>(null);
 
+	// Form states
 	const [formCode, setFormCode] = useState("");
 	const [formName, setFormName] = useState("");
 	const [formDiscountType, setFormDiscountType] = useState<number>(0);
@@ -37,72 +72,6 @@ export function AdminVouchersView() {
 	const [formEndDate, setFormEndDate] = useState("");
 	const [formUsageLimit, setFormUsageLimit] = useState<number | "">("");
 	const [formIsActive, setFormIsActive] = useState(true);
-
-	const fetchVouchers = async () => {
-		try {
-			setLoading(true);
-			const params: any = {
-				page,
-				pageSize,
-				code: codeSearch ? codeSearch.toUpperCase().trim() : undefined,
-				discountType: selectedDiscountType,
-				isActive: selectedIsActive,
-			};
-			const response = await api.get("/vouchers", { params });
-			const data = response.data?.value || response.data;
-
-			if (data && typeof data === "object" && "items" in data) {
-				setVouchers(data.items);
-				setTotalCount(data.totalCount || data.items.length);
-			} else {
-				const list = Array.isArray(data) ? data : [];
-				setVouchers(list);
-				setTotalCount(list.length);
-			}
-		} catch (err) {
-			console.error("Lỗi khi tải danh sách vouchers", err);
-			const mockItems = [
-				{
-					id: "1",
-					code: "BLACKFRIDAY",
-					name: "Thứ 6 ngày 13 khuyễn mãi lớn",
-					discountType: 1,
-					discountValue: 20,
-					scope: 0,
-					minOrderValue: 100000,
-					maxDiscountAmount: 30000,
-					maxUsageCount: 100,
-					usageCount: 0,
-					isActive: false,
-					startDate: new Date().toISOString(),
-					endDate: new Date(Date.now() + 86400000 * 2).toISOString(),
-				},
-				{
-					id: "2",
-					code: "FREESHIP",
-					name: "Miễn phí vận chuyển toàn sàn",
-					discountType: 0,
-					discountValue: 30000,
-					scope: 0,
-					minOrderValue: 0,
-					maxDiscountAmount: 30000,
-					maxUsageCount: 500,
-					usageCount: 112,
-					isActive: true,
-					startDate: new Date().toISOString(),
-					endDate: new Date(Date.now() + 86400000 * 30).toISOString(),
-				},
-			];
-			setVouchers(mockItems);
-			setTotalCount(mockItems.length);
-		} finally {
-			setLoading(false);
-		}
-	};
-
-	useEffect(() => {
-		fetchVouchers();
-	}, [page, codeSearch, selectedDiscountType, selectedIsActive]);
 
 	const handleOpenAdd = () => {
 		setEditingVoucher(null);
@@ -123,9 +92,7 @@ export function AdminVouchersView() {
 		setEditingVoucher(voucher);
 		setFormCode(voucher.code || "");
 		setFormName(voucher.name ?? "");
-		setFormDiscountType(
-			voucher.discountType === "Percentage" || voucher.discountType === 1 ? 1 : 0,
-		);
+		setFormDiscountType(voucher.discountType ?? 0);
 		setFormDiscountValue(voucher.discountValue ?? 0);
 		setFormMaxDiscountAmount(voucher.maxDiscountAmount ?? "");
 		setFormMinOrderValue(voucher.minOrderValue ?? "");
@@ -136,7 +103,7 @@ export function AdminVouchersView() {
 		setShowAddEditModal(true);
 	};
 
-	const handleSave = async (e: React.FormEvent) => {
+	const handleSave = (e: React.FormEvent) => {
 		e.preventDefault();
 		if (!formCode || formDiscountValue <= 0 || !formStartDate || !formEndDate) {
 			toast.error("Vui lòng điền đầy đủ thông tin bắt buộc!");
@@ -148,12 +115,7 @@ export function AdminVouchersView() {
 			return;
 		}
 
-		if (formDiscountType === 1 && (formDiscountValue <= 0 || formDiscountValue > 100)) {
-			toast.error("Phần trăm giảm giá phải từ 1 - 100%");
-			return;
-		}
-
-		const payload = {
+		const basePayload = {
 			code: formCode.trim().toUpperCase(),
 			name: formName.trim(),
 			discountType: Number(formDiscountType),
@@ -164,42 +126,61 @@ export function AdminVouchersView() {
 			endDate: new Date(formEndDate).toISOString(),
 			maxUsageCount: formUsageLimit !== "" ? Number(formUsageLimit) : null,
 			isActive: formIsActive,
-			scope: 0, // Admin creates platform vouchers strictly
-			shopId: null,
+			shopId: currentShopId,
 		};
 
-		try {
-			if (editingVoucher) {
-				await api.put(`/vouchers/${editingVoucher.id}`, payload);
-				toast.success("Cập nhật voucher thành công!");
-			} else {
-				await api.post("/vouchers", payload);
-				toast.success("Tạo voucher thành công!");
-			}
-			setShowAddEditModal(false);
-			fetchVouchers();
-		} catch (err: any) {
-			toast.error(
-				err?.response?.data?.message ||
-					err?.response?.data ||
-					"Thao tác voucher thất bại!",
+		if (editingVoucher) {
+			updateVoucherMutation.mutate(
+				{ id: editingVoucher.id, payload: basePayload },
+				{
+					onSuccess: () => {
+						toast.success("Cập nhật voucher thành công!");
+						setShowAddEditModal(false);
+					},
+					onError: (err: any) => {
+						toast.error(
+							err?.response?.data?.message ||
+								err?.response?.data ||
+								"Cập nhật voucher thất bại!",
+						);
+					},
+				},
 			);
+		} else {
+			createVoucherMutation.mutate(basePayload, {
+				onSuccess: () => {
+					toast.success("Tạo voucher thành công!");
+					setShowAddEditModal(false);
+				},
+				onError: (err: any) => {
+					toast.error(
+						err?.response?.data?.message ||
+							err?.response?.data ||
+							"Tạo voucher thất bại!",
+					);
+				},
+			});
 		}
 	};
 
-	const handleDelete = async (voucherId: string) => {
+	const handleDelete = (voucherId: string) => {
 		if (window.confirm("Bạn có chắc chắn muốn ngừng kích hoạt (Xóa) mã voucher này?")) {
-			try {
-				await api.delete(`/vouchers/${voucherId}`);
-				toast.success("Đã ngưng hoạt động voucher thành công!");
-				fetchVouchers();
-			} catch (err: any) {
-				toast.error(err?.response?.data || "Thao tác thất bại!");
-			}
+			deleteVoucherMutation.mutate(voucherId, {
+				onSuccess: () => {
+					toast.success("Đã ngưng hoạt động voucher thành công!");
+				},
+				onError: (err: any) => {
+					toast.error(err?.response?.data || "Thao tác thất bại!");
+				},
+			});
 		}
 	};
 
-	const totalPages = Math.ceil(totalCount / pageSize) || 1;
+	// Pagination Calculations
+	const isDataArray = Array.isArray(data);
+	const itemsList = isDataArray ? data : data?.items || [];
+	const totalItems = isDataArray ? data.length : data?.totalCount || 0;
+	const totalPages = Math.ceil(totalItems / pageSize) || 1;
 
 	return (
 		<div className="space-y-4 text-left font-sans animate-in fade-in duration-200">
@@ -208,10 +189,10 @@ export function AdminVouchersView() {
 				<div>
 					<h2 className="text-sm font-black text-brand-dark uppercase tracking-wide flex items-center gap-1.5">
 						<Ticket className="w-4 h-4 text-brand-primary" />
-						Quản lý mã giảm giá hệ thống
+						Quản lý khuyến mãi & mã giảm giá
 					</h2>
 					<p className="text-[10px] text-brand-muted font-bold mt-0.5">
-						Tạo và quản lý các mã giảm giá áp dụng toàn sàn (Platform Vouchers)
+						Tạo và quản lý các voucher khuyến mãi riêng của cửa hàng để kích cầu mua sắm
 					</p>
 				</div>
 				<button
@@ -232,7 +213,7 @@ export function AdminVouchersView() {
 					<div className="relative">
 						<input
 							type="text"
-							placeholder="Nhập mã voucher (ví dụ: BLACKFRIDAY)..."
+							placeholder="Nhập mã voucher (ví dụ: SHOP50K)..."
 							value={codeSearch}
 							onChange={(e) => {
 								setCodeSearch(e.target.value);
@@ -284,12 +265,12 @@ export function AdminVouchersView() {
 			</div>
 
 			{/* Voucher Table List */}
-			{loading ? (
+			{isLoading ? (
 				<div className="flex flex-col items-center justify-center py-16 text-brand-muted text-xs gap-2">
 					<Loader2 className="w-6 h-6 animate-spin text-brand-primary" />
 					Đang tải danh sách voucher...
 				</div>
-			) : vouchers && vouchers.length > 0 ? (
+			) : itemsList && itemsList.length > 0 ? (
 				<div className="bg-white border border-brand-border rounded-xl overflow-hidden shadow-xs">
 					<div className="overflow-x-auto">
 						<table className="w-full text-xs text-brand-dark border-collapse">
@@ -297,7 +278,6 @@ export function AdminVouchersView() {
 								<tr>
 									<th className="p-3 text-left w-24">Mã Code</th>
 									<th className="p-3 text-left min-w-[130px]">Tên Voucher</th>
-									<th className="p-3 text-center w-24">Phạm Vi</th>
 									<th className="p-3 text-center w-28">Loại Giảm</th>
 									<th className="p-3 text-left min-w-[130px]">Giá Trị Giảm</th>
 									<th className="p-3 text-left w-28">Đơn Tối Thiểu</th>
@@ -308,18 +288,13 @@ export function AdminVouchersView() {
 								</tr>
 							</thead>
 							<tbody className="divide-y divide-brand-border/60 font-semibold text-xs">
-								{vouchers.map((voucher: any) => (
+								{itemsList.map((voucher: any) => (
 									<tr key={voucher.id} className="hover:bg-brand-light-soft/10 transition-colors">
 										<td className="p-3 font-mono font-black text-brand-dark uppercase">
 											{voucher.code}
 										</td>
 										<td className="p-3 text-brand-dark font-bold whitespace-normal break-words max-w-[160px] leading-tight">
 											{voucher.name || "—"}
-										</td>
-										<td className="p-3 text-center">
-											<span className="px-2 py-0.5 rounded text-[9px] font-black uppercase tracking-wider bg-purple-100 text-purple-800 border border-purple-200 inline-block">
-												TOÀN SÀN
-											</span>
 										</td>
 										<td className="p-3 text-center">
 											{voucher.discountType === 1 || voucher.discountType === "Percentage" ? (
@@ -395,7 +370,7 @@ export function AdminVouchersView() {
 
 					<div className="px-4 py-2.5 border-t border-brand-border flex justify-between items-center bg-brand-light-soft/20 text-xs">
 						<span className="font-bold text-brand-muted">
-							Tổng cộng: {totalCount} voucher
+							Tổng cộng: {totalItems} voucher
 						</span>
 						<div className="flex gap-1.5">
 							<button
@@ -423,7 +398,7 @@ export function AdminVouchersView() {
 					<Ticket className="w-10 h-10 mx-auto text-brand-muted/60" />
 					<div className="space-y-1">
 						<h3 className="text-xs font-bold text-brand-dark">Không tìm thấy voucher nào</h3>
-						<p className="text-[11px]">Bấm nút Tạo Voucher Mới để tạo chương trình ưu đãi toàn sàn.</p>
+						<p className="text-[11px]">Bấm nút Tạo Voucher Mới để khởi tạo chương trình khuyến mãi cho shop.</p>
 					</div>
 				</div>
 			)}
@@ -441,7 +416,7 @@ export function AdminVouchersView() {
 
 						<h2 className="text-base font-black text-brand-dark border-b border-brand-border pb-3 flex items-center gap-2">
 							<Ticket className="w-5 h-5 text-brand-primary" />
-							{editingVoucher ? "Chỉnh sửa Voucher Toàn Sàn" : "Tạo Voucher Toàn Sàn Mới"}
+							{editingVoucher ? "Chỉnh sửa Voucher Shop" : "Tạo Voucher Shop Mới"}
 						</h2>
 
 						<form onSubmit={handleSave} className="space-y-3.5 text-xs text-brand-dark font-bold">
@@ -451,7 +426,7 @@ export function AdminVouchersView() {
 								</label>
 								<input
 									type="text"
-									placeholder="Ví dụ: BLACKFRIDAY"
+									placeholder="Ví dụ: SHOP50K"
 									value={formCode}
 									disabled={!!editingVoucher}
 									onChange={(e) => setFormCode(e.target.value)}
@@ -465,7 +440,7 @@ export function AdminVouchersView() {
 								</label>
 								<input
 									type="text"
-									placeholder="Ví dụ: Ưu đãi toàn sàn mua sắm bùng nổ"
+									placeholder="Ví dụ: Ưu đãi độc quyền từ Shop"
 									value={formName}
 									onChange={(e) => setFormName(e.target.value)}
 									className="w-full h-9 px-3 bg-brand-light-soft/20 border border-brand-border rounded-lg focus:outline-none focus:border-brand-primary font-semibold"
@@ -616,8 +591,12 @@ export function AdminVouchersView() {
 								</button>
 								<button
 									type="submit"
-									className="flex-1 h-9 bg-brand-primary hover:bg-brand-primary-deep text-brand-dark font-black text-xs rounded-lg transition-colors cursor-pointer border-none"
+									disabled={createVoucherMutation.isPending || updateVoucherMutation.isPending}
+									className="flex-1 h-9 bg-brand-primary hover:bg-brand-primary-deep text-brand-dark font-black text-xs rounded-lg transition-colors cursor-pointer border-none flex items-center justify-center gap-1.5"
 								>
+									{(createVoucherMutation.isPending || updateVoucherMutation.isPending) && (
+										<Loader2 className="w-3.5 h-3.5 animate-spin" />
+									)}
 									{editingVoucher ? "Lưu thay đổi" : "Lưu lại"}
 								</button>
 							</div>

@@ -49,11 +49,15 @@ Welcome AI Agent! You are working on **Ecommerce Microservices**, an enterprise-
 - **Form Validation**: Combine `@hookform/resolvers/zod` with `react-hook-form`. Display inline red text errors with alert icons under inputs.
 
 
-### 3. Session End Protocol (Auto Context & Rules Synchronization)
+### 3. Session End Protocol & Scratchpad Synchronization Rule
 - At the end of every conversation turn / task completion, the AI Agent MUST:
   1. Check if any new Commands, Queries, Handlers, APIs, or UI Components were added/modified. If so, update `.agents/context/01_business_capabilities.md` and `readme.md`.
   2. Check if any new architectural patterns, conventions, or guidelines were established. If so, update `.agents/rules/*.md` and `AGENTS.md`.
   3. Log the latest working state into `.antigravity/scratchpad.md`.
+- **Scratchpad Trimming & Capabilities Sync Rule**:
+  - Whenever `.antigravity/scratchpad.md` exceeds **20 items**, the AI Agent MUST trim (delete) the first 20 oldest items to maintain a lean context.
+  - **MANDATORY**: Before deleting the first 20 items, the AI Agent MUST verify that all feature descriptions, MediatR handlers, API routes, and UI components from those items are fully reflected and updated in `.agents/context/01_business_capabilities.md` and `readme.md` so no project context is lost.
+
 
 ---
 

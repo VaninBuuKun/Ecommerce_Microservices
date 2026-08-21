@@ -7,4 +7,5 @@ export * from "./components/WishlistButton";
 export * from "./components/categories";
 export * from "./components/details";
 export * from "./components/management";
-
+export { ProductsView } from "./components/management/ProductView";
+export { EditProductPage } from "./components/management/EditProductPage";

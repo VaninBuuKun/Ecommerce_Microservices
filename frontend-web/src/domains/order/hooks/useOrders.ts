@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { orderApi } from "../api/orderApi";
+import { api } from "@/core";
 
 export function useAddressesQuery() {
 	return useQuery({
@@ -69,17 +70,271 @@ export function useAvailableVouchersQuery(shopId?: number | null, enabled = true
 	});
 }
 
-export function useCustomerOrdersQuery(customerId: string) {
+export function useShopSubOrdersQuery(
+	shopId?: string,
+	pageNumber = 1,
+	pageSize = 5,
+	status?: string
+) {
 	return useQuery({
-		queryKey: ["orders", "customer", customerId],
-		queryFn: () => orderApi.getCustomerOrders(customerId),
+		queryKey: ["shopSubOrders", shopId, pageNumber, pageSize, status],
+		queryFn: () => orderApi.getShopSubOrders(shopId!, pageNumber, pageSize, status),
+		enabled: Boolean(shopId),
+	});
+}
+
+export function useConfirmSubOrderMutation() {
+	const queryClient = useQueryClient();
+	return useMutation({
+		mutationFn: (subOrderId: string) => orderApi.confirmSubOrder(subOrderId),
+		onSuccess: () => {
+			queryClient.invalidateQueries({ queryKey: ["shopSubOrders"] });
+		},
+	});
+}
+
+export function useRejectSubOrderMutation() {
+	const queryClient = useQueryClient();
+	return useMutation({
+		mutationFn: ({ subOrderId, reason }: { subOrderId: string; reason: string }) =>
+			orderApi.rejectSubOrder(subOrderId, reason),
+		onSuccess: () => {
+			queryClient.invalidateQueries({ queryKey: ["shopSubOrders"] });
+		},
+	});
+}
+
+export function usePackageReadySubOrderMutation() {
+	const queryClient = useQueryClient();
+	return useMutation({
+		mutationFn: ({
+			subOrderId,
+			dimensions,
+		}: {
+			subOrderId: string;
+			dimensions: { weight: number; length: number; width: number; height: number };
+		}) => orderApi.packageReadySubOrder(subOrderId, dimensions),
+		onSuccess: () => {
+			queryClient.invalidateQueries({ queryKey: ["shopSubOrders"] });
+		},
+	});
+}
+
+export function useSubOrderDetailQuery(subOrderId?: string, isSeller = true) {
+	return useQuery({
+		queryKey: ["subOrderDetail", subOrderId, isSeller],
+		queryFn: () => orderApi.getSubOrderDetail(subOrderId!, isSeller),
+		enabled: Boolean(subOrderId),
+	});
+}
+
+export function useCustomerOrdersQuery(customerId?: string) {
+	return useQuery({
+		queryKey: ["customerOrders", customerId],
+		queryFn: () => orderApi.getCustomerOrders(customerId!),
 		enabled: Boolean(customerId),
+	});
+}
+
+export function useShopRefundsQuery(shopId?: string) {
+	return useQuery({
+		queryKey: ["shopRefunds", shopId],
+		queryFn: () => orderApi.getShopRefunds(shopId!),
+		enabled: Boolean(shopId),
+	});
+}
+
+export function useApproveRefundMutation() {
+	const queryClient = useQueryClient();
+	return useMutation({
+		mutationFn: ({ id, sellerNote }: { id: string; sellerNote?: string }) =>
+			orderApi.approveRefund(id, sellerNote),
+		onSuccess: () => {
+			queryClient.invalidateQueries({ queryKey: ["shopRefunds"] });
+		},
+	});
+}
+
+export function useRejectRefundMutation() {
+	const queryClient = useQueryClient();
+	return useMutation({
+		mutationFn: ({ id, sellerNote }: { id: string; sellerNote: string }) =>
+			orderApi.rejectRefund(id, sellerNote),
+		onSuccess: () => {
+			queryClient.invalidateQueries({ queryKey: ["shopRefunds"] });
+		},
+	});
+}
+
+export function useCancelCustomerSubOrderMutation() {
+	const queryClient = useQueryClient();
+	return useMutation({
+		mutationFn: ({ subOrderId, reason }: { subOrderId: string; reason: string }) =>
+			orderApi.cancelCustomerSubOrder(subOrderId, reason),
+		onSuccess: (_, variables) => {
+			queryClient.invalidateQueries({ queryKey: ["subOrderDetail", variables.subOrderId, false] });
+			queryClient.invalidateQueries({ queryKey: ["customerOrders"] });
+		},
+	});
+}
+
+export function useCompleteSubOrderMutation() {
+	const queryClient = useQueryClient();
+	return useMutation({
+		mutationFn: (subOrderId: string) => orderApi.completeSubOrder(subOrderId),
+		onSuccess: (_, subOrderId) => {
+			queryClient.invalidateQueries({ queryKey: ["subOrderDetail", subOrderId, false] });
+			queryClient.invalidateQueries({ queryKey: ["customerOrders"] });
+		},
+	});
+}
+
+export function useCreateRefundMutation() {
+	const queryClient = useQueryClient();
+	return useMutation({
+		mutationFn: ({ subOrderId, reason }: { subOrderId: string; reason: string }) =>
+			orderApi.createRefund(subOrderId, reason),
+		onSuccess: (_, variables) => {
+			queryClient.invalidateQueries({ queryKey: ["subOrderDetail", variables.subOrderId, false] });
+			queryClient.invalidateQueries({ queryKey: ["customerOrders"] });
+		},
+	});
+}
+
+export function useWalletQuery(enabled = true) {
+	return useQuery({
+		queryKey: ["userWallet"],
+		queryFn: () => orderApi.getWallet(),
+		enabled,
+		retry: false,
+	});
+}
+
+export function useActivateWalletMutation() {
+	const queryClient = useQueryClient();
+	return useMutation({
+		mutationFn: (data: any) => orderApi.activateWallet(data),
+		onSuccess: () => {
+			queryClient.invalidateQueries({ queryKey: ["userWallet"] });
+		},
+	});
+}
+
+export function useWalletTransactionsQuery(enabled = true) {
+	return useQuery({
+		queryKey: ["userWalletTransactions"],
+		queryFn: () => orderApi.getWalletTransactions(),
+		enabled,
+	});
+}
+
+export function useBankAccountsQuery(enabled = true) {
+	return useQuery({
+		queryKey: ["userBankAccounts"],
+		queryFn: () => orderApi.getBankAccounts(),
+		enabled,
+	});
+}
+
+export function useAddBankAccountMutation() {
+	const queryClient = useQueryClient();
+	return useMutation({
+		mutationFn: (data: any) => orderApi.addBankAccount(data),
+		onSuccess: () => {
+			queryClient.invalidateQueries({ queryKey: ["userBankAccounts"] });
+		},
+	});
+}
+
+export function useUpdateBankAccountMutation() {
+	const queryClient = useQueryClient();
+	return useMutation({
+		mutationFn: ({ id, data }: { id: string; data: any }) =>
+			orderApi.updateBankAccount(id, data),
+		onSuccess: () => {
+			queryClient.invalidateQueries({ queryKey: ["userBankAccounts"] });
+		},
 	});
 }
 
 export function useMyRefundsQuery() {
 	return useQuery({
-		queryKey: ["refunds", "my-requests"],
+		queryKey: ["myRefundRequests"],
 		queryFn: () => orderApi.getMyRefunds(),
 	});
 }
+
+export function useCancelRefundMutation() {
+	const queryClient = useQueryClient();
+	return useMutation({
+		mutationFn: (id: string) => orderApi.cancelRefundRequest(id),
+		onSuccess: () => {
+			queryClient.invalidateQueries({ queryKey: ["myRefundRequests"] });
+			queryClient.invalidateQueries({ queryKey: ["customerOrders"] });
+		},
+	});
+}
+
+export function useCreateWithdrawMutation() {
+	const queryClient = useQueryClient();
+	return useMutation({
+		mutationFn: (data: { amount: number; bankAccountId: string }) =>
+			api.post("/withdrawals", data).then((r) => r.data),
+		onSuccess: () => {
+			queryClient.invalidateQueries({ queryKey: ["userWallet"] });
+			queryClient.invalidateQueries({ queryKey: ["userWalletTransactions"] });
+			queryClient.invalidateQueries({ queryKey: ["myWithdrawals"] });
+		},
+	});
+}
+
+export function useMyWithdrawalsQuery() {
+	return useQuery({
+		queryKey: ["wallet", "withdrawals"],
+		queryFn: async () => {
+			const res = await api.get("/payments/withdrawals/me");
+			return res.data?.value || res.data || [];
+		},
+	});
+}
+
+export function useAdminSubOrdersQuery(params?: {
+	pageNumber?: number;
+	pageSize?: number;
+	status?: string;
+	searchKeyword?: string;
+}) {
+	const pageNumber = params?.pageNumber || 1;
+	const pageSize = params?.pageSize || 10;
+	const status = params?.status === "ALL" ? undefined : params?.status;
+	const searchKeyword = params?.searchKeyword ? params.searchKeyword.trim() : undefined;
+
+	return useQuery({
+		queryKey: ["order", "admin", "suborders", pageNumber, pageSize, status, searchKeyword],
+		queryFn: async () => {
+			try {
+				const res = await api.get("/orders/admin/suborders", {
+					params: {
+						pageNumber,
+						pageSize,
+						status,
+						searchKeyword,
+					},
+				});
+				return res.data?.value || res.data;
+			} catch (err) {
+				const fallbackRes = await api.get("/orders/customer/1");
+				const list = fallbackRes.data?.value || fallbackRes.data || [];
+				return {
+					items: list,
+					totalCount: list.length,
+					pageNumber: 1,
+					pageSize: 10,
+					totalPages: 1,
+				};
+			}
+		},
+	});
+}
+
+

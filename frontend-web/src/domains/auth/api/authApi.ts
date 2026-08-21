@@ -1,4 +1,4 @@
-import api from "@/core/api/axiosInstance";
+import api from "@/core/api/axiosInstance"
 import { useAuthStore } from "../stores/useAuthStore";
 import type { Result } from "@/core";
 
@@ -164,3 +164,6 @@ export const authService = {
     return response.data;
   },
 };
+
+export const authApi = authService;
+

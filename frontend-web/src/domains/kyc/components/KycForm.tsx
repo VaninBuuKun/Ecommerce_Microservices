@@ -5,7 +5,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useNavigate } from "react-router-dom";
 import { UploadImage } from "@/shared";
-import { useWalletQuery } from "@/domains/wallet";
+import { useWalletQuery } from "@/domains/order";
 
 const kycSchema = z.object({
 	identityNumber: z
@@ -67,12 +67,12 @@ export const KycForm: React.FC<Props> = ({
 		},
 	});
 
-	const handleFormSubmit = (_data: KycFormData, e?: React.BaseSyntheticEvent) => {
+	const handleFormSubmit = (data: KycFormData, e?: React.BaseSyntheticEvent) => {
 		if (!walletLoading && !hasWallet) {
 			setShowWalletModal(true);
 			return;
 		}
-		if (e) onSubmit(e as any);
+		if (e) onSubmit(e);
 	};
 
 	return (
@@ -99,6 +99,7 @@ export const KycForm: React.FC<Props> = ({
 				</div>
 			)}
 
+			{/* Input Số CCCD */}
 			<div>
 				<label className="block text-xs font-bold text-brand-dark mb-1">
 					Số CMND/CCCD <span className="text-red-500">*</span>
@@ -121,6 +122,7 @@ export const KycForm: React.FC<Props> = ({
 				)}
 			</div>
 
+			{/* Upload 2 mặt CCCD */}
 			<div className="grid grid-cols-2 gap-3">
 				<div>
 					<label className="block text-[11px] font-bold text-brand-dark mb-1.5">
@@ -160,6 +162,7 @@ export const KycForm: React.FC<Props> = ({
 				</div>
 			</div>
 
+			{/* Action Buttons */}
 			<div className="flex justify-between items-center border-t border-brand-border pt-4 mt-4">
 				<button
 					type="button"
@@ -192,6 +195,7 @@ export const KycForm: React.FC<Props> = ({
 				</div>
 			</div>
 
+			{/* Modal thông báo cần đăng ký ví trước khi gửi KYC */}
 			{showWalletModal && (
 				<div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
 					<div className="bg-white rounded-2xl max-w-sm w-full p-6 space-y-4 shadow-xl text-left font-sans">

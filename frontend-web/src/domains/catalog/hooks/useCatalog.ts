@@ -50,6 +50,40 @@ export function useCreateProductMutation() {
   });
 }
 
+export function useUpdateProductMutation() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, payload }: { id: string; payload: any }) =>
+      catalogApi.updateProduct(id, payload),
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: catalogQueryKeys.productById(variables.id) });
+      queryClient.invalidateQueries({ queryKey: catalogQueryKeys.products });
+    },
+  });
+}
+
+export function useUpdateProductSaleMutation() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, payload }: { id: string; payload: any }) =>
+      catalogApi.updateProductSale(id, payload),
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: catalogQueryKeys.productById(variables.id) });
+    },
+  });
+}
+
+export function useBulkUpdateVariantsMutation() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, payload }: { id: string; payload: any }) =>
+      catalogApi.bulkUpdateVariants(id, payload),
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: catalogQueryKeys.productById(variables.id) });
+    },
+  });
+}
+
 export function useDeleteProductMutation() {
   const queryClient = useQueryClient();
   return useMutation({
@@ -60,6 +94,7 @@ export function useDeleteProductMutation() {
     },
   });
 }
+
 
 export function useProductReviewsQuery(productId: string) {
   return useQuery({
