@@ -49,7 +49,7 @@ public class SubOrderDetailDto
     public List<CustomerOrderItemDto> OrderItems { get; set; } = new();
 }
 
-public record GetSubOrderDetailQuery(Guid SubOrderId, long UserId, bool IsSeller) : IQuery<SubOrderDetailDto>;
+public record GetSubOrderDetailQuery(Guid SubOrderId, long UserId, bool IsSeller, bool IsAdmin = false) : IQuery<SubOrderDetailDto>;
 
 public class GetSubOrderDetailQueryHandler(
     IEfUnitOfWork unitOfWork,
@@ -63,7 +63,8 @@ public class GetSubOrderDetailQueryHandler(
     {
         try
         {
-            logger.LogInformation("Getting detailed sub-order {SubOrderId}", request.SubOrderId);
+            logger.LogInformation("Getting detailed sub-order {SubOrderId} (IsAdmin: {IsAdmin}, IsSeller: {IsSeller})", 
+                request.SubOrderId, request.IsAdmin, request.IsSeller);
 
             var subOrderRepo = unitOfWork.Repository<SubOrder, Guid>();
             var subOrder = await subOrderRepo.FirstOrDefaultAsync(
@@ -76,8 +77,12 @@ public class GetSubOrderDetailQueryHandler(
                 return Result<SubOrderDetailDto>.Failure("Đơn hàng không tồn tại", EErrorCode.NotFound);
             }
 
-            // If seller query, check shop ownership
-            if (request.IsSeller)
+            // Authorization Check: Admin bypasses ownership restrictions
+            if (request.IsAdmin)
+            {
+                logger.LogInformation("Admin access granted for sub-order {SubOrderId}", request.SubOrderId);
+            }
+            else if (request.IsSeller)
             {
                 var validationResult = await sellerService.ValidateShopOwnerAsync(subOrder.ShopId, request.UserId, cancellationToken);
                 if (!validationResult.IsSuccess || !validationResult.Value)
@@ -92,6 +97,7 @@ public class GetSubOrderDetailQueryHandler(
                     return Result<SubOrderDetailDto>.Failure("Bạn không có quyền truy cập đơn hàng này", EErrorCode.Forbidden);
                 }
             }
+
 
             // Aggregate user details and payment method details in parallel using Task.WhenAll
             var userTask = identityService.GetUserAsync(subOrder.CustomerId);

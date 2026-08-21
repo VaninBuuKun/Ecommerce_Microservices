@@ -109,7 +109,9 @@ public class OrderDbContext(DbContextOptions<OrderDbContext> options, IInMemoryB
         {
             entity.HasKey(v => v.Id);
             entity.Property(v => v.Code).IsRequired().HasMaxLength(50);
-            entity.Property(v => v.DiscountValue).HasColumnType("decimal(18,2)"); // Hoặc bigint tùy thuộc kiểu dữ liệu trong Entity của bạn
+            entity.Property(v => v.DiscountType).HasConversion<string>();
+            entity.Property(v => v.Scope).HasConversion<string>();
+            entity.Property(v => v.DiscountValue).HasColumnType("decimal(18,2)");
             entity.Property(v => v.MaxDiscountAmount).HasColumnType("decimal(18,2)");
         });
 

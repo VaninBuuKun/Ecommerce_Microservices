@@ -43,8 +43,8 @@ public class ProductsWithCursorPaginationSpec : Specification<Product>
         }
 
         // 5. Load Navigation Properties
-        Query.Include(p => p.Images)
-             .Include(p => p.Category);
+        Query.Include(p => p.Category);
+
 
         // 6. Áp dụng sắp xếp và Keyset Pagination (ý tương đơn giản duyệt so với lần cuối cùng, nếu bằng thì sẽ lấy id lớn hơn, nói chung là thay vì load các phần tử lên Ram,
         // thì chỉ cần duyệt skip qua những thằng k hợp lý chỉ load nhưng sản phẩm cần thiêt)

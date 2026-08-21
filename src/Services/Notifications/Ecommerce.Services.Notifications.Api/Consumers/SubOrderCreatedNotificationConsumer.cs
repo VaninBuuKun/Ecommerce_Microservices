@@ -29,7 +29,8 @@ public class SubOrderCreatedNotificationConsumer(
             UserId = message.CustomerId,
             Title = "Đặt hàng thành công!",
             Body = $"Đơn hàng của bạn đã được tạo. Mã đơn: {message.OrderId}",
-            Type = "OrderCreated",
+            Type = NotificationType.OrderCreated,
+
             ReferenceId = message.OrderId.ToString()
         };
 

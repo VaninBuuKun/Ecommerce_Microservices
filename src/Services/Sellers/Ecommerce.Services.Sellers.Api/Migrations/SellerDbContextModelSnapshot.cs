@@ -22,6 +22,35 @@ namespace Ecommerce.Services.Sellers.Api.Migrations
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
+            modelBuilder.Entity("Ecommerce.Services.Sellers.Api.Models.Entities.FollowedShop", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTimeOffset>("CreatedDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<long>("CustomerId")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTimeOffset?>("LastModifiedDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<long>("ShopId")
+                        .HasColumnType("bigint");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CustomerId", "ShopId")
+                        .IsUnique();
+
+                    b.ToTable("FollowedShops");
+                });
+
             modelBuilder.Entity("Ecommerce.Services.Sellers.Api.Models.Entities.SellerKyc", b =>
                 {
                     b.Property<Guid>("Id")

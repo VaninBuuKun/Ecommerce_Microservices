@@ -29,7 +29,8 @@ public class NotificationService(
                     id = notification.Id,
                     title = notification.Title,
                     body = notification.Body,
-                    type = notification.Type,
+                    type = notification.Type.ToString(),
+
                     referenceId = notification.ReferenceId,
                     createdAt = notification.CreatedAt
                 }, cancellationToken);
@@ -43,7 +44,7 @@ public class NotificationService(
         logger.LogInformation("Notification [{Type}] sent to User {UserId}", notification.Type, notification.UserId);
     }
 
-    public async Task<List<Notification>> GetByUserIdAsync(long userId, int page, int pageSize, CancellationToken cancellationToken = default)
+    public async Task<List<Notification>> GetByUserIdAsync(long userId, int page = 1, int pageSize = 20, CancellationToken cancellationToken = default)
     {
         return await dbContext.Notifications
             .Where(n => n.UserId == userId)
@@ -52,6 +53,8 @@ public class NotificationService(
             .Take(pageSize)
             .ToListAsync(cancellationToken);
     }
+
+
 
     public async Task MarkAsReadAsync(Guid notificationId, long userId, CancellationToken cancellationToken = default)
     {

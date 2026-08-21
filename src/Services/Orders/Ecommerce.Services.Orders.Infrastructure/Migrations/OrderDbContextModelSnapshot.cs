@@ -294,8 +294,9 @@ namespace Ecommerce.Services.Orders.Infrastructure.Migrations
                     b.Property<DateTimeOffset>("CreatedDate")
                         .HasColumnType("timestamp with time zone");
 
-                    b.Property<int>("DiscountType")
-                        .HasColumnType("integer");
+                    b.Property<string>("DiscountType")
+                        .IsRequired()
+                        .HasColumnType("text");
 
                     b.Property<decimal>("DiscountValue")
                         .HasColumnType("decimal(18,2)");
@@ -325,8 +326,9 @@ namespace Ecommerce.Services.Orders.Infrastructure.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
-                    b.Property<int>("Scope")
-                        .HasColumnType("integer");
+                    b.Property<string>("Scope")
+                        .IsRequired()
+                        .HasColumnType("text");
 
                     b.Property<long?>("ShopId")
                         .HasColumnType("bigint");

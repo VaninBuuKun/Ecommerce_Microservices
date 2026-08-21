@@ -1,5 +1,5 @@
 import axios from "axios";
-import { useAuthStore, authService } from "@/domains/auth";
+import { useAuthStore, authApi } from "@/domains/auth";
 
 const API_BASE_URL = "http://localhost:5111/api";
 export const STORAGE_BASE_URL =
@@ -37,7 +37,8 @@ api.interceptors.response.use(
 		) {
 			originalRequest._retry = true;
 			try {
-				const newAccessToken = await authService.refresh();
+				const res = await authApi.refresh();
+				const newAccessToken = res;
 				useAuthStore.getState().setAccessToken(newAccessToken);
 				originalRequest.headers.Authorization = `Bearer ${newAccessToken}`;
 				return api(originalRequest);

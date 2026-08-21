@@ -1,8 +1,7 @@
-import { useEffect, useState } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { Store, Loader2, ArrowLeft } from "lucide-react";
-import api from "@/core/api/axiosInstance";
-import { toast } from "react-toastify";
+import { api } from "@/core";
 
 interface PublicUser {
   id: number;
@@ -22,31 +21,28 @@ interface ShopDto {
 export default function UserProfilePublicPage() {
   const { userId } = useParams<{ userId: string }>();
   const navigate = useNavigate();
-  const [user, setUser] = useState<PublicUser | null>(null);
-  const [shops, setShops] = useState<ShopDto[]>([]);
-  const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    const fetchUserData = async () => {
-      setLoading(true);
-      try {
-        const userRes = await api.get(`/users/${userId}/public`);
-        setUser(userRes.data);
+  // 1. Fetch public profile with TanStack Query
+  const { data: user, isLoading: loadingUser } = useQuery<PublicUser>({
+    queryKey: ["publicUser", userId],
+    queryFn: async () => {
+      const res = await api.get(`/users/${userId}/public`);
+      return res.data;
+    },
+    enabled: !!userId,
+  });
 
-        const shopsRes = await api.get(`/shop/owner/${userId}`);
-        setShops(shopsRes.data);
-      } catch (err: any) {
-        console.error(err);
-        toast.error("Không thể tải thông tin người dùng công khai.");
-      } finally {
-        setLoading(false);
-      }
-    };
+  // 2. Fetch public shops owned by this user
+  const { data: shops = [], isLoading: loadingShops } = useQuery<ShopDto[]>({
+    queryKey: ["publicUserShops", userId],
+    queryFn: async () => {
+      const res = await api.get(`/shop/owner/${userId}`);
+      return res.data || [];
+    },
+    enabled: !!userId,
+  });
 
-    if (userId) {
-      fetchUserData();
-    }
-  }, [userId]);
+  const loading = loadingUser || loadingShops;
 
   if (loading) {
     return (
@@ -59,11 +55,11 @@ export default function UserProfilePublicPage() {
 
   if (!user) {
     return (
-      <div className="max-w-md mx-auto text-center py-20 space-y-4">
+      <div className="max-w-md mx-auto text-center py-20 space-y-4 font-sans text-xs">
         <p className="text-sm font-bold text-brand-muted">Không tìm thấy thông tin người dùng này.</p>
         <button 
           onClick={() => navigate(-1)}
-          className="px-4 py-2 bg-brand-dark text-white rounded-xl text-xs font-black"
+          className="px-4 py-2 bg-brand-dark text-white rounded-xl text-xs font-black cursor-pointer border-none"
         >
           Quay lại
         </button>
@@ -73,15 +69,17 @@ export default function UserProfilePublicPage() {
 
   return (
     <div className="max-w-4xl mx-auto px-4 py-8 space-y-8 text-left font-sans text-xs">
+      {/* Back Button */}
       <button
         onClick={() => navigate(-1)}
-        className="flex items-center gap-1.5 text-brand-muted hover:text-brand-dark font-black tracking-wide uppercase transition-colors"
+        className="flex items-center gap-1.5 text-brand-muted hover:text-brand-dark font-black tracking-wide uppercase transition-colors cursor-pointer border-none bg-transparent"
       >
         <ArrowLeft className="w-3.5 h-3.5" />
         Quay lại
       </button>
 
-      <div className="flex flex-col md:flex-row items-center gap-6 p-6 bg-white border border-brand-border rounded-3xl shadow-sm">
+      {/* Hero Profile Block */}
+      <div className="flex flex-col md:flex-row items-center gap-6 p-6 bg-white border border-brand-border rounded-3xl shadow-xs">
         <div className="w-20 h-20 rounded-full overflow-hidden bg-brand-primary/10 border-2 border-brand-border shrink-0 flex items-center justify-center font-black text-3xl text-brand-primary uppercase">
           {user.avatarUrl ? (
             <img src={user.avatarUrl} alt={user.fullName} className="w-full h-full object-cover" />
@@ -98,6 +96,7 @@ export default function UserProfilePublicPage() {
         </div>
       </div>
 
+      {/* Managed Shops List */}
       <div className="space-y-4">
         <h2 className="text-sm font-black text-brand-dark uppercase tracking-wider border-b border-brand-border pb-2 flex items-center gap-2">
           <Store className="w-4 h-4 text-brand-primary" />

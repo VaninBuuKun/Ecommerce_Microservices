@@ -41,7 +41,6 @@ public class Product : AggregateRoot<Guid>
     public bool HasVariants => _variants.Any(v => !v.IsDeleted);
 
     // Dịch vụ Images & Reviews
-    public ICollection<ProductImage> Images { get; private set; } = new List<ProductImage>();
     public ICollection<ProductReview> Reviews { get; private set; } = new List<ProductReview>();
 
     private Product() { Name = null!; Description = null!; } // EF Core

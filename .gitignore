@@ -56,3 +56,11 @@ QueryDb/
 
 appsettings.*.json
 !appsettings.json
+
+# AI Assistant & IDE Agents Folders
+.agents/
+.antigravity/
+.gemini/
+.brain/
+.scratch/
+scratchpad.md

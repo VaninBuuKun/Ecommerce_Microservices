@@ -11,6 +11,8 @@ using Microsoft.Extensions.Logging;
 
 namespace Ecommerce.Services.Catalog.Application.Features.Products.Commands.CreateProduct;
 
+
+
 public class CreateProductCommandHandler(
     IEfUnitOfWork unitOfWork,
     ICurrentUserService currentUserService,
@@ -51,14 +53,13 @@ public class CreateProductCommandHandler(
             );
 
             _productRepository.Add(product);
-            
-            
             await unitOfWork.SaveChangesAsync(cancellationToken);
-            
+
             var response = mapper.Map<ProductResponse>(product);
-            
             return Result<ProductResponse>.Success(response);
         }
+
+
         catch (Exception ex)
         {
             logger.LogError(ex, "Có lỗi xảy ra khi thêm sản phẩm: {Name}", command.Name);

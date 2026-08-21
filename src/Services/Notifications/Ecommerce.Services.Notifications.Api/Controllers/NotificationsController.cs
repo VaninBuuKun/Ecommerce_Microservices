@@ -26,6 +26,8 @@ public class NotificationsController(INotificationService notificationService) :
         return Ok(notifications);
     }
 
+
+
     /// <summary>Đánh dấu một notification đã đọc.</summary>
     [HttpPut("{notificationId:guid}/read")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]

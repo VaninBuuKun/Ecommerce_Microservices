@@ -22,6 +22,7 @@ import {
 } from "lucide-react";
 import { useSellerStore, useSellerProfileQuery, ChatFloatingWidget } from "@/domains/seller";
 
+
 export default function SellerLayout() {
 	const navigate = useNavigate();
 	const location = useLocation();

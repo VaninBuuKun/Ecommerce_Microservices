@@ -1,8 +1,0 @@
-{
-  "mcpServers": {
-    "StitchMCP": {
-      "command": "node",
-      "args": ["stitch-mcp-server"]
-    }
-  }
-}

@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import api from "@/core/api/axiosInstance";
+import api from "@/shared/lib/axios";
 import { Loader2, RefreshCw, FolderOpen } from "lucide-react";
 
 interface CategoryNode {

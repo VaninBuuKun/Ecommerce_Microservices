@@ -6,3 +6,5 @@ export * from "./ProductSearchBar";
 export * from "./ProductTable";
 export * from "./ProductView";
 export * from "./CreateProductModal";
+export * from "./EditProductPage";
+

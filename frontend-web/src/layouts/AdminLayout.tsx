@@ -9,10 +9,10 @@ import {
 	LogOut,
 	ShieldAlert,
 	Ticket,
-	Wallet,
-	Truck
+	Wallet
 } from "lucide-react";
 import { useAuthStore } from "@/domains/auth";
+
 
 export default function AdminLayout() {
 	const navigate = useNavigate();
@@ -96,10 +96,6 @@ export default function AdminLayout() {
 						<Link to="/admin/orders" className={getSidebarLinkClass("/admin/orders")}>
 							<Package className="w-4 h-4 text-brand-muted" />
 							<span>Quản lý đơn hàng</span>
-						</Link>
-						<Link to="/admin/shipments" className={getSidebarLinkClass("/admin/shipments")}>
-							<Truck className="w-4 h-4 text-brand-muted" />
-							<span>Quản lý vận chuyển</span>
 						</Link>
 						<Link to="/admin/refunds" className={getSidebarLinkClass("/admin/refunds")}>
 							<ArrowLeftRight className="w-4 h-4 text-brand-muted" />

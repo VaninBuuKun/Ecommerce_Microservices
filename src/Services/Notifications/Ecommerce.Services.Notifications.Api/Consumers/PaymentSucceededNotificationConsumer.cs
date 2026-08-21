@@ -22,7 +22,8 @@ public class PaymentSucceededNotificationConsumer(
             UserId = message.CustomerId,
             Title = "Thanh toán thành công!",
             Body = $"Đơn hàng #{message.OrderId} đã được thanh toán thành công. Người bán đang chuẩn bị hàng.",
-            Type = "PaymentSucceeded",
+            Type = NotificationType.PaymentSucceeded,
+
             ReferenceId = message.OrderId.ToString()
         };
 

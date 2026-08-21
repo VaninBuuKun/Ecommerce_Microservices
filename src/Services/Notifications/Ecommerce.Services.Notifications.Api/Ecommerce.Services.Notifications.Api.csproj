@@ -7,7 +7,7 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="9.0.5"/>
+        <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="9.0.5" />
         <PackageReference Include="Microsoft.AspNetCore.SignalR" Version="1.2.0" />
         <PackageReference Include="Scalar.AspNetCore" Version="2.14.14" />
         <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="9.0.16">
@@ -28,6 +28,7 @@
       <ProjectReference Include="..\..\..\BuildingBlocks\BuildingBlocks.Web\BuildingBlocks.Web.csproj" />
       <ProjectReference Include="..\..\..\BuildingBlocks\BuildingBlocks.Messaging\BuildingBlocks.Messaging.csproj" />
       <ProjectReference Include="..\..\Orders\Ecommerce.Services.Orders.Contracts\Ecommerce.Services.Orders.Contracts.csproj" />
+      <ProjectReference Include="..\..\Catalogs\Ecommerce.Services.Catalog.Contracts\Ecommerce.Services.Catalog.Contracts.csproj" />
     </ItemGroup>
 
 </Project>

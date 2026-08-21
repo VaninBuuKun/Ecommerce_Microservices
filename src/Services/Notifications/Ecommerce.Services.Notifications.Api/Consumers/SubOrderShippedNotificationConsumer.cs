@@ -25,7 +25,8 @@ public class SubOrderShippedNotificationConsumer(
             UserId = message.CustomerId,
             Title = "Đơn hàng đang được giao",
             Body = $"Đơn hàng của bạn đang trên đường đến. Mã vận đơn: {message.SubOrderId}",
-            Type = "SubOrderShipped",
+            Type = NotificationType.SubOrderShipped,
+
             ReferenceId = message.SubOrderId.ToString()
         };
 

@@ -60,30 +60,6 @@ namespace Ecommerce.Services.Catalog.Infrastructure.Migrations
                     b.ToTable("Categories");
                 });
 
-            modelBuilder.Entity("Ecommerce.Services.Catalog.Domain.ProductImage", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("char(36)");
-
-                    b.Property<string>("ImageUrl")
-                        .IsRequired()
-                        .HasMaxLength(1000)
-                        .HasColumnType("varchar(1000)");
-
-                    b.Property<bool>("IsMain")
-                        .HasColumnType("tinyint(1)");
-
-                    b.Property<Guid>("ProductId")
-                        .HasColumnType("char(36)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("ProductId");
-
-                    b.ToTable("ProductImages");
-                });
-
             modelBuilder.Entity("Ecommerce.Services.Catalog.Domain.ProductReview", b =>
                 {
                     b.Property<Guid>("Id")
@@ -343,6 +319,37 @@ namespace Ecommerce.Services.Catalog.Infrastructure.Migrations
                     b.ToTable("ProductVariantOptions");
                 });
 
+            modelBuilder.Entity("Ecommerce.Services.Catalog.Domain.Products.Wishlist", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("char(36)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<DateTimeOffset>("CreatedDate")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<long>("CustomerId")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTimeOffset?>("LastModifiedDate")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<Guid>("ProductId")
+                        .HasColumnType("char(36)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ProductId");
+
+                    b.HasIndex("CustomerId", "ProductId")
+                        .IsUnique();
+
+                    b.ToTable("Wishlists");
+                });
+
             modelBuilder.Entity("Ecommerce.Services.Catalog.Domain.Category", b =>
                 {
                     b.HasOne("Ecommerce.Services.Catalog.Domain.Category", "Parent")
@@ -351,15 +358,6 @@ namespace Ecommerce.Services.Catalog.Infrastructure.Migrations
                         .OnDelete(DeleteBehavior.Restrict);
 
                     b.Navigation("Parent");
-                });
-
-            modelBuilder.Entity("Ecommerce.Services.Catalog.Domain.ProductImage", b =>
-                {
-                    b.HasOne("Ecommerce.Services.Catalog.Domain.Products.Product", null)
-                        .WithMany("Images")
-                        .HasForeignKey("ProductId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
                 });
 
             modelBuilder.Entity("Ecommerce.Services.Catalog.Domain.ProductReview", b =>
@@ -433,6 +431,17 @@ namespace Ecommerce.Services.Catalog.Infrastructure.Migrations
                     b.Navigation("Variant");
                 });
 
+            modelBuilder.Entity("Ecommerce.Services.Catalog.Domain.Products.Wishlist", b =>
+                {
+                    b.HasOne("Ecommerce.Services.Catalog.Domain.Products.Product", "Product")
+                        .WithMany()
+                        .HasForeignKey("ProductId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Product");
+                });
+
             modelBuilder.Entity("Ecommerce.Services.Catalog.Domain.Category", b =>
                 {
                     b.Navigation("Products");
@@ -442,8 +451,6 @@ namespace Ecommerce.Services.Catalog.Infrastructure.Migrations
 
             modelBuilder.Entity("Ecommerce.Services.Catalog.Domain.Products.Product", b =>
                 {
-                    b.Navigation("Images");
-
                     b.Navigation("Options");
 
                     b.Navigation("Reviews");

@@ -11,31 +11,40 @@ using Ecommerce.Services.Orders.Application.Features.Orders.Commands.CancelOrder
 using Ecommerce.Services.Orders.Application.Features.Orders.Commands.CalOrderGrandTotal;
 using Microsoft.AspNetCore.Mvc;
 using BuildingBlocks.Auth;
+using BuildingBlocks.Shared.InfrastructureInterfaces.InMemoryBus;
+using Ecommerce.Services.Orders.Application.Features.Orders.Queries.GetAdminSubOrders;
+using MediatR;
+using Microsoft.AspNetCore.Authorization;
 
 namespace Ecommerce.Services.Orders.Api.Controllers;
 
 /// <summary>
 /// Quản lý đơn hàng
 /// </summary>
-[Tags("Orders")]
-public class OrdersController(ICurrentUserService currentUserService) : CleanV1CustomController
+[ApiController]
+[Route("api/[controller]")]
+public class OrdersController(ICurrentUserService currentUserService, IInMemoryBus _sender) : ControllerBase
 {
     private long UserId => currentUserService.UserId;
     
     /// <summary>
     /// Lấy danh sách lịch sử mua hàng theo mã khách hàng (CustomerId)
     /// </summary>
+    [HttpGet]
     [HttpGet("customer/{customerId:long}")]
     [ProducesResponseType(typeof(List<CustomerOrderResponse>), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    public async Task<IActionResult> GetOrdersByCustomer(long customerId, CancellationToken cancellationToken)
+    [Authorize]
+    public async Task<IActionResult> GetSubOrdersByCustomer(long customerId, CancellationToken cancellationToken)
     {
-        var result = await _sender.SendAsync(new GetSubOrdersQuery(UserId), cancellationToken);
+        var targetCustomerId = customerId > 0 ? customerId : UserId;
+        var result = await _sender.SendAsync(new GetSubOrdersQuery(targetCustomerId), cancellationToken);
 
         return result.IsSuccess 
             ? Ok(result.Value) 
             : StatusCode(result.GetHttpStatusCode(), result);
     }
+
 
     /// <summary>
     /// Lấy thông tin đơn hàng chi tiết theo Id
@@ -110,17 +119,44 @@ public class OrdersController(ICurrentUserService currentUserService) : CleanV1C
     }
 
     /// <summary>
-    /// Lấy thông tin chi tiết của đơn hàng con (SubOrder) dùng Task.WhenAll kết nối các service
+    /// Lấy danh sách phân trang tất cả đơn hàng con (SubOrder) trên toàn hệ thống (dành cho Admin)
     /// </summary>
-    [HttpGet("suborder/{subOrderId:guid}/detail")]
-    public async Task<IActionResult> GetSubOrderDetail(Guid subOrderId, [FromQuery] bool isSeller, CancellationToken cancellationToken)
+    [HttpGet("admin/suborders")]
+    [ProducesResponseType(typeof(Ecommerce.Services.Orders.Application.Features.Orders.Queries.GetAdminSubOrders.PagedAdminSubOrdersResponse), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetAdminSubOrders(
+        [FromQuery] int pageNumber = 1,
+        [FromQuery] int pageSize = 10,
+        [FromQuery] string? status = null,
+        [FromQuery] string? searchKeyword = null,
+        CancellationToken cancellationToken = default)
     {
-        var result = await _sender.SendAsync(new Ecommerce.Services.Orders.Application.Features.Orders.Queries.GetSubOrderDetail.GetSubOrderDetailQuery(subOrderId, UserId, isSeller), cancellationToken);
+        var result = await _sender.SendAsync(new GetAdminSubOrdersQuery(
+            pageNumber,
+            pageSize,
+            status,
+            searchKeyword
+        ), cancellationToken);
 
         return result.IsSuccess 
             ? Ok(result) 
             : StatusCode(result.GetHttpStatusCode(), result);
     }
+
+
+    /// <summary>
+    /// Lấy thông tin chi tiết của đơn hàng con (SubOrder) dùng Task.WhenAll kết nối các service
+    /// </summary>
+    [HttpGet("suborder/{subOrderId:guid}/detail")]
+    public async Task<IActionResult> GetSubOrderDetail(Guid subOrderId, [FromQuery] bool isSeller, CancellationToken cancellationToken)
+    {
+        var isAdmin = currentUserService.IsAdmin;
+        var result = await _sender.SendAsync(new Ecommerce.Services.Orders.Application.Features.Orders.Queries.GetSubOrderDetail.GetSubOrderDetailQuery(subOrderId, UserId, isSeller, isAdmin), cancellationToken);
+
+        return result.IsSuccess 
+            ? Ok(result) 
+            : StatusCode(result.GetHttpStatusCode(), result);
+    }
+
 
     /// <summary>
     /// Người bán xác nhận đơn hàng con bắt đầu xử lý

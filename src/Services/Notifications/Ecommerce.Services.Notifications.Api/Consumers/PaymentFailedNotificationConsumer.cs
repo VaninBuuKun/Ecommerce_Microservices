@@ -22,7 +22,8 @@ public class PaymentFailedNotificationConsumer(
             UserId = message.CustomerId,
             Title = "Thanh toán thất bại",
             Body = $"Đơn hàng #{message.OriginalOrderId} chưa được thanh toán. Lý do: {message.Reason}",
-            Type = "PaymentFailed",
+            Type = NotificationType.PaymentFailed,
+
             ReferenceId = message.OriginalOrderId.ToString()
         };
 
