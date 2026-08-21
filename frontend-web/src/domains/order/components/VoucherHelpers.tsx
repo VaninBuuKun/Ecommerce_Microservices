@@ -2,7 +2,7 @@ import React from "react";
 
 export function renderDiscountLabel(voucher: any, subTotal?: number) {
 	const discountType = voucher.discountType;
-	const isPercentage = discountType === 0 || discountType === "Percentage";
+	const isPercentage = discountType === "Percentage" || discountType === 1;
 
 	if (isPercentage) {
 		const maxDiscount = voucher.maxDiscountAmount || voucher.maxDiscount;

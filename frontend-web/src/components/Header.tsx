@@ -205,7 +205,7 @@ export default function Header() {
 																key={item.id}
 																onClick={() => {
 																	setShowWishlistDropdown(false);
-																	navigate(`/products/${item.id}`);
+																	navigate(`/product/${item.id}`);
 																}}
 																className="flex items-center gap-3 cursor-pointer hover:bg-slate-50 p-1 rounded transition-colors"
 															>
@@ -228,7 +228,6 @@ export default function Header() {
 																			</span>
 																		)}
 																	</div>
-
 																</div>
 															</div>
 														))
@@ -283,10 +282,14 @@ export default function Header() {
 															Giỏ hàng trống
 														</div>
 													) : (
-														previewCartItems.map((item) => (
+														previewCartItems.map((item: any) => (
 															<div
 																key={item.productVariantId}
-																className="flex items-center gap-3"
+																onClick={() => {
+																	setShowCartDropdown(false);
+																	navigate(`/product/${item.productId}`);
+																}}
+																className="flex items-center gap-3 cursor-pointer hover:bg-slate-50 p-1 rounded transition-colors"
 															>
 																<img
 																	src={item.thumbnailUrl || "https://images.unsplash.com/photo-1556821840-3a63f95609a7?auto=format&fit=crop&q=80&w=150"}
@@ -298,17 +301,11 @@ export default function Header() {
 																		{item.productName}
 																	</h4>
 																	<div className="flex items-center gap-1.5">
-																		{item.discountPrice && item.discountPrice < item.unitPrice ? (
-																			<>
-																				<span className="text-[10px] text-brand-primary-deep font-black">
-																					{item.discountPrice.toLocaleString("vi-VN")}đ
-																				</span>
-																				<span className="text-[8px] text-brand-muted line-through font-bold">
-																					{item.unitPrice.toLocaleString("vi-VN")}đ
-																				</span>
-																			</>
-																		) : (
-																			<span className="text-[10px] text-brand-primary-deep font-black">
+																		<span className="text-[10px] text-brand-primary-deep font-black">
+																			{(item.discountPrice && item.discountPrice < item.unitPrice ? item.discountPrice : item.unitPrice)?.toLocaleString("vi-VN")}đ
+																		</span>
+																		{item.discountPrice && item.discountPrice < item.unitPrice && (
+																			<span className="text-[9px] text-brand-muted line-through font-mono">
 																				{item.unitPrice.toLocaleString("vi-VN")}đ
 																			</span>
 																		)}
@@ -318,6 +315,7 @@ export default function Header() {
 														))
 													)}
 												</div>
+
 
 												<div className="border-t border-brand-border mt-3 pt-2.5 flex justify-end">
 													<button

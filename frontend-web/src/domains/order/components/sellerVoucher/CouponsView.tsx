@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useParams } from "react-router-dom";
 import {
 	Plus,
@@ -23,6 +23,8 @@ import {
 } from "@/domains/seller";
 
 export default function CouponsView() {
+	const startDateInputRef = useRef<HTMLInputElement>(null);
+	const endDateInputRef = useRef<HTMLInputElement>(null);
 	const { shopId } = useParams<{ shopId?: string }>();
 	const { activeShop } = useSellerStore();
 	const { data: profile } = useSellerProfileQuery();
@@ -39,7 +41,7 @@ export default function CouponsView() {
 	const [page, setPage] = useState(1);
 	const [pageSize] = useState(8);
 	const [codeSearch, setCodeSearch] = useState("");
-	const [selectedDiscountType, setSelectedDiscountType] = useState<number | undefined>(undefined);
+	const [selectedDiscountType, setSelectedDiscountType] = useState<string | undefined>(undefined);
 	const [selectedIsActive, setSelectedIsActive] = useState<boolean | undefined>(undefined);
 
 	// Fetch query
@@ -48,7 +50,7 @@ export default function CouponsView() {
 		page,
 		pageSize,
 		code: codeSearch || undefined,
-		discountType: selectedDiscountType,
+		discountType: selectedDiscountType || undefined,
 		isActive: selectedIsActive,
 	});
 
@@ -64,7 +66,7 @@ export default function CouponsView() {
 	// Form states
 	const [formCode, setFormCode] = useState("");
 	const [formName, setFormName] = useState("");
-	const [formDiscountType, setFormDiscountType] = useState<number>(0);
+	const [formDiscountType, setFormDiscountType] = useState<string>("FixedAmount");
 	const [formDiscountValue, setFormDiscountValue] = useState<number>(0);
 	const [formMaxDiscountAmount, setFormMaxDiscountAmount] = useState<number | "">("");
 	const [formMinOrderValue, setFormMinOrderValue] = useState<number | "">("");
@@ -73,16 +75,23 @@ export default function CouponsView() {
 	const [formUsageLimit, setFormUsageLimit] = useState<number | "">("");
 	const [formIsActive, setFormIsActive] = useState(true);
 
+	const getLocalISOString = (date: Date = new Date()) => {
+		const tzOffset = date.getTimezoneOffset() * 60000;
+		return new Date(date.getTime() - tzOffset).toISOString().slice(0, 16);
+	};
+
 	const handleOpenAdd = () => {
+		const now = new Date();
+		const nextWeek = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
 		setEditingVoucher(null);
 		setFormCode("");
 		setFormName("");
-		setFormDiscountType(0);
+		setFormDiscountType("FixedAmount");
 		setFormDiscountValue(0);
 		setFormMaxDiscountAmount("");
 		setFormMinOrderValue("");
-		setFormStartDate("");
-		setFormEndDate("");
+		setFormStartDate(getLocalISOString(now));
+		setFormEndDate(getLocalISOString(nextWeek));
 		setFormUsageLimit("");
 		setFormIsActive(true);
 		setShowAddEditModal(true);
@@ -92,7 +101,7 @@ export default function CouponsView() {
 		setEditingVoucher(voucher);
 		setFormCode(voucher.code || "");
 		setFormName(voucher.name ?? "");
-		setFormDiscountType(voucher.discountType ?? 0);
+		setFormDiscountType(voucher.discountType === "Percentage" || voucher.discountType === 1 ? "Percentage" : "FixedAmount");
 		setFormDiscountValue(voucher.discountValue ?? 0);
 		setFormMaxDiscountAmount(voucher.maxDiscountAmount ?? "");
 		setFormMinOrderValue(voucher.minOrderValue ?? "");
@@ -105,8 +114,21 @@ export default function CouponsView() {
 
 	const handleSave = (e: React.FormEvent) => {
 		e.preventDefault();
-		if (!formCode || formDiscountValue <= 0 || !formStartDate || !formEndDate) {
+		const isPercent = formDiscountType === "Percentage";
+		const valNum = Number(formDiscountValue);
+
+		if (!formCode || valNum <= 0 || !formStartDate || !formEndDate) {
 			toast.error("Vui lòng điền đầy đủ thông tin bắt buộc!");
+			return;
+		}
+
+		if (isPercent && (valNum < 1 || valNum > 100)) {
+			toast.error("Giá trị giảm theo phần trăm phải nằm trong khoảng từ 1% đến 100%.");
+			return;
+		}
+
+		if (!isPercent && valNum <= 0) {
+			toast.error("Giá trị giảm theo số tiền cố định phải lớn hơn 0đ.");
 			return;
 		}
 
@@ -118,13 +140,13 @@ export default function CouponsView() {
 		const basePayload = {
 			code: formCode.trim().toUpperCase(),
 			name: formName.trim(),
-			discountType: Number(formDiscountType),
-			discountValue: Number(formDiscountValue),
-			maxDiscountAmount: formMaxDiscountAmount !== "" ? Number(formMaxDiscountAmount) : null,
-			minOrderValue: formMinOrderValue !== "" ? Number(formMinOrderValue) : null,
+			discountType: isPercent ? "Percentage" : "FixedAmount",
+			discountValue: valNum,
+			maxDiscountAmount: isPercent && formMaxDiscountAmount !== "" ? Number(formMaxDiscountAmount) : null,
+			minOrderValue: formMinOrderValue !== "" ? Number(formMinOrderValue) : 0,
 			startDate: new Date(formStartDate).toISOString(),
 			endDate: new Date(formEndDate).toISOString(),
-			maxUsageCount: formUsageLimit !== "" ? Number(formUsageLimit) : null,
+			maxUsageCount: formUsageLimit !== "" ? Number(formUsageLimit) : 1000,
 			isActive: formIsActive,
 			shopId: currentShopId,
 		};
@@ -140,8 +162,8 @@ export default function CouponsView() {
 					onError: (err: any) => {
 						toast.error(
 							err?.response?.data?.message ||
-								err?.response?.data ||
-								"Cập nhật voucher thất bại!",
+							err?.response?.data ||
+							"Cập nhật voucher thất bại!",
 						);
 					},
 				},
@@ -155,8 +177,8 @@ export default function CouponsView() {
 				onError: (err: any) => {
 					toast.error(
 						err?.response?.data?.message ||
-							err?.response?.data ||
-							"Tạo voucher thất bại!",
+						err?.response?.data ||
+						"Tạo voucher thất bại!",
 					);
 				},
 			});
@@ -180,7 +202,12 @@ export default function CouponsView() {
 	const isDataArray = Array.isArray(data);
 	const itemsList = isDataArray ? data : data?.items || [];
 	const totalItems = isDataArray ? data.length : data?.totalCount || 0;
-	const totalPages = Math.ceil(totalItems / pageSize) || 1;
+	const getDatePart = (isoStr: string) => (isoStr ? isoStr.split("T")[0] : "");
+	const getTimePart = (isoStr: string) => (isoStr && isoStr.includes("T") ? isoStr.split("T")[1].slice(0, 5) : "00:00");
+	const combineDateTime = (dateStr: string, timeStr: string) => {
+		if (!dateStr) return "";
+		return `${dateStr}T${timeStr || "00:00"}`;
+	};
 
 	return (
 		<div className="space-y-4 text-left font-sans animate-in fade-in duration-200">
@@ -233,14 +260,14 @@ export default function CouponsView() {
 						value={selectedDiscountType ?? ""}
 						onChange={(e) => {
 							const val = e.target.value;
-							setSelectedDiscountType(val !== "" ? Number(val) : undefined);
+							setSelectedDiscountType(val !== "" ? val : undefined);
 							setPage(1);
 						}}
 						className="w-full h-8 px-2.5 text-xs bg-brand-light-soft/30 border border-brand-border rounded-lg focus:outline-none focus:border-brand-primary font-semibold cursor-pointer"
 					>
 						<option value="">Tất cả loại</option>
-						<option value="0">Giảm tiền mặt (Fixed)</option>
-						<option value="1">Giảm theo % (Percentage)</option>
+						<option value="FixedAmount">Giảm tiền mặt (Fixed)</option>
+						<option value="Percentage">Giảm theo % (Percentage)</option>
 					</select>
 				</div>
 
@@ -297,7 +324,7 @@ export default function CouponsView() {
 											{voucher.name || "—"}
 										</td>
 										<td className="p-3 text-center">
-											{voucher.discountType === 1 || voucher.discountType === "Percentage" ? (
+											{voucher.discountType === "Percentage" || voucher.discountType === 1 ? (
 												<span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[9px] font-extrabold text-blue-600 bg-blue-50 border border-blue-200">
 													<Percent className="w-3 h-3" /> Phần trăm
 												</span>
@@ -308,7 +335,7 @@ export default function CouponsView() {
 											)}
 										</td>
 										<td className="p-3 text-brand-dark font-extrabold whitespace-normal break-words max-w-[140px] leading-tight">
-											{voucher.discountType === 1 || voucher.discountType === "Percentage"
+											{voucher.discountType === "Percentage" || voucher.discountType === 1
 												? `${voucher.discountValue}% (Tối đa ${(voucher.maxDiscountAmount || 0).toLocaleString("vi-VN")}đ)`
 												: `${voucher.discountValue.toLocaleString("vi-VN")}đ`}
 										</td>
@@ -333,11 +360,10 @@ export default function CouponsView() {
 										</td>
 										<td className="p-3 text-center">
 											<span
-												className={`inline-block px-2 py-0.5 rounded-full text-[9px] font-extrabold ${
-													voucher.isActive
+												className={`inline-block px-2 py-0.5 rounded-full text-[9px] font-extrabold ${voucher.isActive
 														? "text-emerald-700 bg-emerald-50 border border-emerald-200"
 														: "text-rose-600 bg-rose-50 border border-rose-200"
-												}`}
+													}`}
 											>
 												{voucher.isActive ? "Kích Hoạt" : "Tạm Ngưng"}
 											</span>
@@ -406,7 +432,7 @@ export default function CouponsView() {
 			{/* Add/Edit Modal */}
 			{showAddEditModal && (
 				<div className="fixed inset-0 bg-brand-dark/40 backdrop-blur-sm flex items-center justify-center p-4 z-50 overflow-y-auto">
-					<div className="bg-white border border-brand-border rounded-2xl max-w-lg w-full p-6 shadow-2xl space-y-4 text-left relative animate-in fade-in zoom-in-95 duration-200">
+					<div className="bg-white border border-brand-border rounded-2xl max-w-2xl w-full p-6 shadow-2xl space-y-4 text-left relative animate-in fade-in zoom-in-95 duration-200">
 						<button
 							onClick={() => setShowAddEditModal(false)}
 							className="absolute top-4 right-4 p-1 rounded-full hover:bg-brand-light-soft text-brand-muted hover:text-brand-dark cursor-pointer border-none bg-transparent"
@@ -455,25 +481,23 @@ export default function CouponsView() {
 										<button
 											type="button"
 											onClick={() => {
-												setFormDiscountType(0);
+												setFormDiscountType("FixedAmount");
 												setFormMaxDiscountAmount("");
 											}}
-											className={`flex-1 text-center font-bold border rounded-lg transition-all cursor-pointer text-[11px] ${
-												formDiscountType === 0
+											className={`flex-1 text-center font-bold border rounded-lg transition-all cursor-pointer text-[11px] ${formDiscountType === "FixedAmount"
 													? "bg-brand-primary border-brand-primary text-brand-dark shadow-xs"
 													: "bg-white border-brand-border text-brand-muted hover:bg-slate-50"
-											}`}
+												}`}
 										>
 											Tiền mặt (Fixed)
 										</button>
 										<button
 											type="button"
-											onClick={() => setFormDiscountType(1)}
-											className={`flex-1 text-center font-bold border rounded-lg transition-all cursor-pointer text-[11px] ${
-												formDiscountType === 1
+											onClick={() => setFormDiscountType("Percentage")}
+											className={`flex-1 text-center font-bold border rounded-lg transition-all cursor-pointer text-[11px] ${formDiscountType === "Percentage"
 													? "bg-brand-primary border-brand-primary text-brand-dark shadow-xs"
 													: "bg-white border-brand-border text-brand-muted hover:bg-slate-50"
-											}`}
+												}`}
 										>
 											Phần trăm (%)
 										</button>
@@ -482,13 +506,17 @@ export default function CouponsView() {
 
 								<div className="space-y-1">
 									<label className="font-bold text-brand-muted">
-										Giá trị giảm <span className="text-red-500">*</span>
+										Giá trị giảm {formDiscountType === "Percentage" ? "(%)" : "(đ)"} <span className="text-red-500">*</span>
 									</label>
 									<input
-										type="number"
-										placeholder={formDiscountType === 1 ? "Nhập % (1-100)" : "Nhập số tiền..."}
+										type="text"
+										inputMode="numeric"
+										placeholder={formDiscountType === "Percentage" ? "Nhập % (1-100)..." : "Nhập số tiền..."}
 										value={formDiscountValue || ""}
-										onChange={(e) => setFormDiscountValue(Number(e.target.value))}
+										onChange={(e) => {
+											const val = e.target.value.replace(/[^0-9]/g, "");
+											setFormDiscountValue(val ? Number(val) : 0);
+										}}
 										className="w-full h-9 px-3 bg-brand-light-soft/20 border border-brand-border rounded-lg focus:outline-none focus:border-brand-primary font-bold"
 										required
 									/>
@@ -499,12 +527,14 @@ export default function CouponsView() {
 								<div className="space-y-1">
 									<label className="font-bold text-brand-muted">Đơn tối thiểu (đ)</label>
 									<input
-										type="number"
+										type="text"
+										inputMode="numeric"
 										placeholder="Ví dụ: 100000"
 										value={formMinOrderValue}
-										onChange={(e) =>
-											setFormMinOrderValue(e.target.value ? Number(e.target.value) : "")
-										}
+										onChange={(e) => {
+											const val = e.target.value.replace(/[^0-9]/g, "");
+											setFormMinOrderValue(val ? Number(val) : "");
+										}}
 										className="w-full h-9 px-3 bg-brand-light-soft/20 border border-brand-border rounded-lg focus:outline-none focus:border-brand-primary font-semibold"
 									/>
 								</div>
@@ -512,13 +542,15 @@ export default function CouponsView() {
 								<div className="space-y-1">
 									<label className="font-bold text-brand-muted">Giảm tối đa (đ)</label>
 									<input
-										type="number"
-										placeholder={formDiscountType === 0 ? "Bỏ qua (Tiền cố định)" : "Ví dụ: 50000"}
-										disabled={formDiscountType === 0}
+										type="text"
+										inputMode="numeric"
+										placeholder={formDiscountType === "FixedAmount" ? "Bỏ qua (Tiền cố định)" : "Ví dụ: 50000"}
+										disabled={formDiscountType === "FixedAmount"}
 										value={formMaxDiscountAmount}
-										onChange={(e) =>
-											setFormMaxDiscountAmount(e.target.value ? Number(e.target.value) : "")
-										}
+										onChange={(e) => {
+											const val = e.target.value.replace(/[^0-9]/g, "");
+											setFormMaxDiscountAmount(val ? Number(val) : "");
+										}}
 										className="w-full h-9 px-3 bg-brand-light-soft/20 border border-brand-border rounded-lg focus:outline-none focus:border-brand-primary font-semibold disabled:bg-slate-100 disabled:cursor-not-allowed"
 									/>
 								</div>
@@ -527,28 +559,54 @@ export default function CouponsView() {
 							<div className="grid grid-cols-2 gap-4">
 								<div className="space-y-1">
 									<label className="font-bold text-brand-muted">
-										Ngày bắt đầu <span className="text-red-500">*</span>
+										Thời gian bắt đầu <span className="text-red-500">*</span>
 									</label>
-									<input
-										type="datetime-local"
-										value={formStartDate}
-										onChange={(e) => setFormStartDate(e.target.value)}
-										className="w-full h-9 px-3 bg-brand-light-soft/20 border border-brand-border rounded-lg focus:outline-none focus:border-brand-primary"
-										required
-									/>
+									<div className="grid grid-cols-2 gap-2">
+										<input
+											type="date"
+											value={getDatePart(formStartDate)}
+											onChange={(e) =>
+												setFormStartDate(combineDateTime(e.target.value, getTimePart(formStartDate)))
+											}
+											className="h-9 px-2 bg-brand-light-soft/20 border border-brand-border rounded-lg focus:outline-none focus:border-brand-primary font-semibold text-xs text-brand-dark cursor-pointer"
+											required
+										/>
+										<input
+											type="time"
+											value={getTimePart(formStartDate)}
+											onChange={(e) =>
+												setFormStartDate(combineDateTime(getDatePart(formStartDate), e.target.value))
+											}
+											className="h-9 px-2 bg-brand-light-soft/20 border border-brand-border rounded-lg focus:outline-none focus:border-brand-primary font-semibold text-xs text-brand-dark cursor-pointer"
+											required
+										/>
+									</div>
 								</div>
 
 								<div className="space-y-1">
 									<label className="font-bold text-brand-muted">
-										Ngày kết thúc <span className="text-red-500">*</span>
+										Thời gian kết thúc <span className="text-red-500">*</span>
 									</label>
-									<input
-										type="datetime-local"
-										value={formEndDate}
-										onChange={(e) => setFormEndDate(e.target.value)}
-										className="w-full h-9 px-3 bg-brand-light-soft/20 border border-brand-border rounded-lg focus:outline-none focus:border-brand-primary"
-										required
-									/>
+									<div className="grid grid-cols-2 gap-2">
+										<input
+											type="date"
+											value={getDatePart(formEndDate)}
+											onChange={(e) =>
+												setFormEndDate(combineDateTime(e.target.value, getTimePart(formEndDate)))
+											}
+											className="h-9 px-2 bg-brand-light-soft/20 border border-brand-border rounded-lg focus:outline-none focus:border-brand-primary font-semibold text-xs text-brand-dark cursor-pointer"
+											required
+										/>
+										<input
+											type="time"
+											value={getTimePart(formEndDate)}
+											onChange={(e) =>
+												setFormEndDate(combineDateTime(getDatePart(formEndDate), e.target.value))
+											}
+											className="h-9 px-2 bg-brand-light-soft/20 border border-brand-border rounded-lg focus:outline-none focus:border-brand-primary font-semibold text-xs text-brand-dark cursor-pointer"
+											required
+										/>
+									</div>
 								</div>
 							</div>
 
@@ -556,12 +614,14 @@ export default function CouponsView() {
 								<div className="space-y-1">
 									<label className="font-bold text-brand-muted">Lượt sử dụng tối đa</label>
 									<input
-										type="number"
+										type="text"
+										inputMode="numeric"
 										placeholder="Bỏ trống nếu không giới hạn"
 										value={formUsageLimit}
-										onChange={(e) =>
-											setFormUsageLimit(e.target.value ? Number(e.target.value) : "")
-										}
+										onChange={(e) => {
+											const val = e.target.value.replace(/[^0-9]/g, "");
+											setFormUsageLimit(val ? Number(val) : "");
+										}}
 										className="w-full h-9 px-3 bg-brand-light-soft/20 border border-brand-border rounded-lg focus:outline-none focus:border-brand-primary font-semibold"
 									/>
 								</div>

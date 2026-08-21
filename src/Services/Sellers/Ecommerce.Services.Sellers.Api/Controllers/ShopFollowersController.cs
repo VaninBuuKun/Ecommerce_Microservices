@@ -9,7 +9,7 @@ using Microsoft.AspNetCore.Mvc;
 namespace Ecommerce.Services.Sellers.Api.Controllers;
 
 [ApiController]
-[Route("api/shops")]
+[Route("api/shop")]
 [Authorize]
 public class ShopFollowersController(ISender sender, ICurrentUserService userService) : ControllerBase
 {

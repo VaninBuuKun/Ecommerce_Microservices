@@ -14,7 +14,11 @@ export const FollowShopButton: React.FC<FollowShopButtonProps> = ({
 	className = "",
 	variant = "primary",
 }) => {
-	const { isFollowing, toggleFollowShop, isToggling } = useFollowShop(shopId);
+	const { isFollowing, toggleFollowShop, isToggling, isLoadingStatus } = useFollowShop(shopId);
+
+	if (isLoadingStatus) {
+		return null;
+	}
 
 	const handleClick = (e: React.MouseEvent) => {
 		e.preventDefault();
@@ -23,6 +27,7 @@ export const FollowShopButton: React.FC<FollowShopButtonProps> = ({
 			toggleFollowShop(shopId);
 		}
 	};
+
 
 	if (variant === "compact") {
 		return (

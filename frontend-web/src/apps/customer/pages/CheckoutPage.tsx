@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import {
 	MapPin,
 	Plus,
@@ -7,7 +7,6 @@ import {
 	ArrowLeft,
 	Loader2,
 	CreditCard,
-	ShieldCheck,
 	Check,
 	ShoppingCart,
 	Trash2,
@@ -21,6 +20,7 @@ import {
 	useSetDefaultAddressMutation,
 	useDeleteAddressMutation,
 	usePaymentMethodsQuery,
+	type UserAddress,
 	NewAddressModal,
 	ShopVoucherModal,
 	PlatformVoucherModal,
@@ -29,7 +29,6 @@ import {
 	OrderItemsList,
 	CheckoutSummary,
 } from "@/domains/order";
-import type { UserAddressDto as UserAddress } from "@/domains/address";
 import {
 	useProvincesQuery,
 	useDistrictsQuery,
@@ -37,6 +36,7 @@ import {
 } from "@/domains/catalog";
 
 export default function CheckoutPage() {
+	const navigate = useNavigate();
 
 	// State
 	const [selectedAddress, setSelectedAddress] = useState<UserAddress | null>(null);
@@ -149,7 +149,7 @@ export default function CheckoutPage() {
 	// Redirect back if giỏ hàng has no selected items
 	if (selectedItems.length === 0 && !isSuccess) {
 		return (
-			<div className="max-w-md mx-auto text-center py-16 px-6 space-y-6">
+			<div className="max-w-md mx-auto text-center py-16 px-6 space-y-6 font-sans">
 				<div className="w-16 h-16 bg-brand-light-soft rounded-full flex items-center justify-center mx-auto text-brand-muted">
 					<ShoppingCart className="w-8 h-8" />
 				</div>
@@ -272,9 +272,9 @@ export default function CheckoutPage() {
 
 	if (isSuccess) {
 		return (
-			<div className="flex flex-col items-center justify-center min-h-[65vh] text-center max-w-md mx-auto px-6 py-12 space-y-6">
+			<div className="flex flex-col items-center justify-center min-h-[65vh] text-center max-w-md mx-auto px-6 py-12 space-y-6 font-sans">
 				<div className="w-16 h-16 bg-green-50 rounded-full flex items-center justify-center text-green-500 border border-green-200">
-					<ShieldCheck className="w-9 h-9" />
+					<Check className="w-9 h-9" />
 				</div>
 				<div className="space-y-2">
 					<h1 className="text-xl font-black text-brand-dark">Đặt Hàng Thành Công!</h1>
@@ -288,12 +288,12 @@ export default function CheckoutPage() {
 					)}
 				</div>
 				<div className="flex gap-3 w-full">
-					<Link
-						to="/"
-						className="flex-1 inline-flex items-center justify-center h-10 bg-brand-primary hover:bg-brand-primary-deep text-brand-dark font-black text-xs rounded-xl transition-all shadow-sm"
+					<button
+						onClick={() => navigate("/profile?tab=orders")}
+						className="flex-1 inline-flex items-center justify-center h-10 bg-brand-primary hover:bg-brand-primary-deep text-brand-dark font-black text-xs rounded-xl transition-all shadow-sm border-none cursor-pointer"
 					>
-						Tiếp tục mua sắm
-					</Link>
+						Xem đơn hàng của tôi
+					</button>
 				</div>
 			</div>
 		);

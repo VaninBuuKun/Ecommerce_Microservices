@@ -17,9 +17,9 @@ public class CreateVoucherCommandHandler(IEfUnitOfWork unitOfWork, ILogger<Creat
     {
         try
         {
-            if (command.voucherRequest.StartDate < DateTimeOffset.UtcNow)
+            if (command.voucherRequest.EndDate < DateTimeOffset.UtcNow)
             {
-                return Result<VoucherDto>.Failure("Start date must be in the future.", EErrorCode.Conflict);
+                return Result<VoucherDto>.Failure("End date must be in the future.", EErrorCode.Conflict);
             }
             
             if (command.voucherRequest.StartDate >= command.voucherRequest.EndDate)

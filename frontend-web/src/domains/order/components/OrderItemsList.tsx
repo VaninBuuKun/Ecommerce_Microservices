@@ -16,7 +16,7 @@ export function OrderItemsList({
 	handleRemoveShopVoucher,
 }: OrderItemsListProps) {
 	return (
-		<div className="space-y-4">
+		<div className="space-y-4 font-sans text-left">
 			{shopGroups.map((group) => {
 				const groupSelectedItems = (group.items || []).filter((i: any) => i.isSelected);
 				if (groupSelectedItems.length === 0) return null;
@@ -34,7 +34,9 @@ export function OrderItemsList({
 					return sum + activePrice * item.quantity;
 				}, 0);
 
+				// Tổng tiền thực tế của từng Shop sau khi cộng phí ship và trừ voucher của Shop đó
 				const shopGrandTotal = Math.max(0, shopSubTotal + shippingFee - shopDiscount);
+
 				const appliedVoucherCode = shopVouchers[group.shopId];
 
 				return (
@@ -42,6 +44,7 @@ export function OrderItemsList({
 						key={group.shopId}
 						className="bg-white border border-brand-border rounded-xl overflow-hidden shadow-sm text-left"
 					>
+						{/* Shop Header */}
 						<div className="flex items-center gap-2 px-4 py-3 bg-brand-light-soft/20 border-b border-brand-border">
 							<Store className="w-4 h-4 text-brand-primary" />
 							<span className="font-extrabold text-xs text-brand-dark">
@@ -49,6 +52,7 @@ export function OrderItemsList({
 							</span>
 						</div>
 
+						{/* Item list */}
 						<div className="divide-y divide-brand-border/60">
 							{groupSelectedItems.map((item: any) => (
 								<div key={item.productVariantId} className="flex gap-3 p-4">
@@ -92,6 +96,7 @@ export function OrderItemsList({
 							))}
 						</div>
 
+						{/* Interactive Shop Voucher modal row */}
 						<div className="px-4 py-3.5 bg-brand-light-soft/10 border-t border-brand-border/50 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
 							<div className="flex items-center gap-2 flex-1">
 								<Ticket className="w-4 h-4 text-brand-primary flex-shrink-0" />
@@ -121,6 +126,7 @@ export function OrderItemsList({
 							</div>
 						</div>
 
+						{/* Shipping & Shop Total Row */}
 						<div className="p-4 bg-brand-light-soft/10 border-t border-brand-border/60 text-left space-y-3">
 							<div className="flex items-center justify-between border-b border-dashed border-brand-border/80 pb-3">
 								<div>
