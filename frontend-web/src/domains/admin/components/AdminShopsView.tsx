@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
-import api from "@/core/api/axiosInstance";
 import { Loader2, RefreshCw, Search, Filter, Ban, ExternalLink } from "lucide-react";
 import { toast } from "react-toastify";
+import { api } from "../../../core";
 
 export function AdminShopsView() {
 	const [shops, setShops] = useState<any[]>([]);
@@ -24,7 +24,7 @@ export function AdminShopsView() {
 
 			const response = await api.get(`/shop/all?${params.toString()}`).catch(() => null);
 			const data = response?.data;
-			
+
 			if (data && data.items) {
 				setShops(data.items);
 				setTotalCount(data.totalCount || 0);
@@ -155,18 +155,18 @@ export function AdminShopsView() {
 									<tr key={s.id} className="hover:bg-brand-light-soft/10 transition-colors">
 										<td className="p-3">
 											<div className="flex items-center gap-3">
-												<img 
-													src={s.logoUrl || s.avatarUrl || `https://api.dicebear.com/7.x/shapes/svg?seed=${s.name}`} 
-													alt={s.name} 
+												<img
+													src={s.logoUrl || s.avatarUrl || `https://api.dicebear.com/7.x/shapes/svg?seed=${s.name}`}
+													alt={s.name}
 													className="w-9 h-9 rounded-lg object-cover border border-brand-border bg-brand-light-soft shrink-0"
 													onError={(e) => {
 														(e.target as HTMLImageElement).src = `https://api.dicebear.com/7.x/shapes/svg?seed=${s.name}`;
 													}}
 												/>
 												<div className="min-w-0">
-													<a 
-														href={`/shops/${s.id}`} 
-														target="_blank" 
+													<a
+														href={`/shops/${s.id}`}
+														target="_blank"
 														rel="noopener noreferrer"
 														className="font-extrabold text-brand-dark text-xs hover:text-brand-primary-deep flex items-center gap-1 transition-colors group cursor-pointer"
 														title="Xem trang gian hàng public"
@@ -196,13 +196,12 @@ export function AdminShopsView() {
 										</td>
 
 										<td className="p-3 text-center">
-											<span className={`px-2 py-0.5 rounded text-[9px] font-black uppercase inline-block ${
-												s.status === "Active" 
-													? "bg-emerald-50 text-emerald-700 border border-emerald-200" 
-													: s.status === "Banned"
+											<span className={`px-2 py-0.5 rounded text-[9px] font-black uppercase inline-block ${s.status === "Active"
+												? "bg-emerald-50 text-emerald-700 border border-emerald-200"
+												: s.status === "Banned"
 													? "bg-red-50 text-red-700 border border-red-200"
 													: "bg-yellow-50 text-yellow-700 border border-yellow-200"
-											}`}>
+												}`}>
 												{s.status === "Active" ? "Hoạt động" : s.status === "Banned" ? "Đã khóa" : s.status}
 											</span>
 										</td>
@@ -251,11 +250,10 @@ export function AdminShopsView() {
 									<button
 										key={num}
 										onClick={() => setPage(num)}
-										className={`w-7 h-7 flex items-center justify-center rounded-lg border text-[11px] font-black transition-all cursor-pointer ${
-											page === num
-												? "bg-brand-dark text-white border-brand-dark shadow-xs"
-												: "bg-white border-brand-border text-brand-dark hover:bg-brand-light-soft"
-										}`}
+										className={`w-7 h-7 flex items-center justify-center rounded-lg border text-[11px] font-black transition-all cursor-pointer ${page === num
+											? "bg-brand-dark text-white border-brand-dark shadow-xs"
+											: "bg-white border-brand-border text-brand-dark hover:bg-brand-light-soft"
+											}`}
 									>
 										{num}
 									</button>

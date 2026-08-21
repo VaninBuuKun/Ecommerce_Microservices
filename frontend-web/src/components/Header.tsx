@@ -8,20 +8,25 @@ import {
 	Settings,
 	Store,
 	Bell,
+	Heart,
 } from "lucide-react";
-import { useAuthStore, authService } from "@/domains/auth";
-import { useCartQuery } from "@/domains/cart";
+import { useAuthStore, authService } from "../features/auth";
+import { useCartQuery } from "../features/cart/hooks/useCartQuery";
 import { checkIsAdmin } from "../shared/utils/authHelper";
+import { useWishlist } from "@/domains/catalog";
+import { useNotifications } from "@/domains/notification";
 
 export default function Header() {
 	const navigate = useNavigate();
 	const { user, isInitializing } = useAuthStore();
 	const { data: cart } = useCartQuery();
+	const { wishlistItems } = useWishlist();
+	const { notifications, unreadCount, markAsRead, markAllAsRead } = useNotifications();
 
 	const [showSearchSuggestions, setShowSearchSuggestions] = useState(false);
 	const [showCartDropdown, setShowCartDropdown] = useState(false);
-	const [showNotificationDropdown, setShowNotificationDropdown] =
-		useState(false);
+	const [showWishlistDropdown, setShowWishlistDropdown] = useState(false);
+	const [showNotificationDropdown, setShowNotificationDropdown] = useState(false);
 	const [showUserDropdown, setShowUserDropdown] = useState(false);
 	const [searchQuery, setSearchQuery] = useState("");
 
@@ -59,31 +64,6 @@ export default function Header() {
 	// Flatten all items from shop groups to preview in dropdown
 	const previewCartItems = cart?.shopGroups?.flatMap((group) => group.items) || [];
 	const totalCartItemsCount = previewCartItems.length;
-
-	const mockNotifications = [
-		{
-			id: 1,
-			title: "Đơn hàng mới",
-			content: "Shop của bạn nhận được đơn hàng mới #129384",
-			time: "10 phút trước",
-			read: false,
-		},
-		{
-			id: 2,
-			title: "Khuyến mãi cực hot",
-			content: "Ví Shopee đang có chương trình hoàn xu đến 50%",
-			time: "2 giờ trước",
-			read: false,
-		},
-		{
-			id: 3,
-			title: "Cập nhật tài khoản",
-			content:
-				"Thông tin tài khoản định danh của bạn đã được duyệt thành công",
-			time: "1 ngày trước",
-			read: true,
-		},
-	];
 
 	return (
 		<header className="sticky top-0 z-50 w-full h-14 bg-white/80 backdrop-blur-md border-b border-brand-border px-6 flex items-center justify-between shadow-[0_1px_3px_rgba(0,0,0,0.02)] font-sans">
@@ -144,11 +124,11 @@ export default function Header() {
 							<div className="mt-1">
 								{mockSuggestions
 									.filter((s) =>
-									s
-										.toLowerCase()
-										.includes(
-											searchQuery.toLowerCase(),
-										),
+										s
+											.toLowerCase()
+											.includes(
+												searchQuery.toLowerCase(),
+											),
 									)
 									.map((suggestion, idx) => (
 										<button
@@ -168,9 +148,8 @@ export default function Header() {
 				</div>
 			</div>
 
-			{/* KHỐI BÊN PHẢI: Kênh bán + Giỏ hàng + Auth Slot (Tất cả có h-8 chuẩn) */}
+			{/* KHỐI BÊN PHẢI: Kênh bán + Wishlist + Giỏ hàng + Thông báo + Auth Slot */}
 			<div className="flex items-center gap-3 shrink-0 ml-auto h-8">
-				{/* Chỉ hiển thị Kênh người bán và Giỏ hàng khi ĐÃ ĐĂNG NHẬP và KHÔNG PHẢI ADMIN */}
 				{!isInitializing && user && (
 					<>
 						{!isSystemAdmin && (
@@ -188,6 +167,83 @@ export default function Header() {
 									|
 								</span>
 
+								{/* YÊU THÍCH (h-8 w-8) */}
+								<div
+									className="relative flex items-center"
+									onMouseEnter={() => setShowWishlistDropdown(true)}
+									onMouseLeave={() => setShowWishlistDropdown(false)}
+								>
+									<button
+										onClick={() => navigate("/wishlist")}
+										className="relative w-8 h-8 text-brand-dark hover:bg-brand-primary/10 rounded transition-colors flex items-center justify-center cursor-pointer"
+										title="Sản phẩm yêu thích"
+									>
+										<Heart className="w-4.5 h-4.5 text-rose-500 hover:scale-110 transition-transform" />
+										{wishlistItems.length > 0 && (
+											<span className="absolute top-0 right-0 bg-rose-500 text-white font-black text-[9px] w-4 h-4 rounded-full flex items-center justify-center">
+												{wishlistItems.length}
+											</span>
+										)}
+									</button>
+
+									{showWishlistDropdown && (
+										<div className="absolute right-0 top-full pt-1.5 w-72 z-50">
+											<div className="bg-white border border-brand-border rounded shadow-xl p-3 text-left">
+												<span className="block text-xs font-bold text-brand-dark border-b border-brand-border pb-2 mb-2">
+													Sản phẩm yêu thích
+												</span>
+
+												<div className="space-y-3 max-h-48 overflow-y-auto">
+													{wishlistItems.length === 0 ? (
+														<div className="text-center py-4 text-[11px] text-brand-muted font-medium">
+															Chưa có sản phẩm yêu thích
+														</div>
+													) : (
+														wishlistItems.slice(0, 5).map((item: any) => (
+															<div
+																key={item.id}
+																onClick={() => {
+																	setShowWishlistDropdown(false);
+																	navigate(`/products/${item.id}`);
+																}}
+																className="flex items-center gap-3 cursor-pointer hover:bg-slate-50 p-1 rounded transition-colors"
+															>
+																<img
+																	src={item.thumbnailUrl || "https://images.unsplash.com/photo-1556821840-3a63f95609a7?auto=format&fit=crop&q=80&w=150"}
+																	alt={item.name}
+																	className="w-10 h-10 object-cover rounded border border-brand-border"
+																/>
+																<div className="flex-1 min-w-0">
+																	<h4 className="text-[11px] font-bold text-brand-dark truncate">
+																		{item.name}
+																	</h4>
+																	<div className="flex items-center gap-1.5">
+																		<span className="text-[10px] text-brand-primary-deep font-black">
+																			{(item.discountPrice > 0 ? item.discountPrice : item.price)?.toLocaleString("vi-VN")}đ
+																		</span>
+																	</div>
+																</div>
+															</div>
+														))
+													)}
+												</div>
+
+												<div className="border-t border-brand-border mt-3 pt-2.5 flex justify-end">
+													<button
+														onClick={() => {
+															setShowWishlistDropdown(false);
+															navigate("/wishlist");
+														}}
+														className="px-4 py-1.5 bg-brand-dark text-white rounded text-[10px] font-bold hover:bg-brand-primary hover:text-brand-dark transition-colors cursor-pointer border-none"
+													>
+														Xem tất cả
+													</button>
+												</div>
+											</div>
+										</div>
+									)}
+								</div>
+
 								{/* GIỎ HÀNG (h-8 w-8) */}
 								<div
 									className="relative flex items-center"
@@ -197,6 +253,7 @@ export default function Header() {
 									<button
 										onClick={() => navigate("/cart")}
 										className="relative w-8 h-8 text-brand-dark hover:bg-brand-primary/10 rounded transition-colors flex items-center justify-center cursor-pointer"
+										title="Giỏ hàng"
 									>
 										<ShoppingBag className="w-4.5 h-4.5" />
 										{totalCartItemsCount > 0 && (
@@ -287,36 +344,57 @@ export default function Header() {
 								>
 									<button className="relative w-8 h-8 text-brand-dark hover:bg-brand-primary/10 rounded transition-colors flex items-center justify-center cursor-pointer">
 										<Bell className="w-4.5 h-4.5" />
-										<span className="absolute top-0 right-0 bg-red-500 text-white font-black text-[9px] w-4 h-4 rounded-full flex items-center justify-center">
-											3
-										</span>
+										{unreadCount > 0 && (
+											<span className="absolute top-0 right-0 bg-red-500 text-white font-black text-[9px] w-4 h-4 rounded-full flex items-center justify-center">
+												{unreadCount}
+											</span>
+										)}
 									</button>
 
 									{showNotificationDropdown && (
 										<div className="absolute right-0 top-full pt-1.5 w-80 z-50">
 											<div className="bg-white border border-brand-border rounded shadow-xl p-3 text-left">
-												<span className="block text-xs font-bold text-brand-dark border-b border-brand-border pb-2 mb-2">
-													Thông báo mới nhận
-												</span>
-												<div className="space-y-2 max-h-60 overflow-y-auto">
-													{mockNotifications.map((notif) => (
-														<div
-															key={notif.id}
-															className={`p-2 rounded text-xs transition-colors ${notif.read ? "bg-transparent" : "bg-brand-light-soft border-l-2 border-brand-primary"}`}
+												<div className="flex items-center justify-between border-b border-brand-border pb-2 mb-2">
+													<span className="text-xs font-bold text-brand-dark">
+														Thông báo mới nhận
+													</span>
+													{unreadCount > 0 && (
+														<button
+															onClick={() => markAllAsRead()}
+															className="text-[10px] text-brand-primary hover:underline font-semibold border-none bg-transparent cursor-pointer"
 														>
-															<div className="flex justify-between items-start mb-0.5">
-																<h4 className="font-bold text-brand-dark">
-																	{notif.title}
-																</h4>
-																<span className="text-[9px] text-brand-muted shrink-0">
-																	{notif.time}
-																</span>
-															</div>
-															<p className="text-brand-muted text-[11px] leading-snug">
-																{notif.content}
-															</p>
+															Đánh dấu đã đọc tất cả
+														</button>
+													)}
+												</div>
+												<div className="space-y-2 max-h-60 overflow-y-auto">
+													{notifications.length === 0 ? (
+														<div className="text-center py-4 text-[11px] text-brand-muted font-medium">
+															Không có thông báo nào
 														</div>
-													))}
+													) : (
+														notifications.map((notif) => (
+															<div
+																key={notif.id}
+																onClick={() => {
+																	if (!notif.isRead) markAsRead(notif.id);
+																}}
+																className={`p-2 rounded text-xs transition-colors cursor-pointer ${notif.isRead ? "bg-transparent hover:bg-slate-50" : "bg-brand-light-soft border-l-2 border-brand-primary font-semibold"}`}
+															>
+																<div className="flex justify-between items-start mb-0.5">
+																	<h4 className="font-bold text-brand-dark text-[11px]">
+																		{notif.title}
+																	</h4>
+																	<span className="text-[9px] text-brand-muted shrink-0">
+																		{new Date(notif.createdAt).toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" })}
+																	</span>
+																</div>
+																<p className="text-brand-muted text-[11px] leading-snug">
+																	{notif.body}
+																</p>
+															</div>
+														))
+													)}
 												</div>
 											</div>
 										</div>
@@ -373,7 +451,9 @@ export default function Header() {
 										/>
 										<div className="min-w-0">
 											<h4 className="text-sm font-bold text-brand-dark truncate leading-tight text-left">
-												{user.fullName || `${user.firstName || ""} ${user.lastName || ""}`.trim() || user.email}
+												{user.firstName +
+													" " +
+													user.lastName}
 											</h4>
 											<span className="text-xs text-brand-muted truncate block text-left">
 												{user.email}
@@ -396,6 +476,14 @@ export default function Header() {
 										>
 											<Package className="w-4 h-4 text-brand-muted" />
 											Đơn hàng của tôi
+										</Link>
+
+										<Link
+											to="/wishlist"
+											className="flex items-center gap-2.5 w-full px-2 py-2 rounded text-sm text-brand-dark hover:bg-brand-light-soft hover:text-brand-primary transition-colors"
+										>
+											<Heart className="w-4 h-4 text-rose-500" />
+											Sản phẩm yêu thích
 										</Link>
 
 										<div className="h-px bg-brand-border my-1.5" />

@@ -14,12 +14,24 @@ public class ProductDbContext(DbContextOptions<ProductDbContext> options, IInMem
     public DbSet<ProductVariant> ProductVariants { get; set; }
     public DbSet<ProductVariantOption> ProductVariantOptions { get; set; }
     public DbSet<Category> Categories { get; set; }
-    public DbSet<ProductImage> ProductImages { get; set; }
     public DbSet<ProductReview> ProductReviews { get; set; }
+    public DbSet<Wishlist> Wishlists { get; set; }
+
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
+
+        modelBuilder.Entity<Wishlist>(entity =>
+        {
+            entity.HasKey(w => w.Id);
+            entity.HasIndex(w => new { w.CustomerId, w.ProductId }).IsUnique();
+            entity.HasOne(w => w.Product)
+                  .WithMany()
+                  .HasForeignKey(w => w.ProductId)
+                  .OnDelete(DeleteBehavior.Cascade);
+        });
+
 
         modelBuilder.Entity<Category>(entity =>
         {
@@ -31,12 +43,6 @@ public class ProductDbContext(DbContextOptions<ProductDbContext> options, IInMem
                   .WithMany(c => c.SubCategories)
                   .HasForeignKey(c => c.ParentId)
                   .OnDelete(DeleteBehavior.Restrict);
-        });
-
-        modelBuilder.Entity<ProductImage>(entity =>
-        {
-            entity.HasKey(pi => pi.Id);
-            entity.Property(pi => pi.ImageUrl).HasMaxLength(1000).IsRequired();
         });
 
         modelBuilder.Entity<ProductReview>(entity =>
@@ -66,10 +72,6 @@ public class ProductDbContext(DbContextOptions<ProductDbContext> options, IInMem
                   .HasForeignKey(p => p.CategoryId)
                   .OnDelete(DeleteBehavior.SetNull);
 
-            entity.HasMany(p => p.Images)
-                  .WithOne()
-                  .HasForeignKey(pi => pi.ProductId)
-                  .OnDelete(DeleteBehavior.Cascade);
 
             entity.HasMany(p => p.Reviews)
                   .WithOne(pr => pr.Product)

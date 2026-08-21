@@ -20,7 +20,9 @@ import {
 	ProductDescription,
 	RelatedProducts,
 	ProductReviewsSection,
+	WishlistButton,
 } from "@/domains/catalog";
+
 import { useSellerProfileQuery } from "@/domains/seller";
 import { useAddItemToCartMutation } from "@/domains/cart";
 import { toast } from "react-toastify";
@@ -270,7 +272,7 @@ export default function ProductDetailPage() {
 	};
 
 	const { data: sellerProfile } = useSellerProfileQuery();
-	
+
 	const isOwnProduct = useMemo(() => {
 		if (!product || !sellerProfile) return false;
 		return sellerProfile.shops?.some((shop: any) => Number(shop.id) === Number(product.shopId));
@@ -511,19 +513,8 @@ export default function ProductDetailPage() {
 									>
 										Mua ngay
 									</button>
-									<button
-										type="button"
-										onClick={() => setIsFavorite(!isFavorite)}
-										className={`p-2.5 rounded-lg border border-brand-border cursor-pointer transition-colors ${isFavorite
-											? "text-red-500 bg-red-50 border-red-200"
-											: "text-brand-muted hover:text-brand-dark"
-											}`}
-										title="Yêu thích"
-									>
-										<Heart
-											className={`w-4 h-4 ${isFavorite ? "fill-red-500" : ""}`}
-										/>
-									</button>
+									<WishlistButton productId={product.id} className="p-2 rounded-lg border border-brand-border" />
+
 								</>
 							);
 						})()}
@@ -534,14 +525,14 @@ export default function ProductDetailPage() {
 			{/* Shop Information Card */}
 			<div className="bg-white rounded-2xl border border-brand-border shadow-sm p-5 mb-6 flex flex-col md:flex-row items-center justify-between gap-6 text-left">
 				<div className="flex items-center gap-4">
-					<div 
+					<div
 						onClick={() => navigate(`/shops/${product.shopId}`)}
 						className="w-16 h-16 rounded-full bg-brand-primary/10 flex items-center justify-center border border-brand-primary/20 shrink-0 cursor-pointer hover:opacity-80 transition-all"
 					>
 						<Store className="w-8 h-8 text-brand-primary-deep" />
 					</div>
 					<div>
-						<h3 
+						<h3
 							onClick={() => navigate(`/shops/${product.shopId}`)}
 							className="font-black text-brand-dark text-sm cursor-pointer hover:underline"
 						>

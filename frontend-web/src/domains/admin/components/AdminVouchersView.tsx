@@ -12,7 +12,7 @@ import {
 	X,
 } from "lucide-react";
 import { toast } from "react-toastify";
-import api from "@/core/api/axiosInstance";
+import api from "@/shared/lib/axios";
 
 export function AdminVouchersView() {
 	const [page, setPage] = useState(1);

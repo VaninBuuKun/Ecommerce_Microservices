@@ -3,18 +3,20 @@
 This document provides a detailed breakdown of all implemented backend APIs, gRPC endpoints, and frontend features across the 7 microservices.
 
 ## 1. Catalog Service (MySQL)
-- **Entities**: Product, ProductOption, ProductOptionValue, ProductVariant, Category, ProductReview.
+- **Entities**: Product, ProductOption, ProductOptionValue, ProductVariant, Category, ProductReview, Wishlist.
 - **Commands**:
   - `CreateProductCommandHandler`, `UpdateProductCommandHandler`, `DeleteProductCommandHandler`
   - `ToggleProductStatusCommand`, `InitVariantsCommandHandler`, `BulkUpdateVariantsCommandHandler`
   - `ReserveStocksCommandHandler` (gRPC), `ReleaseStocksCommandHandler` (gRPC)
   - `CreateCategoryCommandHandler`, `UpdateCategoryCommandHandler`, `DeleteCategoryCommandHandler`
   - `CreateProductReviewCommandHandler`
+  - `ToggleWishlistCommandHandler` (`POST /api/wishlists/toggle/{productId}`)
 - **Queries**:
   - `GetProductsQueryHandler`, `GetProductByIdQuery`, `GetMyProductsQueryHandler`
   - `GetVariantsByIdsCommandHandler`, `GetVariantByIdQueryHandler`
   - `GetCategoriesQueryHandler`
   - `GetProductReviewsQuery`, `GetProductReviewsSummaryQuery`
+  - `GetMyWishlistQueryHandler` (`GET /api/wishlists`)
 
 ## 2. Cart Service (Redis)
 - **Session-less Redis Cart**: Add/Update/Remove cart items, toggle `IsSelected`, group items by `ShopId`.
@@ -37,15 +39,18 @@ This document provides a detailed breakdown of all implemented backend APIs, gRP
   - `GetMyRefundsQueryHandler`, `GetShopRefundsQueryHandler`
 
 ## 4. Sellers Service (PostgreSQL)
-- **Entities**: SellerKyc, Shop, PickUpAddress.
+- **Entities**: SellerKyc, Shop, PickUpAddress, FollowedShop.
 - **Commands**:
   - `RegisterKycCommandHandler`, `WithdrawKycDraftCommand`, `ApproveKycCommandHandler`
   - `CreateShopCommandHandler`, `UpdateShopCommandHandler`
   - `ActivateShopCommandHandler`, `SuspendShopCommandHandler`, `BanShopCommandHandler`
+  - `ToggleFollowShopCommandHandler` (`POST /api/shops/{shopId}/follow`)
 - **Queries**:
   - `GetMyKycQuery`, `GetMySellerProfileQuery`, `GetPublicShopByIdQuery`, `GetPublicShopsByOwnerIdQuery`
   - `GetAllShopsQueryHandler` (CQRS Query `GET /api/shop/all` for Admin with pagination, search & status filter)
+  - `GetFollowedShopsQueryHandler` (`GET /api/shops/followed`), `CheckFollowShopStatusQueryHandler` (`GET /api/shops/{shopId}/follow-status`)
   - `ValidateShopOwnerQueryHandler` (gRPC), `GetShopsByIdsQueryHandler` (gRPC), `GetShopShippingInfoQueryHandler` (gRPC)
+
 
 ## 5. Payments Service (PostgreSQL)
 - **Entities**: Payment, PaymentMethod, Wallet, BankAccount, WalletTransaction, WithdrawalRequest.

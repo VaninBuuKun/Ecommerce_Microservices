@@ -10,10 +10,18 @@ public class SellerDbContext(DbContextOptions<SellerDbContext> options, IInMemor
 {
     public DbSet<Shop> Shops { get; set; }
     public DbSet<SellerKyc> SellerKycs { get; set; }
+    public DbSet<FollowedShop> FollowedShops { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
+
+        modelBuilder.Entity<FollowedShop>(entity =>
+        {
+            entity.HasKey(f => f.Id);
+            entity.HasIndex(f => new { f.CustomerId, f.ShopId }).IsUnique();
+        });
+
 
         modelBuilder.AddOutboxStateEntity();
         modelBuilder.AddOutboxMessageEntity();

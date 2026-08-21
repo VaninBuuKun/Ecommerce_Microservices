@@ -6,8 +6,10 @@ import {
 } from "lucide-react";
 import { Routes, Route, Link, useParams } from "react-router-dom";
 import { useSellerStore, useSellerProfileQuery } from "@/domains/seller";
-import { ProductsView } from "@/domains/catalog";
+import { ProductsView, EditProductPage } from "@/domains/catalog";
 import { ShopSettingsPage } from "./ShopSettingsPage";
+import { OrdersView, RefundRequestsView } from "@/domains/order";
+import CouponsView from "@/domains/order/components/sellerVoucher/CouponsView";
 
 // View: Tổng quan Dashboard
 function Overview() {
@@ -16,8 +18,8 @@ function Overview() {
 	const { data: profile } = useSellerProfileQuery();
 	const resolvedShop =
 		activeShop ??
-		profile?.shops.find((shop: any) => String(shop.id) === shopId) ??
-		profile?.shops[0] ??
+		profile?.shops?.find((shop: any) => String(shop.id) === shopId) ??
+		profile?.shops?.[0] ??
 		null;
 
 	return (
@@ -120,18 +122,15 @@ function Overview() {
 					</h3>
 					<p>
 						Tỷ lệ phản hồi chat:{" "}
-						<strong className="text-brand-dark">98%</strong> (Rất
-						tốt)
+						<strong className="text-brand-dark">98%</strong> (Rất tốt)
 					</p>
 					<p>
 						Thời gian chuẩn bị hàng:{" "}
-						<strong className="text-brand-dark">0.8 ngày</strong>{" "}
-						(Nhanh)
+						<strong className="text-brand-dark">0.8 ngày</strong> (Nhanh)
 					</p>
 					<p>
 						Tỷ lệ đơn hàng không thành công:{" "}
-						<strong className="text-brand-dark">1.2%</strong> (Đạt
-						tiêu chuẩn)
+						<strong className="text-brand-dark">1.2%</strong> (Đạt tiêu chuẩn)
 					</p>
 				</div>
 			</div>
@@ -158,7 +157,7 @@ export default function SellerDashboardPage() {
 			<Route path="products/list" element={<ProductsView />} />
 			<Route
 				path="products/edit/:productId"
-				element={<PlaceholderView title="Chỉnh sửa sản phẩm" />}
+				element={<EditProductPage />}
 			/>
 			<Route
 				path="products/category"
@@ -170,14 +169,14 @@ export default function SellerDashboardPage() {
 					<PlaceholderView title="Quản lý Hàng loạt (Import/Export)" />
 				}
 			/>
-			<Route path="orders" element={<PlaceholderView title="Quản lý Đơn hàng" />} />
+			<Route path="orders" element={<OrdersView />} />
 			<Route
 				path="refunds"
-				element={<PlaceholderView title="Các yêu cầu hoàn tiền" />}
+				element={<RefundRequestsView />}
 			/>
 			<Route
 				path="coupons"
-				element={<PlaceholderView title="Mã giảm giá Khuyến mãi" />}
+				element={<CouponsView />}
 			/>
 			<Route
 				path="flashsale"

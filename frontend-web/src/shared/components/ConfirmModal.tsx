@@ -1,6 +1,4 @@
-import React from "react";
-import { createPortal } from "react-dom";
-import { AlertTriangle, Info, CheckCircle2, X } from "lucide-react";
+import { AlertTriangle, X } from "lucide-react";
 
 interface ConfirmModalProps {
 	isOpen: boolean;
@@ -11,7 +9,6 @@ interface ConfirmModalProps {
 	onConfirm: () => void;
 	onCancel: () => void;
 	isConfirming?: boolean;
-	variant?: "warning" | "danger" | "info" | "success";
 }
 
 export const ConfirmModal: React.FC<ConfirmModalProps> = ({
@@ -23,51 +20,24 @@ export const ConfirmModal: React.FC<ConfirmModalProps> = ({
 	onConfirm,
 	onCancel,
 	isConfirming = false,
-	variant = "warning",
 }) => {
 	if (!isOpen) return null;
 
-	const getIcon = () => {
-		switch (variant) {
-			case "danger":
-				return <AlertTriangle className="w-5 h-5 text-rose-500 shrink-0" />;
-			case "info":
-				return <Info className="w-5 h-5 text-blue-500 shrink-0" />;
-			case "success":
-				return <CheckCircle2 className="w-5 h-5 text-emerald-500 shrink-0" />;
-			default:
-				return <AlertTriangle className="w-5 h-5 text-amber-500 shrink-0" />;
-		}
-	};
-
-	const getConfirmBtnClass = () => {
-		switch (variant) {
-			case "danger":
-				return "bg-rose-600 hover:bg-rose-700 text-white font-extrabold";
-			case "info":
-				return "bg-blue-600 hover:bg-blue-700 text-white font-extrabold";
-			case "success":
-				return "bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold";
-			default:
-				return "bg-brand-primary hover:bg-brand-primary-deep text-brand-dark font-extrabold";
-		}
-	};
-
-	return createPortal(
-		<div className="fixed inset-0 z-[10000] flex items-center justify-center p-4">
+	return (
+		<div className="fixed inset-0 z-50 flex items-center justify-center p-4">
 			{/* Backdrop Overlay */}
 			<div
-				className="absolute inset-0 bg-black/50 backdrop-blur-xs transition-opacity animate-in fade-in duration-150"
+				className="absolute inset-0 bg-black/40 backdrop-blur-sm transition-opacity"
 				onClick={onCancel}
 			/>
 
 			{/* Modal Card */}
-			<div className="relative bg-white border border-brand-border rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden transform transition-all duration-200 scale-100 flex flex-col text-left z-10 animate-in zoom-in-95">
+			<div className="relative bg-white border border-brand-border rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden transform transition-all duration-300 scale-100 flex flex-col text-left">
 				{/* Header */}
-				<div className="flex items-center justify-between p-4 pb-2.5 border-b border-brand-border/60">
+				<div className="flex items-center justify-between p-4 pb-2 border-b border-brand-border/60">
 					<div className="flex items-center gap-2">
-						{getIcon()}
-						<h3 className="text-xs font-black text-brand-dark uppercase tracking-wide">
+						<AlertTriangle className="w-5 h-5 text-amber-500 shrink-0" />
+						<h3 className="text-sm font-extrabold text-brand-dark">
 							{title}
 						</h3>
 					</div>
@@ -81,12 +51,12 @@ export const ConfirmModal: React.FC<ConfirmModalProps> = ({
 				</div>
 
 				{/* Content Body */}
-				<div className="p-4 py-4 text-xs font-medium text-brand-dark leading-relaxed">
+				<div className="p-4 py-5 text-xs font-semibold text-brand-muted leading-relaxed">
 					{message}
 				</div>
 
 				{/* Footer Actions */}
-				<div className="flex items-center justify-end gap-2 p-3 bg-brand-light-soft/50 border-t border-brand-border/60">
+				<div className="flex items-center justify-end gap-2.5 p-3.5 bg-brand-light-soft/50 border-t border-brand-border/60">
 					<button
 						type="button"
 						disabled={isConfirming}
@@ -99,13 +69,12 @@ export const ConfirmModal: React.FC<ConfirmModalProps> = ({
 						type="button"
 						disabled={isConfirming}
 						onClick={onConfirm}
-						className={`px-4 h-8 rounded-lg text-xs transition-colors cursor-pointer disabled:opacity-50 flex items-center justify-center ${getConfirmBtnClass()}`}
+						className="px-4 h-8 bg-brand-primary hover:bg-brand-primary-deep text-brand-dark rounded-lg text-xs font-extrabold transition-colors cursor-pointer disabled:opacity-50 flex items-center justify-center"
 					>
 						{isConfirming ? "Đang xử lý..." : confirmText}
 					</button>
 				</div>
 			</div>
-		</div>,
-		document.body
+		</div>
 	);
 };

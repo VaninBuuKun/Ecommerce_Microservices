@@ -12,7 +12,8 @@ public class Notification
     public string Body { get; set; } = string.Empty;
 
     /// <summary>Loại thông báo: OrderCreated, PaymentSucceeded, PaymentFailed, SubOrderShipped, ...</summary>
-    public string Type { get; set; } = string.Empty;
+    public NotificationType Type { get; set; } = NotificationType.SystemAlert;
+
 
     /// <summary>ID của entity liên quan (SubOrderId, OrderId, ...)</summary>
     public string? ReferenceId { get; set; }

@@ -7,9 +7,8 @@ import {
 	Star,
 	Tag,
 } from "lucide-react";
-import CategoryList from "@/domains/catalog/components/categories/CategoryList";
 import { toast } from "react-toastify";
-import { useProductsQuery } from "@/domains/catalog";
+import { CategoryList, useProductsQuery } from "@/domains/catalog";
 
 export default function LandingPage() {
 	const navigate = useNavigate();

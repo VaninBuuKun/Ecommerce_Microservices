@@ -25,7 +25,8 @@ public class NotificationDbContext(DbContextOptions<NotificationDbContext> optio
             entity.Property(n => n.UserId).IsRequired();
             entity.Property(n => n.Title).IsRequired().HasMaxLength(200);
             entity.Property(n => n.Body).IsRequired().HasMaxLength(1000);
-            entity.Property(n => n.Type).IsRequired().HasMaxLength(100);
+            entity.Property(n => n.Type).HasConversion<string>().HasMaxLength(100).IsRequired();
+
             entity.Property(n => n.ReferenceId).HasMaxLength(100).IsRequired(false);
 
             // Index để query nhanh theo UserId + IsRead
