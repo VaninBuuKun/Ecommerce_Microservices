@@ -1,10 +1,17 @@
 ## Base dotnet core gitignore
 
-# Các thư mục chứa sản phẩm sau khi Build
+# Các thư mục chứa sản phẩm sau khi Build / Publish
 [Bb]in/
 [Oo]bj/
 [Ex]bin/
 [Ms]build/
+[Pp]ublish/
+[Pp]ublish[Oo]utput/
+publish/
+dist/
+dist-ssr/
+out/
+build/
 
 # Thư mục lưu trữ các gói thư viện (Nuget) cài thêm
 *.nuget.props

@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState } from "react";
 import {
 	Plus,
 	Search,
@@ -12,19 +12,38 @@ import {
 	X,
 } from "lucide-react";
 import { toast } from "react-toastify";
-import api from "@/shared/lib/axios";
+import {
+	useAdminVouchersQuery,
+	useCreateAdminVoucherMutation,
+	useUpdateAdminVoucherMutation,
+	useDeleteAdminVoucherMutation,
+} from "@/domains/admin";
+import { Pagination } from "@/shared/components/Pagination";
 
 export function AdminVouchersView() {
-	const startDateInputRef = useRef<HTMLInputElement>(null);
-	const endDateInputRef = useRef<HTMLInputElement>(null);
 	const [page, setPage] = useState(1);
 	const [pageSize] = useState(8);
 	const [codeSearch, setCodeSearch] = useState("");
 	const [selectedDiscountType, setSelectedDiscountType] = useState<string | undefined>(undefined);
 	const [selectedIsActive, setSelectedIsActive] = useState<boolean | undefined>(undefined);
-	const [vouchers, setVouchers] = useState<any[]>([]);
-	const [totalCount, setTotalCount] = useState(0);
-	const [loading, setLoading] = useState(true);
+
+	// React Query hooks
+	const { data, isLoading } = useAdminVouchersQuery({
+		page,
+		pageSize,
+		code: codeSearch ? codeSearch.toUpperCase().trim() : undefined,
+		discountType: selectedDiscountType,
+		isActive: selectedIsActive,
+	});
+
+	const createVoucherMutation = useCreateAdminVoucherMutation();
+	const updateVoucherMutation = useUpdateAdminVoucherMutation();
+	const deleteVoucherMutation = useDeleteAdminVoucherMutation();
+
+	// Parse response
+	const vouchers = Array.isArray(data) ? data : data?.items || [];
+	const totalCount = Array.isArray(data) ? data.length : data?.totalCount || vouchers.length;
+	const totalPages = Math.ceil(totalCount / pageSize) || 1;
 
 	const [showAddEditModal, setShowAddEditModal] = useState(false);
 	const [editingVoucher, setEditingVoucher] = useState<any>(null);
@@ -39,72 +58,6 @@ export function AdminVouchersView() {
 	const [formEndDate, setFormEndDate] = useState("");
 	const [formUsageLimit, setFormUsageLimit] = useState<number | "">("");
 	const [formIsActive, setFormIsActive] = useState(true);
-
-	const fetchVouchers = async () => {
-		try {
-			setLoading(true);
-			const params: any = {
-				page,
-				pageSize,
-				code: codeSearch ? codeSearch.toUpperCase().trim() : undefined,
-				discountType: selectedDiscountType,
-				isActive: selectedIsActive,
-			};
-			const response = await api.get("/vouchers", { params });
-			const data = response.data?.value || response.data;
-
-			if (data && typeof data === "object" && "items" in data) {
-				setVouchers(data.items);
-				setTotalCount(data.totalCount || data.items.length);
-			} else {
-				const list = Array.isArray(data) ? data : [];
-				setVouchers(list);
-				setTotalCount(list.length);
-			}
-		} catch (err) {
-			console.error("Lỗi khi tải danh sách vouchers", err);
-			const mockItems = [
-				{
-					id: "1",
-					code: "BLACKFRIDAY",
-					name: "Thứ 6 ngày 13 khuyễn mãi lớn",
-					discountType: "Percentage",
-					discountValue: 20,
-					scope: "Platform",
-					minOrderValue: 100000,
-					maxDiscountAmount: 30000,
-					maxUsageCount: 100,
-					usageCount: 0,
-					isActive: false,
-					startDate: new Date().toISOString(),
-					endDate: new Date(Date.now() + 86400000 * 2).toISOString(),
-				},
-				{
-					id: "2",
-					code: "FREESHIP",
-					name: "Miễn phí vận chuyển toàn sàn",
-					discountType: "FixedAmount",
-					discountValue: 30000,
-					scope: "Platform",
-					minOrderValue: 0,
-					maxDiscountAmount: 30000,
-					maxUsageCount: 500,
-					usageCount: 112,
-					isActive: true,
-					startDate: new Date().toISOString(),
-					endDate: new Date(Date.now() + 86400000 * 30).toISOString(),
-				},
-			];
-			setVouchers(mockItems);
-			setTotalCount(mockItems.length);
-		} finally {
-			setLoading(false);
-		}
-	};
-
-	useEffect(() => {
-		fetchVouchers();
-	}, [page, codeSearch, selectedDiscountType, selectedIsActive]);
 
 	const getLocalISOString = (date: Date = new Date()) => {
 		const tzOffset = date.getTimezoneOffset() * 60000;
@@ -145,7 +98,7 @@ export function AdminVouchersView() {
 		setShowAddEditModal(true);
 	};
 
-	const handleSave = async (e: React.FormEvent) => {
+	const handleSave = (e: React.FormEvent) => {
 		e.preventDefault();
 		const isPercent = formDiscountType === "Percentage";
 		const valNum = Number(formDiscountValue);
@@ -185,38 +138,44 @@ export function AdminVouchersView() {
 			shopId: null,
 		};
 
-		try {
-			if (editingVoucher) {
-				await api.put(`/vouchers/${editingVoucher.id}`, payload);
-				toast.success("Cập nhật voucher thành công!");
-			} else {
-				await api.post("/vouchers", payload);
-				toast.success("Tạo voucher thành công!");
-			}
-			setShowAddEditModal(false);
-			fetchVouchers();
-		} catch (err: any) {
-			toast.error(
-				err?.response?.data?.message ||
-				err?.response?.data ||
-				"Thao tác voucher thất bại!",
+		if (editingVoucher) {
+			updateVoucherMutation.mutate(
+				{ id: editingVoucher.id, payload },
+				{
+					onSuccess: () => {
+						toast.success("Cập nhật voucher thành công!");
+						setShowAddEditModal(false);
+					},
+					onError: (err: any) => {
+						toast.error(err?.response?.data?.message || err?.response?.data || "Thao tác voucher thất bại!");
+					},
+				},
 			);
+		} else {
+			createVoucherMutation.mutate(payload, {
+				onSuccess: () => {
+					toast.success("Tạo voucher thành công!");
+					setShowAddEditModal(false);
+				},
+				onError: (err: any) => {
+					toast.error(err?.response?.data?.message || err?.response?.data || "Thao tác voucher thất bại!");
+				},
+			});
 		}
 	};
 
-	const handleDelete = async (voucherId: string) => {
+	const handleDelete = (voucherId: string) => {
 		if (window.confirm("Bạn có chắc chắn muốn ngừng kích hoạt (Xóa) mã voucher này?")) {
-			try {
-				await api.delete(`/vouchers/${voucherId}`);
-				toast.success("Đã ngưng hoạt động voucher thành công!");
-				fetchVouchers();
-			} catch (err: any) {
-				toast.error(err?.response?.data || "Thao tác thất bại!");
-			}
+			deleteVoucherMutation.mutate(voucherId, {
+				onSuccess: () => {
+					toast.success("Đã ngưng hoạt động voucher thành công!");
+				},
+				onError: (err: any) => {
+					toast.error(err?.response?.data || "Thao tác thất bại!");
+				},
+			});
 		}
 	};
-
-	const totalPages = Math.ceil(totalCount / pageSize) || 1;
 
 	const getDatePart = (isoStr: string) => (isoStr ? isoStr.split("T")[0] : "");
 	const getTimePart = (isoStr: string) => (isoStr && isoStr.includes("T") ? isoStr.split("T")[1].slice(0, 5) : "00:00");
@@ -308,7 +267,7 @@ export function AdminVouchersView() {
 			</div>
 
 			{/* Voucher Table List */}
-			{loading ? (
+			{isLoading ? (
 				<div className="flex flex-col items-center justify-center py-16 text-brand-muted text-xs gap-2">
 					<Loader2 className="w-6 h-6 animate-spin text-brand-primary" />
 					Đang tải danh sách voucher...
@@ -370,15 +329,13 @@ export function AdminVouchersView() {
 												<div className="flex flex-col">
 													<span>{new Date(voucher.startDate).toLocaleDateString("vi-VN")}</span>
 													<span className="text-[9px] font-normal text-brand-muted/80">
-														- {new Date(voucher.endDate).toLocaleDateString("vi-VN")}
+														đến {new Date(voucher.endDate).toLocaleDateString("vi-VN")}
 													</span>
 												</div>
 											</div>
 										</td>
-										<td className="p-3 text-center font-black text-brand-dark">
-											{voucher.maxUsageCount
-												? `${voucher.usageCount || 0} / ${voucher.maxUsageCount}`
-												: `${voucher.usageCount || 0} (Không H.Hạn)`}
+										<td className="p-3 text-center font-bold text-brand-dark whitespace-nowrap">
+											{voucher.usageCount || 0} / {voucher.maxUsageCount || "∞"}
 										</td>
 										<td className="p-3 text-center">
 											<span
@@ -394,20 +351,18 @@ export function AdminVouchersView() {
 											<div className="flex items-center justify-center gap-1">
 												<button
 													onClick={() => handleOpenEdit(voucher)}
-													className="p-1 border border-brand-border hover:border-brand-primary hover:bg-brand-primary/10 rounded text-brand-muted hover:text-brand-dark cursor-pointer bg-white transition-all"
+													className="p-1 text-brand-muted hover:text-brand-primary rounded-md hover:bg-brand-light-soft transition-colors cursor-pointer border-none bg-transparent"
 													title="Chỉnh sửa"
 												>
 													<Edit className="w-3.5 h-3.5" />
 												</button>
-												{voucher.isActive && (
-													<button
-														onClick={() => handleDelete(voucher.id)}
-														className="p-1 border border-brand-border hover:border-red-500 hover:bg-red-50 rounded text-brand-muted hover:text-red-500 cursor-pointer bg-white transition-all"
-														title="Ngưng hoạt động"
-													>
-														<Trash2 className="w-3.5 h-3.5" />
-													</button>
-												)}
+												<button
+													onClick={() => handleDelete(voucher.id)}
+													className="p-1 text-brand-muted hover:text-red-500 rounded-md hover:bg-red-50 transition-colors cursor-pointer border-none bg-transparent"
+													title="Ngừng kích hoạt"
+												>
+													<Trash2 className="w-3.5 h-3.5" />
+												</button>
 											</div>
 										</td>
 									</tr>
@@ -416,29 +371,15 @@ export function AdminVouchersView() {
 						</table>
 					</div>
 
-					<div className="px-4 py-2.5 border-t border-brand-border flex justify-between items-center bg-brand-light-soft/20 text-xs">
+					<div className="px-4 py-3 border-t border-brand-border flex justify-between items-center bg-brand-light-soft/20 text-xs">
 						<span className="font-bold text-brand-muted">
 							Tổng cộng: {totalCount} voucher
 						</span>
-						<div className="flex gap-1.5">
-							<button
-								onClick={() => setPage((p) => Math.max(1, p - 1))}
-								disabled={page === 1}
-								className="h-7 px-2.5 border border-brand-border rounded-lg bg-white hover:bg-brand-light-soft font-bold cursor-pointer disabled:opacity-40 disabled:pointer-events-none"
-							>
-								Trước
-							</button>
-							<div className="h-7 flex items-center px-2.5 border border-brand-border rounded-lg bg-brand-primary/10 text-brand-dark font-black text-xs">
-								{page} / {totalPages}
-							</div>
-							<button
-								onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-								disabled={page === totalPages}
-								className="h-7 px-2.5 border border-brand-border rounded-lg bg-white hover:bg-brand-light-soft font-bold cursor-pointer disabled:opacity-40 disabled:pointer-events-none"
-							>
-								Sau
-							</button>
-						</div>
+						<Pagination
+							currentPage={page}
+							totalPages={totalPages}
+							onPageChange={setPage}
+						/>
 					</div>
 				</div>
 			) : (

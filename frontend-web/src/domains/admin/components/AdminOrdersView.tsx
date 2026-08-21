@@ -8,6 +8,7 @@ import {
 	ChevronRight,
 } from "lucide-react";
 import { getOrderStatusBadge, useAdminSubOrdersQuery } from "@/domains/order";
+import { Pagination } from "@/shared/components/Pagination";
 import { SubOrderDetailView } from "@/domains/order/components/sellerOrder/SubOrderDetailView";
 
 export function AdminOrdersView() {
@@ -220,31 +221,13 @@ export function AdminOrdersView() {
 			{totalPages > 1 && (
 				<div className="flex justify-between items-center pt-2 text-xs">
 					<span className="text-brand-muted font-bold">
-						Hiển thị trang {currentPage} trên tổng số {totalPages}{" "}
-						trang (Tổng số đơn: {totalCount})
+						Tổng cộng: {totalCount} đơn hàng ({totalPages} trang)
 					</span>
-					<div className="flex gap-2">
-						<button
-							onClick={() =>
-								setCurrentPage((p) => Math.max(p - 1, 1))
-							}
-							disabled={currentPage === 1}
-							className="h-8 w-8 flex items-center justify-center border border-brand-border rounded-lg bg-white hover:bg-brand-light-soft disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
-						>
-							<ChevronLeft className="w-4 h-4 text-brand-dark" />
-						</button>
-						<button
-							onClick={() =>
-								setCurrentPage((p) =>
-									Math.min(p + 1, totalPages),
-								)
-							}
-							disabled={currentPage === totalPages}
-							className="h-8 w-8 flex items-center justify-center border border-brand-border rounded-lg bg-white hover:bg-brand-light-soft disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
-						>
-							<ChevronRight className="w-4 h-4 text-brand-dark" />
-						</button>
-					</div>
+					<Pagination
+						currentPage={currentPage}
+						totalPages={totalPages}
+						onPageChange={setCurrentPage}
+					/>
 				</div>
 			)}
 		</div>

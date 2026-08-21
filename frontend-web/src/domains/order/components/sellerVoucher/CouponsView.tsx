@@ -21,6 +21,7 @@ import {
 	useUpdateVoucherMutation,
 	useDeleteVoucherMutation,
 } from "@/domains/seller";
+import { Pagination } from "@/shared/components/Pagination";
 
 export default function CouponsView() {
 	const startDateInputRef = useRef<HTMLInputElement>(null);
@@ -361,8 +362,8 @@ export default function CouponsView() {
 										<td className="p-3 text-center">
 											<span
 												className={`inline-block px-2 py-0.5 rounded-full text-[9px] font-extrabold ${voucher.isActive
-														? "text-emerald-700 bg-emerald-50 border border-emerald-200"
-														: "text-rose-600 bg-rose-50 border border-rose-200"
+													? "text-emerald-700 bg-emerald-50 border border-emerald-200"
+													: "text-rose-600 bg-rose-50 border border-rose-200"
 													}`}
 											>
 												{voucher.isActive ? "Kích Hoạt" : "Tạm Ngưng"}
@@ -394,29 +395,15 @@ export default function CouponsView() {
 						</table>
 					</div>
 
-					<div className="px-4 py-2.5 border-t border-brand-border flex justify-between items-center bg-brand-light-soft/20 text-xs">
+					<div className="px-4 py-3 border-t border-brand-border flex justify-between items-center bg-brand-light-soft/20 text-xs">
 						<span className="font-bold text-brand-muted">
 							Tổng cộng: {totalItems} voucher
 						</span>
-						<div className="flex gap-1.5">
-							<button
-								onClick={() => setPage((p) => Math.max(1, p - 1))}
-								disabled={page === 1}
-								className="h-7 px-2.5 border border-brand-border rounded-lg bg-white hover:bg-brand-light-soft font-bold cursor-pointer disabled:opacity-40 disabled:pointer-events-none"
-							>
-								Trước
-							</button>
-							<div className="h-7 flex items-center px-2.5 border border-brand-border rounded-lg bg-brand-primary/10 text-brand-dark font-black text-xs">
-								{page} / {totalPages}
-							</div>
-							<button
-								onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-								disabled={page === totalPages}
-								className="h-7 px-2.5 border border-brand-border rounded-lg bg-white hover:bg-brand-light-soft font-bold cursor-pointer disabled:opacity-40 disabled:pointer-events-none"
-							>
-								Sau
-							</button>
-						</div>
+						<Pagination
+							currentPage={page}
+							totalPages={data.totalPages}
+							onPageChange={setPage}
+						/>
 					</div>
 				</div>
 			) : (
@@ -485,8 +472,8 @@ export default function CouponsView() {
 												setFormMaxDiscountAmount("");
 											}}
 											className={`flex-1 text-center font-bold border rounded-lg transition-all cursor-pointer text-[11px] ${formDiscountType === "FixedAmount"
-													? "bg-brand-primary border-brand-primary text-brand-dark shadow-xs"
-													: "bg-white border-brand-border text-brand-muted hover:bg-slate-50"
+												? "bg-brand-primary border-brand-primary text-brand-dark shadow-xs"
+												: "bg-white border-brand-border text-brand-muted hover:bg-slate-50"
 												}`}
 										>
 											Tiền mặt (Fixed)
@@ -495,8 +482,8 @@ export default function CouponsView() {
 											type="button"
 											onClick={() => setFormDiscountType("Percentage")}
 											className={`flex-1 text-center font-bold border rounded-lg transition-all cursor-pointer text-[11px] ${formDiscountType === "Percentage"
-													? "bg-brand-primary border-brand-primary text-brand-dark shadow-xs"
-													: "bg-white border-brand-border text-brand-muted hover:bg-slate-50"
+												? "bg-brand-primary border-brand-primary text-brand-dark shadow-xs"
+												: "bg-white border-brand-border text-brand-muted hover:bg-slate-50"
 												}`}
 										>
 											Phần trăm (%)

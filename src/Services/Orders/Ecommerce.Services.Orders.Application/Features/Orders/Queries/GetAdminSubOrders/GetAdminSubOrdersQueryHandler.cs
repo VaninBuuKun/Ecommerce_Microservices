@@ -13,15 +13,17 @@ using Ecommerce.Services.Orders.Domain.Enums;
 using MapsterMapper;
 using Microsoft.Extensions.Logging;
 
+using BuildingBlocks.Application.Commons.Models;
+
 namespace Ecommerce.Services.Orders.Application.Features.Orders.Queries.GetAdminSubOrders;
 
 public class GetAdminSubOrdersQueryHandler(
     IEfUnitOfWork unitOfWork,
     ILogger<GetAdminSubOrdersQueryHandler> logger,
     IMapper mapper)
-    : QueryHandler<GetAdminSubOrdersQuery, PagedAdminSubOrdersResponse>
+    : QueryHandler<GetAdminSubOrdersQuery, PagedResult<CustomerOrderResponse>>
 {
-    protected override async Task<Result<PagedAdminSubOrdersResponse>> HandleQueryAsync(
+    protected override async Task<Result<PagedResult<CustomerOrderResponse>>> HandleQueryAsync(
         GetAdminSubOrdersQuery query, CancellationToken cancellationToken)
     {
         logger.LogInformation("Admin fetching sub-orders (Page {PageNumber}, Size {PageSize}, Status {Status}, Search {Search})",
@@ -71,9 +73,8 @@ public class GetAdminSubOrdersQueryHandler(
         );
 
         var items = mapper.Map<List<CustomerOrderResponse>>(subOrders);
-        var totalPages = (int)Math.Ceiling((double)totalCount / query.PageSize);
-        var response = new PagedAdminSubOrdersResponse(items, totalCount, query.PageNumber, query.PageSize, totalPages);
+        var response = new PagedResult<CustomerOrderResponse>(items, totalCount, query.PageNumber, query.PageSize);
 
-        return Result<PagedAdminSubOrdersResponse>.Success(response);
+        return Result<PagedResult<CustomerOrderResponse>>.Success(response);
     }
 }
