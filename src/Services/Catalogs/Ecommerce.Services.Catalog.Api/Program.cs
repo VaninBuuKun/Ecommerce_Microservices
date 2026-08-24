@@ -1,5 +1,6 @@
 using BuildingBlocks.Auth;
-using BuildingBlocks.Logging.OTLPSerilog;
+using BuildingBlocks.Logging;
+
 using BuildingBlocks.Web.Extensions;
 using Ecommerce.Services.Catalog.Infrastructure;
 using Ecommerce.Services.Catalog.Api.GrpcServers;

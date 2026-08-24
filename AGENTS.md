@@ -7,7 +7,8 @@ Welcome AI Agent! You are working on **Ecommerce Microservices**, an enterprise-
 ## 🏛️ System Architecture Overview
 
 - **7 Microservices (REST Port / gRPC Port & DB)**:
-  1. `Catalog.Api` (REST `5001` / gRPC `5002` - MySQL): Products, Variants, Categories, Product Reviews.
+  1. `Catalog.Api` (REST `5001` / gRPC `5002` - PostgreSQL): Products, Variants, Categories, Product Reviews.
+
   2. `Cart.Api` (REST `5004` / gRPC `5005` - Redis): Cart management.
   3. `Orders.Api` (REST `5007` / gRPC `5008` - PostgreSQL): Orders, SubOrders, Vouchers, Refunds.
   4. `Identity.Api` (REST `5027` / gRPC `5028` - PostgreSQL): OAuth2 / OIDC, User Addresses.

@@ -3,17 +3,17 @@ using System;
 using Ecommerce.Services.Catalog.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
-using Microsoft.EntityFrameworkCore.Metadata;
 using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
+using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
 #nullable disable
 
 namespace Ecommerce.Services.Catalog.Infrastructure.Migrations
 {
     [DbContext(typeof(ProductDbContext))]
-    [Migration("20260803065819_AddIconUrlForCate")]
-    partial class AddIconUrlForCate
+    [Migration("20260823151614_InitialCatalogPostgres")]
+    partial class InitialCatalogPostgres
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -21,40 +21,40 @@ namespace Ecommerce.Services.Catalog.Infrastructure.Migrations
 #pragma warning disable 612, 618
             modelBuilder
                 .HasAnnotation("ProductVersion", "9.0.16")
-                .HasAnnotation("Relational:MaxIdentifierLength", 64);
+                .HasAnnotation("Relational:MaxIdentifierLength", 63);
 
-            MySqlModelBuilderExtensions.AutoIncrementColumns(modelBuilder);
+            NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
             modelBuilder.Entity("Ecommerce.Services.Catalog.Domain.Category", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("char(36)");
+                        .HasColumnType("uuid");
 
                     b.Property<DateTimeOffset>("CreatedDate")
-                        .HasColumnType("datetime(6)");
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("Description")
                         .IsRequired()
                         .HasMaxLength(1000)
-                        .HasColumnType("varchar(1000)");
+                        .HasColumnType("character varying(1000)");
 
                     b.Property<string>("IconUrl")
-                        .HasColumnType("longtext");
+                        .HasColumnType("text");
 
                     b.Property<bool>("IsActive")
-                        .HasColumnType("tinyint(1)");
+                        .HasColumnType("boolean");
 
                     b.Property<DateTimeOffset?>("LastModifiedDate")
-                        .HasColumnType("datetime(6)");
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(255)
-                        .HasColumnType("varchar(255)");
+                        .HasColumnType("character varying(255)");
 
                     b.Property<Guid?>("ParentId")
-                        .HasColumnType("char(36)");
+                        .HasColumnType("uuid");
 
                     b.HasKey("Id");
 
@@ -63,55 +63,35 @@ namespace Ecommerce.Services.Catalog.Infrastructure.Migrations
                     b.ToTable("Categories");
                 });
 
-            modelBuilder.Entity("Ecommerce.Services.Catalog.Domain.ProductImage", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("char(36)");
-
-                    b.Property<string>("ImageUrl")
-                        .IsRequired()
-                        .HasMaxLength(1000)
-                        .HasColumnType("varchar(1000)");
-
-                    b.Property<bool>("IsMain")
-                        .HasColumnType("tinyint(1)");
-
-                    b.Property<Guid>("ProductId")
-                        .HasColumnType("char(36)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("ProductId");
-
-                    b.ToTable("ProductImages");
-                });
-
             modelBuilder.Entity("Ecommerce.Services.Catalog.Domain.ProductReview", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("char(36)");
+                        .HasColumnType("uuid");
 
                     b.Property<string>("Comment")
                         .IsRequired()
                         .HasMaxLength(2000)
-                        .HasColumnType("varchar(2000)");
+                        .HasColumnType("character varying(2000)");
 
                     b.Property<DateTimeOffset>("CreatedDate")
-                        .HasColumnType("datetime(6)");
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<long>("CustomerId")
                         .HasColumnType("bigint");
 
                     b.Property<DateTimeOffset?>("LastModifiedDate")
-                        .HasColumnType("datetime(6)");
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Media")
+                        .IsRequired()
+                        .HasColumnType("json");
 
                     b.Property<Guid>("ProductId")
-                        .HasColumnType("char(36)");
+                        .HasColumnType("uuid");
 
                     b.Property<int>("Rating")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.HasKey("Id");
 
@@ -120,58 +100,60 @@ namespace Ecommerce.Services.Catalog.Infrastructure.Migrations
                     b.ToTable("ProductReviews");
                 });
 
-            modelBuilder.Entity("Ecommerce.Services.Catalog.Domain.ProductReviewImage", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("char(36)");
-
-                    b.Property<string>("ImageUrl")
-                        .IsRequired()
-                        .HasMaxLength(1000)
-                        .HasColumnType("varchar(1000)");
-
-                    b.Property<Guid>("ProductReviewId")
-                        .HasColumnType("char(36)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("ProductReviewId");
-
-                    b.ToTable("ProductReviewImages");
-                });
-
             modelBuilder.Entity("Ecommerce.Services.Catalog.Domain.Products.Product", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("char(36)");
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("AvailableStock")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(0);
 
                     b.Property<double>("AverageRating")
-                        .HasColumnType("double");
+                        .HasColumnType("double precision");
 
                     b.Property<Guid?>("CategoryId")
-                        .HasColumnType("char(36)");
+                        .HasColumnType("uuid");
 
                     b.Property<string>("Description")
                         .IsRequired()
-                        .HasColumnType("longtext");
+                        .HasColumnType("text");
+
+                    b.Property<decimal>("DiscountPrice")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("decimal(18,2)")
+                        .HasDefaultValue(0m);
 
                     b.Property<double>("Height")
-                        .HasColumnType("double");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("double precision")
+                        .HasDefaultValue(0.0);
+
+                    b.Property<string>("ImageUrls")
+                        .IsRequired()
+                        .HasColumnType("json");
 
                     b.Property<double>("Length")
-                        .HasColumnType("double");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("double precision")
+                        .HasDefaultValue(0.0);
 
                     b.Property<string>("Name")
                         .IsRequired()
-                        .HasColumnType("longtext");
+                        .HasColumnType("text");
+
+                    b.Property<decimal>("Price")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("decimal(18,2)")
+                        .HasDefaultValue(0m);
 
                     b.Property<int>("RatingSum")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<int>("ReviewCount")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<long>("ShopId")
                         .HasColumnType("bigint");
@@ -179,13 +161,25 @@ namespace Ecommerce.Services.Catalog.Infrastructure.Migrations
                     b.Property<string>("Status")
                         .IsRequired()
                         .HasMaxLength(20)
-                        .HasColumnType("varchar(20)");
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<string>("ThumbnailUrl")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<string>("VideoUrl")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
 
                     b.Property<double>("Weight")
-                        .HasColumnType("double");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("double precision")
+                        .HasDefaultValue(0.0);
 
                     b.Property<double>("Width")
-                        .HasColumnType("double");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("double precision")
+                        .HasDefaultValue(0.0);
 
                     b.HasKey("Id");
 
@@ -198,27 +192,27 @@ namespace Ecommerce.Services.Catalog.Infrastructure.Migrations
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("char(36)");
+                        .HasColumnType("uuid");
 
                     b.Property<DateTimeOffset>("CreatedDate")
-                        .HasColumnType("datetime(6)");
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<bool>("IsDeleted")
-                        .HasColumnType("tinyint(1)");
+                        .HasColumnType("boolean");
 
                     b.Property<DateTimeOffset?>("LastModifiedDate")
-                        .HasColumnType("datetime(6)");
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(255)
-                        .HasColumnType("varchar(255)");
+                        .HasColumnType("character varying(255)");
 
                     b.Property<Guid>("ProductId")
-                        .HasColumnType("char(36)");
+                        .HasColumnType("uuid");
 
                     b.Property<int>("SortOrder")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.HasKey("Id");
 
@@ -231,28 +225,31 @@ namespace Ecommerce.Services.Catalog.Infrastructure.Migrations
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("char(36)");
+                        .HasColumnType("uuid");
 
                     b.Property<DateTimeOffset>("CreatedDate")
-                        .HasColumnType("datetime(6)");
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("ImageUrl")
                         .HasMaxLength(1000)
-                        .HasColumnType("varchar(1000)");
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean");
 
                     b.Property<DateTimeOffset?>("LastModifiedDate")
-                        .HasColumnType("datetime(6)");
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<Guid>("OptionId")
-                        .HasColumnType("char(36)");
+                        .HasColumnType("uuid");
 
                     b.Property<int>("SortOrder")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<string>("Value")
                         .IsRequired()
                         .HasMaxLength(255)
-                        .HasColumnType("varchar(255)");
+                        .HasColumnType("character varying(255)");
 
                     b.HasKey("Id");
 
@@ -265,44 +262,43 @@ namespace Ecommerce.Services.Catalog.Infrastructure.Migrations
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("char(36)");
+                        .HasColumnType("uuid");
 
                     b.Property<int>("AvailableStocks")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<DateTimeOffset>("CreatedDate")
-                        .HasColumnType("datetime(6)");
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<decimal>("DiscountPrice")
+                        .HasColumnType("numeric");
 
                     b.Property<double?>("Height")
-                        .HasColumnType("double");
+                        .HasColumnType("double precision");
 
                     b.Property<bool>("IsDeleted")
-                        .HasColumnType("tinyint(1)");
+                        .HasColumnType("boolean");
 
                     b.Property<DateTimeOffset?>("LastModifiedDate")
-                        .HasColumnType("datetime(6)");
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<double?>("Length")
-                        .HasColumnType("double");
+                        .HasColumnType("double precision");
 
                     b.Property<decimal>("Price")
                         .HasColumnType("decimal(18,2)");
 
                     b.Property<Guid>("ProductId")
-                        .HasColumnType("char(36)");
+                        .HasColumnType("uuid");
 
                     b.Property<int>("ReservedStocks")
-                        .HasColumnType("int");
-
-                    b.Property<string>("Sku")
-                        .HasMaxLength(50)
-                        .HasColumnType("varchar(50)");
+                        .HasColumnType("integer");
 
                     b.Property<double?>("Weight")
-                        .HasColumnType("double");
+                        .HasColumnType("double precision");
 
                     b.Property<double?>("Width")
-                        .HasColumnType("double");
+                        .HasColumnType("double precision");
 
                     b.HasKey("Id");
 
@@ -314,16 +310,47 @@ namespace Ecommerce.Services.Catalog.Infrastructure.Migrations
             modelBuilder.Entity("Ecommerce.Services.Catalog.Domain.Products.ProductVariantOption", b =>
                 {
                     b.Property<Guid>("VariantId")
-                        .HasColumnType("char(36)");
+                        .HasColumnType("uuid");
 
                     b.Property<Guid>("OptionValueId")
-                        .HasColumnType("char(36)");
+                        .HasColumnType("uuid");
 
                     b.HasKey("VariantId", "OptionValueId");
 
                     b.HasIndex("OptionValueId");
 
                     b.ToTable("ProductVariantOptions");
+                });
+
+            modelBuilder.Entity("Ecommerce.Services.Catalog.Domain.Products.Wishlist", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTimeOffset>("CreatedDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<long>("CustomerId")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTimeOffset?>("LastModifiedDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("ProductId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ProductId");
+
+                    b.HasIndex("CustomerId", "ProductId")
+                        .IsUnique();
+
+                    b.ToTable("Wishlists");
                 });
 
             modelBuilder.Entity("Ecommerce.Services.Catalog.Domain.Category", b =>
@@ -336,15 +363,6 @@ namespace Ecommerce.Services.Catalog.Infrastructure.Migrations
                     b.Navigation("Parent");
                 });
 
-            modelBuilder.Entity("Ecommerce.Services.Catalog.Domain.ProductImage", b =>
-                {
-                    b.HasOne("Ecommerce.Services.Catalog.Domain.Products.Product", null)
-                        .WithMany("Images")
-                        .HasForeignKey("ProductId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-                });
-
             modelBuilder.Entity("Ecommerce.Services.Catalog.Domain.ProductReview", b =>
                 {
                     b.HasOne("Ecommerce.Services.Catalog.Domain.Products.Product", "Product")
@@ -354,15 +372,6 @@ namespace Ecommerce.Services.Catalog.Infrastructure.Migrations
                         .IsRequired();
 
                     b.Navigation("Product");
-                });
-
-            modelBuilder.Entity("Ecommerce.Services.Catalog.Domain.ProductReviewImage", b =>
-                {
-                    b.HasOne("Ecommerce.Services.Catalog.Domain.ProductReview", null)
-                        .WithMany("Images")
-                        .HasForeignKey("ProductReviewId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
                 });
 
             modelBuilder.Entity("Ecommerce.Services.Catalog.Domain.Products.Product", b =>
@@ -411,11 +420,11 @@ namespace Ecommerce.Services.Catalog.Infrastructure.Migrations
                     b.HasOne("Ecommerce.Services.Catalog.Domain.Products.ProductOptionValue", "OptionValue")
                         .WithMany()
                         .HasForeignKey("OptionValueId")
-                        .OnDelete(DeleteBehavior.Restrict)
+                        .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
                     b.HasOne("Ecommerce.Services.Catalog.Domain.Products.ProductVariant", "Variant")
-                        .WithMany("Options")
+                        .WithMany("VariantOptions")
                         .HasForeignKey("VariantId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
@@ -425,6 +434,17 @@ namespace Ecommerce.Services.Catalog.Infrastructure.Migrations
                     b.Navigation("Variant");
                 });
 
+            modelBuilder.Entity("Ecommerce.Services.Catalog.Domain.Products.Wishlist", b =>
+                {
+                    b.HasOne("Ecommerce.Services.Catalog.Domain.Products.Product", "Product")
+                        .WithMany()
+                        .HasForeignKey("ProductId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Product");
+                });
+
             modelBuilder.Entity("Ecommerce.Services.Catalog.Domain.Category", b =>
                 {
                     b.Navigation("Products");
@@ -432,15 +452,8 @@ namespace Ecommerce.Services.Catalog.Infrastructure.Migrations
                     b.Navigation("SubCategories");
                 });
 
-            modelBuilder.Entity("Ecommerce.Services.Catalog.Domain.ProductReview", b =>
-                {
-                    b.Navigation("Images");
-                });
-
             modelBuilder.Entity("Ecommerce.Services.Catalog.Domain.Products.Product", b =>
                 {
-                    b.Navigation("Images");
-
                     b.Navigation("Options");
 
                     b.Navigation("Reviews");
@@ -455,7 +468,7 @@ namespace Ecommerce.Services.Catalog.Infrastructure.Migrations
 
             modelBuilder.Entity("Ecommerce.Services.Catalog.Domain.Products.ProductVariant", b =>
                 {
-                    b.Navigation("Options");
+                    b.Navigation("VariantOptions");
                 });
 #pragma warning restore 612, 618
         }

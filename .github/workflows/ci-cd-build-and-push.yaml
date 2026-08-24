@@ -1,0 +1,125 @@
+name: CI/CD - Build & Push All Services to GHCR
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+  workflow_dispatch:
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_OWNER: vaninbuukun
+
+jobs:
+  # =========================================================================
+  # PHASE 1: BUILD ALL IMAGES (PHẢI THÀNH CÔNG 100% MỚI CHO SANG PHASE 2)
+  # =========================================================================
+  build-matrix:
+    name: Build & Validate Image - ${{ matrix.service.name }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: true # ⚠️ Nếu có 1 service build thất bại, DỪNG NGAY TẬP TỨC toàn bộ các build khác!
+      matrix:
+        service:
+          - { name: "identity-service", dockerfile: "src/Services/Identity/Identity.Api/Dockerfile", context: "." }
+          - { name: "catalog-service", dockerfile: "src/Services/Catalogs/Ecommerce.Services.Catalog.Api/Dockerfile", context: "." }
+          - { name: "cart-service", dockerfile: "src/Services/Carts/Ecommerce.Services.Carts.Api/Dockerfile", context: "." }
+          - { name: "order-service", dockerfile: "src/Services/Orders/Ecommerce.Services.Orders.Api/Dockerfile", context: "." }
+          - { name: "payment-service", dockerfile: "src/Services/Payments/Ecommerce.Services.Payments.Api/Dockerfile", context: "." }
+          - { name: "seller-service", dockerfile: "src/Services/Sellers/Ecommerce.Services.Sellers.Api/Dockerfile", context: "." }
+          - { name: "shipping-service", dockerfile: "src/Services/Shippings/Ecommerce.Services.Shippings.Api/Dockerfile", context: "." }
+          - { name: "notification-service", dockerfile: "src/Services/Notifications/Ecommerce.Services.Notifications.Api/Dockerfile", context: "." }
+          - { name: "api-gateway", dockerfile: "src/ApiGateway/Ecommerce.ApiGateway/Dockerfile", context: "." }
+          - { name: "frontend-web", dockerfile: "frontend-web/Dockerfile", context: "frontend-web" }
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build Image (Validation Only - No Push)
+        uses: docker/build-push-action@v5
+        with:
+          context: ${{ matrix.service.context }}
+          file: ${{ matrix.service.dockerfile }}
+          push: false # 🔒 KHÔNG PUSH ở phase này! Chỉ kiểm tra xem build có 100% thành công hay không.
+          cache-from: type=gha,scope=${{ matrix.service.name }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.service.name }}
+
+  # =========================================================================
+  # PHASE 2: PUSH ALL IMAGES TO GHCR (CHỈ CHẠY KHI PHASE 1 THÀNH CÔNG 100%)
+  # =========================================================================
+  push-to-ghcr:
+    name: Push All Certified Images to GHCR
+    needs: build-matrix # 🔒 BẮT BUỘC: Tất cả 10 services trong build-matrix phải SUCCESS 100%!
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GitHub Container Registry (GHCR)
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }} #ghcr.io
+          username: ${{ github.actor }} #username người push code lên
+          password: ${{ secrets.GITHUB_TOKEN }} #token tạm thời do github cung cấp, buộc phải thêm permission
+
+      - name: Extract Tag Name
+        id: vars
+        #Trường hợp 1: code được push vào nhánh main
+        run: |
+          if [ "${{ github.ref }}" = "refs/heads/main" ]; then
+            echo "tag=latest" >> $GITHUB_OUTPUT
+            echo "tag_ver=v1.0.${{ github.run_number }}" >> $GITHUB_OUTPUT
+          else
+            echo "tag=dev" >> $GITHUB_OUTPUT
+            echo "tag_ver=dev-${{ github.run_number }}" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Build & Push All 10 Certified Images
+        run: |
+          TAG="${{ steps.vars.outputs.tag }}"
+          TAG_VER="${{ steps.vars.outputs.tag_ver }}"
+          OWNER="${{ env.IMAGE_OWNER }}"
+          REG="${{ env.REGISTRY }}"
+
+          echo "🚀 Pushing all certified images with tags: $TAG & $TAG_VER"
+
+          # Mảng định nghĩa 10 dịch vụ
+          declare -A SERVICES=(
+            ["identity-service"]="src/Services/Identity/Identity.Api/Dockerfile:."
+            ["catalog-service"]="src/Services/Catalogs/Ecommerce.Services.Catalog.Api/Dockerfile:."
+            ["cart-service"]="src/Services/Carts/Ecommerce.Services.Carts.Api/Dockerfile:."
+            ["order-service"]="src/Services/Orders/Ecommerce.Services.Orders.Api/Dockerfile:."
+            ["payment-service"]="src/Services/Payments/Ecommerce.Services.Payments.Api/Dockerfile:."
+            ["seller-service"]="src/Services/Sellers/Ecommerce.Services.Sellers.Api/Dockerfile:."
+            ["shipping-service"]="src/Services/Shippings/Ecommerce.Services.Shippings.Api/Dockerfile:."
+            ["notification-service"]="src/Services/Notifications/Ecommerce.Services.Notifications.Api/Dockerfile:."
+            ["api-gateway"]="src/ApiGateway/Ecommerce.ApiGateway/Dockerfile:."
+            ["frontend-web"]="frontend-web/Dockerfile:frontend-web"
+          )
+
+          for SVC in "${!SERVICES[@]}"; do
+            IFS=":" read -r DOCKERFILE CONTEXT <<< "${SERVICES[$SVC]}"
+            IMG_NAME="$REG/$OWNER/$SVC"
+
+            echo "📦 Building & Pushing $IMG_NAME..."
+            docker buildx build \
+              --context "$CONTEXT" \
+              --file "$DOCKERFILE" \
+              --push \
+              --tag "$IMG_NAME:$TAG" \
+              --tag "$IMG_NAME:$TAG_VER" \
+              --cache-from "type=gha,scope=$SVC"
+          done
+
+          echo "✅ All 10 Docker Images have been built and pushed to GHCR successfully!"
+
+#for SVC in "${!SERVICES[@]}"; duyệt từng key như identity-service,..
+#IFS=":" read -r DOCKERFILE CONTEXT <<< "${SERVICES[$SVC]}" lấy kết quả dictionary, phân cách :, vế trái là đường dẫn dockerfile, về phải là context

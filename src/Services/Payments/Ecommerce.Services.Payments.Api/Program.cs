@@ -1,5 +1,6 @@
 using System.Text.Json.Serialization;
-using BuildingBlocks.Logging.OTLPSerilog;
+using BuildingBlocks.Logging;
+
 using Ecommerce.Services.Payments.Api.Models.Settings;
 using Ecommerce.Services.Payments.Api.Configurations;
 using Ecommerce.Services.Payments.Api.GrpcServers;

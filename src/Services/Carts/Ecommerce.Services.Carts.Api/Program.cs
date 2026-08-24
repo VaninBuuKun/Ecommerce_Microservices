@@ -1,4 +1,5 @@
-using BuildingBlocks.Logging.OTLPSerilog;
+using BuildingBlocks.Logging;
+
 using Ecommerce.Services.Carts.Api.Configurations;
 using Ecommerce.Services.Carts.Api.Endpoints;
 using Ecommerce.Services.Carts.Api.GrpcServers;

@@ -1,5 +1,6 @@
 using System.Text.Json.Serialization;
-using BuildingBlocks.Logging.OTLPSerilog;
+using BuildingBlocks.Logging;
+
 using Ecommerce.Services.Shippings.Api.Services;
 using Ecommerce.Services.Shippings.Api.Configurations;
 using Microsoft.AspNetCore.HttpOverrides;

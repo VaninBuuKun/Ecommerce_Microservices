@@ -1,79 +1,66 @@
 using Ecommerce.Services.Identity.Api.Models.Entities;
 using Microsoft.AspNetCore.Identity;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.VisualBasic;
 
 namespace Identity.Extensions;
 
 public static class SeedDataExtensions
 {
-    public static async Task SeedUserAndRoleAsync(UserManager<AppUser> userManager, RoleManager<IdentityRole<long>> roleManager)
+    public static async Task SeedUserAndRoleAsync(
+        UserManager<AppUser> userManager,
+        RoleManager<IdentityRole<long>> roleManager)
     {
-        var roleCount = await roleManager.Roles.CountAsync();
-
-        if (roleCount == 0)
+        // ===== 1. SEED ROLES (Idempotent — kiểm tra từng role bằng FindByNameAsync) =====
+        var requiredRoles = new[] { "Admin", "Customer", "Manager", "Staff"};
+        foreach (var roleName in requiredRoles)
         {
-            foreach (var role in new[] { "Admin", "Customer", "Seller" })
+            if (!await roleManager.RoleExistsAsync(roleName))
             {
-                if (!await roleManager.RoleExistsAsync(role))
-                    await roleManager.CreateAsync(new IdentityRole<long>(role));
+                var roleResult = await roleManager.CreateAsync(new IdentityRole<long>(roleName));
+                if (roleResult.Succeeded)
+                    Console.WriteLine($"✅ Role '{roleName}' created.");
+                else
+                    Console.WriteLine($"❌ Failed to create role '{roleName}': {string.Join(", ", roleResult.Errors.Select(e => e.Description))}");
             }
         }
-        else return;
-        
-        var userCount = await userManager.Users.CountAsync();
 
-        if (userCount > 0)
+        // ===== 2. SEED ADMIN USER (Idempotent + Secure — Password từ ENV) =====
+        var adminEmail = Environment.GetEnvironmentVariable("ADMIN_EMAIL") ?? "admin@ecommerce.com";
+        var adminPassword = Environment.GetEnvironmentVariable("ADMIN_PASSWORD");
+
+        if (string.IsNullOrWhiteSpace(adminPassword))
         {
+            Console.WriteLine("⚠️ ADMIN_PASSWORD environment variable not set. Skipping admin user seed.");
+            Console.WriteLine("   Set ADMIN_PASSWORD in docker-compose.yml or .env file to seed admin user.");
             return;
         }
-        
-        // 1. Seed Admin
-        var adminEmail = "vanpc1906@gmail.com";
+
+        var existingAdmin = await userManager.FindByEmailAsync(adminEmail);
+        if (existingAdmin != null)
+        {
+            Console.WriteLine($"ℹ️ Admin user '{adminEmail}' already exists. Skipping seed.");
+            return;
+        }
+
         var adminUser = new AppUser
         {
             UserName = adminEmail,
             Email = adminEmail,
-            FirstName = "Van",
-            LastName = "PC",
+            FirstName = "System",
+            LastName = "Admin",
             EmailConfirmed = true,
             CreatedDate = DateTimeOffset.UtcNow
         };
-        
-        var result = await userManager.CreateAsync(adminUser, "Password123");
+
+        var result = await userManager.CreateAsync(adminUser, adminPassword);
         if (result.Succeeded)
         {
             await userManager.AddToRoleAsync(adminUser, "Admin");
+            Console.WriteLine($"✅ Admin user '{adminEmail}' seeded successfully.");
         }
-        
-        
-        // 2. Seed 10 Customers
-        for (int i = 1; i <= 10; i++)
+        else
         {
-            var customerEmail = $"customer{i}@gmail.com";
-
-            var customerUser = new AppUser
-            {
-                UserName = customerEmail,
-                Email = customerEmail,
-                FirstName = "Customer",
-                LastName = $"Number {i}",
-                EmailConfirmed = true,
-                CreatedDate = DateTimeOffset.UtcNow
-            };
-            
-            var customerResult = await userManager.CreateAsync(customerUser, "Password123");
-            
-            if (result.Succeeded)
-            {
-                await userManager.AddToRoleAsync(customerUser, "Customer");
-            }
-            else 
-            {
-                // Lấy ra lý do tại sao lỗi và quăng ra để Rider bắt được
-                var errors = string.Join(", ", customerResult.Errors.Select(e => e.Description));
-                throw new Exception($"Lỗi tạo Customer {i}: {errors}");
-            }
+            var errors = string.Join(", ", result.Errors.Select(e => e.Description));
+            Console.WriteLine($"❌ Failed to seed admin user: {errors}");
         }
     }
 }

@@ -1,6 +1,7 @@
 using System.Net;
 using System.Threading.RateLimiting;
-using BuildingBlocks.Logging.OTLPSerilog;
+using BuildingBlocks.Logging;
+
 using Ecommerce.ApiGateway.Consts;
 using Serilog;
 

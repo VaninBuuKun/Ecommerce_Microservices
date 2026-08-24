@@ -1,5 +1,6 @@
 using BuildingBlocks.Auth;
-using BuildingBlocks.Logging.OTLPSerilog;
+using BuildingBlocks.Logging;
+
 using Ecommerce.Services.Orders.Infrastructure;
 using BuildingBlocks.Web.Extensions;
 using Scalar.AspNetCore;

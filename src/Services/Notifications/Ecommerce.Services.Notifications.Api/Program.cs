@@ -1,4 +1,5 @@
-using BuildingBlocks.Logging.OTLPSerilog;
+using BuildingBlocks.Logging;
+
 using Ecommerce.Services.Notifications.Api.Configurations;
 using Ecommerce.Services.Notifications.Api.Hubs;
 using Scalar.AspNetCore;
