@@ -11,7 +11,12 @@ env:
   REGISTRY: ghcr.io
   IMAGE_OWNER: vaninbuukun
 
+permissions:
+  contents: read
+  packages: write
+
 jobs:
+
   # =========================================================================
   # PHASE 1: BUILD ALL IMAGES (PHẢI THÀNH CÔNG 100% MỚI CHO SANG PHASE 2)
   # =========================================================================
