@@ -18,13 +18,12 @@ services:
       - ./scripts/init-postgres-databases.sh:/docker-entrypoint-initdb.d/init-postgres-databases.sh:ro
       - ../scripts/migrations:/docker-entrypoint-initdb.d/migrations:ro
 
-
     deploy:
       resources:
         limits:
           memory: 400M
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-db_user}"]
+      test: [ "CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-db_user}" ]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -43,7 +42,7 @@ services:
         limits:
           memory: 150M
     healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
+      test: [ "CMD", "redis-cli", "ping" ]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -63,7 +62,7 @@ services:
         limits:
           memory: 300M
     healthcheck:
-      test: ["CMD", "rabbitmq-diagnostics", "check_port_connectivity"]
+      test: [ "CMD", "rabbitmq-diagnostics", "check_port_connectivity" ]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -179,7 +178,8 @@ services:
       - Kestrel__Endpoints__Http__Url=http://+:5027
       - Kestrel__Endpoints__Grpc__Url=http://+:5028
       - ADMIN_EMAIL=${ADMIN_EMAIL:-admin@ecommerce.com}
-      - ADMIN_PASSWORD=${ADMIN_PASSWORD}
+      - ADMIN_PASSWORD=${ADMIN_PASSWORD:-Admin@123456}
+
     deploy:
       resources:
         limits:
@@ -370,8 +370,9 @@ services:
       - ReverseProxy__Clusters__payment-cluster__Destinations__destination1__Address=http://payment-service:5052
       - ReverseProxy__Clusters__seller-cluster__Destinations__destination1__Address=http://seller-service:5042
       - ReverseProxy__Clusters__shipping-cluster__Destinations__destination1__Address=http://shipping-service:5070
-      - ReverseProxy__Clusters__notification-cluster__Destinations__destination1__Address=http://notification-service:5080
+      - Services__IdentityUrl=http://identity-service:5027
       - Kestrel__Endpoints__Http__Url=http://+:5000
+
     ports:
       - "5000:5000"
     deploy:
@@ -399,7 +400,7 @@ services:
       dockerfile: Dockerfile
     restart: always
     ports:
-      - "80:80"
+      - "8080:80"
     deploy:
       resources:
         limits:

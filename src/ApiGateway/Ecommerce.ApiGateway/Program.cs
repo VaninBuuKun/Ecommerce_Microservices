@@ -58,17 +58,19 @@ try
     {
         options.AddPolicy("MyPolicy", policy =>
         {
-            policy.AllowAnyHeader();
-            policy.AllowAnyMethod();
-            policy.WithOrigins("http://localhost:5173", "http://localhost:5174", "http://127.0.0.1:5173",  "http://127.0.0.1:5174");
-            policy.AllowCredentials(); // Bắt buộc khi Axios sử dụng withCredentials: true
+            policy.SetIsOriginAllowed(_ => true)
+                  .AllowAnyHeader()
+                  .AllowAnyMethod()
+                  .AllowCredentials(); // Bắt buộc khi Axios sử dụng withCredentials: true
         });
     });
 
+    var identityUrl = builder.Configuration["Services:IdentityUrl"] ?? "http://identity-service:5027";
     builder.Services.AddHttpClient(HttpClientConstansts.IdentityClientName, client =>
     {
-        client.BaseAddress = new Uri("http://localhost:5027");
+        client.BaseAddress = new Uri(identityUrl);
     });
+
 
 
     var app = builder.Build();
