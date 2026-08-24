@@ -48,23 +48,30 @@ public static class DependencyInjection
 
         // Đọc cấu hình CORS và đăng ký
         var allowedOrigins = configuration.GetSection("AllowedOrigins").Get<string[]>();
-        
-        // Nếu không có cấu hình ở appsettings.json, fallback về localhost port mặc định
-        if (allowedOrigins == null || allowedOrigins.Length == 0)
-        {
-            allowedOrigins = new[] { "http://localhost:5173", "http://localhost:5174", "http://127.0.0.1:5173", "http://127.0.0.1:5174", "http://127.0.0.1:5500" };
-        }
 
         services.AddCors(options =>
         {
             options.AddPolicy("CorsPolicy", policy =>
             {
-                policy.WithOrigins(allowedOrigins)
-                      .AllowAnyHeader()
-                      .AllowAnyMethod()
-                      .AllowCredentials();
+                if (allowedOrigins != null && allowedOrigins.Length > 0 && !allowedOrigins.Contains("*"))
+                {
+                    policy.WithOrigins(allowedOrigins)
+                          .AllowAnyHeader()
+                          .AllowAnyMethod()
+                          .AllowCredentials();
+                }
+                else
+                {
+                    // Chế độ linh hoạt cho Docker / Ngrok / Microservices network:
+                    // Cho phép mọi Origin (kể cả Ngrok dynamic domain) nhưng VẪN HỖ TRỢ Credentials (Cookie / SignalR)
+                    policy.SetIsOriginAllowed(_ => true)
+                          .AllowAnyHeader()
+                          .AllowAnyMethod()
+                          .AllowCredentials();
+                }
             });
         });
+
 
         return services;
     }
