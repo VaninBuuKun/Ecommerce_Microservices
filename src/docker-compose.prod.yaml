@@ -167,7 +167,8 @@ services:
   # ==========================================
   identity-service:
     container_name: ecommerce_identity_service
-    image: ${REGISTRY_OWNER:-ghcr.io/vaninbuukun}/identity-service:${TAG:-latest}
+    image: ${REGISTRY_OWNER:-ghcr.io/vaninbuukun}/identity-service:${TAG:-dev}
+
     build:
       context: ../
       dockerfile: src/Services/Identity/Identity.Api/Dockerfile
@@ -189,7 +190,8 @@ services:
 
   catalog-service:
     container_name: ecommerce_catalog_service
-    image: ${REGISTRY_OWNER:-ghcr.io/vaninbuukun}/catalog-service:${TAG:-latest}
+    image: ${REGISTRY_OWNER:-ghcr.io/vaninbuukun}/catalog-service:${TAG:-dev}
+
     build:
       context: ../
       dockerfile: src/Services/Catalogs/Ecommerce.Services.Catalog.Api/Dockerfile
@@ -211,7 +213,8 @@ services:
 
   cart-service:
     container_name: ecommerce_cart_service
-    image: ${REGISTRY_OWNER:-ghcr.io/vaninbuukun}/cart-service:${TAG:-latest}
+    image: ${REGISTRY_OWNER:-ghcr.io/vaninbuukun}/cart-service:${TAG:-dev}
+
     build:
       context: ../
       dockerfile: src/Services/Carts/Ecommerce.Services.Carts.Api/Dockerfile
@@ -233,7 +236,7 @@ services:
 
   order-service:
     container_name: ecommerce_order_service
-    image: ${REGISTRY_OWNER:-ghcr.io/vaninbuukun}/order-service:${TAG:-latest}
+    image: ${REGISTRY_OWNER:-ghcr.io/vaninbuukun}/order-service:${TAG:-dev}
     build:
       context: ../
       dockerfile: src/Services/Orders/Ecommerce.Services.Orders.Api/Dockerfile
@@ -262,7 +265,7 @@ services:
 
   payment-service:
     container_name: ecommerce_payment_service
-    image: ${REGISTRY_OWNER:-ghcr.io/vaninbuukun}/payment-service:${TAG:-latest}
+    image: ${REGISTRY_OWNER:-ghcr.io/vaninbuukun}/payment-service:${TAG:-dev}
     build:
       context: ../
       dockerfile: src/Services/Payments/Ecommerce.Services.Payments.Api/Dockerfile
@@ -282,7 +285,7 @@ services:
 
   seller-service:
     container_name: ecommerce_seller_service
-    image: ${REGISTRY_OWNER:-ghcr.io/vaninbuukun}/seller-service:${TAG:-latest}
+    image: ${REGISTRY_OWNER:-ghcr.io/vaninbuukun}/seller-service:${TAG:-dev}
     build:
       context: ../
       dockerfile: src/Services/Sellers/Ecommerce.Services.Sellers.Api/Dockerfile
@@ -302,7 +305,7 @@ services:
 
   shipping-service:
     container_name: ecommerce_shipping_service
-    image: ${REGISTRY_OWNER:-ghcr.io/vaninbuukun}/shipping-service:${TAG:-latest}
+    image: ${REGISTRY_OWNER:-ghcr.io/vaninbuukun}/shipping-service:${TAG:-dev}
     build:
       context: ../
       dockerfile: src/Services/Shippings/Ecommerce.Services.Shippings.Api/Dockerfile
@@ -328,7 +331,7 @@ services:
 
   notification-service:
     container_name: ecommerce_notification_service
-    image: ${REGISTRY_OWNER:-ghcr.io/vaninbuukun}/notification-service:${TAG:-latest}
+    image: ${REGISTRY_OWNER:-ghcr.io/vaninbuukun}/notification-service:${TAG:-dev}
     build:
       context: ../
       dockerfile: src/Services/Notifications/Ecommerce.Services.Notifications.Api/Dockerfile
@@ -353,7 +356,7 @@ services:
   # ==========================================
   apigateway-service:
     container_name: ecommerce_apigateway_service
-    image: ${REGISTRY_OWNER:-ghcr.io/vaninbuukun}/api-gateway:${TAG:-latest}
+    image: ${REGISTRY_OWNER:-ghcr.io/vaninbuukun}/api-gateway:${TAG:-dev}
     build:
       context: ../
       dockerfile: src/ApiGateway/Ecommerce.ApiGateway/Dockerfile
@@ -390,7 +393,7 @@ services:
   # ==========================================
   frontend-web:
     container_name: ecommerce_frontend_web
-    image: ${REGISTRY_OWNER:-ghcr.io/vaninbuukun}/frontend-web:${TAG:-latest}
+    image: ${REGISTRY_OWNER:-ghcr.io/vaninbuukun}/frontend-web:${TAG:-dev}
     build:
       context: ../frontend-web
       dockerfile: Dockerfile

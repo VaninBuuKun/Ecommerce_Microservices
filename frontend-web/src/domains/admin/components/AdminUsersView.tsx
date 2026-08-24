@@ -1,5 +1,7 @@
 import { useState, useEffect } from "react";
-import api from "@/shared/lib/axios";
+import { api } from "@/core";
+
+
 import { Loader2, RefreshCw, Search, Shield, Lock, Unlock, CheckCircle, AlertCircle, UserPlus, Plus, Trash2, Edit3, KeyRound } from "lucide-react";
 import { ConfirmModal } from "@/shared";
 
