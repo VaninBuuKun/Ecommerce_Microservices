@@ -111,13 +111,14 @@ jobs:
 
             echo "📦 Building & Pushing $IMG_NAME..."
             docker buildx build \
-              --context "$CONTEXT" \
               --file "$DOCKERFILE" \
               --push \
               --tag "$IMG_NAME:$TAG" \
               --tag "$IMG_NAME:$TAG_VER" \
-              --cache-from "type=gha,scope=$SVC"
+              --cache-from "type=gha,scope=$SVC" \
+              "$CONTEXT"
           done
+
 
           echo "✅ All 10 Docker Images have been built and pushed to GHCR successfully!"
 
