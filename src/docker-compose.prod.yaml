@@ -23,10 +23,10 @@ services:
         limits:
           memory: 400M
     healthcheck:
-      test: [ "CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-db_user}" ]
-      interval: 10s
-      timeout: 5s
-      retries: 5
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-db_user}"]
+      interval: 5s
+      timeout: 3s
+      retries: 3
 
   cart_db:
     container_name: ecommerce_cart_db
@@ -42,10 +42,10 @@ services:
         limits:
           memory: 150M
     healthcheck:
-      test: [ "CMD", "redis-cli", "ping" ]
-      interval: 10s
-      timeout: 5s
-      retries: 5
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 3
 
   rabbitmq:
     container_name: ecommerce_rabbitmq
@@ -57,15 +57,19 @@ services:
     environment:
       - RABBITMQ_DEFAULT_USER=${RABBITMQ_USER:-guest}
       - RABBITMQ_DEFAULT_PASS=${RABBITMQ_PASSWORD:-guest}
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
     deploy:
+
       resources:
         limits:
           memory: 300M
     healthcheck:
-      test: [ "CMD", "rabbitmq-diagnostics", "check_port_connectivity" ]
-      interval: 10s
-      timeout: 5s
-      retries: 5
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 3
+
 
   minio:
     container_name: ecommerce_minio
@@ -179,6 +183,7 @@ services:
       - Kestrel__Endpoints__Grpc__Url=http://+:5028
       - ADMIN_EMAIL=${ADMIN_EMAIL:-admin@ecommerce.com}
       - ADMIN_PASSWORD=${ADMIN_PASSWORD:-Admin@123456}
+      - Services__SellerGrpcUrl=http://seller-service:5043
 
     deploy:
       resources:
@@ -200,7 +205,11 @@ services:
       - ASPNETCORE_ENVIRONMENT=Production
       - ConnectionStrings__Database=Host=postgres_db;Port=5432;Database=ProductCatalogDb;Username=${POSTGRES_USER:-db_user};Password=${POSTGRES_PASSWORD:-123456};
       - IdentityUrl=http://identity-service:5027
+      - Services__ProductGrpcUrl=http://catalog-service:5002
       - Services__SellerGrpcUrl=http://seller-service:5043
+      - Services__PaymentGrpcUrl=http://payment-service:5053
+      - Services__IdentityGrpcUrl=http://identity-service:5028
+      - Services__OrderGrpcUrl=http://order-service:5008
       - Kestrel__Endpoints__Http__Url=http://+:5001
       - Kestrel__Endpoints__Grpc__Url=http://+:5002
     deploy:
@@ -222,7 +231,9 @@ services:
     environment:
       - ASPNETCORE_ENVIRONMENT=Production
       - ConnectionStrings__Redis=cart_db:6379,password=
-      - Services__CatalogGrpcUrl=http://catalog-service:5002
+      - IdentityUrl=http://identity-service:5027
+      - Services__ProductGrpcUrl=http://catalog-service:5002
+      - Services__SellerGrpcUrl=http://seller-service:5043
       - Services__IdentityGrpcUrl=http://identity-service:5028
       - Kestrel__Endpoints__Http__Url=http://+:5004
       - Kestrel__Endpoints__Grpc__Url=http://+:5005
@@ -244,13 +255,17 @@ services:
     environment:
       - ASPNETCORE_ENVIRONMENT=Production
       - ConnectionStrings__Database=Host=postgres_db;Port=5432;Database=OrderDb;Username=${POSTGRES_USER:-db_user};Password=${POSTGRES_PASSWORD:-123456};
-      - MessageBroker__Host=rabbitmq
-      - MessageBroker__Port=5672
-      - MessageBroker__Username=${RABBITMQ_USER:-guest}
-      - MessageBroker__Password=${RABBITMQ_PASSWORD:-guest}
-      - Services__CatalogGrpcUrl=http://catalog-service:5002
+      - ConnectionStrings__Redis=cart_db:6379,password=
+      - IdentityUrl=http://identity-service:5027
+      - RabbitMq__Host=rabbitmq
+      - RabbitMq__Username=${RABBITMQ_USER:-guest}
+      - RabbitMq__Password=${RABBITMQ_PASSWORD:-guest}
+      - Services__ProductGrpcUrl=http://catalog-service:5002
       - Services__CartGrpcUrl=http://cart-service:5005
       - Services__PaymentGrpcUrl=http://payment-service:5053
+      - Services__IdentityGrpcUrl=http://identity-service:5028
+      - Services__ShippingGrpcUrl=http://shipping-service:5071
+      - Services__SellerGrpcUrl=http://seller-service:5043
       - Kestrel__Endpoints__Http__Url=http://+:5007
       - Kestrel__Endpoints__Grpc__Url=http://+:5008
     deploy:
@@ -273,6 +288,9 @@ services:
     environment:
       - ASPNETCORE_ENVIRONMENT=Production
       - ConnectionStrings__Database=Host=postgres_db;Port=5432;Database=PaymentDb;Username=${POSTGRES_USER:-db_user};Password=${POSTGRES_PASSWORD:-123456};
+      - IdentityUrl=http://identity-service:5027
+      - Services__ProductGrpcUrl=http://catalog-service:5002
+      - Services__SellerGrpcUrl=http://seller-service:5043
       - Kestrel__Endpoints__Http__Url=http://+:5052
       - Kestrel__Endpoints__Grpc__Url=http://+:5053
     deploy:
@@ -293,6 +311,9 @@ services:
     environment:
       - ASPNETCORE_ENVIRONMENT=Production
       - ConnectionStrings__Database=Host=postgres_db;Port=5432;Database=SellerDb;Username=${POSTGRES_USER:-db_user};Password=${POSTGRES_PASSWORD:-123456};
+      - IdentityUrl=http://identity-service:5027
+      - Services__ShippingGrpcUrl=http://shipping-service:5071
+      - Services__PaymentGrpcUrl=http://payment-service:5053
       - Kestrel__Endpoints__Http__Url=http://+:5042
       - Kestrel__Endpoints__Grpc__Url=http://+:5043
     deploy:
@@ -313,10 +334,12 @@ services:
     environment:
       - ASPNETCORE_ENVIRONMENT=Production
       - ConnectionStrings__Database=Host=postgres_db;Port=5432;Database=ShippingDb;Username=${POSTGRES_USER:-db_user};Password=${POSTGRES_PASSWORD:-123456};
-      - MessageBroker__Host=rabbitmq
-      - MessageBroker__Port=5672
-      - MessageBroker__Username=${RABBITMQ_USER:-guest}
-      - MessageBroker__Password=${RABBITMQ_PASSWORD:-guest}
+      - IdentityUrl=http://identity-service:5027
+      - RabbitMq__Host=rabbitmq
+      - RabbitMq__Username=${RABBITMQ_USER:-guest}
+      - RabbitMq__Password=${RABBITMQ_PASSWORD:-guest}
+      - Services__SellerGrpcUrl=http://seller-service:5043
+
       - Kestrel__Endpoints__Http__Url=http://+:5070
       - Kestrel__Endpoints__Grpc__Url=http://+:5071
     deploy:
@@ -338,10 +361,13 @@ services:
     restart: always
     environment:
       - ASPNETCORE_ENVIRONMENT=Production
-      - MessageBroker__Host=rabbitmq
-      - MessageBroker__Port=5672
-      - MessageBroker__Username=${RABBITMQ_USER:-guest}
-      - MessageBroker__Password=${RABBITMQ_PASSWORD:-guest}
+      - IdentityUrl=http://identity-service:5027
+      - RabbitMq__Host=rabbitmq
+      - RabbitMq__Username=${RABBITMQ_USER:-guest}
+      - RabbitMq__Password=${RABBITMQ_PASSWORD:-guest}
+      - Services__IdentityGrpcUrl=http://identity-service:5028
+      - Services__SellerGrpcUrl=http://seller-service:5043
+
       - Kestrel__Endpoints__Http__Url=http://+:5080
     deploy:
       resources:
@@ -363,13 +389,15 @@ services:
     restart: always
     environment:
       - ASPNETCORE_ENVIRONMENT=Production
-      - ReverseProxy__Clusters__identity-cluster__Destinations__destination1__Address=http://identity-service:5027
-      - ReverseProxy__Clusters__catalog-cluster__Destinations__destination1__Address=http://catalog-service:5001
-      - ReverseProxy__Clusters__cart-cluster__Destinations__destination1__Address=http://cart-service:5004
-      - ReverseProxy__Clusters__order-cluster__Destinations__destination1__Address=http://order-service:5007
-      - ReverseProxy__Clusters__payment-cluster__Destinations__destination1__Address=http://payment-service:5052
-      - ReverseProxy__Clusters__seller-cluster__Destinations__destination1__Address=http://seller-service:5042
-      - ReverseProxy__Clusters__shipping-cluster__Destinations__destination1__Address=http://shipping-service:5070
+      - ReverseProxy__Clusters__identity-cluster__Destinations__identity-1__Address=http://identity-service:5027
+
+      - ReverseProxy__Clusters__product-cluster__Destinations__product-1__Address=http://catalog-service:5001
+      - ReverseProxy__Clusters__cart-cluster__Destinations__cart-1__Address=http://cart-service:5004
+      - ReverseProxy__Clusters__order-cluster__Destinations__order-1__Address=http://order-service:5007
+      - ReverseProxy__Clusters__payment-cluster__Destinations__payment-1__Address=http://payment-service:5052
+      - ReverseProxy__Clusters__seller-cluster__Destinations__seller-1__Address=http://seller-service:5042
+      - ReverseProxy__Clusters__shipping-cluster__Destinations__shipping-1__Address=http://shipping-service:5070
+      - ReverseProxy__Clusters__notification-cluster__Destinations__notification-1__Address=http://notification-service:5080
       - Services__IdentityUrl=http://identity-service:5027
       - Kestrel__Endpoints__Http__Url=http://+:5000
 
@@ -413,8 +441,11 @@ volumes:
     driver: local
   redis_cart_data:
     driver: local
+  rabbitmq_data:
+    driver: local
   minio_data:
     driver: local
+
   # loki_data:
   #   driver: local
   # tempo_data:
