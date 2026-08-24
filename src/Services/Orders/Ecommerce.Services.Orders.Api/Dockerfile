@@ -27,7 +27,7 @@ COPY src/ .
 
 # Build dự án
 WORKDIR "/src/Services/Orders/Ecommerce.Services.Orders.Api"
-RUN dotnet publish "Ecommerce.Services.Orders.Api.csproj" -c Release -o /app/publish --no-restore
+RUN dotnet publish "Ecommerce.Services.Orders.Api.csproj" -c Release -o /app/publish
 
 # Stage 2: Runtime
 FROM mcr.microsoft.com/dotnet/aspnet:9.0 AS runtime

@@ -2,9 +2,11 @@ import axios from "axios";
 import { useAuthStore } from "@/domains/auth/stores/useAuthStore";
 import { authService } from "@/domains/auth/api/authApi";
 
-const API_BASE_URL = "http://localhost:5111/api";
+const API_BASE_URL =
+  import.meta.env.VITE_API_URL || "/api";
 export const STORAGE_BASE_URL =
-  import.meta.env.VITE_STORAGE_BASE_URL || "http://localhost:9000";
+  import.meta.env.VITE_STORAGE_BASE_URL || "/storage";
+
 
 export const api = axios.create({
   baseURL: API_BASE_URL,

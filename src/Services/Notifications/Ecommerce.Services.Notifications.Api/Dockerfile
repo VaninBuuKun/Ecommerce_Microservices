@@ -8,6 +8,7 @@ COPY ["src/Services/Orders/Ecommerce.Services.Orders.Contracts/Ecommerce.Service
 
 # Copy các ProjectReference từ BuildingBlocks
 COPY ["src/BuildingBlocks/BuildingBlocks.Auth/BuildingBlocks.Auth.csproj", "BuildingBlocks/BuildingBlocks.Auth/"]
+COPY ["src/BuildingBlocks/BuildingBlocks.Grpc/BuildingBlocks.Grpc.csproj", "BuildingBlocks/BuildingBlocks.Grpc/"]
 COPY ["src/BuildingBlocks/BuildingBlocks.Logging/BuildingBlocks.Logging.csproj", "BuildingBlocks/BuildingBlocks.Logging/"]
 COPY ["src/BuildingBlocks/BuildingBlocks.Web/BuildingBlocks.Web.csproj", "BuildingBlocks/BuildingBlocks.Web/"]
 COPY ["src/BuildingBlocks/BuildingBlocks.Application/BuildingBlocks.Application.csproj", "BuildingBlocks/BuildingBlocks.Application/"]
@@ -23,7 +24,7 @@ COPY src/ .
 
 # Build dự án
 WORKDIR "/src/Services/Notifications/Ecommerce.Services.Notifications.Api"
-RUN dotnet publish "Ecommerce.Services.Notifications.Api.csproj" -c Release -o /app/publish --no-restore
+RUN dotnet publish "Ecommerce.Services.Notifications.Api.csproj" -c Release -o /app/publish
 
 # Stage 2: Runtime
 FROM mcr.microsoft.com/dotnet/aspnet:9.0 AS runtime

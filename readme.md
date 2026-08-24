@@ -118,3 +118,16 @@ npm install
 npm run dev
 ```
 Trang web sẽ chạy tại `http://localhost:5173`.
+
+### 🐳 Khởi chạy Production Stack trên VPS (Docker Compose):
+```bash
+# 1. Đi tới thư mục src và copy file cấu hình mẫu
+cd src
+cp .env.example .env
+
+# 2. Chỉnh sửa mật khẩu và cấu hình trong file .env
+nano .env
+
+# 3. Khởi chạy toàn bộ 8 Microservices, Gateway, Frontend & Observability
+docker compose -f docker-compose.prod.yaml --env-file .env up -d
+```

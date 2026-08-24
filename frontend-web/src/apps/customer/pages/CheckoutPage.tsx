@@ -78,9 +78,10 @@ export default function CheckoutPage() {
 
 	// Selected items in cart
 	const shopGroups = cart?.shopGroups || [];
-	const selectedItems = shopGroups.flatMap((group) =>
-		(group.items || []).filter((item) => item.isSelected)
+	const selectedItems = shopGroups.flatMap((group: any) =>
+		(group.items || []).filter((item: any) => item.isSelected)
 	);
+
 
 	// Sync default address on load
 	useEffect(() => {
@@ -506,7 +507,7 @@ export default function CheckoutPage() {
 				onClose={() => setShowPlatformVoucherModal(false)}
 				selectedVoucherCode={platformVoucher}
 				onApply={handleApplyPlatformVoucher}
-				subTotal={selectedItems.reduce((sum, i) => {
+				subTotal={selectedItems.reduce((sum: number, i: any) => {
 					const activePrice = i.discountPrice && i.discountPrice > 0 && i.discountPrice < i.unitPrice ? i.discountPrice : i.unitPrice;
 					return sum + activePrice * i.quantity;
 				}, 0)}
@@ -521,17 +522,18 @@ export default function CheckoutPage() {
 					selectedVoucherCode={shopVouchers[activeShopVoucherModal]}
 					onApply={handleApplyShopVoucher}
 					subTotal={(() => {
-						const shopGroup = shopGroups.find((g) => g.shopId === activeShopVoucherModal);
+						const shopGroup = shopGroups.find((g: any) => g.shopId === activeShopVoucherModal);
 						if (!shopGroup) return 0;
 						return (shopGroup.items || [])
-							.filter((i) => i.isSelected)
-							.reduce((sum, i) => {
+							.filter((i: any) => i.isSelected)
+							.reduce((sum: number, i: any) => {
 								const activePrice = i.discountPrice && i.discountPrice > 0 && i.discountPrice < i.unitPrice ? i.discountPrice : i.unitPrice;
 								return sum + activePrice * i.quantity;
 							}, 0);
 					})()}
 				/>
 			)}
+
 		</div>
 	);
 }

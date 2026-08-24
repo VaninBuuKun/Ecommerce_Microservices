@@ -4,6 +4,7 @@ import { adminApi } from "../api/adminApi";
 export const adminQueryKeys = {
   pendingKycs: ["admin", "kyc", "pending"] as const,
   withdrawals: ["admin", "withdrawals"] as const,
+  vouchers: ["admin", "vouchers"] as const,
 };
 
 export function usePendingKycsQuery() {
@@ -66,6 +67,43 @@ export function useCompleteWithdrawalMutation() {
     mutationFn: ({ id, data }: { id: string; data: { adminNote?: string; proofImageUrl?: string } }) => adminApi.completeWithdrawal(id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: adminQueryKeys.withdrawals });
+    },
+  });
+}
+
+export function useAdminVouchersQuery(params?: any) {
+  return useQuery({
+    queryKey: [...adminQueryKeys.vouchers, params],
+    queryFn: () => adminApi.getVouchers(params),
+  });
+}
+
+export function useCreateAdminVoucherMutation() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (payload: any) => adminApi.createVoucher(payload),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: adminQueryKeys.vouchers });
+    },
+  });
+}
+
+export function useUpdateAdminVoucherMutation() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, payload }: { id: string; payload: any }) => adminApi.updateVoucher({ id, payload }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: adminQueryKeys.vouchers });
+    },
+  });
+}
+
+export function useDeleteAdminVoucherMutation() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => adminApi.deleteVoucher(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: adminQueryKeys.vouchers });
     },
   });
 }

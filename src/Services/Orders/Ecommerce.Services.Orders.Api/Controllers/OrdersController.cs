@@ -1,3 +1,4 @@
+using BuildingBlocks.Application.Commons.Models;
 using BuildingBlocks.Web.Controllers;
 using Ecommerce.Services.Orders.Application.Features.Commands.CreateOrder;
 using Ecommerce.Services.Orders.Application.Features.Orders.Dtos;
@@ -122,7 +123,7 @@ public class OrdersController(ICurrentUserService currentUserService, IInMemoryB
     /// Lấy danh sách phân trang tất cả đơn hàng con (SubOrder) trên toàn hệ thống (dành cho Admin)
     /// </summary>
     [HttpGet("admin/suborders")]
-    [ProducesResponseType(typeof(Ecommerce.Services.Orders.Application.Features.Orders.Queries.GetAdminSubOrders.PagedAdminSubOrdersResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(PagedResult<CustomerOrderResponse>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetAdminSubOrders(
         [FromQuery] int pageNumber = 1,
         [FromQuery] int pageSize = 10,

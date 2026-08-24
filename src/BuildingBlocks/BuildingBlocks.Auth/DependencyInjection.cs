@@ -9,7 +9,8 @@ public static class DependencyInjection
 {
     public static IServiceCollection AddBuildingBlocsAuth(this IServiceCollection services, IConfiguration configuration)
     {
-        var identityUrl = configuration.GetSection("IdentityUrl").Value;
+        var identityUrl = configuration["IdentityUrl"] ?? "http://identity-service:5027";
+
         
         services.AddHttpContextAccessor(); 
         

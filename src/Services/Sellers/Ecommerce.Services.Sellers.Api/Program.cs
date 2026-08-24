@@ -1,5 +1,6 @@
 using System.Text.Json.Serialization;
-using BuildingBlocks.Logging.OTLPSerilog;
+using BuildingBlocks.Logging;
+
 using Ecommerce.Services.Sellers.Api.Configurations;
 using Ecommerce.Services.Sellers.Api.GrpcServers;
 using Scalar.AspNetCore;

@@ -54,7 +54,7 @@ export default function SellerLayout() {
 			)
 		: "";
 	const resolvedShop =
-		shops.find((shop) => String(shop.id) === shopId) ?? activeShop ?? null;
+		shops.find((shop: any) => String(shop.id) === shopId) ?? activeShop ?? null;
 	const resolvedShopId = resolvedShop?.id ? String(resolvedShop.id) : null;
 	const sellerBasePath = resolvedShopId
 		? `/seller/${resolvedShopId}/dashboard`
@@ -77,8 +77,9 @@ export default function SellerLayout() {
 		if (shopId) {
 			if (shops.length > 0) {
 				const matchedShop = shops.find(
-					(shop) => String(shop.id) === shopId,
+					(shop: any) => String(shop.id) === shopId,
 				);
+
 				if (matchedShop && activeShop?.id !== matchedShop.id) {
 					setActiveShop(matchedShop);
 					return;
@@ -307,8 +308,9 @@ export default function SellerLayout() {
 									</div>
 
 									<div className="space-y-0.5 max-h-48 overflow-y-auto mb-1">
-										{shops.map((shop) => (
+										{shops.map((shop: any) => (
 											<button
+
 												key={shop.id}
 												onClick={() =>
 													handleSwitchShop(shop)

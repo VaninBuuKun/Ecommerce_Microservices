@@ -21,14 +21,10 @@ public static class DependencyInjection
     {
         //Db
         var connectionString = configuration.GetConnectionString("Database");
-        var serverVersionString = configuration["DbSettings:ServerVersion"] ?? "8.0.32";
-        var serverVersion = new MySqlServerVersion(new Version(serverVersionString));
 
         services.AddDbContext<ProductDbContext>(options =>
-            options.UseMySql(
-                connectionString, 
-                serverVersion
-            ));
+            options.UseNpgsql(connectionString));
+
         
         //External Services
         services.AddMasstransitEventBus(configuration, config =>

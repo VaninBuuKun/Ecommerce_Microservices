@@ -37,4 +37,26 @@ export const adminApi = {
     const res = await api.put(`/admin/withdrawals/${id}/complete`, data);
     return res.data;
   },
+
+
+  // Vouchers Admin API
+  getVouchers: async (params?: any): Promise<any> => {
+    const res = await api.get("/vouchers", { params });
+    return res.data?.value || res.data;
+  },
+
+  createVoucher: async (payload: any): Promise<any> => {
+    const res = await api.post("/vouchers", payload);
+    return res.data;
+  },
+
+  updateVoucher: async ({ id, payload }: { id: string; payload: any }): Promise<any> => {
+    const res = await api.put(`/vouchers/${id}`, payload);
+    return res.data;
+  },
+
+  deleteVoucher: async (id: string): Promise<any> => {
+    const res = await api.delete(`/vouchers/${id}`);
+    return res.data;
+  },
 };

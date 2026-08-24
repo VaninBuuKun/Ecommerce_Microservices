@@ -1,5 +1,6 @@
 import axios from "axios";
-import api from "../lib/axios";
+import { api } from "@/core";
+
 
 export const storageService = {
 	async getUploadUrl(fileName: string, contentType: string): Promise<string> {
