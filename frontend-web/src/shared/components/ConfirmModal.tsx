@@ -9,7 +9,9 @@ interface ConfirmModalProps {
 	onConfirm: () => void;
 	onCancel: () => void;
 	isConfirming?: boolean;
+	variant?: "info" | "warning" | "danger" | "success";
 }
+
 
 export const ConfirmModal: React.FC<ConfirmModalProps> = ({
 	isOpen,

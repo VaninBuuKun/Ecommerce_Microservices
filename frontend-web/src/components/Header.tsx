@@ -63,8 +63,9 @@ export default function Header() {
 	const isSystemAdmin = checkIsAdmin();
 
 	// Flatten all items from shop groups to preview in dropdown
-	const previewCartItems = cart?.shopGroups?.flatMap((group) => group.items) || [];
+	const previewCartItems = cart?.shopGroups?.flatMap((group: any) => group.items) || [];
 	const totalCartItemsCount = previewCartItems.length;
+
 
 	return (
 		<header className="sticky top-0 z-50 w-full h-14 bg-white/80 backdrop-blur-md border-b border-brand-border px-6 flex items-center justify-between shadow-[0_1px_3px_rgba(0,0,0,0.02)] font-sans">

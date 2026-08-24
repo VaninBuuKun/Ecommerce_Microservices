@@ -33,6 +33,12 @@ export const adminApi = {
     return res.data;
   },
 
+  completeWithdrawal: async (id: string, data: { adminNote?: string; proofImageUrl?: string }): Promise<any> => {
+    const res = await api.put(`/admin/withdrawals/${id}/complete`, data);
+    return res.data;
+  },
+
+
   // Vouchers Admin API
   getVouchers: async (params?: any): Promise<any> => {
     const res = await api.get("/vouchers", { params });
