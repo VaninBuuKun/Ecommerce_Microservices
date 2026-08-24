@@ -2,28 +2,30 @@ services:
   # ==========================================
   # 1. DATABASES & INFRASTRUCTURE
   # ==========================================
-  product_db:
-    container_name: ecommerce_product_db
+  # Single PostgreSQL 16 Server (Chứa cả 6 Databases: IdentityDb, ProductCatalogDb, OrderDb, PaymentDb, SellerDb, ShippingDb)
+  postgres_db:
+    container_name: ecommerce_postgres_db
     image: postgres:16-alpine
     restart: always
     environment:
       - POSTGRES_USER=${POSTGRES_USER:-db_user}
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-123456}
-      - POSTGRES_DB=ProductCatalogDb
+      - POSTGRES_MULTIPLE_DATABASES=IdentityDb,ProductCatalogDb,OrderDb,PaymentDb,SellerDb,ShippingDb
     ports:
-      - "3308:5432"
+      - "5432:5432"
     volumes:
-      - postgres_product_data:/var/lib/postgresql/data
+      - postgres_data:/var/lib/postgresql/data
+      - ./scripts/init-postgres-databases.sh:/docker-entrypoint-initdb.d/init-postgres-databases.sh:ro
+
     deploy:
       resources:
         limits:
-          memory: 250M
+          memory: 400M
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-db_user} -d ProductCatalogDb"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-db_user}"]
       interval: 10s
       timeout: 5s
       retries: 5
-
 
   cart_db:
     container_name: ecommerce_cart_db
@@ -37,119 +39,9 @@ services:
     deploy:
       resources:
         limits:
-          memory: 200M
+          memory: 150M
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-
-  order_db:
-    container_name: ecommerce_order_db
-    image: postgres:16-alpine
-    restart: always
-    environment:
-      - POSTGRES_USER=${POSTGRES_USER:-db_user}
-      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-123456}
-      - POSTGRES_DB=OrderDb
-    ports:
-      - "5433:5432"
-    volumes:
-      - postgres_order_data:/var/lib/postgresql/data
-    deploy:
-      resources:
-        limits:
-          memory: 250M
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-db_user} -d OrderDb"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-
-  identity_db:
-    container_name: ecommerce_identity_db
-    image: postgres:16-alpine
-    restart: always
-    environment:
-      - POSTGRES_USER=${POSTGRES_USER:-db_user}
-      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-123456}
-      - POSTGRES_DB=IdentityDb
-    ports:
-      - "5434:5432"
-    volumes:
-      - postgres_identity_data:/var/lib/postgresql/data
-    deploy:
-      resources:
-        limits:
-          memory: 250M
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-db_user} -d IdentityDb"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-
-  payment_db:
-    container_name: ecommerce_payment_db
-    image: postgres:16-alpine
-    restart: always
-    environment:
-      - POSTGRES_USER=${POSTGRES_USER:-db_user}
-      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-123456}
-      - POSTGRES_DB=PaymentDb
-    ports:
-      - "5435:5432"
-    volumes:
-      - postgres_payment_data:/var/lib/postgresql/data
-    deploy:
-      resources:
-        limits:
-          memory: 250M
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-db_user} -d PaymentDb"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-
-  seller_db:
-    container_name: ecommerce_seller_db
-    image: postgres:16-alpine
-    restart: always
-    environment:
-      - POSTGRES_USER=${POSTGRES_USER:-db_user}
-      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-123456}
-      - POSTGRES_DB=SellerDb
-    ports:
-      - "5436:5432"
-    volumes:
-      - postgres_seller_data:/var/lib/postgresql/data
-    deploy:
-      resources:
-        limits:
-          memory: 250M
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-db_user} -d SellerDb"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-
-  shipping_db:
-    container_name: ecommerce_shipping_db
-    image: postgres:16-alpine
-    restart: always
-    environment:
-      - POSTGRES_USER=${POSTGRES_USER:-db_user}
-      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-123456}
-      - POSTGRES_DB=ShippingDb
-    ports:
-      - "5437:5432"
-    volumes:
-      - postgres_shipping_data:/var/lib/postgresql/data
-    deploy:
-      resources:
-        limits:
-          memory: 250M
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-db_user} -d ShippingDb"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -167,7 +59,7 @@ services:
     deploy:
       resources:
         limits:
-          memory: 350M
+          memory: 300M
     healthcheck:
       test: ["CMD", "rabbitmq-diagnostics", "check_port_connectivity"]
       interval: 10s
@@ -193,64 +85,8 @@ services:
           memory: 200M
 
   # ==========================================
-  # 2. OBSERVABILITY STACK (Loki + Tempo + Grafana + OTel)
+  # 2. LOGGING DASHBOARD (Dozzle Real-time Console Log Viewer)
   # ==========================================
-  otel-collector:
-    container_name: ecommerce_otel_collector
-    image: otel/opentelemetry-collector-contrib:latest
-    restart: always
-    command: ["--config=/etc/otel-collector-config.yaml"]
-    volumes:
-      - ./otel-collector-config.yaml:/etc/otel-collector-config.yaml
-    ports:
-      - "4317:4317"
-    deploy:
-      resources:
-        limits:
-          memory: 150M
-
-  loki:
-    container_name: ecommerce_loki
-    image: grafana/loki:latest
-    restart: always
-    ports:
-      - "3100:3100"
-    volumes:
-      - loki_data:/loki
-    deploy:
-      resources:
-        limits:
-          memory: 150M
-
-  tempo:
-    container_name: ecommerce_tempo
-    image: grafana/tempo:latest
-    restart: always
-    user: "0:0"
-    command: ["-config.file=/etc/tempo.yaml"]
-    volumes:
-      - ./tempo-config.yaml:/etc/tempo.yaml
-      - tempo_data:/tmp/tempo
-    ports:
-      - "3200:3200"
-    deploy:
-      resources:
-        limits:
-          memory: 150M
-
-  grafana:
-    container_name: ecommerce_grafana
-    image: grafana/grafana:latest
-    restart: always
-    ports:
-      - "3000:3000"
-    environment:
-      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD:-admin}
-    deploy:
-      resources:
-        limits:
-          memory: 150M
-
   dozzle:
     container_name: ecommerce_dozzle
     image: amir20/dozzle:latest
@@ -265,44 +101,100 @@ services:
           memory: 30M
 
   # ==========================================
+  # 2.1 HEAVY OBSERVABILITY STACK (DISABLED TO SAVE RAM FOR VPS)
+  # Uncomment if you upgrade VPS resources in the future.
+  # ==========================================
+  # otel-collector:
+  #   container_name: ecommerce_otel_collector
+  #   image: otel/opentelemetry-collector-contrib:latest
+  #   restart: always
+  #   command: ["--config=/etc/otel-collector-config.yaml"]
+  #   volumes:
+  #     - ./otel-collector-config.yaml:/etc/otel-collector-config.yaml
+  #   ports:
+  #     - "4317:4317"
+  #   deploy:
+  #     resources:
+  #       limits:
+  #         memory: 150M
+
+  # loki:
+  #   container_name: ecommerce_loki
+  #   image: grafana/loki:latest
+  #   restart: always
+  #   ports:
+  #     - "3100:3100"
+  #   volumes:
+  #     - loki_data:/loki
+  #   deploy:
+  #     resources:
+  #       limits:
+  #         memory: 150M
+
+  # tempo:
+  #   container_name: ecommerce_tempo
+  #   image: grafana/tempo:latest
+  #   restart: always
+  #   user: "0:0"
+  #   command: ["-config.file=/etc/tempo.yaml"]
+  #   volumes:
+  #     - ./tempo-config.yaml:/etc/tempo.yaml
+  #     - tempo_data:/tmp/tempo
+  #   ports:
+  #     - "3200:3200"
+  #   deploy:
+  #     resources:
+  #       limits:
+  #         memory: 150M
+
+  # grafana:
+  #   container_name: ecommerce_grafana
+  #   image: grafana/grafana:latest
+  #   restart: always
+  #   ports:
+  #     - "3000:3000"
+  #   environment:
+  #     - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD:-admin}
+  #   deploy:
+  #     resources:
+  #       limits:
+  #         memory: 150M
+
+  # ==========================================
   # 3. APPLICATION SERVICES (.NET 9 Microservices)
   # ==========================================
-
   identity-service:
     container_name: ecommerce_identity_service
-    image: ${REGISTRY_OWNER:-ghcr.io/vanld0502}/identity-service:${TAG:-latest}
+    image: ${REGISTRY_OWNER:-ghcr.io/vaninbuukun}/identity-service:${TAG:-latest}
     build:
       context: ../
       dockerfile: src/Services/Identity/Identity.Api/Dockerfile
     restart: always
     environment:
       - ASPNETCORE_ENVIRONMENT=Production
-      - ConnectionStrings__Database=Host=identity_db;Port=5432;Database=IdentityDb;Username=${POSTGRES_USER:-db_user};Password=${POSTGRES_PASSWORD:-123456};
+      - ConnectionStrings__Database=Host=postgres_db;Port=5432;Database=IdentityDb;Username=${POSTGRES_USER:-db_user};Password=${POSTGRES_PASSWORD:-123456};
       - Kestrel__Endpoints__Http__Url=http://+:5027
       - Kestrel__Endpoints__Grpc__Url=http://+:5028
-      - OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4317
       - ADMIN_EMAIL=${ADMIN_EMAIL:-admin@ecommerce.com}
       - ADMIN_PASSWORD=${ADMIN_PASSWORD}
-
     deploy:
       resources:
         limits:
           memory: 250M
     depends_on:
-      identity_db:
+      postgres_db:
         condition: service_healthy
 
   catalog-service:
     container_name: ecommerce_catalog_service
-    image: ${REGISTRY_OWNER:-ghcr.io/vanld0502}/catalog-service:${TAG:-latest}
+    image: ${REGISTRY_OWNER:-ghcr.io/vaninbuukun}/catalog-service:${TAG:-latest}
     build:
       context: ../
       dockerfile: src/Services/Catalogs/Ecommerce.Services.Catalog.Api/Dockerfile
     restart: always
     environment:
       - ASPNETCORE_ENVIRONMENT=Production
-      - ConnectionStrings__Database=Host=product_db;Port=5432;Database=ProductCatalogDb;Username=${POSTGRES_USER:-db_user};Password=${POSTGRES_PASSWORD:-123456};
-
+      - ConnectionStrings__Database=Host=postgres_db;Port=5432;Database=ProductCatalogDb;Username=${POSTGRES_USER:-db_user};Password=${POSTGRES_PASSWORD:-123456};
       - IdentityUrl=http://identity-service:5027
       - Services__SellerGrpcUrl=http://seller-service:5043
       - Kestrel__Endpoints__Http__Url=http://+:5001
@@ -312,25 +204,21 @@ services:
         limits:
           memory: 250M
     depends_on:
-      product_db:
+      postgres_db:
         condition: service_healthy
-      identity-service:
-        condition: service_started
 
   cart-service:
     container_name: ecommerce_cart_service
-    image: ${REGISTRY_OWNER:-ghcr.io/vanld0502}/cart-service:${TAG:-latest}
+    image: ${REGISTRY_OWNER:-ghcr.io/vaninbuukun}/cart-service:${TAG:-latest}
     build:
       context: ../
       dockerfile: src/Services/Carts/Ecommerce.Services.Carts.Api/Dockerfile
     restart: always
     environment:
       - ASPNETCORE_ENVIRONMENT=Production
-      - ConnectionStrings__Redis=cart_db:6379
-      - RabbitMq__Host=rabbitmq
-      - Services__ProductGrpcUrl=http://catalog-service:5002
-      - Services__SellerGrpcUrl=http://seller-service:5043
-      - IdentityUrl=http://identity-service:5027
+      - ConnectionStrings__Redis=cart_db:6379,password=
+      - Services__CatalogGrpcUrl=http://catalog-service:5002
+      - Services__IdentityGrpcUrl=http://identity-service:5028
       - Kestrel__Endpoints__Http__Url=http://+:5004
       - Kestrel__Endpoints__Grpc__Url=http://+:5005
     deploy:
@@ -340,26 +228,24 @@ services:
     depends_on:
       cart_db:
         condition: service_healthy
-      rabbitmq:
-        condition: service_healthy
-      catalog-service:
-        condition: service_started
 
   order-service:
     container_name: ecommerce_order_service
-    image: ${REGISTRY_OWNER:-ghcr.io/vanld0502}/order-service:${TAG:-latest}
+    image: ${REGISTRY_OWNER:-ghcr.io/vaninbuukun}/order-service:${TAG:-latest}
     build:
       context: ../
       dockerfile: src/Services/Orders/Ecommerce.Services.Orders.Api/Dockerfile
     restart: always
     environment:
       - ASPNETCORE_ENVIRONMENT=Production
-      - ConnectionStrings__Database=Host=order_db;Port=5432;Database=OrderDb;Username=${POSTGRES_USER:-db_user};Password=${POSTGRES_PASSWORD:-123456};
-      - RabbitMq__Host=rabbitmq
+      - ConnectionStrings__Database=Host=postgres_db;Port=5432;Database=OrderDb;Username=${POSTGRES_USER:-db_user};Password=${POSTGRES_PASSWORD:-123456};
+      - MessageBroker__Host=rabbitmq
+      - MessageBroker__Port=5672
+      - MessageBroker__Username=${RABBITMQ_USER:-guest}
+      - MessageBroker__Password=${RABBITMQ_PASSWORD:-guest}
+      - Services__CatalogGrpcUrl=http://catalog-service:5002
       - Services__CartGrpcUrl=http://cart-service:5005
-      - Services__ProductGrpcUrl=http://catalog-service:5002
       - Services__PaymentGrpcUrl=http://payment-service:5053
-      - IdentityUrl=http://identity-service:5027
       - Kestrel__Endpoints__Http__Url=http://+:5007
       - Kestrel__Endpoints__Grpc__Url=http://+:5008
     deploy:
@@ -367,123 +253,122 @@ services:
         limits:
           memory: 250M
     depends_on:
-      order_db:
+      postgres_db:
         condition: service_healthy
       rabbitmq:
         condition: service_healthy
-      cart-service:
-        condition: service_started
 
   payment-service:
     container_name: ecommerce_payment_service
-    image: ${REGISTRY_OWNER:-ghcr.io/vanld0502}/payment-service:${TAG:-latest}
+    image: ${REGISTRY_OWNER:-ghcr.io/vaninbuukun}/payment-service:${TAG:-latest}
     build:
       context: ../
       dockerfile: src/Services/Payments/Ecommerce.Services.Payments.Api/Dockerfile
     restart: always
     environment:
       - ASPNETCORE_ENVIRONMENT=Production
-      - ConnectionStrings__Database=Host=payment_db;Port=5432;Database=PaymentDb;Username=${POSTGRES_USER:-db_user};Password=${POSTGRES_PASSWORD:-123456};
+      - ConnectionStrings__Database=Host=postgres_db;Port=5432;Database=PaymentDb;Username=${POSTGRES_USER:-db_user};Password=${POSTGRES_PASSWORD:-123456};
       - Kestrel__Endpoints__Http__Url=http://+:5052
       - Kestrel__Endpoints__Grpc__Url=http://+:5053
     deploy:
       resources:
         limits:
-          memory: 200M
+          memory: 250M
     depends_on:
-      payment_db:
+      postgres_db:
         condition: service_healthy
 
   seller-service:
     container_name: ecommerce_seller_service
-    image: ${REGISTRY_OWNER:-ghcr.io/vanld0502}/seller-service:${TAG:-latest}
+    image: ${REGISTRY_OWNER:-ghcr.io/vaninbuukun}/seller-service:${TAG:-latest}
     build:
       context: ../
       dockerfile: src/Services/Sellers/Ecommerce.Services.Sellers.Api/Dockerfile
     restart: always
     environment:
       - ASPNETCORE_ENVIRONMENT=Production
-      - ConnectionStrings__Database=Host=seller_db;Port=5432;Database=SellerDb;Username=${POSTGRES_USER:-db_user};Password=${POSTGRES_PASSWORD:-123456};
-      - IdentityUrl=http://identity-service:5027
+      - ConnectionStrings__Database=Host=postgres_db;Port=5432;Database=SellerDb;Username=${POSTGRES_USER:-db_user};Password=${POSTGRES_PASSWORD:-123456};
       - Kestrel__Endpoints__Http__Url=http://+:5042
       - Kestrel__Endpoints__Grpc__Url=http://+:5043
     deploy:
       resources:
         limits:
-          memory: 200M
+          memory: 250M
     depends_on:
-      seller_db:
+      postgres_db:
         condition: service_healthy
 
   shipping-service:
     container_name: ecommerce_shipping_service
-    image: ${REGISTRY_OWNER:-ghcr.io/vanld0502}/shipping-service:${TAG:-latest}
+    image: ${REGISTRY_OWNER:-ghcr.io/vaninbuukun}/shipping-service:${TAG:-latest}
     build:
       context: ../
       dockerfile: src/Services/Shippings/Ecommerce.Services.Shippings.Api/Dockerfile
     restart: always
     environment:
       - ASPNETCORE_ENVIRONMENT=Production
-      - ConnectionStrings__Database=Host=shipping_db;Port=5432;Database=ShippingDb;Username=${POSTGRES_USER:-db_user};Password=${POSTGRES_PASSWORD:-123456};
-      - RabbitMq__Host=rabbitmq
-      - Services__SellerGrpcUrl=http://seller-service:5043
+      - ConnectionStrings__Database=Host=postgres_db;Port=5432;Database=ShippingDb;Username=${POSTGRES_USER:-db_user};Password=${POSTGRES_PASSWORD:-123456};
+      - MessageBroker__Host=rabbitmq
+      - MessageBroker__Port=5672
+      - MessageBroker__Username=${RABBITMQ_USER:-guest}
+      - MessageBroker__Password=${RABBITMQ_PASSWORD:-guest}
       - Kestrel__Endpoints__Http__Url=http://+:5070
+      - Kestrel__Endpoints__Grpc__Url=http://+:5071
     deploy:
       resources:
         limits:
-          memory: 200M
+          memory: 250M
     depends_on:
-      shipping_db:
+      postgres_db:
         condition: service_healthy
       rabbitmq:
         condition: service_healthy
 
   notification-service:
     container_name: ecommerce_notification_service
-    image: ${REGISTRY_OWNER:-ghcr.io/vanld0502}/notification-service:${TAG:-latest}
+    image: ${REGISTRY_OWNER:-ghcr.io/vaninbuukun}/notification-service:${TAG:-latest}
     build:
       context: ../
       dockerfile: src/Services/Notifications/Ecommerce.Services.Notifications.Api/Dockerfile
     restart: always
     environment:
       - ASPNETCORE_ENVIRONMENT=Production
-      - ConnectionStrings__Database=Host=order_db;Port=5432;Database=NotificationDb;Username=${POSTGRES_USER:-db_user};Password=${POSTGRES_PASSWORD:-123456};
-      - RabbitMq__Host=rabbitmq
-      - IdentityUrl=http://identity-service:5027
+      - MessageBroker__Host=rabbitmq
+      - MessageBroker__Port=5672
+      - MessageBroker__Username=${RABBITMQ_USER:-guest}
+      - MessageBroker__Password=${RABBITMQ_PASSWORD:-guest}
       - Kestrel__Endpoints__Http__Url=http://+:5080
     deploy:
       resources:
         limits:
           memory: 200M
     depends_on:
-      order_db:
-        condition: service_healthy
       rabbitmq:
         condition: service_healthy
 
   # ==========================================
-  # 4. API GATEWAY & FRONTEND
+  # 4. REVERSE PROXY & API GATEWAY
   # ==========================================
   apigateway-service:
     container_name: ecommerce_apigateway_service
-    image: ${REGISTRY_OWNER:-ghcr.io/vanld0502}/api-gateway:${TAG:-latest}
+    image: ${REGISTRY_OWNER:-ghcr.io/vaninbuukun}/api-gateway:${TAG:-latest}
     build:
       context: ../
       dockerfile: src/ApiGateway/Ecommerce.ApiGateway/Dockerfile
     restart: always
-    ports:
-      - "5000:8080"
     environment:
       - ASPNETCORE_ENVIRONMENT=Production
-      - ASPNETCORE_URLS=http://+:8080
-      - ReverseProxy__Clusters__product-cluster__Destinations__product-1__Address=http://catalog-service:5001
-      - ReverseProxy__Clusters__cart-cluster__Destinations__cart-1__Address=http://cart-service:5004
-      - ReverseProxy__Clusters__order-cluster__Destinations__order-1__Address=http://order-service:5007
-      - ReverseProxy__Clusters__identity-cluster__Destinations__identity-1__Address=http://identity-service:5027
-      - ReverseProxy__Clusters__payment-cluster__Destinations__payment-1__Address=http://payment-service:5052
-      - ReverseProxy__Clusters__seller-cluster__Destinations__seller-1__Address=http://seller-service:5042
-      - ReverseProxy__Clusters__shipping-cluster__Destinations__shipping-1__Address=http://shipping-service:5070
-      - ReverseProxy__Clusters__notification-cluster__Destinations__notification-1__Address=http://notification-service:5080
+      - ReverseProxy__Clusters__identity-cluster__Destinations__destination1__Address=http://identity-service:5027
+      - ReverseProxy__Clusters__catalog-cluster__Destinations__destination1__Address=http://catalog-service:5001
+      - ReverseProxy__Clusters__cart-cluster__Destinations__destination1__Address=http://cart-service:5004
+      - ReverseProxy__Clusters__order-cluster__Destinations__destination1__Address=http://order-service:5007
+      - ReverseProxy__Clusters__payment-cluster__Destinations__destination1__Address=http://payment-service:5052
+      - ReverseProxy__Clusters__seller-cluster__Destinations__destination1__Address=http://seller-service:5042
+      - ReverseProxy__Clusters__shipping-cluster__Destinations__destination1__Address=http://shipping-service:5070
+      - ReverseProxy__Clusters__notification-cluster__Destinations__destination1__Address=http://notification-service:5080
+      - Kestrel__Endpoints__Http__Url=http://+:5000
+    ports:
+      - "5000:5000"
     deploy:
       resources:
         limits:
@@ -498,9 +383,12 @@ services:
       - shipping-service
       - notification-service
 
-  frontend:
-    container_name: ecommerce_frontend
-    image: ${REGISTRY_OWNER:-ghcr.io/vanld0502}/frontend-web:${TAG:-latest}
+  # ==========================================
+  # 5. FRONTEND WEB CLIENT (Nginx + React 19)
+  # ==========================================
+  frontend-web:
+    container_name: ecommerce_frontend_web
+    image: ${REGISTRY_OWNER:-ghcr.io/vaninbuukun}/frontend-web:${TAG:-latest}
     build:
       context: ../frontend-web
       dockerfile: Dockerfile
@@ -515,24 +403,13 @@ services:
       - apigateway-service
 
 volumes:
-  postgres_product_data:
-    driver: local
-
-  postgres_order_data:
+  postgres_data:
     driver: local
   redis_cart_data:
     driver: local
-  postgres_identity_data:
-    driver: local
-  postgres_payment_data:
-    driver: local
-  postgres_seller_data:
-    driver: local
-  postgres_shipping_data:
-    driver: local
   minio_data:
     driver: local
-  loki_data:
-    driver: local
-  tempo_data:
-    driver: local
+  # loki_data:
+  #   driver: local
+  # tempo_data:
+  #   driver: local
