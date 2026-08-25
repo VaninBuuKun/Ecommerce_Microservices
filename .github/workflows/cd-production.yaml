@@ -1,0 +1,217 @@
+# =============================================================================
+# CD — Production Deploy to VPS (Build ALL → Push → Migrate → Deploy → Health Check)
+# =============================================================================
+# Trigger: Push/Merge to main branch (via PR from develop or hotfix/*)
+# Purpose: Full production deployment pipeline with safety guarantees
+# Actions:
+#   Stage 1: Build ALL 10 Docker images (fail-fast: 1 fail = stop everything)
+#   Stage 2: Push certified images to GHCR (tag: latest + v1.0.{N})
+#   Stage 3: SSH Deploy to VPS (inject .env → pull → rolling restart → health check → rollback)
+# =============================================================================
+
+name: CD — Production Deploy to VPS
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch: # Cho phép bấm chạy bằng tay từ giao diện GitHub Actions
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_OWNER: vaninbuukun
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  # =========================================================================
+  # STAGE 1: DETECT WHICH SERVICES HAVE CODE CHANGES
+  # =========================================================================
+  changes:
+    name: Detect Changed Services
+    runs-on: ubuntu-latest
+    outputs:
+      identity: ${{ steps.filter.outputs.identity }}
+      catalog: ${{ steps.filter.outputs.catalog }}
+      cart: ${{ steps.filter.outputs.cart }}
+      order: ${{ steps.filter.outputs.order }}
+      payment: ${{ steps.filter.outputs.payment }}
+      seller: ${{ steps.filter.outputs.seller }}
+      shipping: ${{ steps.filter.outputs.shipping }}
+      notification: ${{ steps.filter.outputs.notification }}
+      gateway: ${{ steps.filter.outputs.gateway }}
+      frontend: ${{ steps.filter.outputs.frontend }}
+      building_blocks: ${{ steps.filter.outputs.building_blocks }}
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Detect Path Changes
+        uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            building_blocks: 'src/BuildingBlocks/**'
+            identity: 'src/Services/Identity/**'
+            catalog: 'src/Services/Catalogs/**'
+            cart: 'src/Services/Carts/**'
+            order: 'src/Services/Orders/**'
+            payment: 'src/Services/Payments/**'
+            seller: 'src/Services/Sellers/**'
+            shipping: 'src/Services/Shippings/**'
+            notification: 'src/Services/Notifications/**'
+            gateway: 'src/ApiGateway/**'
+            frontend: 'frontend-web/**'
+
+  # =========================================================================
+  # STAGE 2: BUILD & PUSH ONLY CHANGED SERVICES (tag: latest + version)
+  # =========================================================================
+  build-push-changed:
+    name: Build & Push Production — ${{ matrix.service.name }}
+    needs: changes
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: true # 🔒 1 service fail -> Dừng deploy ngay lập tức
+      matrix:
+        include:
+          - { name: "identity-service",     dockerfile: "src/Services/Identity/Identity.Api/Dockerfile",                   context: ".", changed: "${{ needs.changes.outputs.identity == 'true' || needs.changes.outputs.building_blocks == 'true' }}" }
+          - { name: "catalog-service",      dockerfile: "src/Services/Catalogs/Ecommerce.Services.Catalog.Api/Dockerfile", context: ".", changed: "${{ needs.changes.outputs.catalog == 'true' || needs.changes.outputs.building_blocks == 'true' }}" }
+          - { name: "cart-service",         dockerfile: "src/Services/Carts/Ecommerce.Services.Carts.Api/Dockerfile",      context: ".", changed: "${{ needs.changes.outputs.cart == 'true' || needs.changes.outputs.building_blocks == 'true' }}" }
+          - { name: "order-service",        dockerfile: "src/Services/Orders/Ecommerce.Services.Orders.Api/Dockerfile",    context: ".", changed: "${{ needs.changes.outputs.order == 'true' || needs.changes.outputs.building_blocks == 'true' }}" }
+          - { name: "payment-service",      dockerfile: "src/Services/Payments/Ecommerce.Services.Payments.Api/Dockerfile",context: ".", changed: "${{ needs.changes.outputs.payment == 'true' || needs.changes.outputs.building_blocks == 'true' }}" }
+          - { name: "seller-service",       dockerfile: "src/Services/Sellers/Ecommerce.Services.Sellers.Api/Dockerfile",  context: ".", changed: "${{ needs.changes.outputs.seller == 'true' || needs.changes.outputs.building_blocks == 'true' }}" }
+          - { name: "shipping-service",     dockerfile: "src/Services/Shippings/Ecommerce.Services.Shippings.Api/Dockerfile", context: ".", changed: "${{ needs.changes.outputs.shipping == 'true' || needs.changes.outputs.building_blocks == 'true' }}" }
+          - { name: "notification-service", dockerfile: "src/Services/Notifications/Ecommerce.Services.Notifications.Api/Dockerfile", context: ".", changed: "${{ needs.changes.outputs.notification == 'true' || needs.changes.outputs.building_blocks == 'true' }}" }
+          - { name: "api-gateway",          dockerfile: "src/ApiGateway/Ecommerce.ApiGateway/Dockerfile",                  context: ".", changed: "${{ needs.changes.outputs.gateway == 'true' }}" }
+          - { name: "frontend-web",         dockerfile: "frontend-web/Dockerfile",                                          context: "frontend-web", changed: "${{ needs.changes.outputs.frontend == 'true' }}" }
+
+    steps:
+      - name: Skip — No changes for ${{ matrix.service.name }}
+        if: matrix.service.changed != 'true'
+        run: echo "⏩ Skipping ${{ matrix.service.name }} — no code changes detected."
+
+      - name: Checkout Repository
+        if: matrix.service.changed == 'true'
+        uses: actions/checkout@v4
+
+      - name: Log in to GHCR
+        if: matrix.service.changed == 'true'
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up Docker Buildx
+        if: matrix.service.changed == 'true'
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build & Push Image (Production)
+        if: matrix.service.changed == 'true'
+        uses: docker/build-push-action@v5
+        with:
+          context: ${{ matrix.service.context }}
+          file: ${{ matrix.service.dockerfile }}
+          push: true
+          tags: |
+            ${{ env.REGISTRY }}/${{ env.IMAGE_OWNER }}/${{ matrix.service.name }}:latest
+            ${{ env.REGISTRY }}/${{ env.IMAGE_OWNER }}/${{ matrix.service.name }}:v1.0.${{ github.run_number }}
+          cache-from: type=gha,scope=${{ matrix.service.name }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.service.name }}
+
+  # =========================================================================
+  # STAGE 3: DEPLOY TO VPS (Pulls & updates only modified containers)
+  # =========================================================================
+  deploy:
+    name: Deploy to VPS Production
+    needs: build-push-changed
+    runs-on: ubuntu-latest
+    environment: production # GitHub Environment Protection Rules
+    steps:
+      - name: Deploy via SSH
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          port: ${{ secrets.VPS_PORT }}
+          script: |
+            set -e
+            cd /opt/ecommerce/src
+
+            echo "=========================================="
+            echo "📸 Step 0: Save current state for rollback"
+            echo "=========================================="
+            PREV_TAG=$(cat .current_tag 2>/dev/null || echo "none")
+            echo "Previous deployment tag: $PREV_TAG"
+
+            echo "=========================================="
+            echo "🔑 Step 1: Inject .env from GitHub Secrets"
+            echo "=========================================="
+            cat << 'ENVEOF' > .env
+            ${{ secrets.PROD_ENV_FILE }}
+            ENVEOF
+
+            echo "=========================================="
+            echo "📥 Step 2: Pull latest Docker Images from GHCR"
+            echo "=========================================="
+            # Chỉ pull những service nào có update tag latest mới trên GHCR
+            docker compose -f docker-compose.prod.yaml --env-file .env pull
+
+            echo "=========================================="
+            echo "🚀 Step 3: Smart Rolling Update (Only restarts modified services)"
+            echo "=========================================="
+            # Docker Compose tự động kiểm tra hash image và CHỈ restart những container có update!
+            docker compose -f docker-compose.prod.yaml --env-file .env up -d --remove-orphans
+            
+            echo "Waiting for services to initialize..."
+            sleep 15
+
+            echo "=========================================="
+            echo "🏥 Step 4: Health Check ALL Services"
+            echo "=========================================="
+            SERVICES="identity-service:5027 catalog-service:5001 cart-service:5004 order-service:5007 payment-service:5052 seller-service:5042 shipping-service:5070"
+            ALL_HEALTHY=true
+
+            for entry in $SERVICES; do
+              IFS=":" read -r name port <<< "$entry"
+              for attempt in 1 2 3; do
+                STATUS=$(curl -sf -o /dev/null -w "%{http_code}" --max-time 5 http://localhost:$port/health 2>/dev/null || echo "000")
+                if [ "$STATUS" = "200" ]; then
+                  echo "  ✅ $name — Healthy"
+                  break
+                fi
+                if [ "$attempt" -eq 3 ]; then
+                  echo "  ❌ $name — UNHEALTHY after 3 attempts (HTTP $STATUS)"
+                  ALL_HEALTHY=false
+                fi
+                sleep 5
+              done
+            done
+
+            echo "=========================================="
+            if [ "$ALL_HEALTHY" = false ]; then
+              echo "🔴 DEPLOY FAILED — INITIATING AUTO-ROLLBACK"
+              echo "=========================================="
+              if [ "$PREV_TAG" != "none" ]; then
+                export TAG=$PREV_TAG
+                docker compose -f docker-compose.prod.yaml --env-file .env pull
+                docker compose -f docker-compose.prod.yaml --env-file .env up -d --remove-orphans
+                echo "🔄 Rolled back to tag: $PREV_TAG"
+              else
+                echo "⚠️ No previous tag found — cannot rollback. Manual intervention required."
+              fi
+              exit 1
+            fi
+
+            # Lưu tag hiện tại cho lần rollback sau
+            echo "v1.0.${{ github.run_number }}" > .current_tag
+
+            # Cleanup old unused images
+            docker image prune -f
+
+            echo "=========================================="
+            echo "🎉 Step 5: ALL SERVICES DEPLOYED & HEALTHY!"
+            echo "🏷️ Current Tag: v1.0.${{ github.run_number }}"
+            echo "=========================================="

@@ -1,0 +1,157 @@
+# =============================================================================
+# CI — Develop Branch (Smart Path-Filter: Build & Push Changed Services Only)
+# =============================================================================
+# Trigger: Push/Merge to develop branch
+# Purpose: Validate Docker image builds for changed services & push to GHCR
+# Actions: Path-Filter → Build & Push ONLY changed services with tag `dev`
+# Does NOT: Deploy to VPS
+# =============================================================================
+
+name: CI — Develop Branch (Build & Push Changed Services)
+
+on:
+  push:
+    branches: [ develop ]
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_OWNER: vaninbuukun
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  # =========================================================================
+  # STAGE 1: DETECT WHICH SERVICES HAVE CODE CHANGES
+  # =========================================================================
+  changes:
+    name: Detect Changed Services
+    runs-on: ubuntu-latest
+    outputs:
+      identity: ${{ steps.filter.outputs.identity }}
+      catalog: ${{ steps.filter.outputs.catalog }}
+      cart: ${{ steps.filter.outputs.cart }}
+      order: ${{ steps.filter.outputs.order }}
+      payment: ${{ steps.filter.outputs.payment }}
+      seller: ${{ steps.filter.outputs.seller }}
+      shipping: ${{ steps.filter.outputs.shipping }}
+      notification: ${{ steps.filter.outputs.notification }}
+      gateway: ${{ steps.filter.outputs.gateway }}
+      frontend: ${{ steps.filter.outputs.frontend }}
+      building_blocks: ${{ steps.filter.outputs.building_blocks }}
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Detect Path Changes
+        uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            building_blocks: 'src/BuildingBlocks/**'
+            identity: 'src/Services/Identity/**'
+            catalog: 'src/Services/Catalogs/**'
+            cart: 'src/Services/Carts/**'
+            order: 'src/Services/Orders/**'
+            payment: 'src/Services/Payments/**'
+            seller: 'src/Services/Sellers/**'
+            shipping: 'src/Services/Shippings/**'
+            notification: 'src/Services/Notifications/**'
+            gateway: 'src/ApiGateway/**'
+            frontend: 'frontend-web/**'
+
+  # =========================================================================
+  # STAGE 2: BUILD & PUSH ONLY CHANGED SERVICES (tag: dev + dev-{N})
+  # =========================================================================
+  build-push:
+    name: Build & Push — ${{ matrix.service.name }}
+    needs: changes
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false # Cho phép các service khác tiếp tục build nếu 1 cái fail
+      matrix:
+        include:
+          - name: "identity-service"
+            dockerfile: "src/Services/Identity/Identity.Api/Dockerfile"
+            context: "."
+            changed: "${{ needs.changes.outputs.identity == 'true' || needs.changes.outputs.building_blocks == 'true' }}"
+
+          - name: "catalog-service"
+            dockerfile: "src/Services/Catalogs/Ecommerce.Services.Catalog.Api/Dockerfile"
+            context: "."
+            changed: "${{ needs.changes.outputs.catalog == 'true' || needs.changes.outputs.building_blocks == 'true' }}"
+
+          - name: "cart-service"
+            dockerfile: "src/Services/Carts/Ecommerce.Services.Carts.Api/Dockerfile"
+            context: "."
+            changed: "${{ needs.changes.outputs.cart == 'true' || needs.changes.outputs.building_blocks == 'true' }}"
+
+          - name: "order-service"
+            dockerfile: "src/Services/Orders/Ecommerce.Services.Orders.Api/Dockerfile"
+            context: "."
+            changed: "${{ needs.changes.outputs.order == 'true' || needs.changes.outputs.building_blocks == 'true' }}"
+
+          - name: "payment-service"
+            dockerfile: "src/Services/Payments/Ecommerce.Services.Payments.Api/Dockerfile"
+            context: "."
+            changed: "${{ needs.changes.outputs.payment == 'true' || needs.changes.outputs.building_blocks == 'true' }}"
+
+          - name: "seller-service"
+            dockerfile: "src/Services/Sellers/Ecommerce.Services.Sellers.Api/Dockerfile"
+            context: "."
+            changed: "${{ needs.changes.outputs.seller == 'true' || needs.changes.outputs.building_blocks == 'true' }}"
+
+          - name: "shipping-service"
+            dockerfile: "src/Services/Shippings/Ecommerce.Services.Shippings.Api/Dockerfile"
+            context: "."
+            changed: "${{ needs.changes.outputs.shipping == 'true' || needs.changes.outputs.building_blocks == 'true' }}"
+
+          - name: "notification-service"
+            dockerfile: "src/Services/Notifications/Ecommerce.Services.Notifications.Api/Dockerfile"
+            context: "."
+            changed: "${{ needs.changes.outputs.notification == 'true' || needs.changes.outputs.building_blocks == 'true' }}"
+
+          - name: "api-gateway"
+            dockerfile: "src/ApiGateway/Ecommerce.ApiGateway/Dockerfile"
+            context: "."
+            changed: "${{ needs.changes.outputs.gateway == 'true' }}"
+
+          - name: "frontend-web"
+            dockerfile: "frontend-web/Dockerfile"
+            context: "frontend-web"
+            changed: "${{ needs.changes.outputs.frontend == 'true' }}"
+
+    steps:
+      - name: Skip — No changes for ${{ matrix.service.name }}
+        if: matrix.service.changed != 'true'
+        run: echo "⏩ Skipping ${{ matrix.service.name }} — no code changes detected."
+
+      - name: Checkout Repository
+        if: matrix.service.changed == 'true'
+        uses: actions/checkout@v4
+
+      - name: Log in to GHCR
+        if: matrix.service.changed == 'true'
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up Docker Buildx
+        if: matrix.service.changed == 'true'
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build & Push Image (tag dev)
+        if: matrix.service.changed == 'true'
+        uses: docker/build-push-action@v5
+        with:
+          context: ${{ matrix.service.context }}
+          file: ${{ matrix.service.dockerfile }}
+          push: true
+          tags: |
+            ${{ env.REGISTRY }}/${{ env.IMAGE_OWNER }}/${{ matrix.service.name }}:dev
+            ${{ env.REGISTRY }}/${{ env.IMAGE_OWNER }}/${{ matrix.service.name }}:dev-${{ github.run_number }}
+          cache-from: type=gha,scope=${{ matrix.service.name }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.service.name }}
