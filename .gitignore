@@ -14,7 +14,7 @@ out/
 build/
 build_out.txt
 
-# Thư mục lưu trữ các gói thư viện (Nuget) cài thêm
+# Thư mục lưu trữ các gói thư viện (Nuget, NPM) cài thêm
 *.nuget.props
 *.nuget.targets
 packages/
@@ -37,10 +37,11 @@ TestResults/
 _ReSharper*/
 [Tt]est[Rr]esult*/
 
-# File cấu hình môi trường chứa THÔNG TIN BẢO MẬT (Rất quan trọng)
-# Giữ lại appsettings.json gốc, nhưng bỏ qua các file chứa cấu hình local/dev/secret
+# File cấu hình môi trường chứa THÔNG TIN BẢO MẬT
 appsettings.Development.json
 appsettings.Local.json
+appsettings.*.json
+!appsettings.json
 *.env
 *.env.*
 secrets.json
@@ -62,16 +63,29 @@ Log/
 Docs/
 QueryDb/
 
-appsettings.*.json
-!appsettings.json
+# Data & CSV files
+*.csv
+**/*.csv
 
-# AI Assistant & IDE Agents Folders
+# Scripts
+scripts/
+**/scripts/
+src/scripts/
+*.bat
+*.ps1
+*.sh
+seed-all.bat
+
+# AI Assistant, AGENTS & Scratchpad Files
+AGENTS.md
+agents.md
+[Aa][Gg][Ee][Nn][Tt][Ss].[Mm][Dd]
 .agents/
 .antigravity/
 .gemini/
 .brain/
 .scratch/
+scratch/
+**/scratch/
 scratchpad.md
-AGENTS.md
-
-*.csv
+*.scratchpad.*

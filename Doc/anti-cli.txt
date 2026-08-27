@@ -1,2 +1,0 @@
-shiflt + tab: auto approved
-/model chỉnh model

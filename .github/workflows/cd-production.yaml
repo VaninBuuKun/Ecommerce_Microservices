@@ -7,7 +7,7 @@
 #   Stage 1: Build ALL 10 Docker images (fail-fast: 1 fail = stop everything)
 #   Stage 2: Push certified images to GHCR (tag: latest + v1.0.{N})
 #   Stage 3: SSH Deploy to VPS (inject .env → pull → rolling restart → health check → rollback)
-# =============================================================================
+# ==================================================/===========================
 
 name: CD — Production Deploy to VPS
 
