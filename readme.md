@@ -1,133 +1,496 @@
-# 🛒 Hệ thống Thương mại Điện tử Đa Cửa Hàng (Ecommerce Microservices Platform)
+# 🛒 Multi-Vendor Ecommerce Microservices Platform
 
-Hệ thống Thương mại Điện tử Marketplace doanh nghiệp được phát triển theo kiến trúc **Microservices** tiên tiến với **.NET 9**, **Clean Architecture**, **CQRS MediatR**, **MassTransit Saga Outbox**, và **React 19 Frontend**.
+An enterprise-grade **Marketplace Ecommerce Platform** built with modern **Microservices Architecture** using **.NET 9**, **Clean Architecture**, **CQRS + MediatR**, **MassTransit Saga & Transactional Outbox**, and **React 19**.
 
 ---
 
-## 🏛️ 1. Tổng quan Kiến trúc Hệ thống (System Architecture)
+# 🏛️ 1. System Architecture
 
+```text
+[ React 19 Frontend ]
+        │ (HTTP REST / JSON)
+        ▼
+[ YARP API Gateway ] ── (CORS / Rate Limiting / Routing)
+        │
+        ├──► Catalog.Api      (REST 5001 / gRPC 5002) ──► MySQL
+        ├──► Cart.Api         (REST 5004 / gRPC 5005) ──► Redis
+        ├──► Orders.Api       (REST 5007 / gRPC 5008) ──► PostgreSQL
+        ├──► Payments.Api     (REST 5052 / gRPC 5053) ──► PostgreSQL
+        ├──► Shippings.Api    (REST 5070 / gRPC 5071) ──► PostgreSQL
+        ├──► Sellers.Api      (REST 5042 / gRPC 5043) ──► PostgreSQL
+        └──► Identity.Api     (REST 5027 / gRPC 5028) ──► PostgreSQL
+
+[ Synchronous Communication ]
+gRPC + Protocol Buffers
+
+[ Asynchronous Communication ]
+MassTransit + RabbitMQ
+Saga State Machine + Transactional Outbox
 ```
-[ React 19 Frontend ] 
-       │ (HTTP REST / JSON)
-       ▼
-[ YARP API Gateway ] ── (CORS / Rate Limit / Routing) 
-       │
-       ├──► Catalog.Api    (REST 5001 / gRPC 5002) ──► MySQL
-       ├──► Cart.Api       (REST 5004 / gRPC 5005) ──► Redis
-       ├──► Orders.Api     (REST 5007 / gRPC 5008) ──► PostgreSQL
-       ├──► Payments.Api   (REST 5052 / gRPC 5053) ──► PostgreSQL
-       ├──► Shippings.Api  (REST 5070 / gRPC 5071) ──► PostgreSQL
-       ├──► Sellers.Api    (REST 5042 / gRPC 5043) ──► PostgreSQL
-       └──► Identity.Api   (REST 5027 / gRPC 5028) ──► PostgreSQL
-       
-[ Sync Comm ]: gRPC (Internal Protocol Buffers)
-[ Async Comm ]: MassTransit + RabbitMQ (Event-Driven Saga State Machine)
+
+---
+
+# 🛠️ 2. Services & Ports
+
+| Service               | REST | gRPC | Database   | Responsibilities                                            |
+| --------------------- | ---- | ---- | ---------- | ----------------------------------------------------------- |
+| **Catalog.Api**       | 5001 | 5002 | MySQL      | Product Catalog, SKU Variants, Inventory, Ratings & Reviews |
+| **Cart.Api**          | 5004 | 5005 | Redis      | Shopping Cart, Shop Grouping                                |
+| **Orders.Api**        | 5007 | 5008 | PostgreSQL | Orders, SubOrders, Vouchers, Refund Workflow                |
+| **Identity.Api**      | 5027 | 5028 | PostgreSQL | Authentication, Authorization, OAuth2/OIDC, User Addresses  |
+| **Sellers.Api**       | 5042 | 5043 | PostgreSQL | KYC Verification, Shop Management, Pickup Addresses         |
+| **Payments.Api**      | 5052 | 5053 | PostgreSQL | VNPay, MoMo, COD, Seller Wallets, Withdrawals               |
+| **Shippings.Api**     | 5070 | 5071 | PostgreSQL | GHN Integration, Shipping Rates, Delivery Tracking          |
+| **Notifications.Api** | 5080 | -    | PostgreSQL      | SignalR Realtime Notifications & Chat                       |
+
+---
+
+# ✨ 3. Implemented Business Capabilities
+
+## 🏬 Seller Center
+
+### KYC Verification
+
+* National ID verification with front/back image upload.
+* Approval workflow:
+
+  * Draft
+  * Submitted
+  * Approved
+  * Rejected
+
+### Shop Management
+
+* Shop creation after successful KYC approval.
+* Shop profile management.
+* Pickup address management integrated with GHN.
+
+### Seller Wallet
+
+* Wallet activation.
+* Bank account linking.
+* Transaction history.
+* Withdrawal requests.
+
+---
+
+## 🛍️ Product Catalog & Shopping Cart
+
+### Product Management
+
+* Product variants management.
+* Product options and attributes.
+* Shipping dimensions and weight configuration.
+* Product activation/deactivation.
+
+### Ratings & Reviews
+
+* Star ratings.
+* Product reviews and comments.
+* Media uploads.
+* Review eligibility validation through gRPC:
+
+  * Number of reviews cannot exceed completed purchases.
+
+### Redis Shopping Cart
+
+* Add/update/remove products.
+* Product selection for checkout.
+* Automatic grouping by seller shop.
+
+---
+
+## 🛒 Checkout, Orders & Payments
+
+### Checkout Calculation
+
+* Product subtotal.
+* Platform vouchers.
+* Shop vouchers.
+* Shipping fee calculation via GHN gRPC integration.
+
+### Multi-Shop Orders
+
+A single checkout can be automatically split into multiple SubOrders based on seller ownership.
+
+### Order Lifecycle
+
+```text
+AwaitingPayment
+    ↓
+AwaitingConfirmation
+    ↓
+Processing
+    ↓
+PackageReady
+    ↓
+Shipping
+    ↓
+Delivered
+    ↓
+Completed
+
+or
+
+Cancelled
+Refunded
+```
+
+### Payment Integration
+
+Supported payment methods:
+
+* MoMo QR Payment
+* VNPay
+* Cash On Delivery (COD)
+
+Payment webhooks automatically trigger:
+
+```text
+PaymentSucceededEvent
+        ↓
+Orders Service
+        ↓
+AwaitingConfirmation
+```
+
+### Refund Workflow
+
+* Buyer submits refund request.
+* Seller approves or rejects request.
+* Automatic refund processing through event consumers.
+
+---
+
+## 🚚 Shipping & Logistics
+
+### GHN Integration
+
+Features:
+
+* Province/District/Ward synchronization.
+* Shipping fee calculation.
+* Automatic shipment creation.
+* Shipment tracking.
+
+### Delivery Workflow
+
+```text
+GHN Delivered
+        ↓
+ShipmentDeliveredEvent
+        ↓
+Orders Service
+        ↓
+SubOrder Delivered
+        ↓
+SellerRevenueConsumer
+        ↓
+Seller Wallet Credit
 ```
 
 ---
 
-## 🛠️ 2. Bảng Mã Port & Công Nghệ (Services & Ports Matrix)
+## 🛡️ Administration & Governance
 
-| Microservice | REST Port | gRPC Port | Database | Nhiệm vụ chính |
-| :--- | :--- | :--- | :--- | :--- |
-| **Catalog.Api** | `5001` | `5002` | MySQL | Sản phẩm (EAV), Biến thể SKU, Tồn kho, Ratings & Reviews |
-| **Cart.Api** | `5004` | `5005` | Redis | Giỏ hàng phiên bản Redis, Gom nhóm sản phẩm theo Shop |
-| **Orders.Api** | `5007` | `5008` | PostgreSQL | Đơn hàng, Tách SubOrders per Shop, Vouchers, Refund Saga |
-| **Identity.Api** | `5027` | `5028` | PostgreSQL | OAuth2 / OIDC JWT, Sổ địa chỉ người dùng |
-| **Sellers.Api** | `5042` | `5043` | PostgreSQL | Định danh KYC Người bán, Quản lý Cửa hàng, Địa chỉ lấy hàng |
-| **Payments.Api** | `5052` | `5053` | PostgreSQL | Momo, VNPay, COD, Ví Điện tử Shop, Rút tiền Ngân hàng |
-| **Shippings.Api** | `5070` | `5071` | PostgreSQL | Tích hợp GHN (Giao Hàng Nhanh), Đồng bộ địa danh, Webhooks |
-| **Notifications.Api**| `5080` | - | Redis | SignalR Real-time Notifications & Chat |
+### Order Management
 
----
+* Global SubOrder management.
+* Pagination and filtering.
+* Keyword search.
+* Detailed order inspection.
 
-## ✨ 3. Bản đồ Nghiệp vụ Đã Triển khai (Implemented Business Capabilities)
+### Seller Management
 
-### 🏬 A. Người Bán & Quản lý Cửa hàng (Seller Center)
-- **Định danh KYC (`Sellers.Api`)**: Đăng ký thông tin định danh CCCD (ảnh mặt trước/sau), quy trình xét duyệt `Draft` ➔ `Submitted` ➔ `Approved` / `Rejected`.
-- **Quản lý Cửa hàng (`Sellers.Api`)**: Tạo Shop sau khi duyệt KYC, quản lý thông tin Shop & Địa chỉ lấy hàng (`PickUpAddress` chuẩn GHN).
-- **Ví Người Bán & Rút tiền (`Payments.Api`)**: Kích hoạt ví điện tử, liên kết tài khoản ngân hàng, xem lịch sử biến động dư nợ giao dịch, gửi yêu cầu rút tiền về ngân hàng.
+* Shop listing.
+* KYC approval workflow.
+* Shop ban/unban.
 
-### 🛍️ B. Quản lý Sản phẩm & Giỏ hàng (Catalog & Cart)
-- **Sản phẩm EAV (`Catalog.Api`)**: Tạo sản phẩm, biến thể (Variants), tùy chọn (Options), thuộc tính kích thước/trọng lượng cho vận chuyển. Bật/tắt trạng thái kinh doanh.
-- **Đánh giá & Nhận xét (`Catalog.Api`)**: Đánh giá số sao, comment, upload media. Kiểm tra điều kiện qua gRPC: Số lần review <= Số đơn hàng thành công chứa sản phẩm.
-- **Giỏ hàng Redis (`Cart.Api`)**: Thêm/Sửa/Xóa sản phẩm, chọn sản phẩm tính tiền, gom nhóm sản phẩm theo Shop.
+### User Management
 
-### 🛒 C. Đặt hàng & Thanh toán (Checkout, Orders & Payments)
-- **Tính tổng chi phí Checkout (`Orders.Api`)**: Tính chi phí tạm tính, giảm giá Voucher Shop, Voucher Sàn, và gọi gRPC Shipping tính phí vận chuyển hàng loạt từ GHN.
-- **Tạo Đơn hàng Đa Cửa hàng (`Orders.Api`)**: Tách 1 đơn hàng thành nhiều `SubOrder` theo từng Shop.
-- **Saga State Machine SubOrder**: Quản lý vòng đời `AwaitingPayment` ➔ `AwaitingConfirmation` ➔ `Processing` ➔ `PackageReady` ➔ `Shipping` ➔ `Delivered` ➔ `Completed` ➔ `Cancelled` / `Refunded`.
-- **Thanh toán Momo & VNPay (`Payments.Api`)**: Thanh toán Sandbox Momo QR, VNPay. Webhook tự động kích hoạt `PaymentSucceededEvent` ➔ `OrderService` chuyển SubOrder sang `AwaitingConfirmation`.
-- **Hoàn tiền / Đổi trả (`Orders.Api` & `Payments.Api`)**: Người mua gửi yêu cầu hoàn tiền, Seller duyệt/từ chối, tiền tự động hoàn trả qua `RefundSubOrderConsumer`.
+* Account lock/unlock.
+* Role assignment.
 
-### 🚚 D. Vận chuyển GHN (Shippings)
-- Đồng bộ danh mục Tỉnh/Huyện/Xã chuẩn GHN API.
-- Tự động tạo vận đơn GHN qua Event Consumer `CreateShipmentConsumer`.
-- Webhook GHN nhận trạng thái giao hàng `Delivered` ➔ `Shippings.Api` ➔ Bắn `ShipmentDeliveredEvent` ➔ `OrderService` chuyển `SubOrder` sang `Delivered` ➔ `SellerRevenueConsumer` tự động cộng tiền doanh thu vào Ví người bán.
+Available roles:
 
-### 🛡️ E. Quản trị Hệ thống & Admin Panel (Platform Governance)
-- **Quản lý Đơn hàng Con Toàn Sàn (`Orders.Api`)**: `GetAdminSubOrdersQueryHandler` (`GET /api/orders/admin/suborders`) phân trang, lọc theo trạng thái đơn con, tìm kiếm từ khóa, và xem chi tiết `SubOrderDetail` với quyền Admin.
-- **Quản lý Cửa hàng (`Sellers.Api`)**: `GetAllShopsQueryHandler` (`GET /api/shop/all`), duyệt KYC, Ban/Unban Cửa hàng.
-- **Quản lý Người dùng & Quyền (`Identity.Api`)**: Khóa/Mở tài khoản (`/lock` & `/unlock`), gán Role (`Admin`, `Manager`, `User`, `Staff`).
-- **Quản lý Voucher & Rút tiền (`Orders.Api` & `Payments.Api`)**: Tạo Voucher Platform, phê duyệt yêu cầu rút tiền về ngân hàng của Seller/User.
+* Admin
+* Manager
+* Staff
+* User
+
+### Voucher & Withdrawal Management
+
+* Platform-wide vouchers.
+* Withdrawal approval process.
 
 ---
 
+# 📐 4. Architectural Standards
 
-## 📐 4. Standards & Architectural Design
+## CQRS + Clean Architecture
 
-1. **CQRS & Clean Architecture**:
-   - Tách biệt 2 file độc lập: `[Name]Query.cs` / `[Name]Command.cs` và `[Name]QueryHandler.cs` / `[Name]CommandHandler.cs`.
-2. **gRPC Presentation Adapter Pattern**:
-   - `GrpcServer.cs` chỉ là Presentation layer, ủy quyền xử lý qua MediatR `ISender.Send(...)`.
-3. **gRPC Client Service Abstraction**:
-   - Gọi gRPC inter-service qua class `grpcClientService` (`ProductClientService`, `SellerClientService`...) bọc `RpcException` thành `Result<T>`.
-4. **UnitOfWork & Generic Repository Pattern**:
-   - Quản lý giao dịch và truy vấn qua `IEfUnitOfWork` và `IGenericEfRepository<T>`.
-5. **MassTransit Saga & Transactional Outbox Pattern**:
-   - Đảm bảo tính nhất quán dữ liệu sự kiện giữa database commit và RabbitMQ message publish.
-6. **Frontend React 19 ACO Architecture**:
-   - Tách biệt rõ ràng theo cấu trúc 3 tầng: `apps/` (Các trang hoàn chỉnh phân theo vai trò User/Seller/Admin/Auth), `domains/` (Domain logic, API, Hooks, Types, Sub-components) và `shared/` (Utilities dùng chung).
-   - Modal Popups bắt buộc dùng `createPortal(..., document.body)` với `z-10000`.
-   - Error handling bắt lỗi theo HTTP Status Code (400, 404, 500) và `Result.ErrorCode`.
+Commands and Queries are fully separated.
+
+```text
+CreateOrderCommand.cs
+CreateOrderCommandHandler.cs
+
+GetOrderQuery.cs
+GetOrderQueryHandler.cs
+```
 
 ---
 
-## 🚀 5. Hướng dẫn Chạy Hệ thống (Getting Started)
+## gRPC Presentation Adapter Pattern
 
-### Yêu cầu Môi trường:
-- .NET 9 SDK
-- Node.js v20+ & npm
-- Docker Desktop (PostgreSQL, MySQL, Redis, RabbitMQ)
+gRPC services only act as transport adapters.
 
-### Khởi chạy Infrastructure qua Docker:
+```csharp
+await sender.Send(command);
+```
+
+Business logic remains inside the Application Layer.
+
+---
+
+## gRPC Client Abstraction
+
+Inter-service communication is wrapped behind service abstractions.
+
+Examples:
+
+```text
+ProductClientService
+SellerClientService
+ShippingClientService
+```
+
+Benefits:
+
+* Centralized error handling.
+* RpcException wrapping.
+* Consistent Result<T> responses.
+
+---
+
+## Unit of Work & Repository Pattern
+
+Database access is abstracted through:
+
+```text
+IEfUnitOfWork
+IGenericEfRepository<T>
+```
+
+Benefits:
+
+* Transaction management.
+* Consistent repository implementation.
+* Improved testability.
+
+---
+
+## MassTransit Saga & Transactional Outbox
+
+Used to guarantee eventual consistency between:
+
+```text
+Database Transaction
++
+RabbitMQ Message Publication
+```
+
+Benefits:
+
+* Reliable event delivery.
+* Distributed transaction orchestration.
+* Recovery from partial failures.
+
+---
+
+## Frontend Architecture (React 19)
+
+Frontend follows a three-layer architecture:
+
+```text
+apps/
+domains/
+shared/
+```
+
+### apps/
+
+Complete application pages grouped by business role:
+
+* User
+* Seller
+* Admin
+* Authentication
+
+### domains/
+
+Business domain modules:
+
+* API integrations
+* Hooks
+* Types
+* Components
+
+### shared/
+
+Reusable utilities and common components.
+
+### UI Standards
+
+* Modals rendered using:
+
+```tsx
+createPortal(..., document.body)
+```
+
+* Centralized API error handling based on:
+
+  * HTTP Status Codes
+  * Result.ErrorCode
+
+---
+
+# 🚀 5. Getting Started
+
+## Prerequisites
+
+* .NET 9 SDK
+* Node.js 20+
+* Docker Desktop
+
+Infrastructure Components:
+
+* PostgreSQL
+* MySQL
+* Redis
+* RabbitMQ
+
+---
+
+## Start Infrastructure
+
 ```bash
 docker compose up -d
 ```
 
-### Khởi chạy Backend Microservices:
+---
+
+## Run Backend Services
+
 ```bash
-# Mở solution trong Visual Studio / Rider hoặc chạy bằng CLI
 dotnet build Microservices.sln
 ```
 
-### Khởi chạy Frontend React Web App:
+Run services from:
+
+* Visual Studio
+* JetBrains Rider
+* .NET CLI
+
+---
+
+## Run Frontend
+
 ```bash
 cd frontend-web
+
 npm install
+
 npm run dev
 ```
-Trang web sẽ chạy tại `http://localhost:5173`.
 
-### 🐳 Khởi chạy Production Stack trên VPS (Docker Compose):
+Application URL:
+
+```text
+http://localhost:5173
+```
+
+---
+
+# 🐳 Production Deployment
+
+Deploy the complete stack on a VPS using Docker Compose.
+
 ```bash
-# 1. Đi tới thư mục src và copy file cấu hình mẫu
+# Navigate to source directory
 cd src
+
+# Create environment file
 cp .env.example .env
 
-# 2. Chỉnh sửa mật khẩu và cấu hình trong file .env
+# Edit environment variables
 nano .env
 
-# 3. Khởi chạy toàn bộ 8 Microservices, Gateway, Frontend & Observability
-docker compose -f docker-compose.prod.yaml --env-file .env up -d
+# Start all services
+docker compose \
+  -f docker-compose.prod.yaml \
+  --env-file .env \
+  up -d
 ```
+
+This deployment includes:
+
+* API Gateway
+* Frontend
+* All Backend Services
+* Databases
+* Message Broker
+* Observability Stack
+
+---
+
+# 🔧 Technology Stack
+
+### Backend
+
+* .NET 9
+* ASP.NET Core
+* MediatR
+* FluentValidation
+* MassTransit
+* gRPC
+* Entity Framework Core
+
+### Databases
+
+* PostgreSQL
+* MySQL
+* Redis
+
+### Messaging
+
+* RabbitMQ
+* MassTransit Saga State Machine
+
+### Frontend
+
+* React 19
+* TypeScript
+* Zustand
+* TanStack Query
+* React Hook Form
+* Zod
+
+### Infrastructure
+
+* Docker
+* Docker Compose
+* YARP API Gateway
+
+### Observability
+
+* OpenTelemetry
+* Grafana
+* Loki
+* Tempo
+
+---
+
+# 📄 License
+
+This project is developed for learning, portfolio, and enterprise-scale ecommerce architecture experimentation.
