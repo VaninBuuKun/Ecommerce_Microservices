@@ -10,10 +10,10 @@ import {
 } from "lucide-react";
 import { ProductVariantRow } from "./ProductVariantRow";
 import { formatPrice, formatStock } from "@/shared";
-import type { ProductDto } from "../../types/catalog.types";
+import type { Product } from "../../types/catalog.types";
 
 interface ProductRowProps {
-	product: ProductDto;
+	product: Product;
 	isExpanded: boolean;
 	onToggleExpand: (id: string) => void;
 	onEdit: (id: string) => void;

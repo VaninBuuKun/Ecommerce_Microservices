@@ -12,6 +12,7 @@ dist/
 dist-ssr/
 out/
 build/
+build_out.txt
 
 # Thư mục lưu trữ các gói thư viện (Nuget) cài thêm
 *.nuget.props
@@ -70,4 +71,7 @@ appsettings.*.json
 .gemini/
 .brain/
 .scratch/
-scratchpad.md
+scratchpad.md
+AGENTS.md
+
+*.csv

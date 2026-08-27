@@ -1,3 +1,8 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
 using BuildingBlocks.Auth;
 using BuildingBlocks.Shared.Commons;
 using BuildingBlocks.Shared.Enums;
@@ -48,12 +53,12 @@ public class GetCartQueryHandler(
             }
 
             var variantIds = cart.Items
-                .Where(i => i.ProductVariantId.HasValue && i.ProductVariantId.Value != Guid.Empty)
-                .Select(i => i.ProductVariantId.Value.ToString())
+                .Where(i => i.ProductVariantId.HasValue && i.ProductVariantId.Value != 0)
+                .Select(i => i.ProductVariantId!.Value)
                 .ToList();
             var productIds = cart.Items
-                .Where(i => !i.ProductVariantId.HasValue || i.ProductVariantId.Value == Guid.Empty)
-                .Select(i => i.ProductId.ToString())
+                .Where(i => i.ProductId != 0)
+                .Select(i => i.ProductId)
                 .ToList();
 
             var listProductResult = await productService.GetProductVariantListAsync(variantIds, productIds);
@@ -64,13 +69,20 @@ public class GetCartQueryHandler(
             }
 
             var ListProductDto = listProductResult.Value;
-            var productDist = ListProductDto.ToDictionary(p => p.VariantId);
+            var productDist = new Dictionary<long, Ecommerce.Services.Carts.Api.Models.Dtos.ProductDto>();
+            foreach (var p in ListProductDto)
+            {
+                if (p.VariantId != 0) productDist[p.VariantId] = p;
+                if (p.ProductId != 0) productDist[p.ProductId] = p;
+            }
             
             // Map flat items list
             var flatItems = mapper.Map<List<CartItemResponse>>(cart.Items);
             foreach (var item in flatItems)
             {
-                var lookupKey = (item.ProductVariantId != Guid.Empty) ? item.ProductVariantId : item.ProductId;
+                var lookupKey = (item.ProductVariantId != 0 && productDist.ContainsKey(item.ProductVariantId)) 
+                    ? item.ProductVariantId 
+                    : item.ProductId;
                 if (productDist.TryGetValue(lookupKey, out var productInfo))
                 {
                     item.ProductName = productInfo.ProductName;

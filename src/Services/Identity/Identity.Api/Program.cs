@@ -60,12 +60,13 @@ try
     // Xem tài liệu: migration_seeding_strategy.md
 
     // Seed system data (Roles + Admin user) — Idempotent, đọc password từ ENV
-    using (var scope = app.Services.CreateScope())
-    {
-        var userManager = scope.ServiceProvider.GetRequiredService<UserManager<AppUser>>();
-        var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole<long>>>();
-        await SeedDataExtensions.SeedUserAndRoleAsync(userManager, roleManager);
-    }
+    // using (var scope = app.Services.CreateScope())
+    // {
+    //     var userManager = scope.ServiceProvider.GetRequiredService<UserManager<AppUser>>();
+    //     var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole<long>>>();
+    //     var dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+    //     await SeedDataExtensions.SeedUserAndRoleAsync(userManager, roleManager, dbContext);
+    // }
 
     app.Run();
 

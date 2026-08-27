@@ -18,7 +18,7 @@ public class UpdateVoucherCommandHandler(
     IMapper mapper
 ) : CommandHandler<UpdateVoucherCommand, VoucherDto>
 {
-    private IGenericEfRepository<Voucher, Guid> VoucherRepo => unitOfWork.Repository<Voucher, Guid>();
+    private IGenericEfRepository<Voucher, long> VoucherRepo => unitOfWork.Repository<Voucher, long>();
 
     protected override async Task<Result<VoucherDto>> HandleCommandAsync(UpdateVoucherCommand command, CancellationToken cancellationToken)
     {

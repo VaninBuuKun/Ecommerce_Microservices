@@ -12,8 +12,8 @@ namespace Ecommerce.Services.Catalog.Api.Controllers;
 [Authorize]
 public class WishlistsController(ISender sender, ICurrentUserService userService) : ControllerBase
 {
-    [HttpPost("toggle/{productId}")]
-    public async Task<IActionResult> ToggleWishlist(Guid productId)
+    [HttpPost("toggle/{productId:long}")]
+    public async Task<IActionResult> ToggleWishlist(long productId)
     {
         var customerId = userService.UserId;
         if (customerId <= 0)

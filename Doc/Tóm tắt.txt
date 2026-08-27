@@ -1,0 +1,111 @@
+Mục luc:
+1.Tóm tắt kiến thức về HTTP và gRPC
+2.Outbox Pattern & Idempotent pattern
+3.Transaction
+
+
+1                       <================================== Tóm tắt kiến thức về HTTP và gRPC ==================================>
+
+Hiểu cơ bản về http1.0, http1.1, http2.0, http3.0
+http1.0: Hỗ trợ get,post,put,... mỗi lần gửi yêu cầu sẽ tạo 1 tcp connection, thực hiện xong thì đóng kết nôi, không hỗ trợ pipelining, không hỗ trợ keep-alive
+http1.1: khắc phục nhược điểm của http1.0, hỗ trợ keep-alive, pipelining, chunked transfer encoding, host header, 
+    pipeling thì dẫn đến vấn đề head-of-line blocking, khi 1 request bị chậm thì các request sau sẽ bị chậm theo.
+http2.0: sử dụng binary framing, multiplexing, header compression, server push, giải quyết vấn đề head-of-line blocking, cải thiện hiệu suất và giảm độ trễ
+    , so sánh với rest về payload thì http2.0 dùng binary không dùng json. Với lại điểm yếu của http2.0 là vẫn sử dụng TCP nên vẫn có vấn đề head-of-line blocking khi mất gói tin
+    , và không tối ưu cho môi trường mạng không ổn định. Mất gói tin tcp thì có thể retransmit lại, tuy nhiên khi môi trường mạng
+    không ổn định thì việc retransmit lại sẽ làm tăng độ trễ, ảnh hưởng đến hiệu suất. Bản chất multiplexing là chỉ cho phép nhiều request được gửi cùng lúc trên một kết nối TCP,
+    nhưng nếu mất gói tin thì tất cả các request sẽ bị chậm theo, dẫn đến hiệu suất giảm đáng kể. Ví dụ 2 request productbyId, validateProducts, 
+    đc binary framing tức là chia nhỏ các rq thành các frame xem kẽ, A1,B1, A2,B2,... nếu mất gói tin A1 
+    thì tất cả các request sau đó đều bị chậm theo, kể cả B1, B2,... mặc dù chúng không bị mất gói tin (B1,B2 sẽ đc lưu ở buffer, nên khi A1 đc retransmit thì các gói tin này cx sẽ đc gửi lên các tầng coa hơn).
+    Grpc: là một framework RPC (Remote Procedure Call) mã nguồn mở được phát triển bởi Google, sử dụng HTTP/2 làm giao thức truyền tải, hỗ trợ nhiều ngôn ngữ lập trình, cung cấp hiệu suất cao và khả năng mở rộng tốt, 
+    thường được sử dụng trong các hệ thống phân tán và microservices.
+http3.0: sử dụng giao thức QUIC thay vì TCP, cải thiện hiệu suất, QUIC dùng UDP, giảm độ trễ kết nối, cải thiện hiệu suất trong môi trường mạng không ổn định, hỗ trợ multiplexing và header compression tương tự http2.0
+
+
+Protobuf: là một định dạng dữ liệu nhị phân được sử dụng để serialize và deserialize dữ liệu, 
+được phát triển bởi Google, có hiệu suất cao hơn so với JSON hoặc XML.
+message CartItem {
+  string id = 1;
+  string price = 2;
+  int32 quantity = 3;
+}
+Đánh fields number để xác định thứ tự của các trường trong message, giúp cho việc serialize và deserialize dữ liệu trở nên hiệu quả hơn. 
+(Do 2 bên đã bết về cái field rồi nên chỉ cần đánh số thứ từ->tiết kiện payload)
+4 kieeur calling trong grpc: unary(1 request, 1 response) , server streaming (1 request, nhiều response theo stream), client streaming (nhiều rq, mốt res), bidirectional streaming (gửi stream qua lại)
+    Grpc phù hợp:
+    Microservices nội bộ.
+    Service-to-service.
+    Low latency.
+    Contract-first.
+    Multi-language.
+    Streaming.
+    Hệ thống cần performance tốt.
+    
+Grpc Error Handling:
+    OK
+    CANCELLED
+    UNKNOWN
+    INVALID_ARGUMENT
+    DEADLINE_EXCEEDED
+    NOT_FOUND
+    ALREADY_EXISTS
+    PERMISSION_DENIED
+    UNAUTHENTICATED
+    RESOURCE_EXHAUSTED
+    FAILED_PRECONDITION
+    INTERNAL
+    UNAVAILABLE
+   
+<PackageReference Include="Google.Protobuf" Version="..." /> : Thư viện chính thức của Google để làm việc với Protobuf trong .NET, cung cấp các lớp và phương thức để serialize và deserialize dữ liệu Protobuf.
+<PackageReference Include="Grpc.Tools" Version="..." PrivateAssets="All" /> : Thư viện này cung cấp các công cụ để biên dịch các file .proto thành mã nguồn C# tự động, giúp bạn dễ dàng tích hợp Protobuf và gRPC vào dự án của mình.
+    
+Backward Compatible: Khi bạn thêm một trường mới vào message, bạn cần đảm bảo rằng trường đó có một field number mới và không trùng với các field number đã tồn tại.
+ Điều này giúp đảm bảo rằng các client cũ vẫn có thể deserialize dữ liệu mà không gặp lỗi, vì chúng sẽ bỏ qua các trường mới mà chúng không nhận biết. Tức là muốn
+ thăng cấp sv A,B thì chỉ cần thêm trường mới vào message, => sv C vẫn hoạt đọng bình thường vs trường cũ.
+    
+2.                      <=============================== Outbox Pattern & Idempotent pattern =================================>
+Outbox pattern được sử dụng để đảm bảo tính nhất quán dữ liệu. Mẫu này giúp giải quyết vấn đề khi gửi một event sang sv, hoặc một cái j đó  khác qua event bus,
+đảm bảo rằng event sẽ đc gửi ít nhất một lần. Ví dụ save vào db rồi, phải đam bảo rằng event sẽ đc gửi đi, nếu không sẽ dẫn đến mất tính consistency.
+Cách implement: Thêm message vào db, sau đó có một background job sẽ đọc message từ db (đọc khoảng 20 message một lần, trong vòng 2 s sau đọc tiếp), message gửi xong rồi thì xóa hết đi.
+Note: lọc message chưa xử lí, tránh gửi đi nhiều lần, bằng cách thêm cột date để nói rằng nó đã đc gửi. 
+=> Điểm yếu: có thể duplicate message nếu có lỗi trong quá trình gửi(như mất kết nối mạng, các msg gửi đi nhưng chưa kịp update date để đánh dấu đã gửi),
+nhưng sẽ không bị mất message nào.
+
+Idempotent pattern được sử dụng để đảm bảo một hành động chỉ đc thực hện một lần, ngay cả khi có nhiều yêu cầu giống nhau được gửi đến. 
+Ví dụ: khi đặt hàng, nếu khách hàng gửi yêu cầu đặt hàng nhiều lần do lỗi mạng, hệ thống sẽ chỉ xử lý một yêu cầu duy nhất và bỏ qua các yêu cầu trùng lặp khác.
+Cách implement: Thêm một trường idempotency key vào request, khi nhận được yêu cầu, hệ thống sẽ kiểm tra xem idempotency key đã tồn tại trong cơ sở dữ liệu hay chưa.
+
+
+3.                      <=============================== Transaction =================================>
+ACID: Atomicity (Tính nguyên tử), Consistency (Tính nhất quán), Isolation (Tính cô lập), Durability (Tính bền vững)
+- Atomicity: Tất cả các hoạt động trong một transaction phải được thực hiện hoàn toàn hoặc không thực hiện gì cả. Nếu có bất kỳ lỗi nào xảy ra trong 
+quá trình thực hiện transaction thì tất cả các thay đổi sẽ được rollback về trạng thái ban đầu, đảm bảo rằng dữ liệu không bị ảnh hưởng bởi các lỗi tạm thời.
+- Consistency: Transaction phải đưa cơ sở dữ liệu từ một trạng thái nhất quán này sang một trạng thái nhất quán khác. 
+Điều này có nghĩa là sau khi transaction hoàn thành, tất cả các ràng buộc và quy tắc của cơ sở dữ liệu phải được duy trì, đảm bảo rằng dữ liệu luôn ở trạng thái hợp lệ.
+Ví dụ về consitency: Nếu bạn có một bảng "Users" với một ràng buộc rằng "email" phải là duy nhất, thì sau khi thực hiện một transaction để thêm một người dùng mới,
+cơ sở dữ liệu phải đảm bảo rằng ràng buộc này vẫn được duy trì, nghĩa là không có hai người dùng nào có cùng địa chỉ email. Tức là nếu có lỗi trên db sẽ quăng lỗi ra, và transaction sẽ bị rollback
+,đảm bảo rằng dữ liệu vẫn ở trạng thái nhất quán.
+- Isolation: Các transaction phải được thực hiện một cách cô lập với nhau, nghĩa là các thay đổi do một transaction 
+thực hiện sẽ không ảnh hưởng đến các transaction khác cho đến khi transaction đó hoàn thành.
+Ví dụ về isolation: Nếu bạn có hai transaction đang chạy đồng thời, một transaction đang cập nhật thông tin của một người dùng và một 
+transaction khác đang đọc thông tin của cùng người dùng đó, thì transaction đọc sẽ không thấy các thay đổi do transaction cập nhật thực hiện cho đến khi transaction cập nhật hoàn thành. 
+Điều này đảm bảo rằng các transaction không can thiệp lẫn nhau và dữ liệu luôn ở trạng thái nhất quán.
+- Durability: Khi một transaction đã được cam kết (committed), các thay đổi mà nó thực hiện sẽ được lưu trữ vĩnh viễn trong cơ sở dữ liệu, 
+ngay cả khi có sự cố hệ thống xảy ra sau đó.
+
+Các mức độ isolation trong transaction:
+- Read Uncommitted: Cho phép một transaction đọc dữ liệu chưa được cam kết bởi transaction khác, có thể dẫn đến hiện tượng dirty read (đọc dữ liệu bẩn).
+- Read Committed: Chỉ cho phép một transaction đọc dữ liệu đã được cam kết bởi transaction khác,
+có thể dẫn đến hiện tượng non-repeatable read (đọc dữ liệu không lặp lại). //Tức là cùng một transation nhưng 2 lần đọc khác nhau do có transaction khác đã commit thay đổi dữ liệu đó.
+- Repeatable Read: Đảm bảo rằng nếu một transaction đọc dữ liệu, nó sẽ thấy cùng một dữ liệu đó trong suốt quá trình thực hiện transaction, có thể dẫn đến hiện tượng
+phantom read (đọc dữ liệu ma). //Tức là nếu một transaction đọc dữ liệu, sau đó một transaction khác thêm dữ liệu mới vào cơ sở dữ liệu mà transaction đầu tiên đã đọc, 
+.thì transaction đầu tiên sẽ không thấy dữ liệu mới đó khi nó đọc lại dữ liệu. Tức là transcation select bảng A, sau đó transaction khác insert thêm dữ liệu vào bảng A, 
+khi transaction đầu tiên select lại thì sẽ thấy dữ liệu mới đó.
+phantom read != non-repeatable read: non-repeatable read là khi một transaction đọc dữ liệu, sau đó một transaction khác cập nhật hoặc xóa dữ liệu đó, 
+khiến cho transaction đầu tiên thấy dữ liệu khác khi nó đọc lại.
+- Serializable: Đảm bảo rằng các transaction được thực hiện một cách tuần tự, không có transaction nào có thể can thiệp vào transaction khác, 
+đảm bảo tính nhất quán cao nhất nhưng có thể dẫn đến hiệu suất thấp do việc khóa dữ liệu.
+
+- Khóa lạc quan: điểm yếu của khóa lạc quan là tải cao k nổi, vì ví dụ 1000 rq đến entity mình, chỉ có 1 thằng chấp nhận 999 thằng còn lại try exception, retry tiếp theo, khóa lạc quan đảm bảo rằng tại 1 lúc thì chỉ tác động lên dòng đó 1 lần.
+
+                 

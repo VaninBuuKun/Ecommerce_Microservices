@@ -1,0 +1,234 @@
+{
+	"info": {
+		"_postman_id": "9a38f32d-209e-4c74-a035-7c2a4f4fe23c",
+		"name": "GHN Direct API Testing",
+		"description": "Bộ sưu tập các request gọi trực tiếp tới hệ thống API GHN (Sandbox/Production) để kiểm thử tính năng vận chuyển.",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "Shop & Account",
+			"item": [
+				{
+					"name": "Get All Shops (Lấy toàn bộ shop liên kết với token)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Token",
+								"value": "{{ghn_token}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"offset\": 0,\n    \"limit\": 50\n}"
+						},
+						"url": {
+							"raw": "{{ghn_baseUrl}}/shiip/public-api/v2/shop/all",
+							"host": [
+								"{{ghn_baseUrl}}"
+							],
+							"path": [
+								"shiip",
+								"public-api",
+								"v2",
+								"shop",
+								"all"
+							]
+						},
+						"description": "Lấy danh sách các Shop đã đăng ký trên tài khoản tương ứng với Token."
+					},
+					"response": []
+				},
+				{
+					"name": "Register Shop (Đăng ký một shop mới)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Token",
+								"value": "{{ghn_token}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"district_id\": 1442,\n    \"ward_code\": \"20109\",\n    \"name\": \"Shop Quần Áo Mẫu\",\n    \"phone\": \"0987654321\",\n    \"address\": \"123 Đường Mẫu, Phường 1\"\n}"
+						},
+						"url": {
+							"raw": "{{ghn_baseUrl}}/shiip/public-api/v2/shop/register",
+							"host": [
+								"{{ghn_baseUrl}}"
+							],
+							"path": [
+								"shiip",
+								"public-api",
+								"v2",
+								"shop",
+								"register"
+							]
+						},
+						"description": "Đăng ký Shop lấy hàng mới trên GHN."
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Calculation",
+			"item": [
+				{
+					"name": "Calculate Fee (Tính phí vận chuyển trực tiếp)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Token",
+								"value": "{{ghn_token}}"
+							},
+							{
+								"key": "ShopId",
+								"value": "{{ghn_shop_id}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"service_id\": 53320,\n    \"to_district_id\": 1442,\n    \"to_ward_code\": \"20109\",\n    \"weight\": 500,\n    \"length\": 20,\n    \"width\": 15,\n    \"height\": 10,\n    \"insurance_value\": 0\n}"
+						},
+						"url": {
+							"raw": "{{ghn_baseUrl}}/shiip/public-api/v2/shipping-order/fee",
+							"host": [
+								"{{ghn_baseUrl}}"
+							],
+							"path": [
+								"shiip",
+								"public-api",
+								"v2",
+								"shipping-order",
+								"fee"
+							]
+						},
+						"description": "API tính phí ship từ shop mặc định đến địa chỉ người nhận. Dùng service_id trực tiếp để tránh lỗi phân giải khi bỏ qua địa chỉ gửi."
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Waybill & Orders",
+			"item": [
+				{
+					"name": "Create Order / Waybill (Tạo đơn hàng vận chuyển)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Token",
+								"value": "{{ghn_token}}"
+							},
+							{
+								"key": "ShopId",
+								"value": "{{ghn_shop_id}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"payment_type_id\": 2,\n    \"note\": \"Cho xem hàng, không cho thử\",\n    \"required_note\": \"CHOXEMHANGKHONGTHU\",\n    \"from_name\": \"Cửa hàng Demo\",\n    \"from_phone\": \"0987654321\",\n    \"from_address\": \"123 Đường Mẫu\",\n    \"from_ward_name\": \"Phường Cầu Kho\",\n    \"from_district_name\": \"Quận 1\",\n    \"from_province_name\": \"TP Hồ Chí Minh\",\n    \"to_name\": \"Khách Hàng Thử Nghiệm\",\n    \"to_phone\": \"0909090909\",\n    \"to_address\": \"456 Phố Vọng\",\n    \"to_ward_code\": \"20109\",\n    \"to_district_id\": 1442,\n    \"weight\": 800,\n    \"length\": 30,\n    \"width\": 20,\n    \"height\": 10,\n    \"service_type_id\": 2,\n    \"cod_amount\": 250000,\n    \"items\": [\n        {\n            \"name\": \"Sản phẩm A\",\n            \"code\": \"SP_DEMO_01\",\n            \"quantity\": 1,\n            \"price\": 250000,\n            \"weight\": 800\n        }\n    ]\n}"
+						},
+						"url": {
+							"raw": "{{ghn_baseUrl}}/shiip/public-api/v2/shipping-order/create",
+							"host": [
+								"{{ghn_baseUrl}}"
+							],
+							"path": [
+								"shiip",
+								"public-api",
+								"v2",
+								"shipping-order",
+								"create"
+							]
+						},
+						"description": "Tạo vận đơn chính thức trên hệ thống GHN."
+					},
+					"response": []
+				},
+				{
+					"name": "Cancel Order (Hủy đơn hàng vận chuyển)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Token",
+								"value": "{{ghn_token}}"
+							},
+							{
+								"key": "ShopId",
+								"value": "{{ghn_shop_id}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"order_codes\": [\n        \"{{order_code}}\"\n    ]\n}"
+						},
+						"url": {
+							"raw": "{{ghn_baseUrl}}/shiip/public-api/v2/switch-status/cancel",
+							"host": [
+								"{{ghn_baseUrl}}"
+							],
+							"path": [
+								"shiip",
+								"public-api",
+								"v2",
+								"switch-status",
+								"cancel"
+							]
+						},
+						"description": "Hủy vận đơn đã tạo dựa trên mã vận đơn order_code."
+					},
+					"response": []
+				}
+			]
+		}
+	],
+	"variable": [
+		{
+			"key": "ghn_baseUrl",
+			"value": "https://dev-online-gateway.ghn.vn",
+			"type": "string"
+		},
+		{
+			"key": "ghn_token",
+			"value": "YOUR_GHN_API_TOKEN",
+			"type": "string"
+		},
+		{
+			"key": "ghn_shop_id",
+			"value": "YOUR_GHN_SHOP_ID",
+			"type": "string"
+		},
+		{
+			"key": "order_code",
+			"value": "Mã đơn hàng GHN trả về khi tạo thành công",
+			"type": "string"
+		}
+	]
+}

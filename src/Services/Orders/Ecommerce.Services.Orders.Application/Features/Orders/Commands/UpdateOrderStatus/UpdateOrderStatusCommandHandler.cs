@@ -9,7 +9,7 @@ namespace Ecommerce.Services.Orders.Application.Features.Orders.Commands.UpdateO
 
 public class UpdateOrderStatusCommandHandler(IEfUnitOfWork unitOfWork) : CommandHandler<UpdateSubOrderStatusCommand>
 {
-    private readonly IGenericEfRepository<SubOrder, Guid> _orderRepository = unitOfWork.Repository<SubOrder, Guid>();
+    private readonly IGenericEfRepository<SubOrder, long> _orderRepository = unitOfWork.Repository<SubOrder, long>();
     
     protected override async Task<Result> HandleCommandAsync(UpdateSubOrderStatusCommand command, CancellationToken cancellationToken)
     {

@@ -1,3 +1,7 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
 using BuildingBlocks.Grpc.Extensions;
 using BuildingBlocks.Grpc.Services;
 using BuildingBlocks.Shared.Commons;
@@ -5,7 +9,6 @@ using BuildingBlocks.Shared.Enums;
 using Ecommerce.Services.Orders.Application.Commons.Dtos.Cart;
 using Ecommerce.Services.Orders.Application.Services;
 using Grpc.Core;
-using CartItemDto = Ecommerce.Services.Orders.Application.Commons.Dtos.Cart.CartItemDto;
 
 namespace Ecommerce.Services.Orders.Infrastructure.GrpcClients;
 
@@ -26,10 +29,10 @@ public class CartClientService(CartGrpc.CartGrpcClient client) : ICartService
             {
                 cartDto.Items.Add(new CartItemDto()
                 {
-                    VariantId = Guid.Parse(item.VariantId),
+                    VariantId = item.VariantId,
                     Quantity = item.Quantity,
                     IsSelected = item.IsSelected,
-                    ProductId = Guid.TryParse(item.ProductId, out var prodId) ? prodId : Guid.Empty,
+                    ProductId = item.ProductId,
                     ProductName = item.ProductName,
                     VariantName = item.VariantName,
                     UnitPrice = decimal.TryParse(item.UnitPrice, out var uPrice) ? uPrice : 0,
@@ -56,12 +59,12 @@ public class CartClientService(CartGrpc.CartGrpcClient client) : ICartService
         }
     }
 
-    public async Task<Result> ClearCart(long customerId, List<Guid> variantIds)
+    public async Task<Result> ClearCart(long customerId, List<long> variantIds)
     {
         try
         {
             var request = new ClearCartRequest { CustomerId = customerId };
-            request.VariantIds.AddRange(variantIds.Select(id => id.ToString()));
+            request.VariantIds.AddRange(variantIds);
             
             var response = await client.ClearCartAsync(request);
             if (!response.IsSuccess)
@@ -79,4 +82,4 @@ public class CartClientService(CartGrpc.CartGrpcClient client) : ICartService
             return Result.Failure($"Error clearing cart: {ex.Message}", EErrorCode.InternalServerError);
         }
     }
-};
+}

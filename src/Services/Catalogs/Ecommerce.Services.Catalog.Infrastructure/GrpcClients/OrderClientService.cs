@@ -15,7 +15,7 @@ public class OrderClientService(
     ILogger<OrderClientService> logger)
     : IOrderService
 {
-    public async Task<Result<int>> GetCompletedSubOrderCountForProductAsync(long customerId, Guid productId, CancellationToken cancellationToken = default)
+    public async Task<Result<int>> GetCompletedSubOrderCountForProductAsync(long customerId, long productId, CancellationToken cancellationToken = default)
     {
         try
         {

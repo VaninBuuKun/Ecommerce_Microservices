@@ -1,4 +1,6 @@
-using BuildingBlocks.Auth;
+using System;
+using System.Threading;
+using System.Threading.Tasks;
 using BuildingBlocks.Shared.Commons;
 using BuildingBlocks.Shared.Enums;
 using BuildingBlocks.Shared.InfrastructureInterfaces.Caching;
@@ -9,7 +11,7 @@ using Microsoft.Extensions.Logging;
 
 namespace Ecommerce.Services.Carts.Api.Features.Carts.Commands.RemoveItemFromCart;
 
-public record RemoveItemFromCartCommand(long CustomerId, Guid ProductVariantId) : ICommand;
+public record RemoveItemFromCartCommand(long CustomerId, long ProductVariantId) : ICommand;
 
 public class RemoveItemFromCartCommandHandler(
     ICacheService cacheService,

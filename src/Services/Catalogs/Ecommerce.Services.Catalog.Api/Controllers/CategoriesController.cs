@@ -33,9 +33,9 @@ public class CategoriesController(ISender sender) : ControllerBase
         return StatusCode(result.GetHttpStatusCode(), result.Message);
     }
 
-    [HttpPut("{id:guid}")]
+    [HttpPut("{id:long}")]
     [Authorize(Roles = "Admin")]
-    public async Task<IActionResult> UpdateCategory(Guid id, [FromBody] UpdateCategoryRequest request)
+    public async Task<IActionResult> UpdateCategory(long id, [FromBody] UpdateCategoryRequest request)
     {
         var result = await sender.Send(new UpdateCategoryCommand(
             id,
@@ -52,9 +52,9 @@ public class CategoriesController(ISender sender) : ControllerBase
         return StatusCode(result.GetHttpStatusCode(), result.Message);
     }
 
-    [HttpDelete("{id:guid}")]
+    [HttpDelete("{id:long}")]
     [Authorize(Roles = "Admin")]
-    public async Task<IActionResult> DeleteCategory(Guid id)
+    public async Task<IActionResult> DeleteCategory(long id)
     {
         var result = await sender.Send(new DeleteCategoryCommand(id));
 
@@ -79,5 +79,5 @@ public class CategoriesController(ISender sender) : ControllerBase
     }
 }
 
-public record CreateCategoryRequest(string Name, string Description, string? IconUrl, Guid? ParentId);
-public record UpdateCategoryRequest(string Name, string Description, Guid? ParentId);
+public record CreateCategoryRequest(string Name, string Description, string? IconUrl, long? ParentId);
+public record UpdateCategoryRequest(string Name, string Description, long? ParentId);

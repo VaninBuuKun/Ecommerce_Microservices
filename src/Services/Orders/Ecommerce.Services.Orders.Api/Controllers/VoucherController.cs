@@ -25,8 +25,8 @@ public class VoucherController(ISender sender, ICurrentUserService userService) 
     }
 
     /// <summary>Cập nhật voucher — bao gồm active/deactive qua IsActive field</summary>
-    [HttpPut("{voucherId:guid}")]
-    public async Task<IActionResult> Update(Guid voucherId, [FromBody] UpdateVoucherRequest request)
+    [HttpPut("{voucherId:long}")]
+    public async Task<IActionResult> Update(long voucherId, [FromBody] UpdateVoucherRequest request)
     {
         var result = await sender.Send(new UpdateVoucherCommand(userService.IsAdmin, userService.UserId, voucherId, request));
 

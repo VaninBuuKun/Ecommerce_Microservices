@@ -8,7 +8,7 @@ namespace Ecommerce.Services.Catalog.Application.Features.Products.Queries.GetPr
 
 public record GetProductsQuery(
     string? SearchTerm, 
-    Guid? CategoryId, 
+    long? CategoryId, 
     double? MinRating, 
     string? Cursor, 
     int Limit = 10, 

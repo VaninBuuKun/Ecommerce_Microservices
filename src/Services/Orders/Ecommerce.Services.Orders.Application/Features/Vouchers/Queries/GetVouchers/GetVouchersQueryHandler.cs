@@ -13,7 +13,7 @@ namespace Ecommerce.Services.Orders.Application.Features.Vouchers.Queries.GetPla
 
 public class GetVouchersQueryHandler(IEfUnitOfWork unitOfWork, ILogger<GetVouchersQueryHandler> logger, IMapper mapper) : QueryHandler<GetVouchersQuery, List<VoucherDto>>
 {
-    private IGenericEfRepository<Voucher, Guid> voucherRepo => unitOfWork.Repository<Voucher, Guid>();
+    private IGenericEfRepository<Voucher, long> voucherRepo => unitOfWork.Repository<Voucher, long>();
     protected override async Task<Result<List<VoucherDto>>> HandleQueryAsync(GetVouchersQuery query, CancellationToken cancellationToken)
     {
         try

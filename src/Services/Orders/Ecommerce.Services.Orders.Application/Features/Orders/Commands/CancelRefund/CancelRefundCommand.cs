@@ -5,4 +5,4 @@ using BuildingBlocks.Shared.InfrastructureInterfaces.InMemoryBus;
 
 namespace Ecommerce.Services.Orders.Application.Features.Orders.Commands.CancelRefund;
 
-public record CancelRefundCommand(Guid RefundRequestId, long CustomerId) : ICommand;
+public record CancelRefundCommand(long RefundRequestId, long CustomerId) : ICommand;

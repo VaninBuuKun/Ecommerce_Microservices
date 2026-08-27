@@ -23,7 +23,7 @@ public class GetSubOrdersQueryHandler(
         var customerId = query.CustomerId;
         logger.LogInformation("Getting orders for customer: {CustomerId}", customerId);
 
-        var subOrderRepo = unitOfWork.Repository<SubOrder, Guid>();
+        var subOrderRepo = unitOfWork.Repository<SubOrder, long>();
 
         // Fetch orders using repository method, without calling AsQueryable()
         var orders = await subOrderRepo.GetAllAsync(

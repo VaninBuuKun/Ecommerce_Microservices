@@ -12,7 +12,7 @@ public enum KycStatus
     Rejected = 3
 }
 
-public class SellerKyc : EntityTrackingBase<Guid>
+public class SellerKyc : EntityTrackingBase<long>
 {
     public long UserId { get; set; }
     public string IdentityCardNumber { get; set; } = string.Empty;

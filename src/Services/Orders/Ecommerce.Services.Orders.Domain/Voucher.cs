@@ -5,7 +5,7 @@ using Ecommerce.Services.Orders.Domain.Enums;
 
 namespace Ecommerce.Services.Orders.Domain;
 
-public class Voucher : EntityTrackingBase<Guid>
+public class Voucher : EntityTrackingBase<long>
 {
     public string Code { get; set; }
     public string Name { get; set; }

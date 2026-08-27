@@ -53,9 +53,11 @@ namespace Ecommerce.Services.Sellers.Api.Migrations
 
             modelBuilder.Entity("Ecommerce.Services.Sellers.Api.Models.Entities.SellerKyc", b =>
                 {
-                    b.Property<Guid>("Id")
+                    b.Property<long>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
+                        .HasColumnType("bigint");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
 
                     b.Property<DateTimeOffset>("CreatedDate")
                         .HasColumnType("timestamp with time zone");

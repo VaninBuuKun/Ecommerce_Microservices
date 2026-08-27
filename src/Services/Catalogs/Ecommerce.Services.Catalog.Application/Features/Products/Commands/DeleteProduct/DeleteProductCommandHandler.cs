@@ -12,7 +12,7 @@ public class DeleteProductCommandHandler(
     ILogger<DeleteProductCommandHandler> logger)
     : CommandHandler<DeleteProductCommand, Product>
 {
-    private readonly IGenericEfRepository<Product, Guid> _productRepository = unitOfWork.Repository<Product, Guid>();
+    private readonly IGenericEfRepository<Product, long> _productRepository = unitOfWork.Repository<Product, long>();
     private CommandHandler<DeleteProductCommand, Product> _commandHandlerImplementation;
     protected override async Task<Result<Product>> HandleCommandAsync(DeleteProductCommand command, CancellationToken cancellationToken)
     {

@@ -1,15 +1,18 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { wishlistApi } from "../api/wishlistApi";
 import { toast } from "react-toastify";
+import { useAuthStore } from "@/domains/auth/stores/useAuthStore";
 
 export const WISHLIST_QUERY_KEY = ["wishlist"];
 
 export function useWishlist() {
 	const queryClient = useQueryClient();
+	const accessToken = useAuthStore((s) => s.accessToken);
 
 	const wishlistQuery = useQuery({
 		queryKey: WISHLIST_QUERY_KEY,
 		queryFn: wishlistApi.getMyWishlist,
+		enabled: !!accessToken,
 		staleTime: 1000 * 60 * 5, // 5 minutes cache
 	});
 

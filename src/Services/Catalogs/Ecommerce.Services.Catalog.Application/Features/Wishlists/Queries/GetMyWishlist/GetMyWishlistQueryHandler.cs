@@ -21,7 +21,7 @@ public class GetMyWishlistQueryHandler(
     ILogger<GetMyWishlistQueryHandler> logger)
     : QueryHandler<GetMyWishlistQuery, List<ProductResponse>>
 {
-    private readonly IGenericEfRepository<Wishlist, Guid> _wishlistRepository = unitOfWork.Repository<Wishlist, Guid>();
+    private readonly IGenericEfRepository<Wishlist, long> _wishlistRepository = unitOfWork.Repository<Wishlist, long>();
 
     protected override async Task<Result<List<ProductResponse>>> HandleQueryAsync(GetMyWishlistQuery query, CancellationToken cancellationToken)
     {

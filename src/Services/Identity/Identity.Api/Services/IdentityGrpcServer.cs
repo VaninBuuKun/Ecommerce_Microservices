@@ -18,12 +18,7 @@ public class IdentityGrpcServer(
         logger.LogInformation("gRPC Request to get user address: AddressId: {AddressId}, UserId: {UserId}", 
             request.AddressId, request.UserId);
 
-        if (!Guid.TryParse(request.AddressId, out var addressId))
-        {
-            return new GetUserAddressResponse { Found = false };
-        }
-
-        var result = await sender.Send(new GetUserAddressQuery(addressId, request.UserId), context.CancellationToken);
+        var result = await sender.Send(new GetUserAddressQuery(request.AddressId, request.UserId), context.CancellationToken);
 
         if (!result.IsSuccess || result.Value == null)
         {

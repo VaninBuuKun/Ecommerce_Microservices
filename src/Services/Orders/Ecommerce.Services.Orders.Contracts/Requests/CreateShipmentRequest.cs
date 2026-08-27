@@ -6,8 +6,8 @@ namespace Ecommerce.Services.Orders.Contracts.Requests;
 
 public class CreateShipmentRequest : IIntegrationEvent
 {
-    public Guid SubOrderId { get; set; }
-    public Guid OrderId { get; set; }
+    public long SubOrderId { get; set; }
+    public long OrderId { get; set; }
     public long CustomerId { get; set; }
     public string SenderAddress { get; set; } = string.Empty;
     public long RecipientWardId { get; set; }

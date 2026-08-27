@@ -5,10 +5,10 @@ namespace Ecommerce.Services.Payments.Api.Models.Dtos;
 public class WithdrawalRequestDto
 {
     public Guid Id { get; set; }
-    public Guid WalletId { get; set; }
+    public long WalletId { get; set; }
     public long UserId { get; set; }
     public decimal Amount { get; set; }
-    public Guid BankAccountId { get; set; }
+    public long BankAccountId { get; set; }
     public string BankName { get; set; } = string.Empty;
     public string BankAccountNumber { get; set; } = string.Empty;
     public string BankAccountHolder { get; set; } = string.Empty;

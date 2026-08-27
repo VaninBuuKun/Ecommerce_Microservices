@@ -28,7 +28,7 @@ public class PaymentFailedConsumer(
 
         try
         {
-            var subOrderRepo = unitOfWork.Repository<SubOrder, Guid>();
+            var subOrderRepo = unitOfWork.Repository<SubOrder, long>();
             var subOrders = await subOrderRepo.GetAllAsync(
                 predicate: s => s.OrderId == orderId && s.Status != SubOrderStatus.Cancelled,
                 cancellationToken: context.CancellationToken);

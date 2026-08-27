@@ -1,13 +1,18 @@
+using System;
+using System.Collections.Generic;
+using System.Threading.Tasks;
 using BuildingBlocks.Auth;
-using Ecommerce.Services.Catalog.Api.Models.Dtos;
+using BuildingBlocks.Shared.Commons;
+using Ecommerce.Services.Catalog.Api.Dtos;
+using Ecommerce.Services.Catalog.Application.Commons.Dtos.Products;
 using Ecommerce.Services.Catalog.Application.Features.Products.Commands.BulkUpdateVariants;
 using Ecommerce.Services.Catalog.Application.Features.Products.Commands.CreateProduct;
 using Ecommerce.Services.Catalog.Application.Features.Products.Commands.DeleteProduct;
-using Ecommerce.Services.Catalog.Application.Features.Products.Commands.UpdateProduct;
-using Ecommerce.Services.Catalog.Application.Features.Products.Commands.SetupProductVariants;
 using Ecommerce.Services.Catalog.Application.Features.Products.Commands.DeleteProductVariant;
 using Ecommerce.Services.Catalog.Application.Features.Products.Commands.InitSingleVariant;
+using Ecommerce.Services.Catalog.Application.Features.Products.Commands.SetupProductVariants;
 using Ecommerce.Services.Catalog.Application.Features.Products.Commands.ToggleProductStatus;
+using Ecommerce.Services.Catalog.Application.Features.Products.Commands.UpdateProduct;
 using Ecommerce.Services.Catalog.Application.Features.Products.Queries.GetMyProducts;
 using Ecommerce.Services.Catalog.Application.Features.Products.Queries.GetProductById;
 using Ecommerce.Services.Catalog.Application.Features.Products.Queries.GetProducts;
@@ -21,19 +26,12 @@ namespace Ecommerce.Services.Catalog.Api.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
-public class ProductsController(ISender sender, ICurrentUserService userService) : ControllerBase
+public class ProductsController(ISender sender) : ControllerBase
 {
     [HttpGet]
-    public async Task<IActionResult> GetProducts(
-        [FromQuery] string? searchTerm,
-        [FromQuery] Guid? categoryId,
-        [FromQuery] double? minRating,
-        [FromQuery] string? cursor,
-        [FromQuery] int limit = 10,
-        [FromQuery] string sortBy = "name",
-        [FromQuery] long? shopId = null)
+    public async Task<IActionResult> GetProducts([FromQuery] string? cursor = null, [FromQuery] int limit = 10)
     {
-        var result = await sender.Send(new GetProductsQuery(searchTerm, categoryId, minRating, cursor, limit, sortBy, shopId));
+        var result = await sender.Send(new GetProductsQuery(null, null, null, cursor, limit));
 
         if (result.IsSuccess)
         {
@@ -41,12 +39,9 @@ public class ProductsController(ISender sender, ICurrentUserService userService)
         }
         return StatusCode(result.GetHttpStatusCode(), result.Message);
     }
-    
-    
-    [HttpGet("me")]
-    [Authorize]
-    public async Task<IActionResult> GetMyProducts(
-        [FromQuery] int page, [FromQuery] int pageSize, [FromQuery] long ShopId, [FromQuery] string? searchTerm)
+
+    [HttpGet("my-shop/{ShopId:long}")]
+    public async Task<IActionResult> GetMyProducts(long ShopId, [FromServices] ICurrentUserService userService, [FromQuery] int page = 1, [FromQuery] int pageSize = 10, [FromQuery] string? searchTerm = null)
     {
         var result = await sender.Send(new GetMyProductsQuery(ShopId, userService.UserId, page, pageSize, searchTerm));
 
@@ -57,9 +52,9 @@ public class ProductsController(ISender sender, ICurrentUserService userService)
         return StatusCode(result.GetHttpStatusCode(), result.Message);
     }
 
-    [HttpGet("{productId}/reviews")]
+    [HttpGet("{productId:long}/reviews")]
     public async Task<IActionResult> GetReviews(
-        Guid productId,
+        long productId,
         [FromQuery] int page = 1,
         [FromQuery] int pageSize = 10)
     {
@@ -71,8 +66,8 @@ public class ProductsController(ISender sender, ICurrentUserService userService)
         return StatusCode(result.GetHttpStatusCode(), result.Message);
     }
 
-    [HttpGet("{productId}/reviews/summary")]
-    public async Task<IActionResult> GetReviewsSummary(Guid productId)
+    [HttpGet("{productId:long}/reviews/summary")]
+    public async Task<IActionResult> GetReviewsSummary(long productId)
     {
         var result = await sender.Send(new Ecommerce.Services.Catalog.Application.Features.Reviews.Queries.GetProductReviewsSummary.GetProductReviewsSummaryQuery(productId));
         if (result.IsSuccess)
@@ -82,11 +77,10 @@ public class ProductsController(ISender sender, ICurrentUserService userService)
         return StatusCode(result.GetHttpStatusCode(), result.Message);
     }
 
-    [HttpPost("{productId}/reviews")]
+    [HttpPost("{productId:long}/reviews")]
     [Authorize]
-    public async Task<IActionResult> AddReview(Guid productId, [FromBody] AddReviewRequest request)
+    public async Task<IActionResult> AddReview(long productId, [FromBody] AddReviewRequest request)
     {
-        // Trích xuất UserId/CustomerId từ Claims trong JWT Token
         var userIdClaim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
         if (string.IsNullOrEmpty(userIdClaim) || !long.TryParse(userIdClaim, out var customerId))
         {
@@ -109,8 +103,8 @@ public class ProductsController(ISender sender, ICurrentUserService userService)
         return StatusCode(result.GetHttpStatusCode(), result.Message);
     }
 
-    [HttpGet("{id}")]
-    public async Task<IActionResult> GetProduct(Guid id)
+    [HttpGet("{id:long}")]
+    public async Task<IActionResult> GetProduct(long id)
     {
         var result = await sender.Send(new GetProductByIdQuery(id));
 
@@ -141,8 +135,8 @@ public class ProductsController(ISender sender, ICurrentUserService userService)
         return StatusCode(result.GetHttpStatusCode(), result.Message);
     }
 
-    [HttpPut("{id}")]
-    public async Task<IActionResult> UpdateProduct(Guid id, [FromBody] UpdateProductRequest request)
+    [HttpPut("{id:long}")]
+    public async Task<IActionResult> UpdateProduct(long id, [FromBody] UpdateProductRequest request)
     {
         var result = await sender.Send(new UpdateProductCommand(
             id,
@@ -162,8 +156,8 @@ public class ProductsController(ISender sender, ICurrentUserService userService)
         return StatusCode(result.GetHttpStatusCode(), result.Message);
     }
 
-    [HttpPut("{id}/sale")]
-    public async Task<IActionResult> UpdateProductSale(Guid id, [FromBody] UpdateProductSaleRequest request)
+    [HttpPut("{id:long}/sale")]
+    public async Task<IActionResult> UpdateProductSale(long id, [FromBody] UpdateProductSaleRequest request)
     {
         var result = await sender.Send(new UpdateProductSaleCommand(
             id,
@@ -184,8 +178,8 @@ public class ProductsController(ISender sender, ICurrentUserService userService)
         return StatusCode(result.GetHttpStatusCode(), result.Message);
     }
 
-    [HttpPut("{id}/init-variants")]
-    public async Task<IActionResult> InitVariants(Guid id, [FromBody] InitVariantsCommand command)
+    [HttpPut("{id:long}/init-variants")]
+    public async Task<IActionResult> InitVariants(long id, [FromBody] InitVariantsCommand command)
     {
         var result = await sender.Send(command with { ProductId = id });
 
@@ -197,8 +191,8 @@ public class ProductsController(ISender sender, ICurrentUserService userService)
         return StatusCode(result.GetHttpStatusCode(), result.Message);
     }
 
-    [HttpPut("{id}/toggle-status")]
-    public async Task<IActionResult> ToggleProductStatus(Guid id)
+    [HttpPut("{id:long}/toggle-status")]
+    public async Task<IActionResult> ToggleProductStatus(long id)
     {
         var result = await sender.Send(new ToggleProductStatusCommand(id));
 
@@ -210,8 +204,8 @@ public class ProductsController(ISender sender, ICurrentUserService userService)
         return StatusCode(result.GetHttpStatusCode(), result.Message);
     }
 
-    [HttpPut("{id}/variants")]
-    public async Task<IActionResult> BulkUpdateVariants(Guid id, [FromBody] BulkUpdateVariantsRequest request)
+    [HttpPut("{id:long}/variants")]
+    public async Task<IActionResult> BulkUpdateVariants(long id, [FromBody] BulkUpdateVariantsRequest request)
     {
         var result = await sender.Send(new BulkUpdateVariantsCommand(id, request.Options, request.Variants));
 
@@ -223,8 +217,8 @@ public class ProductsController(ISender sender, ICurrentUserService userService)
         return StatusCode(result.GetHttpStatusCode(), result.Message);
     }
 
-    [HttpDelete("{id}")]
-    public async Task<IActionResult> DeleteProduct(Guid id)
+    [HttpDelete("{id:long}")]
+    public async Task<IActionResult> DeleteProduct(long id)
     {
         var result = await sender.Send(new DeleteProductCommand(id));
 
@@ -236,8 +230,8 @@ public class ProductsController(ISender sender, ICurrentUserService userService)
         return StatusCode(result.GetHttpStatusCode(), result.Message);
     }
 
-    [HttpGet("variants/{id}")]
-    public async Task<IActionResult> GetProductVariant(Guid id)
+    [HttpGet("variants/{id:long}")]
+    public async Task<IActionResult> GetProductVariant(long id)
     {
         var result = await sender.Send(new GetVariantByIdQuery(id));
 
@@ -248,12 +242,11 @@ public class ProductsController(ISender sender, ICurrentUserService userService)
 
         return StatusCode(result.GetHttpStatusCode(), result.Message);
     }
-    
 
-    [HttpDelete("variants/{id}")]
-    public async Task<IActionResult> DeleteProductVariant(Guid id)
+    [HttpDelete("{productId:long}/variants/{variantId:long}")]
+    public async Task<IActionResult> DeleteProductVariant(long productId, long variantId)
     {
-        var result = await sender.Send(new DeleteProductVariantCommand(id));
+        var result = await sender.Send(new DeleteProductVariantCommand(productId, variantId));
 
         if (result.IsSuccess)
         {
@@ -263,33 +256,3 @@ public class ProductsController(ISender sender, ICurrentUserService userService)
         return StatusCode(result.GetHttpStatusCode(), result.Message);
     }
 }
-
-public record UpdateProductRequest(
-    string Name,
-    string Description,
-    string? ThumbnailUrl,
-    string? VideoUrl,
-    List<string> ImageUrls,
-    Guid? CategoryId
-);
-
-public record UpdateProductSaleRequest(
-    decimal Price,
-    int AvailableStock,
-    double Weight,
-    double Length,
-    double Width,
-    double Height,
-    decimal DiscountPrice
-);
-
-public record BulkUpdateVariantsRequest(
-    List<BulkUpdateVariantDto> Variants,
-    List<BulkUpdateOptionDto> Options
-);
-
-public record CreateProductVariantRequest(string? Sku, decimal Price, int AvailableStocks, List<Guid> OptionValueIds, double? Weight = null, double? Length = null, double? Width = null, double? Height = null);
-public record UpdateProductVariantRequest(string? Sku, decimal Price, int AvailableStocks);
-public record UpdateProductOptionRequest(string Name);
-public record UpdateProductOptionValueRequest(string Value);
-public record AddReviewRequest(int Rating, string Comment, List<string>? ImageUrls);

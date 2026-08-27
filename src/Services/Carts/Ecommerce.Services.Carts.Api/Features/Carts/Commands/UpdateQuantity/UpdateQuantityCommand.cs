@@ -1,4 +1,7 @@
-using BuildingBlocks.Auth;
+using System;
+using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
 using BuildingBlocks.Shared.Commons;
 using BuildingBlocks.Shared.Enums;
 using BuildingBlocks.Shared.InfrastructureInterfaces.Caching;
@@ -9,7 +12,7 @@ using Microsoft.Extensions.Logging;
 
 namespace Ecommerce.Services.Carts.Api.Features.Carts.Commands.UpdateQuantity;
 
-public record UpdateQuantityCommand(long CustomerId, Guid ProductId, int Quantity) : ICommand;
+public record UpdateQuantityCommand(long CustomerId, long ProductId, int Quantity) : ICommand;
 
 public class UpdateQuantityCommandHandler(
     ICacheService cacheService,

@@ -4,7 +4,7 @@ using System;
 namespace Ecommerce.Services.Orders.Application.Features.Orders.Commands.SellerPackageReady;
 
 public record SellerPackageReadyCommand(
-    Guid SubOrderId,
+    long SubOrderId,
     long SellerId,
     double Weight,
     double Length,

@@ -33,7 +33,7 @@ public class RegisterKycCommandHandler(
                 return Result<SellerKyc>.Failure("Vui lòng cung cấp ảnh mặt trước và mặt sau căn cước công dân.", EErrorCode.InvalidInput);
             }
 
-            var kycRepo = unitOfWork.Repository<SellerKyc, Guid>();
+            var kycRepo = unitOfWork.Repository<SellerKyc, long>();
 
             var existingKyc = await kycRepo.FirstOrDefaultAsync(
                 predicate: k => k.UserId == request.UserId,

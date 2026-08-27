@@ -1,4 +1,3 @@
-using System;
 using System.Collections.Generic;
 using BuildingBlocks.Shared.Commons;
 using MediatR;
@@ -6,8 +5,8 @@ using MediatR;
 namespace Ecommerce.Services.Catalog.Application.Features.Reviews.Commands.CreateProductReview;
 
 public record CreateProductReviewCommand(
-    Guid ProductId, 
+    long ProductId, 
     long CustomerId, 
     int Rating, 
     string Comment, 
-    List<string>? ImageUrls) : IRequest<Result<Guid>>;
+    List<string>? ImageUrls) : IRequest<Result<long>>;

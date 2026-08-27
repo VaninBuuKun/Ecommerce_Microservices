@@ -6,7 +6,7 @@ import {
 	useSetDefaultAddressMutation,
 	useDeleteAddressMutation,
 } from "@/domains/order";
-import { useProvincesQuery, useDistrictsQuery, useWardsQuery } from "@/domains/catalog";
+import { useProvincesQuery, useDistrictsQuery, useWardsQuery } from "@/domains/shipping";
 import { NewAddressModal } from "./NewAddressModal";
 
 export function ShippingAddressTab() {

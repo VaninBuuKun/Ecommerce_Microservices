@@ -18,8 +18,8 @@ namespace Ecommerce.Services.Orders.Application.Features.Orders.Queries.GetSubOr
 
 public class SubOrderDetailDto
 {
-    public Guid Id { get; set; }
-    public Guid OrderId { get; set; }
+    public long Id { get; set; }
+    public long OrderId { get; set; }
     public long CustomerId { get; set; }
     public long ShopId { get; set; }
     public decimal SubTotal { get; set; }
@@ -49,7 +49,7 @@ public class SubOrderDetailDto
     public List<CustomerOrderItemDto> OrderItems { get; set; } = new();
 }
 
-public record GetSubOrderDetailQuery(Guid SubOrderId, long UserId, bool IsSeller, bool IsAdmin = false) : IQuery<SubOrderDetailDto>;
+public record GetSubOrderDetailQuery(long SubOrderId, long UserId, bool IsSeller, bool IsAdmin = false) : IQuery<SubOrderDetailDto>;
 
 public class GetSubOrderDetailQueryHandler(
     IEfUnitOfWork unitOfWork,
@@ -66,7 +66,7 @@ public class GetSubOrderDetailQueryHandler(
             logger.LogInformation("Getting detailed sub-order {SubOrderId} (IsAdmin: {IsAdmin}, IsSeller: {IsSeller})", 
                 request.SubOrderId, request.IsAdmin, request.IsSeller);
 
-            var subOrderRepo = unitOfWork.Repository<SubOrder, Guid>();
+            var subOrderRepo = unitOfWork.Repository<SubOrder, long>();
             var subOrder = await subOrderRepo.FirstOrDefaultAsync(
                 predicate: o => o.Id == request.SubOrderId,
                 includes: [o => o.SubOrderItems, o => o.Order]
@@ -111,9 +111,9 @@ public class GetSubOrderDetailQueryHandler(
             // Query Voucher codes if voucher IDs exist on SubOrder
             string? shopVoucherCode = null;
             string? platformVoucherCode = null;
-            var voucherRepo = unitOfWork.Repository<Voucher, Guid>();
+            var voucherRepo = unitOfWork.Repository<Voucher, long>();
             
-            var voucherIds = new List<Guid>();
+            var voucherIds = new List<long>();
             if (subOrder.ShopVoucherId.HasValue) voucherIds.Add(subOrder.ShopVoucherId.Value);
             if (subOrder.PlatformVoucherId.HasValue) voucherIds.Add(subOrder.PlatformVoucherId.Value);
 

@@ -1,3 +1,8 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
 using BuildingBlocks.Application.InMemoryBus;
 using BuildingBlocks.Shared.Commons;
 using BuildingBlocks.Shared.Enums;
@@ -16,10 +21,10 @@ public class BulkUpdateVariantsCommandHandler(
     IMapper mapper
 ) : CommandHandler<BulkUpdateVariantsCommand, ProductResponse>
 {
-    private readonly IGenericEfRepository<Product, Guid> _productRepository = unitOfWork.Repository<Product, Guid>();
-    private readonly IGenericEfRepository<ProductOption, Guid> _productOptionRepository = unitOfWork.Repository<ProductOption, Guid>();
-    private readonly IGenericEfRepository<ProductOptionValue, Guid> _productOptionValueRepository = unitOfWork.Repository<ProductOptionValue, Guid>();
-    private readonly IGenericEfRepository<ProductVariant, Guid> _variantRepository = unitOfWork.Repository<ProductVariant, Guid>();
+    private readonly IGenericEfRepository<Product, long> _productRepository = unitOfWork.Repository<Product, long>();
+    private readonly IGenericEfRepository<ProductOption, long> _productOptionRepository = unitOfWork.Repository<ProductOption, long>();
+    private readonly IGenericEfRepository<ProductOptionValue, long> _productOptionValueRepository = unitOfWork.Repository<ProductOptionValue, long>();
+    private readonly IGenericEfRepository<ProductVariant, long> _variantRepository = unitOfWork.Repository<ProductVariant, long>();
 
     protected override async Task<Result<ProductResponse>> HandleCommandAsync(
         BulkUpdateVariantsCommand command,
@@ -37,13 +42,10 @@ public class BulkUpdateVariantsCommandHandler(
             
             bool isOptionStructureChanged = HasOptionStructureChanged(product.Options, command.Options);
 
-            var optionValueNameToIdMap = new Dictionary<(string OptionName, string ValueName), Guid>();
-
             // -------------------------------------------------------------
-            // STEP 1: UPSERT OPTIONS & OPTION VALUES (MATCH THUẦN ID)
+            // STEP 1: UPSERT OPTIONS & OPTION VALUES
             // -------------------------------------------------------------
             var activeOptions = product.Options.Where(o => !o.IsDeleted).ToList();
-            var processedOptionIds = new HashSet<Guid>();
 
             var incomingOptionIds = command.Options
                 .Where(o => o.Id.HasValue)
@@ -74,48 +76,35 @@ public class BulkUpdateVariantsCommandHandler(
                 }
                 else
                 {
-                    optionEntity = product.AddOption(optReq.Name);
-                    optionEntity.Update(optReq.Name, i);
+                    optionEntity = product.AddOption(optReq.Name, i);
                     _productOptionRepository.Add(optionEntity);
                 }
 
-                processedOptionIds.Add(optionEntity.Id);
-
                 var activeValues = optionEntity.Values.Where(v => !v.IsDeleted).ToList();
-                var processedValueIds = new HashSet<Guid>();
+                var processedValueIds = new HashSet<long>();
 
                 for (int j = 0; j < optReq.Values.Count; j++)
                 {
                     var valReq = optReq.Values[j];
 
-                    // CHỈ MATCH THEO ID
                     var existingVal = valReq.Id.HasValue 
                         ? activeValues.FirstOrDefault(v => v.Id == valReq.Id.Value) 
                         : null;
 
-                    ProductOptionValue valueEntity;
-
                     if (existingVal != null)
                     {
-                        existingVal.Update(valReq.Value, j, valReq.ImageUrl); // Hỗ trợ RENAME tên Value
+                        existingVal.Update(valReq.Value, j, valReq.ImageUrl);
                         _productOptionValueRepository.Update(existingVal);
-                        valueEntity = existingVal;
+                        processedValueIds.Add(existingVal.Id);
                     }
                     else
                     {
-                        valueEntity = product.AddOptionValue(optionEntity.Id, valReq.Value);
-                        valueEntity.Update(valReq.Value, j, valReq.ImageUrl);
+                        var valueEntity = new ProductOptionValue(optionEntity.Id, valReq.Value, j, valReq.ImageUrl);
+                        optionEntity.AddValue(valueEntity);
                         _productOptionValueRepository.Add(valueEntity);
                     }
-
-                    processedValueIds.Add(valueEntity.Id);
-
-                    // Map tên mới nhất nhận từ DTO với Id thực tế của Value
-                    var mapKey = GetMapKey(optReq.Name, valReq.Value);
-                    optionValueNameToIdMap[mapKey] = valueEntity.Id;
                 }
 
-                // Soft delete các Value không còn truyền Id lên
                 var valuesToDelete = activeValues.Where(v => !processedValueIds.Contains(v.Id));
                 foreach (var val in valuesToDelete)
                 {
@@ -123,6 +112,26 @@ public class BulkUpdateVariantsCommandHandler(
                     _productOptionValueRepository.Update(val);
                 }
             }
+
+            // SaveChanges Phase 1: Đảm bảo PostgreSQL sinh ID thật (long > 0) cho tất cả Option & OptionValue mới
+            await unitOfWork.SaveChangesAsync(cancellationToken);
+
+            // -------------------------------------------------------------
+            // STEP 2: BUILD OPTION VALUE MAP FROM DB WITH REAL LONG IDs
+            // -------------------------------------------------------------
+            var optionValueNameToIdMap = new Dictionary<(string OptionName, string ValueName), long>();
+            foreach (var opt in product.Options.Where(o => !o.IsDeleted))
+            {
+                foreach (var val in opt.Values.Where(v => !v.IsDeleted))
+                {
+                    var key = GetMapKey(opt.Name, val.Value);
+                    optionValueNameToIdMap[key] = val.Id;
+                }
+            }
+
+            // -------------------------------------------------------------
+            // STEP 3: UPSERT VARIANTS & LINK VARIANT OPTIONS
+            // -------------------------------------------------------------
             var activeVariants = product.Variants.Where(v => !v.IsDeleted).ToList();
 
             if (isOptionStructureChanged)
@@ -135,34 +144,43 @@ public class BulkUpdateVariantsCommandHandler(
 
                 foreach (var varReq in command.Variants)
                 {
-                    var optionValueIds = GetOptionValueIds(varReq.OptionValues, optionValueNameToIdMap);
-
                     var createdVariant = product.AddVariant(
                         varReq.Price,
                         varReq.AvailableStock,
-                        optionValueIds,
+                        null,
+                        varReq.DiscountPrice
+                    );
+                    createdVariant.UpdateDetails(
+                        varReq.Price,
+                        varReq.AvailableStock,
                         varReq.Weight,
                         varReq.Length,
                         varReq.Width,
                         varReq.Height,
-                        varReq.DiscountPrice
-                    );
+                        varReq.DiscountPrice);
 
                     _variantRepository.Add(createdVariant);
+
+                    foreach (var ovReq in varReq.OptionValues)
+                    {
+                        var key = GetMapKey(ovReq.OptionName, ovReq.ValueName);
+                        if (optionValueNameToIdMap.TryGetValue(key, out var valId))
+                        {
+                            var varOpt = new ProductVariantOption(createdVariant.Id, valId);
+                            createdVariant.AddOption(varOpt);
+                        }
+                    }
                 }
             }
             else
             {
                 var activeVariantDict = activeVariants.ToDictionary(v => v.Id);
-                var processedVariantIds = new HashSet<Guid>();
+                var processedVariantIds = new HashSet<long>();
 
                 foreach (var varReq in command.Variants)
                 {
-                    var optionValueIds = GetOptionValueIds(varReq.OptionValues, optionValueNameToIdMap);
-
                     if (varReq.Id.HasValue && activeVariantDict.TryGetValue(varReq.Id.Value, out var existingVariant))
                     {
-                        // UPDATE
                         existingVariant.UpdateDetails(
                             varReq.Price,
                             varReq.AvailableStock,
@@ -177,20 +195,36 @@ public class BulkUpdateVariantsCommandHandler(
                     }
                     else
                     {
-                        // CREATE
                         var createdVariant = product.AddVariant(
                             varReq.Price,
                             varReq.AvailableStock,
-                            optionValueIds,
+                            null,
+                            varReq.DiscountPrice
+                        );
+                        createdVariant.UpdateDetails(
+                            varReq.Price,
+                            varReq.AvailableStock,
                             varReq.Weight,
                             varReq.Length,
                             varReq.Width,
                             varReq.Height,
-                            varReq.DiscountPrice
-                        );
+                            varReq.DiscountPrice);
 
                         _variantRepository.Add(createdVariant);
-                        processedVariantIds.Add(createdVariant.Id);
+                        if (createdVariant.Id > 0)
+                        {
+                            processedVariantIds.Add(createdVariant.Id);
+                        }
+
+                        foreach (var ovReq in varReq.OptionValues)
+                        {
+                            var key = GetMapKey(ovReq.OptionName, ovReq.ValueName);
+                            if (optionValueNameToIdMap.TryGetValue(key, out var valId))
+                            {
+                                var varOpt = new ProductVariantOption(createdVariant.Id, valId);
+                                createdVariant.AddOption(varOpt);
+                            }
+                        }
                     }
                 }
                 
@@ -202,9 +236,10 @@ public class BulkUpdateVariantsCommandHandler(
                 }
             }
             
-            product.SyncProductPrice();
+            product.RecalculateCachedPricesAndStock();
             _productRepository.Update(product);
 
+            // SaveChanges Phase 2: Lưu hoàn tất Variants và ProductVariantOptions
             await unitOfWork.SaveChangesAsync(cancellationToken);
 
             var response = mapper.Map<ProductResponse>(product);
@@ -223,19 +258,17 @@ public class BulkUpdateVariantsCommandHandler(
     {
         var activeOptions = existingOptions.Where(o => !o.IsDeleted).ToList();
 
-        // 1. Số lượng nhóm Option khác nhau
         if (activeOptions.Count != incomingOptions.Count)
         {
             return true;
         }
 
-        // 2. Kiểm tra xem toàn bộ Option Id cũ có xuất hiện trong payload mới hay không
         foreach (var activeOpt in activeOptions)
         {
             bool isStillPresent = incomingOptions.Any(inc => inc.Id.HasValue && inc.Id.Value == activeOpt.Id);
             if (!isStillPresent)
             {
-                return true; // Có Option cũ bị xóa/thay thế -> Structure Changed
+                return true;
             }
         }
 
@@ -245,21 +278,5 @@ public class BulkUpdateVariantsCommandHandler(
     private static (string OptionName, string ValueName) GetMapKey(string optionName, string valueName)
     {
         return (optionName.Trim().ToLowerInvariant(), valueName.Trim().ToLowerInvariant());
-    }
-
-    private static List<Guid> GetOptionValueIds(
-        List<BulkUpdateVariantOptionValueDto> optionValues,
-        Dictionary<(string OptionName, string ValueName), Guid> map)
-    {
-        var ids = new List<Guid>();
-        foreach (var ov in optionValues)
-        {
-            var key = GetMapKey(ov.OptionName, ov.ValueName);
-            if (map.TryGetValue(key, out var valueId))
-            {
-                ids.Add(valueId);
-            }
-        }
-        return ids;
     }
 }

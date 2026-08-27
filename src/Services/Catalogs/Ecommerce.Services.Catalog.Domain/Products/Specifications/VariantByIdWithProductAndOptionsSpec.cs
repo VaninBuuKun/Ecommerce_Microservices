@@ -3,9 +3,9 @@ using Ardalis.Specification;
 
 namespace Ecommerce.Services.Catalog.Domain.Products.Specifications;
 
-public class VariantByIdWithProductAndOptionsSpec : Specification<ProductVariant>, ISingleResultSpecification
+public class VariantByIdWithProductAndOptionsSpec : Specification<ProductVariant>, ISingleResultSpecification<ProductVariant>
 {
-    public VariantByIdWithProductAndOptionsSpec(Guid id)
+    public VariantByIdWithProductAndOptionsSpec(long id)
     {
         Query.Where(variant => variant.Id == id)
             .Include(variant => variant.VariantOptions)

@@ -15,7 +15,7 @@ public class GetCompletedSubOrderCountForProductQueryHandler(IEfUnitOfWork unitO
 {
     public async Task<Result<int>> Handle(GetCompletedSubOrderCountForProductQuery request, CancellationToken cancellationToken)
     {
-        var subOrderRepository = unitOfWork.Repository<SubOrder, Guid>();
+        var subOrderRepository = unitOfWork.Repository<SubOrder, long>();
         
         var count = await subOrderRepository.CountAsync(
             s => s.CustomerId == request.CustomerId 

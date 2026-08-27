@@ -5,7 +5,7 @@ namespace Ecommerce.Services.Orders.Contracts.Events;
 
 public class PackageReadyEvent : IIntegrationEvent
 {
-    public Guid SubOrderId { get; set; }
+    public long SubOrderId { get; set; }
     // Thông tin đóng gói thực tế từ Seller
     public double Weight { get; set; }   // grams
     public double Height { get; set; }   // cm

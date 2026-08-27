@@ -10,7 +10,7 @@ namespace Ecommerce.Services.Catalog.Application.Features.Products.Queries.GetMy
 
 public class GetMyProductsQueryHandler(IEfUnitOfWork unitOfWork, ISellerService sellerService) : CommandHandler<GetMyProductsQuery, List<MyProductDto>>
 {
-    private readonly IGenericEfRepository<Product, Guid> _productRepository = unitOfWork.Repository<Product, Guid>();
+    private readonly IGenericEfRepository<Product, long> _productRepository = unitOfWork.Repository<Product, long>();
     protected override async Task<Result<List<MyProductDto>>> HandleCommandAsync(GetMyProductsQuery command, CancellationToken cancellationToken)
     {
         try

@@ -1,3 +1,5 @@
+using System.Linq;
+using System.Threading.Tasks;
 using BuildingBlocks.Grpc.Extensions;
 using BuildingBlocks.Grpc.Services;
 using Ecommerce.Services.Carts.Api.Features.Carts.Queries.GetCart;
@@ -31,10 +33,10 @@ public class CartGrpcServer(ISender sender, IMapper mapper) : CartGrpc.CartGrpcB
                 {
                     response.Items.Add(new RpcCartItemDto()
                     {
-                        VariantId = item.ProductVariantId.ToString(),
+                        VariantId = item.ProductVariantId,
                         Quantity = item.Quantity,
                         IsSelected = item.IsSelected,
-                        ProductId = item.ProductId.ToString(),
+                        ProductId = item.ProductId,
                         ProductName = item.ProductName,
                         VariantName = item.VariantName,
                         UnitPrice = item.UnitPrice.ToString(),
@@ -51,7 +53,7 @@ public class CartGrpcServer(ISender sender, IMapper mapper) : CartGrpc.CartGrpcB
 
     public override async Task<ClearCartResponse> ClearCart(ClearCartRequest request, ServerCallContext context)
     {
-        var variantIds = request.VariantIds.Select(id => Guid.Parse(id)).ToList();
+        var variantIds = request.VariantIds.ToList();
         var result = await sender.Send(new Ecommerce.Services.Carts.Api.Features.Carts.Commands.ClearCart.ClearCartCommand(request.CustomerId, variantIds));
         
         if (!result.IsSuccess)

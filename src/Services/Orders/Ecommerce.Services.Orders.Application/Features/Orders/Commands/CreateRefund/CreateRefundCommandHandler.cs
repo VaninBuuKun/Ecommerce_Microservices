@@ -36,8 +36,8 @@ public class CreateRefundCommandHandler(
                 return Result<RefundRequestDto>.Failure("Bạn cần đăng ký và kích hoạt ví điện tử liên kết để nhận tiền hoàn trả trước khi tạo yêu cầu hoàn tiền.", EErrorCode.ValidationErrors);
             }
 
-            var subOrderRepo = unitOfWork.Repository<SubOrder, Guid>();
-            var refundRepo = unitOfWork.Repository<RefundRequest, Guid>();
+            var subOrderRepo = unitOfWork.Repository<SubOrder, long>();
+            var refundRepo = unitOfWork.Repository<RefundRequest, long>();
 
             var subOrder = await subOrderRepo.GetByIdAsync(command.SubOrderId, cancellationToken);
             if (subOrder == null)
@@ -73,16 +73,17 @@ public class CreateRefundCommandHandler(
             }
 
             // Tạo RefundRequest
-            var refundRequest = new RefundRequest
-            {
-                SubOrderId = subOrder.Id,
-                CustomerId = command.CustomerId,
-                ShopId = subOrder.ShopId,
-                RefundAmount = subOrder.ShippingFee, // Hoàn trả toàn bộ số tiền thanh toán (bao gồm ship hoặc theo chính sách)
-                Reason = command.Reason.Trim(),
-                Medias = command.Medias ?? new List<string>(),
-                Status = RefundStatus.Pending
-            };
+            var refundAmount = (decimal)subOrder.GrandTotal;
+            var refundRequest = new RefundRequest(
+                subOrder.Id,
+                command.CustomerId,
+                subOrder.ShopId,
+                command.Reason.Trim(),
+                command.Reason.Trim(),
+                command.Medias != null ? System.Text.Json.JsonSerializer.Serialize(command.Medias) : "[]",
+                refundAmount,
+                DateTimeOffset.UtcNow.AddDays(2)
+            );
             refundRepo.Add(refundRequest);
 
             // Cập nhật trạng thái SubOrder thành Returning
@@ -106,11 +107,13 @@ public class CreateRefundCommandHandler(
                 SubOrderId = refundRequest.SubOrderId,
                 CustomerId = refundRequest.CustomerId,
                 ShopId = refundRequest.ShopId,
-                RefundAmount = refundRequest.RefundAmount,
+                RequestedAmount = refundRequest.RequestedAmount,
                 Reason = refundRequest.Reason,
-                Medias = refundRequest.Medias,
+                Medias = command.Medias ?? new List<string>(),
+                AttemptCount = refundRequest.AttemptCount,
                 Status = refundRequest.Status.ToString(),
-                CreatedDate = refundRequest.CreatedDate
+                CreatedDate = refundRequest.CreatedDate,
+                ExpirationDate = refundRequest.ExpirationDate
             };
 
             return Result<RefundRequestDto>.Success(dto);

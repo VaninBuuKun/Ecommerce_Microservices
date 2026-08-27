@@ -24,7 +24,7 @@ public static class SubOrderStateMachineExtensions
                     CustomerId = context.Saga.CustomerId,
                     RefundAmount = context.Saga.TotalAmount,
                     Reason = context.Message.Reason,
-                    RefundRequestId = context.Saga.RefundRequestId ?? Guid.Empty
+                    RefundRequestId = context.Saga.RefundRequestId ?? 0
                 }))
             )
             .PublishAsync(context =>

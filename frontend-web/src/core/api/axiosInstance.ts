@@ -2,11 +2,11 @@ import axios from "axios";
 import { useAuthStore } from "@/domains/auth/stores/useAuthStore";
 import { authService } from "@/domains/auth/api/authApi";
 
-const API_BASE_URL =
-  import.meta.env.VITE_API_URL || "/api";
-export const STORAGE_BASE_URL =
-  import.meta.env.VITE_STORAGE_BASE_URL || "/storage";
-
+const API_BASE_URL = import.meta.env.VITE_API_URL
+  ? import.meta.env.VITE_API_URL
+  : import.meta.env.PROD
+    ? "/api"
+    : "http://localhost:5111/api";
 
 export const api = axios.create({
   baseURL: API_BASE_URL,
@@ -16,6 +16,8 @@ export const api = axios.create({
     "Content-Type": "application/json",
   },
 });
+
+let refreshPromise: Promise<string | null> | null = null;
 
 api.interceptors.request.use(
   (config) => {
@@ -36,19 +38,36 @@ api.interceptors.response.use(
     if (
       error.response?.status === 401 &&
       !originalRequest._retry &&
-      !originalRequest.url.includes("/app-auth/refresh")
+      !originalRequest.url?.includes("/app-auth/refresh") &&
+      !originalRequest.url?.includes("/app-auth/login")
     ) {
       originalRequest._retry = true;
-      try {
-        const newAccessToken = await authService.refresh();
-        useAuthStore.getState().setAccessToken(newAccessToken);
-        originalRequest.headers.Authorization = `Bearer ${newAccessToken}`;
-        return api(originalRequest);
-      } catch (refreshError) {
-        useAuthStore.getState().clearState();
-        return Promise.reject(refreshError);
+
+      // Nếu đã có 1 request refresh đang chạy -> Dùng chung Promise để tránh nã song song nhiều request 500
+      if (!refreshPromise) {
+        refreshPromise = authService
+          .refresh()
+          .catch(() => {
+            useAuthStore.getState().clearState();
+            return null;
+          })
+          .finally(() => {
+            refreshPromise = null;
+          });
       }
+
+      const newAccessToken = await refreshPromise;
+
+      if (!newAccessToken) {
+        useAuthStore.getState().clearState();
+        return Promise.reject(error);
+      }
+
+      useAuthStore.getState().setAccessToken(newAccessToken);
+      originalRequest.headers.Authorization = `Bearer ${newAccessToken}`;
+      return api(originalRequest);
     }
+
     return Promise.reject(error);
   },
 );

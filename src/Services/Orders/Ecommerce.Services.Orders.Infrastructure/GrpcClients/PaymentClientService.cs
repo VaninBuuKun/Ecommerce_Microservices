@@ -5,21 +5,21 @@ using System.Threading.Tasks;
 using BuildingBlocks.Grpc.Extensions;
 using BuildingBlocks.Grpc.Services;
 using BuildingBlocks.Shared.Commons;
-using Ecommerce.Services.Orders.Application.Commons.Dtos.Payments;
 using BuildingBlocks.Shared.Enums;
+using Ecommerce.Services.Orders.Application.Commons.Dtos.Payments;
 using Ecommerce.Services.Orders.Application.Services;
 
 namespace Ecommerce.Services.Orders.Infrastructure.GrpcClients;
 
 public class PaymentClientService(PaymentGrpc.PaymentGrpcClient client) : IPaymentService
 {
-    public async Task<Result<string?>> CreatePaymentAsync(Guid orderId, decimal amount, string paymentProvider, CancellationToken cancellationToken = default)
+    public async Task<Result<string?>> CreatePaymentAsync(long orderId, decimal amount, string paymentProvider, CancellationToken cancellationToken = default)
     {
         try
         {
             var request = new CreatePaymentGrpcRequest
             {
-                TargetId = orderId.ToString(),
+                TargetId = orderId,
                 Amount = amount.ToString(CultureInfo.InvariantCulture),
                 PaymentProvider = paymentProvider
             };
@@ -28,18 +28,14 @@ public class PaymentClientService(PaymentGrpc.PaymentGrpcClient client) : IPayme
 
             if (!response.Success)
             {
-                return Result<string?>.Failure(response.ErrorMessage ?? "Khởi tạo thanh toán thất bại.");
+                return Result<string?>.Failure(response.ErrorMessage, EErrorCode.InternalServerError);
             }
 
-            return Result<string?>.Success(string.IsNullOrEmpty(response.PaymentUrl) ? null : response.PaymentUrl);
-        }
-        catch (Grpc.Core.RpcException ex)
-        {
-            return ex.ToResultFailure<string?>();
+            return Result<string?>.Success(response.PaymentUrl);
         }
         catch (Exception ex)
         {
-            return Result<string?>.Failure($"Lỗi khi kết nối gRPC tới Payment Service: {ex.Message}");
+            return Result<string?>.Failure($"Lỗi gọi Payment gRPC service: {ex.Message}", EErrorCode.InternalServerError);
         }
     }
 
@@ -47,42 +43,32 @@ public class PaymentClientService(PaymentGrpc.PaymentGrpcClient client) : IPayme
     {
         try
         {
-            var response = await client.GetPaymentMethodAsync(new GetPaymentMethodRequest
-            {
-                Id = id
-            }, cancellationToken: cancellationToken);
+            var response = await client.GetPaymentMethodAsync(new GetPaymentMethodRequest { Id = id }, cancellationToken: cancellationToken);
+            if (!response.Found) return Result<PaymentMethodDto>.Failure("Phương thức thanh toán không tồn tại", EErrorCode.NotFound);
 
-            if (!response.Found)
-            {
-                return Result<PaymentMethodDto>.Failure("Hình thức thanh toán không tồn tại.", EErrorCode.NotFound);
-            }
-
-            return Result<PaymentMethodDto>.Success(new PaymentMethodDto()
+            return Result<PaymentMethodDto>.Success(new PaymentMethodDto
             {
                 Id = response.Id,
                 Title = response.Title,
+                SubTitle = response.SubTitle,
                 ProviderName = response.ProviderName,
                 IconUrl = response.IconUrl,
                 IsActive = response.IsActive
             });
         }
-        catch (Grpc.Core.RpcException ex)
-        {
-            return ex.ToResultFailure<PaymentMethodDto>();
-        }
         catch (Exception ex)
         {
-            return Result<PaymentMethodDto>.Failure($"Lỗi khi kết nối gRPC tới Payment Service: {ex.Message}");
+            return Result<PaymentMethodDto>.Failure($"Lỗi gọi Payment gRPC service: {ex.Message}", EErrorCode.InternalServerError);
         }
     }
 
-    public async Task<Result<PaymentDto>> GetPaymentByOrderAsync(Guid orderId, CancellationToken cancellationToken = default)
+    public async Task<Result<PaymentDto>> GetPaymentByOrderAsync(long orderId, CancellationToken cancellationToken = default)
     {
         try
         {
             var response = await client.GetPaymentByOrderAsync(new GetPaymentByOrderRequest
             {
-                OrderId = orderId.ToString()
+                OrderId = orderId
             }, cancellationToken: cancellationToken);
 
             if (!response.Found)

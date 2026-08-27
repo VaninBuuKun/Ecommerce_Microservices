@@ -29,7 +29,7 @@ public class GetAdminSubOrdersQueryHandler(
         logger.LogInformation("Admin fetching sub-orders (Page {PageNumber}, Size {PageSize}, Status {Status}, Search {Search})",
             query.PageNumber, query.PageSize, query.Status, query.SearchKeyword);
 
-        var subOrderRepo = unitOfWork.Repository<SubOrder, Guid>();
+        var subOrderRepo = unitOfWork.Repository<SubOrder, long>();
 
         SubOrderStatus? statusEnum = null;
         if (!string.IsNullOrEmpty(query.Status) && Enum.TryParse<SubOrderStatus>(query.Status, true, out var parsedStatus))
@@ -47,17 +47,11 @@ public class GetAdminSubOrdersQueryHandler(
         if (!string.IsNullOrWhiteSpace(query.SearchKeyword))
         {
             var keyword = query.SearchKeyword.Trim().ToLower();
-            if (Guid.TryParse(keyword, out var searchedGuid))
+            if (long.TryParse(keyword, out var searchedLongId))
             {
                 predicate = statusEnum.HasValue
-                    ? o => o.Status == statusEnum.Value && (o.Id == searchedGuid || o.OrderId == searchedGuid)
-                    : o => o.Id == searchedGuid || o.OrderId == searchedGuid;
-            }
-            else if (long.TryParse(keyword, out var searchedId))
-            {
-                predicate = statusEnum.HasValue
-                    ? o => o.Status == statusEnum.Value && (o.ShopId == searchedId || o.CustomerId == searchedId)
-                    : o => o.ShopId == searchedId || o.CustomerId == searchedId;
+                    ? o => o.Status == statusEnum.Value && (o.Id == searchedLongId || o.OrderId == searchedLongId || o.ShopId == searchedLongId || o.CustomerId == searchedLongId)
+                    : o => o.Id == searchedLongId || o.OrderId == searchedLongId || o.ShopId == searchedLongId || o.CustomerId == searchedLongId;
             }
         }
 

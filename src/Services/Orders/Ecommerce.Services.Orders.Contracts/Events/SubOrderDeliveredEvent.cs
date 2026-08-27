@@ -4,5 +4,5 @@ namespace Ecommerce.Services.Orders.Contracts.Events;
 
 public class SubOrderDeliveredEvent : IIntegrationEvent
 {
-    public Guid SubOrderId { get; init; }
+    public long SubOrderId { get; init; }
 }

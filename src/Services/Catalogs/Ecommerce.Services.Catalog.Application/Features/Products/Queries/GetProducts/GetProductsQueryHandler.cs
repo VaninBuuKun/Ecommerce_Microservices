@@ -21,7 +21,7 @@ public class GetProductsQueryHandler(
     ILogger<GetProductsQueryHandler> logger)
     : QueryHandler<GetProductsQuery, PagedCursorResponse<ProductResponse>>
 {
-    private readonly IGenericEfRepository<Product, Guid> _productRepository = unitOfWork.Repository<Product, Guid>();
+    private readonly IGenericEfRepository<Product, long> _productRepository = unitOfWork.Repository<Product, long>();
 
     protected override async Task<Result<PagedCursorResponse<ProductResponse>>> HandleQueryAsync(GetProductsQuery query, CancellationToken cancellationToken)
     {

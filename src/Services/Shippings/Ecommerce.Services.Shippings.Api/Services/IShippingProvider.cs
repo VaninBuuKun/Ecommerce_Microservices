@@ -23,8 +23,8 @@ public record CreateWaybillItemRequest(
 );
 
 public record CreateWaybillRequest(
-    Guid SubOrderId,
-    Guid OrderId,
+    long SubOrderId,
+    long OrderId,
     string SenderName,
     string SenderPhone,
     string SenderAddress,

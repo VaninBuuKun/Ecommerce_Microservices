@@ -5,7 +5,7 @@ namespace Ecommerce.Services.Orders.Contracts.Events;
 
 public class SubOrderCompletedEvent : IIntegrationEvent
 {
-    public Guid SubOrderId { get; init; }
+    public long SubOrderId { get; init; }
     public long ShopId { get; init; }
     /// <summary>Tổng giá trị đơn hàng phụ (đơn vị VND).</summary>
     public long TotalAmount { get; init; }

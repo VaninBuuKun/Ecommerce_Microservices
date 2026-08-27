@@ -7,7 +7,7 @@ namespace Ecommerce.Services.Orders.Application.Features.Orders.Commands.CalOrde
 
 public record CalOrderGrandTotalCommand(
     long CustomerId, 
-    Guid UserAddressId, 
+    long UserAddressId, 
     Guid? CheckoutSessionId = null,
     string? PlatformVoucherCode = null,
     Dictionary<long, string>? ShopVoucherCodes = null

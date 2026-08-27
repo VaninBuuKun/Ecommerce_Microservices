@@ -26,7 +26,7 @@ public class PaymentGrpcServer(
             var amount = decimal.Parse(request.Amount, CultureInfo.InvariantCulture);
             var paymentRequest = new CreatePaymentRequest
             {
-                OrderId = Guid.Parse(request.TargetId),
+                OrderId = request.TargetId,
                 Amount = amount,
                 Currency = "VND",
                 MethodProvider = request.PaymentProvider,
@@ -90,12 +90,7 @@ public class PaymentGrpcServer(
     {
         logger.LogInformation("gRPC Request to get payment by order: {OrderId}", request.OrderId);
 
-        if (!Guid.TryParse(request.OrderId, out var orderId))
-        {
-            return new GetPaymentByOrderResponse { Found = false };
-        }
-
-        var result = await sender.Send(new GetPaymentByOrderIdQuery(orderId), context.CancellationToken);
+        var result = await sender.Send(new GetPaymentByOrderIdQuery(request.OrderId), context.CancellationToken);
 
         if (!result.IsSuccess || result.Value == null)
         {

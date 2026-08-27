@@ -2,7 +2,7 @@ namespace Ecommerce.Services.Orders.Application.Features.Orders.Dtos;
 
 public class CustomerOrderResponse
 {
-    public Guid Id { get; set; }
+    public long Id { get; set; }
     public long CustomerId { get; set; }
     public decimal GrandTotal { get; set; }
     public string Status { get; set; } = string.Empty;
@@ -17,5 +17,4 @@ public class CustomerOrderResponse
     public string? PaymentUrl { get; set; }
     
     public ICollection<CustomerOrderItemDto> OrderItems { get; set; } = new List<CustomerOrderItemDto>();
-    
 }

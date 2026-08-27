@@ -6,5 +6,5 @@ public class PayoutToSellerRequest
 {
     public long SellerId { get; init; }
     public decimal Amount { get; init; }
-    public Guid SubOrderId { get; init; }
+    public long SubOrderId { get; init; }
 }

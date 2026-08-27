@@ -2,8 +2,8 @@ namespace Ecommerce.Services.Carts.Api.Models.Dtos;
 
 public class ProductDto
 {
-    public Guid ProductId { get; set; }
-    public Guid VariantId { get; set; }
+    public long ProductId { get; set; }
+    public long VariantId { get; set; }
     public long ShopId { get; set; }
     public string ProductName { get; set; } = string.Empty;
     public string VariantName { get; set; } = string.Empty;

@@ -4,7 +4,7 @@ using BuildingBlocks.Shared.Domains;
 
 namespace Ecommerce.Services.Payments.Api.Models.Entities;
 
-public class Wallet : EntityTrackingBase<Guid>
+public class Wallet : EntityTrackingBase<long>
 {
     public long UserId { get; set; }           // ID của user bên Identity
     public decimal Balance { get; set; }        // Số dư khả dụng

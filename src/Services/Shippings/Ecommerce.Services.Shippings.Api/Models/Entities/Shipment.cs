@@ -6,8 +6,8 @@ namespace Ecommerce.Services.Shippings.Api.Models.Entities;
 
 public class Shipment : EntityTrackingBase<Guid>
 {
-    public Guid SubOrderId { get; set; }
-    public Guid OrderId { get; set; }
+    public long SubOrderId { get; set; }
+    public long OrderId { get; set; }
     public long CustomerId { get; set; }
     public string? WaybillCode { get; set; }
     public string CarrierName { get; set; } = "GHN";

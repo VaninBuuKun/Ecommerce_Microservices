@@ -1,9 +1,9 @@
 import { useMemo } from "react";
-import type { ProductOptionDto, ProductVariantDto } from "../../types/catalog.types";
+import type { ProductOption, ProductVariant } from "../../types/catalog.types";
 
 interface ProductOptionsProps {
-	options: ProductOptionDto[];
-	variants: ProductVariantDto[];
+	options: ProductOption[];
+	variants: ProductVariant[];
 	selectedOptions: Record<string, string>;
 	onOptionSelect: (
 		optionId: string,

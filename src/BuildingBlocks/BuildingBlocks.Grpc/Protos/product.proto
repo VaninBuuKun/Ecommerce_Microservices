@@ -10,30 +10,31 @@ service ProductGrpc {
   rpc ReserveStock(ReserveStockRequest) returns (ReserveStockResponse);
 }
 
-
 //
-message  GetVariantByIdRequest {
-  string id = 1;
+message GetVariantByIdRequest {
+  int64 id = 1;
 }
 
-message  GetVariantByIdResponse {
-  string variantId = 1;
+message GetVariantByIdResponse {
+  int64 variantId = 1;
   int32 availableStocks = 2;
   int64 shopId = 3;
+  int64 productId = 4;
 }
 
 //
 message GetVariantsByIdsRequest {
-  repeated string variantIds = 1;
-  repeated string productIds = 2;
+  repeated int64 variantIds = 1;
+  repeated int64 productIds = 2;
 }
+
 message GetVariantsByIdsResponse {
   repeated RpcVariantDto Variants = 1;
 }
 
 message RpcVariantDto {
-  string variantId = 1;
-  string productId = 2;
+  int64 variantId = 1;
+  int64 productId = 2;
   string productName = 3;
   string variantName = 4;
   string unitPrice = 5;
@@ -52,7 +53,7 @@ message ReserveStockRequest {
 }
 
 message RpcReserveStockItemDto {
-  string variantId = 1;
+  int64 variantId = 1;
   int32 quantity = 2;
 }
 

@@ -6,8 +6,8 @@ namespace Ecommerce.Services.Orders.Contracts.Events;
 
 public record SubOrderCreatedEvent : IIntegrationEvent
 {
-    public Guid SubOrderId { get; set; }
-    public Guid OrderId { get; set; }
+    public long SubOrderId { get; set; }
+    public long OrderId { get; set; }
     public DateTime CreatedAt { get; set; }
     public long CustomerId { get; set; }
     public long ShopId { get; set; }

@@ -1,4 +1,4 @@
-﻿using System.Reflection;
+using System.Reflection;
 using BuildingBlocks.Application.InMemoryBus;
 using BuildingBlocks.Shared.InfrastructureInterfaces.InMemoryBus;
 using BuildingBlocks.Web.Behaviors;
@@ -27,6 +27,10 @@ public static class DependencyInjection
         });
         
         services.AddScoped<IInMemoryBus, MediatRInMemoryBus>();
+        
+        // Cấu hình ID Generator (Snowflake)
+        services.AddSingleton<BuildingBlocks.Shared.InfrastructureInterfaces.IdGenerator.ISnowflakeIdGenerator, BuildingBlocks.Application.IdGenerator.SnowflakeIdGenerator>();
+        services.AddSingleton<BuildingBlocks.Shared.InfrastructureInterfaces.IdGenerator.IIdGenerator>(sp => (BuildingBlocks.Application.IdGenerator.SnowflakeIdGenerator)sp.GetRequiredService<BuildingBlocks.Shared.InfrastructureInterfaces.IdGenerator.ISnowflakeIdGenerator>());
         
         //Cấu hình Mapster
         var config = TypeAdapterConfig.GlobalSettings;

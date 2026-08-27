@@ -4,7 +4,7 @@ namespace Ecommerce.Services.Payments.Api.Models.Dtos;
 
 public class CreatePaymentRequest
 {
-    public Guid OrderId {get; set;}
+    public long OrderId {get; set;}
     public decimal Amount {get; set;}
     public string Currency { get; set; } = "VND";
     public string MethodProvider { get; set; }

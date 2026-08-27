@@ -22,7 +22,7 @@ public class CompleteSubOrderCommandHandler(
 
         try
         {
-            var subOrderRepo = unitOfWork.Repository<SubOrder, Guid>();
+            var subOrderRepo = unitOfWork.Repository<SubOrder, long>();
             var subOrder = await subOrderRepo.GetByIdAsync(command.SubOrderId, cancellationToken);
 
             if (subOrder == null)

@@ -28,7 +28,7 @@ public class CalOrderGrandTotalCommandHandler(
     ILogger<CalOrderGrandTotalCommandHandler> logger)
     : ICommandHandler<CalOrderGrandTotalCommand, CalOrderGrandTotalResponse>
 {
-    private IGenericEfRepository<Voucher, Guid> voucherRepo => unitOfWork.Repository<Voucher, Guid>();
+    private IGenericEfRepository<Voucher, long> voucherRepo => unitOfWork.Repository<Voucher, long>();
     private IGenericEfRepository<VoucherUsage, Guid> voucherUsageRepo => unitOfWork.Repository<VoucherUsage, Guid>();
 
     public async Task<Result<CalOrderGrandTotalResponse>> Handle(CalOrderGrandTotalCommand command, CancellationToken cancellationToken)

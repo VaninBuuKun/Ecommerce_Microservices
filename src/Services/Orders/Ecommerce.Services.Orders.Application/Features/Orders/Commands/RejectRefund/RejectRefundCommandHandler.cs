@@ -26,8 +26,8 @@ public class RejectRefundCommandHandler(
         logger.LogInformation("Seller {SellerId} rejecting refund request {RefundRequestId}", command.SellerId, command.RefundRequestId);
         try
         {
-            var subOrderRepo = unitOfWork.Repository<SubOrder, Guid>();
-            var refundRepo = unitOfWork.Repository<RefundRequest, Guid>();
+            var subOrderRepo = unitOfWork.Repository<SubOrder, long>();
+            var refundRepo = unitOfWork.Repository<RefundRequest, long>();
 
             var refundRequest = await refundRepo.GetByIdAsync(command.RefundRequestId, cancellationToken);
             if (refundRequest == null)
@@ -58,9 +58,8 @@ public class RejectRefundCommandHandler(
                 return Result.Failure("Đơn hàng không tồn tại.", EErrorCode.NotFound);
             }
 
-            // Cập nhật Refund Request thành Rejected
-            refundRequest.Status = RefundStatus.Rejected;
-            refundRequest.SellerNote = command.SellerNote.Trim();
+            // Cập nhật Refund Request thành SellerRejected
+            refundRequest.SellerReject(command.SellerNote.Trim());
             refundRepo.Update(refundRequest);
 
             // SubOrder quay lại trạng thái Delivered

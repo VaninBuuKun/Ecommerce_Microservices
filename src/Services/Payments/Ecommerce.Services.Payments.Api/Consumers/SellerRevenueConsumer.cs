@@ -38,7 +38,7 @@ public class SellerRevenueConsumer(
             }
 
             var ownerUserId = shopInfo.OwnerUserId;
-            var walletRepo = unitOfWork.Repository<Wallet, Guid>();
+            var walletRepo = unitOfWork.Repository<Wallet, long>();
             var transactionRepo = unitOfWork.Repository<WalletTransaction, Guid>();
 
             // 2. Tìm ví của chủ shop
@@ -67,7 +67,7 @@ public class SellerRevenueConsumer(
                 Type = TransactionType.Credit,
                 Reason = TransactionReason.SellerRevenue,
                 BalanceAfter = wallet.Balance,
-                ReferenceId = @event.SubOrderId,
+                ReferenceId = @event.SubOrderId.ToString(),
                 Description = $"Cộng doanh thu đơn hàng {@event.SubOrderId} hoàn tất. (Tổng: {@event.TotalAmount:N0}đ - Sàn trợ giá: {@event.PlatformDiscount:N0}đ)"
             };
             transactionRepo.Add(transaction);

@@ -1,0 +1,93 @@
+Part1. Lantency and Throughput
+- Latency: là thời gian trễ giữa việc gửi một yêu cầu và nhận được phản hồi. Latency thấp có nghĩa là hệ thống phản hồi nhanh chóng, trong khi latency cao có thể dẫn đến trải nghiệm người dùng kém.
+- Throughput: là số lượng yêu cầu mà hệ thống có thể xử lý trong một khoảng thời gian nhất định. Throughput cao có nghĩa là hệ thống có khả năng xử lý nhiều yêu cầu
+cùng lúc, trong khi throughput thấp có thể dẫn đến tắc nghẽn và giảm hiệu suất.
+- Để tối ưu hóa latency và throughput, các kỹ thuật như caching, load balancing, và phân tán dữ liệu có thể được sử dụng. Caching giúp giảm thời gian truy xuất dữ
+liệu bằng cách lưu trữ dữ liệu tạm thời, trong khi load balancing phân phối yêu cầu đến các máy chủ khác nhau để tránh quá tải. Phân tán dữ liệu giúp cải thiện hiệu suất 
+bằng cách lưu trữ dữ liệu trên nhiều máy chủ, giảm thiểu thời gian truy xuất và tăng khả năng mở rộng của hệ thống.
+
+Part2. Định lý CAP (Consistency, Availability, Partition Tolerance)
+- Consistency (Tính nhất quán): Mọi node trong hệ thống đều thấy cùng một dữ liệu tại cùng một thời điểm. Nếu một node cập nhật dữ liệu, tất cả các
+node khác sẽ thấy cập nhật đó ngay lập tức. Ví dụ như chức năng thành toán, 2 máy cùng 1 tài khoản, tk đó có 100k, nếu cả hai máy cùng lúc nhấn chuyển khoản 10k thì người A chuyển còn 90k, thì người B còn 80k, 
+nếu không có consistency thì có thể cả hai máy đều thấy 100k và đều chuyển được 10k, dẫn đến lỗi dữ liệu.
+- Availability (Tính sẵn sàng): Mọi yêu cầu đến hệ thống đều nhận được phản hồi, dù có thể là lỗi hoặc dữ liệu cũ. Hệ thống luôn sẵn sàng phục vụ yêu cầu của người dùng.
+Ví dụ thực tế: Có một hệ thống quản lý đơn hàng, khi người dùng gửi yêu cầu đặt hàng, hệ thống sẽ luôn phản hồi lại yêu cầu đó, dù có thể là lỗi do hết hàng hoặc dữ liệu cũ do chưa cập nhật kịp thời.
+Điều này đảm bảo rằng người dùng luôn nhận được phản hồi và không gặp phải tình trạng "đóng băng" khi hệ thống không phản hồi. Nói chung dễ hiểu dữ liệu chưa cập nhật kịp thời thì không báo lỗi mà vẫn phản hồi, 
+nhưng nếu có lỗi khác như hết hàng thì sẽ báo lỗi.
+- Partition Tolerance (Tính chịu lỗi phân vùng, chịu lỗi mạng): Hệ thống vẫn hoạt động bình thường ngay cả khi có sự cố mạng hoặc phân vùng giữa các node. Hệ thống có thể tiếp tục hoạt
+động và phục vụ yêu cầu ngay cả khi có sự cố phân vùng xảy ra.
+- Theo định lý CAP, trong một hệ thống phân tán, bạn chỉ có thể đảm bảo tối đa hai trong ba yếu tố này cùng một lúc. Điều này có nghĩa là bạn phải lựa chọn giữa Consistency và Availability khi có sự cố phân vùng xảy ra. 
+Ví dụ, nếu bạn chọn Consistency, hệ thống sẽ đảm bảo rằng tất cả các node đều thấy cùng một dữ liệu, nhưng có thể không sẵn sàng phục vụ yêu cầu nếu có sự cố phân vùng. Ngược lại, nếu bạn chọn Availability, hệ thống sẽ
+ luôn sẵn sàng phục vụ yêu cầu, nhưng có thể không đảm bảo rằng tất cả các node đều thấy cùng một dữ liệu trong trường hợp có sự cố phân vùng. Do đó, việc lựa chọn giữa Consistency và Availability phụ thuộc vào yêu cầu cụ thể của ứng dụng và tình huống mà hệ thống đang phải đối mặt. 
+
+Hầu như tất cả hệ thống đều có P. Vấn đề là chọn giữa C và A, ví dụ như hệ thống ngân hàng thì cần C, còn hệ thống mạng xã hội thì cần A. Tức là khi có môột sự co mạng xảy ra tại 1 hoặc nhiều node, nếu chọn C
+thì hệ thống sẽ phần hồi cho người dùng lỗi hoặc không phản hồi, còn nếu chọn A thì hệ thống sẽ vẫn phản hồi nhưng có thể dữ liệu chưa được cập nhật kịp thời. 
+Do đó, việc lựa chọn giữa C và A phụ thuộc vào yêu cầu cụ thể của ứng dụng và tình huống mà hệ thống đang phải đối mặt.
+CA chủ yếu cho một server đơn lẻ, trong khi CP và AP chủ yếu cho hệ thống phân tán. Trong một hệ thống phân tán, bạn phải lựa chọn giữa Consistency và Availability khi có sự cố phân vùng xảy ra.
+
+Part2. PACELC
+- PACELC là một định lý mở rộng của định lý CAP, được phát triển bởi Daniel Abadi. PACELC bổ sung thêm yếu tố Latency (L) và Consistency (C) vào định lý CAP, 
+giúp giải thích rõ hơn về cách các hệ thống phân tán xử lý các tình huống khác nhau.
+- PACELC có nghĩa là "Partition, Availability, Consistency Else Latency, Consistency". Điều này có nghĩa là khi có sự cố phân vùng (Partition), bạn phải lựa chọn giữa Availability và Consistency. Tuy nhiên, nếu không có sự cố phân vùng, bạn vẫn phải lựa chọn giữa Latency và Consistency. Điều này giúp giải thích rõ hơn về cách các hệ thống phân tán xử lý các tình huống khác nhau, và tại sao một số hệ thống có thể ưu tiên Latency hơn Consistency trong một số trường hợp nhất định. Ví dụ, trong một hệ thống mạng xã hội, có thể ưu .
+Xét ở không phân vùng nghĩa là khi hệ thống hoạt động bình thường, bạn phải lựa chọn giữa Latency và Consistency. Nếu bạn ưu tiên Latency, hệ thống sẽ phản hồi nhanh chóng nhưng có thể không đảm bảo rằng tất cả các node đều thấy cùng một dữ liệu. Ngược lại, nếu bạn ưu tiên Consistency, hệ thống sẽ đảm bảo rằng tất cả các node đều thấy cùng một dữ liệu, nhưng có thể phản hồi chậm hơn do phải đồng bộ hóa dữ liệu giữa các node. 
+Do đó, việc lựa chọn giữa Latency và Consistency phụ thuộc vào yêu cầu cụ thể của ứng dụng và tình huống mà hệ thống đang phải đối mặt.
+
+Part3. Consistency Patterns
+- Strong Consistency: Mọi node trong hệ thống đều thấy cùng một dữ liệu tại cùng một thời điểm. Nếu một node cập nhật dữ liệu, tất cả các node khác sẽ thấy 
+cập nhật đó ngay lập tức. Ví dụ như chức năng thành toán, 2 máy cùng 1 tài khoản, tk đó có 100k, nếu cả hai máy cùng lúc nhấn chuyển khoản 10k thì người A 
+chuyển còn 90k, thì người B còn 80k. Tức là giao dịch xong thì đọc sẽ thấy ngay kết quả cập nhật, không có trường hợp đọc dữ liệu cũ. 
+Điều này đảm bảo rằng tất cả các node đều có cùng một cái nhìn về dữ liệu tại cùng một thời điểm, nhưng có thể dẫn đến latency cao
+do phải đồng bộ hóa dữ liệu giữa các node.
+- Eventual Consistency: Mọi node trong hệ thống sẽ thấy cùng một dữ liệu sau một khoảng thời gian nhất định. Nếu một node cập nhật dữ liệu, các node khác 
+sẽ thấy cập nhật đó sau một khoảng thời gian, nhưng không đảm bảo rằng tất cả các node sẽ thấy cùng một dữ liệu tại cùng một thời điểm. Ví dụ như mạng xã hội, 
+khi bạn đăng một bài viết mới, có thể mất một khoảng thời gian để tất cả các người dùng khác thấy bài viết đó do phải đồng bộ hóa dữ liệu giữa các node. 
+Điều này giúp cải thiện hiệu suất và khả năng mở rộng của hệ thống, nhưng có thể dẫn đến tình trạng "đọc dữ liệu cũ" nếu người dùng truy cập dữ liệu trước khi nó được đồng bộ hóa.
+
+Part4. Availability Patterns
+- Failover: Khi một node trong hệ thống gặp sự cố, hệ thống sẽ tự động chuyển sang một node khác để tiếp tục phục vụ yêu cầu của người dùng. Ví dụ, nếu một máy
+chủ trong hệ thống gặp sự cố, hệ thống sẽ tự động chuyển sang một máy chủ khác để tiếp tục phục vụ yêu cầu của người dùng, đảm bảo rằng hệ thống luôn sẵn sàng.
+Có 2 loại: Active-Active: Cả hai node đều hoạt động và phục vụ yêu cầu của người dùng. Nếu một node gặp sự cố, node còn lại sẽ tiếp tục phục vụ yêu cầu mà không bị 
+gián đoạn. Ví dụ, nếu có hai máy chủ đang hoạt động cùng lúc, nếu một máy chủ gặp sự cố, máy chủ còn lại sẽ tiếp tục phục vụ yêu cầu của người dùng mà không bị gián.
+Active-Passive: Một node hoạt động và phục vụ yêu cầu của người dùng, trong khi node còn lại ở trạng thái chờ (passive) và chỉ được kích hoạt khi node hoạt động 
+gặp sự cố. Ví dụ, nếu có một máy chủ đang hoạt động và phục vụ yêu cầu của người dùng, trong khi một máy chủ khác ở trạng thái chờ, nếu máy chủ đang hoạt động gặp 
+sự cố, máy chủ ở trạng thái chờ sẽ được kích hoạt để tiếp tục phục vụ yêu cầu của người dùng, đảm bảo rằng hệ thống luôn sẵn sàng.
+- Load Balancing: Hệ thống phân phối yêu cầu đến các node khác nhau để tránh quá tải và đảm bảo rằng hệ thống luôn sẵnng sàng phục vụ yêu cầu của người dùng. 
+Ví dụ, nếu có nhiều yêu cầu đến hệ thống cùng một lúc, hệ thống sẽ phân phối yêu cầu đến các máy chủ khác nhau để tránh quá tải và đảm bảo rằng hệ thống luôn 
+sẵn sàng phục vụ yêu cầu của người dùng.
+- Replication: Hệ thống sao chép dữ liệu giữa các node để đảm bảo rằng dữ liệu luôn sẵn sàng và có thể phục vụ yêu cầu của người dùng ngay cả khi một node gặp 
+sự cố. Ví dụ, nếu có một node trong hệ thống gặp sự cố, hệ thống sẽ sử dụng dữ liệu sao chép từ các node khác để tiếp tục phục vụ yêu cầu của người dùng, đảm bảo 
+rằng hệ thống luôn sẵn sàng phục vụ yêu cầu của người dùng. Có 2 loại replication: Master-Slave: Một node được chỉ định là master và chịu trách nhiệm xử lý tất cả 
+các yêu cầu ghi (write), trong khi các node còn lại là slave và chỉ được sử dụng để phục vụ yêu cầu đọc (read). Ví dụ, nếu có một node được chỉ định là master để 
+xử lý tất cả các yêu cầu ghi, trong khi các node còn lại là slave để phục vụ yêu cầu đọc, nếu node master gặp sự cố, hệ thống sẽ sử dụng dữ liệu sao chép từ các 
+node slave để tiếp tục phục vụ yêu cầu của người dùng, đảm bảo rằng hệ thống luôn sẵn sàng phục vụ yêu cầu của người dùng.
+Master-Master: Tất cả các node đều có thể xử lý yêu cầu ghi (write) và phục vụ yêu cầu đọc (read). Dữ liệu được sao chép giữa các node để đảm bảo rằng tất cả các 
+node đều có cùng một dữ liệu. Ví dụ, nếu có nhiều node đều có thể xử lý yêu cầu ghi và phục vụ yêu cầu đọc, dữ liệu sẽ được sao chép giữa các node để đảm bảo 
+rằng tất cả các node đều có cùng một dữ liệu, đảm bảo rằng hệ thống luôn sẵn sàng phục vụ yêu cầu của người dùng ngay cả khi một node gặp sự cố. Tuy nhiên, 
+việc sử dụng master-master replication có thể dẫn đến vấn đề về xung đột dữ liệu nếu có nhiều node cùng cập nhật dữ liệu cùng một lúc, do đó cần phải có cơ chế 
+giải quyết xung đột dữ liệu để đảm bảo tính nhất quán của dữ liệu trong hệ thống.
+
+Part5. Background Jobs
+- Background Jobs: Là các tác vụ được thực hiện trong nền (background) của hệ thống, thường được sử dụng để xử lý các tác vụ tốn thời gian hoặc không cần t
+hiết phải thực hiện ngay lập tức. Ví dụ, gửi email xác nhận sau khi người dùng đăng ký tài khoản, hoặc xử lý dữ liệu lớn để tạo báo cáo hàng tháng.
+Có 2 loại: Scheduled Jobs: Là các tác vụ được lên lịch để thực hiện vào một thời điểm cụ thể hoặc theo một khoảng thời gian định kỳ. Ví dụ, một tác vụ được lên lịch để 
+chạy hàng ngày vào lúc 2 giờ sáng để sao lưu dữ liệu.
+Event-Driven Jobs: Là các tác vụ được kích hoạt bởi một sự kiện cụ thể trong hệ thống. Ví dụ, một tác vụ được kích hoạt khi người dùng đăng ký tài khoản mới để gửi email xác nhận.
+- Background Jobs giúp cải thiện hiệu suất của hệ thống bằng cách xử lý các tác vụ tốn thời gian trong nền, cho phép hệ thống phản hồi nhanh chóng với các yêu cầu của người dùng. 
+Tuy nhiên, việc quản lý và giám sát các background jobs cũng rất quan trọng để đảm bảo rằng chúng hoạt động đúng cách và không gây ra các vấn đề về hiệu suất hoặc lỗi trong 
+hệ thống. Các công cụ như Hangfire, Celery, hoặc Sidekiq có thể được sử dụng để quản lý và giám sát các background jobs trong hệ thống của bạn.
+
+Part6. Returning Results from Background Jobs
+- Polling: Là phương pháp mà hệ thống sẽ liên tục kiểm tra trạng thái của background job để biết khi nào nó hoàn thành và có kết quả. Ví dụ, sau khi gửi một tác vụ vào hàng đợi, 
+hệ thống sẽ liên tục kiểm tra trạng thái của tác vụ đó để biết khi nào nó hoàn thành và có kết quả.
+- WebSockets: Là phương pháp mà hệ thống sẽ sử dụng kết nối WebSocket để gửi thông báo đến client khi background job hoàn thành và có kết quả. Ví dụ, sau khi gửi một tác vụ vào hàng đợi, hệ thống sẽ sử dụng kết nối WebSocket để gửi thông báo đến client khi tác vụ đó hoàn thành và có kết quả.
+- Callbacks: Là phương pháp mà hệ thống sẽ sử dụng một callback function để nhận kết quả từ background job khi nó hoàn thành. Ví dụ, sau khi gửi một tác vụ vào hàng đợi, hệ thống sẽ sử dụng một callback function để nhận kết quả từ tác vụ đó khi nó hoàn thành.
+- Các phương pháp này giúp hệ thống có thể nhận kết quả từ background jobs một cách hiệu quả và linh hoạt, tùy thuộc vào yêu cầu cụ thể của ứng dụng và tình 
+huống mà hệ thống đang phải đối mặt. Việc lựa chọn giữa các phương pháp này phụ thuộc vào yêu cầu cụ thể của ứng dụng, khả năng mở rộng của hệ thống, 
+và mức độ phức tạp của việc triển khai. Ví dụ, nếu bạn cần một giải pháp đơn giản và dễ triển khai, polling có thể là lựa chọn tốt. Tuy nhiên, nếu bạn cần một
+ giải pháp hiệu quả hơn và có khả năng mở rộng tốt hơn, WebSockets hoặc callbacks có thể là lựa chọn tốt hơn.  
+
+Part7. CDN (Content Delivery Network)
+- CDN là một mạng lưới các máy chủ phân tán trên toàn cầu, được sử dụng để phân phối nội dung tĩnh (như hình ảnh, video, CSS, JavaScript) đến người dùng một cách nhanh chóng và hiệu quả. CDN giúp giảm latency và tăng throughput bằng cách lưu trữ nội dung tĩnh trên các máy chủ gần người dùng, giảm khoảng cách và thời gian truyền tải dữ liệu.
+- CDN hoạt động bằng cách sao chép nội dung tĩnh từ máy chủ gốc (origin server) đến các máy chủ CDN (edge servers) trên toàn cầu. Khi người dùng yêu cầu nội dung, CDN sẽ phân phối yêu cầu đến máy chủ CDN gần nhất để phục vụ nội dung, giúp giảm latency và tăng throughput. CDN cũng có thể cung cấp các tính năng bảo mật như chống DDoS và bảo vệ dữ liệu, giúp cải thiện hiệu suất và độ tin cậy của hệ thống. Các nhà cung cấp CDN phổ biến bao gồm Cloudflare, Akamai, Amazon CloudFront, và Google Cloud CDN. Việc sử dụng CDN có thể giúp cải thiện trải nghiệm người dùng bằng cách giảm thời gian tải trang và tăng hiệu suất của hệ thống, đặc biệt là đối với các ứng dụng có lượng truy cập lớn hoặc phục vụ người dùng trên toàn cầu.
+Pull CDN: Là phương pháp mà hệ thống sẽ sử dụng CDN để phân phối nội dung tĩnh đến người dùng. Ví dụ, khi người dùng yêu cầu một hình ảnh từ trang web, hệ thống sẽ sử dụng CDN để phân phối hình ảnh đó đến người dùng một cách nhanh chóng và hiệu quả.
+Push CDN: Là phương pháp mà hệ thống sẽ đẩy nội dung tĩnh từ máy chủ gốc đến các máy chủ CDN trên toàn cầu. Ví dụ, khi có một hình ảnh mới được tải lên máy chủ gốc, hệ thống sẽ đẩy hình ảnh đó đến các máy chủ CDN để phân phối đến người dùng một cách nhanh chóng và hiệu quả. Việc lựa chọn giữa pull CDN và push CDN phụ thuộc vào yêu cầu cụ thể của ứng dụng, khả năng mở rộng của hệ thống, và mức độ phức tạp của việc triển khai. Pull CDN thường dễ triển khai và phù hợp cho các ứng dụng có lượng truy cập lớn, trong khi push CDN có thể cung cấp hiệu suất tốt hơn cho các ứng dụng có lượng truy cập nhỏ hoặc có yêu cầu đặc biệt về bảo mật.  

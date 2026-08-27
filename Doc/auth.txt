@@ -1,0 +1,20 @@
+Bản chất của signature là chống sửa đổi.
+1. Jwt
+- Jwt là jwon web token gôm 3 phần: header, payload, signature. signatrue được tạo bởi thuật toán ở header (bất đối xứng).
+chữ ký sẽ đc tạo bởi thuật toán ở phần header (dùng thêm header.payload, serectkey). Mục tiêu khi gửi lên server, server sẽ dùng serect key để
+encode header.payload, nếu mà nó ra cùng signature với jwt là đc =>  chứng tỏ dữ liệu không thay đổi. Tức là sẽ xác thực thành công.
+- Công thức Chữ ký signaature = HMACSHA256(base64UrlEncode(header) + "." + base64UrlEncode(payload), secret)
+2. OAuth2
+- Hiểu đỡn giản là ủy quyền truy cập tài nguyên bên thứ 3.
+- Tưởng tượng như google, user muốn lấy thông tin của user từ google, user lên website nhấn login với google, lúc này sẽ hiện popup của google,
+user sẽ nhập thông tin tài khoản google của mình, google sẽ xác thực thông tin đó, nếu đúng thì google sẽ trả về cho website 1 access token, 
+website sẽ dùng access token này để truy cập vào tài nguyên của user trên google.
+3. OpenID Connect
+- OpenID Connect là một lớp nhận dạng được xây dựng trên giao thức OAuth 2.
+- OpenID Connect cho phép các ứng dụng xác thực người dùng dựa trên việc ủy quyền truy cập tài nguyên của họ từ một nhà cung cấp danh tính (Identity Provider - IdP). 
+Nó cung cấp thông tin về người dùng (như tên, email, ảnh đại diện). Lúc này nó thay vì trả accesstoken thì nó trả về idtoken.
+Id token này chỉ cần bạn giải mã bằng client id là lấy đc thông tin cơ bản trong token đó.
+
+Bản chất id token này sẽ đc ký bời private key của 3 party, mình muốn verify token mình phải dùng public key của 3 party đó để verify. 
+Nếu verify thành công thì chứng tỏ token này là do 3 party đó phát ra, và dữ liệu trong token không bị thay đổi.
+Trong microservices sẽ áp dụng OpenID Connect để xác thực người dùng, các microservices sẽ dựa vào id token để xác thực người dùng mà không cần phải gọi lại đến 3 party.

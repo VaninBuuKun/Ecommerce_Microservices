@@ -1,9 +1,9 @@
 import { useState } from "react";
 import { ProductRow } from "./ProductRow";
-import type { ProductDto } from "../../types/catalog.types";
+import type { Product } from "../../types/catalog.types";
 
 interface ProductTableProps {
-	products: ProductDto[];
+	products: Product[];
 	onEdit: (id: string) => void;
 	onDelete: (id: string) => void;
 	onToggleStatus?: (id: string, currentStatus: string) => void;

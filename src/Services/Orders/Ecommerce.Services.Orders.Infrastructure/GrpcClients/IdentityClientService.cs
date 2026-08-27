@@ -15,13 +15,13 @@ namespace Ecommerce.Services.Orders.Infrastructure.GrpcClients;
 
 public class IdentityClientService(IdentityGrpc.IdentityGrpcClient client, ILogger<IdentityClientService> logger) : IIdentityService
 {
-    public async Task<Result<UserAddressDto>> GetUserAddressAsync(Guid addressId, long userId)
+    public async Task<Result<UserAddressDto>> GetUserAddressAsync(long addressId, long userId)
     {
         try
         {
             var response = await client.GetUserAddressAsync(new GetUserAddressRequest
             {
-                AddressId = addressId.ToString(),
+                AddressId = addressId,
                 UserId = userId
             });
 

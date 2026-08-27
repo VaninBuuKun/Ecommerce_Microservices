@@ -6,7 +6,7 @@ import {
 	useProvincesQuery,
 	useDistrictsQuery,
 	useWardsQuery,
-} from "@/domains/catalog";
+} from "@/domains/shipping";
 
 interface NewAddressModalProps {
 	isOpen: boolean;

@@ -6,7 +6,7 @@ import {
 	useProvincesQuery,
 	useDistrictsQuery,
 	useWardsQuery,
-} from "@/domains/catalog";
+} from "@/domains/shipping";
 import type { UserAddressDto } from "../types/address.types";
 
 interface NewAddressModalProps {

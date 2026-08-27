@@ -1,0 +1,32 @@
+using System.Collections.Generic;
+using Ecommerce.Services.Catalog.Application.Features.Products.Commands.BulkUpdateVariants;
+
+namespace Ecommerce.Services.Catalog.Api.Dtos;
+
+public record AddReviewRequest(int Rating, string Comment, List<string>? ImageUrls);
+
+public record ProductRequest(long ShopId, string Name, string Description, string? ThumbnailUrl);
+
+public record UpdateProductRequest(
+    string Name,
+    string Description,
+    string? ThumbnailUrl,
+    string? VideoUrl,
+    List<string> ImageUrls,
+    long? CategoryId
+);
+
+public record UpdateProductSaleRequest(
+    decimal Price,
+    int AvailableStock,
+    double Weight,
+    double Length,
+    double Width,
+    double Height,
+    decimal DiscountPrice
+);
+
+public record BulkUpdateVariantsRequest(
+    List<BulkUpdateOptionDto> Options,
+    List<BulkUpdateVariantDto> Variants
+);

@@ -4,4 +4,4 @@ using Ecommerce.Services.Orders.Domain.Enums;
 
 namespace Ecommerce.Services.Orders.Application.Features.Orders.Commands.UpdateOrderStatus;
 
-public record UpdateSubOrderStatusCommand(Guid SubOrderId, SubOrderStatus Status, string? PaymentUrl = null): ICommand;
+public record UpdateSubOrderStatusCommand(long SubOrderId, SubOrderStatus Status, string? PaymentUrl = null): ICommand;
