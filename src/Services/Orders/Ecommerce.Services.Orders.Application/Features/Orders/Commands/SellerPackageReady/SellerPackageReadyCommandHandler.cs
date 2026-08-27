@@ -27,7 +27,7 @@ public class SellerPackageReadyCommandHandler(
 
         try
         {
-            var subOrderRepo = unitOfWork.Repository<SubOrder, Guid>();
+            var subOrderRepo = unitOfWork.Repository<SubOrder, long>();
             
             // Tải SubOrder kèm Order mẹ, truyền null cho orderBy, cancellationToken và selector x => x.Order
             var subOrder = await subOrderRepo.FirstOrDefaultAsync(

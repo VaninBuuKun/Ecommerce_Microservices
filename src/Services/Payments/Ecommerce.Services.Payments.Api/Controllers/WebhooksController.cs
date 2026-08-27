@@ -26,8 +26,9 @@ public class WebhooksController(
         
             var stringData = momoData.ToDictionary(k => k.Key, v => v.Value?.ToString() ?? "");
         
+            var orderId = long.Parse(stringData["orderId"]);
             var payment = await unitOfWork.Repository<Payment, Guid>()
-                .FirstOrDefaultAsync(p => p.OrderId == Guid.Parse(stringData["orderId"]));
+                .FirstOrDefaultAsync(p => p.OrderId == orderId);
         
             if (payment == null)
             {
@@ -46,8 +47,6 @@ public class WebhooksController(
             {
                 return BadRequest("Signature validation failed");
             }
-            
-            var orderId = Guid.Parse(stringData["orderId"]);
             var resultCode = int.Parse(stringData["resultCode"]);
         
             if (resultCode == 0)
@@ -100,7 +99,7 @@ public class WebhooksController(
                 return BadRequest("Missing vnp_TxnRef");
             }
             
-            var orderId = Guid.Parse(txnRef);
+            var orderId = long.Parse(txnRef);
             
             var payment = await unitOfWork.Repository<Payment, Guid>()
                 .FirstOrDefaultAsync(p => p.OrderId == orderId);

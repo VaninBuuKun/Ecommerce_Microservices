@@ -5,8 +5,8 @@ namespace Ecommerce.Services.Catalog.Application.Commons.Dtos.Products;
 
 public class ProductReviewDto
 {
-    public Guid Id { get; set; }
-    public Guid ProductId { get; set; }
+    public long Id { get; set; }
+    public long ProductId { get; set; }
     public long CustomerId { get; set; }
     public int Rating { get; set; }
     public string Comment { get; set; } = string.Empty;
@@ -21,7 +21,6 @@ public class ProductReviewSummaryDto
     public double AverageRating { get; set; }
     public int TotalReviews { get; set; }
     
-    // Đếm số lượt đánh giá tương ứng 1, 2, 3, 4, 5 sao
     public int OneStarCount { get; set; }
     public int TwoStarCount { get; set; }
     public int ThreeStarCount { get; set; }

@@ -1,9 +1,11 @@
+using System.Collections.Generic;
+
 namespace Ecommerce.Services.Catalog.Application.Features.Products.Dtos;
 
 public class VariantStockInfo
 {
     public long ShopId { get; set; }
-    public Guid VariantId { get; set; }
+    public long VariantId { get; set; }
     public int Quantity { get; set; }
     public int AvailableStocks { get; set; }
     public string ProductName { get; set; } = string.Empty;

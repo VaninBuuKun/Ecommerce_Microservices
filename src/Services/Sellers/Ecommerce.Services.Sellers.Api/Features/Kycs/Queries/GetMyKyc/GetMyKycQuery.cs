@@ -11,7 +11,7 @@ using Microsoft.Extensions.Logging;
 namespace Ecommerce.Services.Sellers.Api.Features.Kycs.Queries.GetMyKyc;
 
 public record SellerKycDto(
-    Guid Id,
+    long Id,
     long UserId,
     string IdentityCardNumber,
     string IdentityCardFrontUrl,
@@ -31,7 +31,7 @@ public class GetMyKycQueryHandler(
     {
         try
         {
-            var kycRepo = unitOfWork.Repository<SellerKyc, Guid>();
+            var kycRepo = unitOfWork.Repository<SellerKyc, long>();
             var kyc = await kycRepo.FirstOrDefaultAsync(
                 predicate: k => k.UserId == request.UserId,
                 cancellationToken: cancellationToken

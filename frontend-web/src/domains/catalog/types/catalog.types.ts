@@ -1,17 +1,17 @@
-export interface ProductOptionValueDto {
-	id: string;
+export interface ProductOptionValue {
+	id: number | string;
 	value: string;
 	imageUrl?: string;
 }
 
-export interface ProductOptionDto {
-	id: string;
+export interface ProductOption {
+	id: number | string;
 	name: string;
-	values: ProductOptionValueDto[];
+	values: ProductOptionValue[];
 }
 
-export interface ProductVariantDto {
-	id: string;
+export interface ProductVariant {
+	id: number | string;
 	sku?: string;
 	price: number;
 	discountPrice?: number;
@@ -22,11 +22,11 @@ export interface ProductVariantDto {
 	height?: number;
 	variantName?: string;
 	thumbnailUrl?: string;
-	variantOptions?: { optionValueId: string }[];
+	variantOptions?: { optionValueId: number | string }[];
 }
 
-export interface ProductDto {
-	id: string;
+export interface Product {
+	id: number | string;
 	shopId: number;
 	shopName?: string;
 	shopAddress?: string;
@@ -47,19 +47,46 @@ export interface ProductDto {
 	thumbnailUrl?: string;
 	videoUrl?: string;
 	imageUrls?: string[];
-	status: string;
 	averageRating?: number;
 	reviewCount?: number;
-	options?: ProductOptionDto[];
-	variants?: ProductVariantDto[];
+	soldCount?: number;
+	status: string;
+	options?: ProductOption[];
+	variants?: ProductVariant[];
 }
 
-export interface CategoryDto {
+export interface Category {
 	id: number | string;
 	name: string;
 	parentId?: number | string;
 	description?: string;
 	iconUrl?: string;
-	subCategories?: CategoryDto[];
-	children?: CategoryDto[];
+	subCategories?: Category[];
+	children?: Category[];
 }
+
+export interface ProductReview {
+	id: string;
+	productId: string;
+	userId: string;
+	userName: string;
+	userAvatarUrl?: string;
+	rating: number;
+	comment?: string;
+	mediaUrls?: string[];
+	createdAt: string;
+	updatedAt?: string;
+}
+
+export interface ProductReviewSummary {
+	averageRating: number;
+	totalReviews: number;
+	starDistribution: Record<number, number>;
+}
+
+// Backward compatibility type aliases
+export type ProductDto = Product;
+export type ProductVariantDto = ProductVariant;
+export type ProductOptionDto = ProductOption;
+export type ProductOptionValueDto = ProductOptionValue;
+export type CategoryDto = Category;

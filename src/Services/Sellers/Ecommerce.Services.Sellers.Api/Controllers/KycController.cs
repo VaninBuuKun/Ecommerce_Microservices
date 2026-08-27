@@ -76,9 +76,9 @@ public class KycController(ISender sender, ICurrentUserService currentUserServic
         return Ok(result.Value);
     }
 
-    [HttpPut("{id:guid}/approve")]
+    [HttpPut("{id:long}/approve")]
     [Authorize(Roles = "Admin")]
-    public async Task<IActionResult> ApproveKyc(Guid id)
+    public async Task<IActionResult> ApproveKyc(long id)
     {
         var result = await sender.Send(new ApproveKycCommand(id));
         if (!result.IsSuccess)

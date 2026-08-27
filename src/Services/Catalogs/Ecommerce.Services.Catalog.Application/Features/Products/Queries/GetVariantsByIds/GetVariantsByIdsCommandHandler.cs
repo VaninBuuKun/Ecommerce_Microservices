@@ -1,3 +1,8 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
 using BuildingBlocks.Shared.Commons;
 using BuildingBlocks.Shared.InfrastructureInterfaces.InMemoryBus;
 using BuildingBlocks.Shared.InfrastructureInterfaces.Persistence.EFCore;
@@ -14,8 +19,8 @@ public class GetVariantsByIdsCommandHandler(IEfUnitOfWork unitOfWork, IMapper ma
 {
     public async Task<Result<List<VariantDto>>> Handle(GetVariantsByIdsQuery request, CancellationToken cancellationToken)
     {
-        var productVariantRepository = unitOfWork.Repository<ProductVariant, Guid>();
-        var productRepository = unitOfWork.Repository<Product, Guid>();
+        var productVariantRepository = unitOfWork.Repository<ProductVariant, long>();
+        var productRepository = unitOfWork.Repository<Product, long>();
         
         var results = new List<VariantDto>();
 

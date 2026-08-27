@@ -1,9 +1,12 @@
 using BuildingBlocks.Shared.Domains;
 using Ecommerce.Services.Catalog.Domain.Products.Rules;
+using System;
+using System.Collections.Generic;
+using System.Linq;
 
 namespace Ecommerce.Services.Catalog.Domain.Products;
 
-public class Product : AggregateRoot<Guid>
+public class Product : AggregateRoot<long>
 {
     public long ShopId { get; init; }
     public string Name { get; private set; }
@@ -18,7 +21,7 @@ public class Product : AggregateRoot<Guid>
     public List<string> ImageUrls { get; private set; } = new();
     
     // Phân cấp Category
-    public Guid? CategoryId { get; private set; }
+    public long? CategoryId { get; private set; }
     public Category? Category { get; private set; }
     
     // Giá sản phẩm (min price của các variants hoặc giá của single variant)
@@ -43,13 +46,12 @@ public class Product : AggregateRoot<Guid>
     // Dịch vụ Images & Reviews
     public ICollection<ProductReview> Reviews { get; private set; } = new List<ProductReview>();
 
-    private Product() { Name = null!; Description = null!; } // EF Core
+    public Product() { Name = null!; Description = null!; } // EF Core
 
-    private Product(long shopId, string name, string description, string thumbnailUrl, double weight, double length, double width, double height)
+    public Product(long shopId, string name, string description, string? thumbnailUrl = null, double weight = 0, double length = 0, double width = 0, double height = 0)
     {
         Check(new ProductNameCannotBeEmptyRule(name));
 
-        Id = Guid.NewGuid();
         ShopId = shopId;
         Name = name;
         Description = description;
@@ -59,155 +61,33 @@ public class Product : AggregateRoot<Guid>
         Width = width;
         Height = height;
         ThumbnailUrl = thumbnailUrl;
+        AverageRating = 0;
+        ReviewCount = 0;
+        RatingSum = 0;
     }
 
-    // ========== Update ==========
+    public static Product Create(long shopId, string name, string description, string thumbnailUrl, double weight, double length, double width, double height)
+    {
+        return new Product(shopId, name, description, thumbnailUrl, weight, length, width, height);
+    }
 
-    public void UpdateDetails(string name, string description, string? thumbnailUrl, string? videoUrl, List<string> imageUrls)
+    public void UpdateDetails(string name, string description, string? thumbnailUrl = null, string? videoUrl = null, List<string>? imageUrls = null)
     {
         Check(new ProductNameCannotBeEmptyRule(name));
         Name = name;
         Description = description;
-        ThumbnailUrl = thumbnailUrl;
-        VideoUrl = videoUrl;
-        ImageUrls = imageUrls ?? new List<string>();
+        if (thumbnailUrl != null) ThumbnailUrl = thumbnailUrl;
+        if (videoUrl != null) VideoUrl = videoUrl;
+        if (imageUrls != null) ImageUrls = imageUrls;
     }
 
-    public void UpdateShippingDimensions(double weight, double length, double width, double height)
+    public void SetCategory(long? categoryId)
     {
-        Weight = weight;
-        Length = length;
-        Width = width;
-        Height = height;
+        CategoryId = categoryId;
     }
-
-    // ========== Options & Option Values ==========
-
-    public ProductOption AddOption(string name)
-    {
-        if (_options.Any(o => !o.IsDeleted && o.Name.Equals(name, StringComparison.OrdinalIgnoreCase)))
-        {
-            throw new InvalidOperationException($"Option with name '{name}' already exists.");
-        }
-
-        var productOption = new ProductOption(Id, name, _options.Count);
-        _options.Add(productOption);
-
-        return productOption;
-    }
-
-    /// <summary>
-    /// Thêm một options value vào cuối
-    /// </summary>
-    /// <param name="optionId"></param>
-    /// <param name="name"></param>
-    /// <param name="sortOrder">Nếu </param>
-    public ProductOptionValue AddOptionValue(Guid optionId, string value)
-    {
-        var option = _options.FirstOrDefault(o => o.Id == optionId)
-                     ?? throw new ArgumentException($"Option ID {optionId} not found.");
-
-        if (option.Values.Any(v => v.Value == value))
-        {
-            throw new InvalidOperationException($"Value '{value}' already exists in option '{option.Name}'.");
-        }
-
-        var productOptionValue = new ProductOptionValue(optionId, value, option.Values.Count);
-        option.AddValue(productOptionValue);
-        
-        return productOptionValue;
-    }
-
-    // ========== Variants ==========
-
-    public ProductVariant AddVariant(decimal price, int availableStocks, List<Guid> optionValueIds, double weight = 0, double length = 0, double width = 0, double height = 0, decimal? discountPrice = null)
-    {
-        Check(new ProductPriceMustBePositiveRule(price));
-        Check(new ProductStocksCannotBeNegativeRule(availableStocks));
-        
-        // Validate that variant has exactly one option value from each option
-        var activeOptionsCount = _options.Count(o => !o.IsDeleted);
-        if (optionValueIds.Count != activeOptionsCount)
-        {
-            throw new ArgumentException($"A variant must have exactly {activeOptionsCount} option values.");
-        }
-        
-        if (optionValueIds.Distinct().Count() != optionValueIds.Count)
-        {
-            throw new ArgumentException("Duplicate option value IDs are not allowed.");
-        }
-
-        foreach (var variant in _variants)
-        {
-            var Ids = variant.VariantOptions.Select(o => o.OptionValueId).ToList();
-
-            if (new HashSet<Guid>(Ids).SetEquals(optionValueIds))
-            {
-                throw new InvalidOperationException("A variant with the same option values already exists.");  
-            }
-        }
-        
-        var createdVariant = new ProductVariant(Id, price, availableStocks, weight, length, width, height, discountPrice);
-        foreach (var optionValueId in optionValueIds)
-        {
-            createdVariant.AddOption(new ProductVariantOption(createdVariant.Id, optionValueId));
-        }
-        
-        _variants.Add(createdVariant);
-        SyncProductPrice();
-        
-        return createdVariant;
-    }
-
-    public void RemoveVariant(Guid variantId)
-    {
-        var variant = _variants.FirstOrDefault(v => v.Id == variantId && !v.IsDeleted)
-                      ?? throw new InvalidOperationException("Variant not found or already deleted.");
-
-        variant.SoftDelete();
-        SyncProductPrice();
-    }
-
-    public void SyncProductPrice()
-    {
-        if (Variants.Any())
-        {
-            Price = Variants.Min(v => v.Price);
-            DiscountPrice = Variants.Min(v => v.DiscountPrice);
-            AvailableStock = Variants.Sum(v => v.AvailableStocks);
-        }
-    }
-
-    public void UpdateSingleProductInfo(decimal price, decimal discountPrice, int availableStock)
-    {
-        Price = price;
-        DiscountPrice = discountPrice;
-        AvailableStock = availableStock;
-    }
-
-    public void UpdatePrice(decimal price, decimal? discountPrice = null)
-    {
-        Price = price;
-        DiscountPrice = discountPrice ?? price;
-    }
-
-    public void ClearVariantsAndOptions()
-    {
-        foreach (var option in _options.Where(o => !o.IsDeleted))
-        {
-            option.SoftDelete();
-        }
-        foreach (var variant in _variants.Where(v => !v.IsDeleted))
-        {
-            variant.SoftDelete();
-        }
-    }
-
-    // ========== Lifecycle ==========
 
     public void Activate()
     {
-        this.Check(new ProductActiveHasAtLeastOneVariantRule(Variants));
         Status = ProductStatus.Active;
     }
 
@@ -216,33 +96,108 @@ public class Product : AggregateRoot<Guid>
         Status = ProductStatus.Inactive;
     }
 
-    public void SetCategory(Guid? categoryId)
+    public void RemoveVariant(long variantId)
     {
+        var variant = _variants.FirstOrDefault(v => v.Id == variantId);
+        if (variant != null)
+        {
+            variant.SoftDelete();
+            RecalculateCachedPricesAndStock();
+        }
+    }
+
+    public void SetMedia(string? thumbnailUrl, string? videoUrl, List<string>? imageUrls)
+    {
+        ThumbnailUrl = thumbnailUrl;
+        VideoUrl = videoUrl;
+        if (imageUrls != null)
+        {
+            ImageUrls = imageUrls;
+        }
+    }
+
+    public void UpdateInfo(string name, string description, long? categoryId, double weight, double length, double width, double height, string? thumbnailUrl = null, string? videoUrl = null, List<string>? imageUrls = null)
+    {
+        Check(new ProductNameCannotBeEmptyRule(name));
+        Name = name;
+        Description = description;
         CategoryId = categoryId;
+        Weight = weight;
+        Length = length;
+        Width = width;
+        Height = height;
+        if (thumbnailUrl != null) ThumbnailUrl = thumbnailUrl;
+        if (videoUrl != null) VideoUrl = videoUrl;
+        if (imageUrls != null) ImageUrls = imageUrls;
     }
 
-    public void UpdateRatings(int newReviewRating)
+    public void ClearVariantsAndOptions()
     {
-        var totalRatingSum = (AverageRating * ReviewCount) + newReviewRating;
-        ReviewCount += 1;
-        AverageRating = Math.Round((double)totalRatingSum / ReviewCount, 1);
-    }
-    // ========== Factory Methods ==========
-
-    public static Product CreateNewProduct(long shopId, string name, string description, string thumbnailUrl, double weight = 0, double length = 0, double width = 0, double height = 0)
-    {
-        return new Product(shopId, name, description, thumbnailUrl, weight, length, width, height);
+        _options.Clear();
+        _variants.Clear();
+        RecalculateCachedPricesAndStock();
     }
 
-    public void UpdateSaleInfo(int availableStock, double weight, double length, double width, double height,
-        decimal price, decimal? discountPrice = null)
+    public void UpdateSaleInfo(int availableStocks, double weight, double length, double width, double height, decimal price, decimal discountPrice)
     {
-        AvailableStock = availableStock;
         Weight = weight;
         Length = length;
         Width = width;
         Height = height;
         Price = price;
-        DiscountPrice = discountPrice ?? price;
+        DiscountPrice = discountPrice;
+        AvailableStock = availableStocks;
+    }
+
+    public ProductOption AddOption(string optionName, int sortOrder = 0)
+    {
+        var option = new ProductOption(Id, optionName, sortOrder);
+        _options.Add(option);
+        return option;
+    }
+
+    public ProductVariant AddVariant(decimal price, int availableStocks, string? thumbnailUrl = null, decimal? discountPrice = null)
+    {
+        var variant = new ProductVariant(Id, price, availableStocks, thumbnailUrl, discountPrice);
+        _variants.Add(variant);
+        RecalculateCachedPricesAndStock();
+        return variant;
+    }
+
+    public void Publish()
+    {
+        if (!_variants.Any(v => !v.IsDeleted))
+            throw new InvalidOperationException("Không thể kích hoạt sản phẩm chưa có biến thể (Variant).");
+
+        Status = ProductStatus.Active;
+    }
+
+    public void Unpublish()
+    {
+        Status = ProductStatus.Inactive;
+    }
+
+    public void AddReview(int rating)
+    {
+        if (rating < 1 || rating > 5) return;
+        ReviewCount++;
+        RatingSum += rating;
+        AverageRating = Math.Round((double)RatingSum / ReviewCount, 1);
+    }
+
+    public void RecalculateCachedPricesAndStock()
+    {
+        var activeVariants = _variants.Where(v => !v.IsDeleted).ToList();
+        if (!activeVariants.Any())
+        {
+            Price = 0;
+            DiscountPrice = 0;
+            AvailableStock = 0;
+            return;
+        }
+
+        Price = activeVariants.Min(v => v.Price);
+        DiscountPrice = activeVariants.Min(v => v.DiscountPrice > 0 ? v.DiscountPrice : v.Price);
+        AvailableStock = activeVariants.Sum(v => v.AvailableStocks);
     }
 }

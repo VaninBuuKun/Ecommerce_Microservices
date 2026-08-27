@@ -24,7 +24,7 @@ message GetUserResponse {
 }
 
 message GetUserAddressRequest {
-  string address_id = 1;
+  int64 address_id = 1;
   int64 user_id = 2;
 }
 

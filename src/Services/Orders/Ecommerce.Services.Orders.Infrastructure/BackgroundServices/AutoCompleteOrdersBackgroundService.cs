@@ -47,7 +47,7 @@ public class AutoCompleteOrdersBackgroundService(
         var unitOfWork = scope.ServiceProvider.GetRequiredService<IEfUnitOfWork>();
         var publisher = scope.ServiceProvider.GetRequiredService<IEventPublisher>();
 
-        var subOrderRepo = unitOfWork.Repository<SubOrder, Guid>();
+        var subOrderRepo = unitOfWork.Repository<SubOrder, long>();
         
         // Quét các đơn hàng đã giao thành công quá 7 ngày
         var cutOffTime = DateTimeOffset.UtcNow.AddDays(-7);

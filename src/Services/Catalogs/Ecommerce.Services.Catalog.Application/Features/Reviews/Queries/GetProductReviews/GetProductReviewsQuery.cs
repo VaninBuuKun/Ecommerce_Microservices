@@ -14,13 +14,13 @@ using MediatR;
 
 namespace Ecommerce.Services.Catalog.Application.Features.Reviews.Queries.GetProductReviews;
 
-public record GetProductReviewsQuery(Guid ProductId, int PageNumber = 1, int PageSize = 10) 
+public record GetProductReviewsQuery(long ProductId, int PageNumber = 1, int PageSize = 10) 
     : IRequest<Result<PagedResult<ProductReviewDto>>>;
 
 public class GetProductReviewsQueryHandler(IEfUnitOfWork unitOfWork, IIdentityService identityService)
     : IRequestHandler<GetProductReviewsQuery, Result<PagedResult<ProductReviewDto>>>
 {
-    private readonly IGenericEfRepository<ProductReview, Guid> _reviewRepository = unitOfWork.Repository<ProductReview, Guid>();
+    private readonly IGenericEfRepository<ProductReview, long> _reviewRepository = unitOfWork.Repository<ProductReview, long>();
 
     public async Task<Result<PagedResult<ProductReviewDto>>> Handle(GetProductReviewsQuery request, CancellationToken cancellationToken)
     {

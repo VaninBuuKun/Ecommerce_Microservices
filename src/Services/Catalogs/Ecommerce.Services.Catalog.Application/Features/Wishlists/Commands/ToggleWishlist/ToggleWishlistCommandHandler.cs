@@ -15,8 +15,8 @@ public class ToggleWishlistCommandHandler(
     ILogger<ToggleWishlistCommandHandler> logger)
     : CommandHandler<ToggleWishlistCommand, bool>
 {
-    private readonly IGenericEfRepository<Wishlist, Guid> _wishlistRepository = unitOfWork.Repository<Wishlist, Guid>();
-    private readonly IGenericEfRepository<Product, Guid> _productRepository = unitOfWork.Repository<Product, Guid>();
+    private readonly IGenericEfRepository<Wishlist, long> _wishlistRepository = unitOfWork.Repository<Wishlist, long>();
+    private readonly IGenericEfRepository<Product, long> _productRepository = unitOfWork.Repository<Product, long>();
 
     protected override async Task<Result<bool>> HandleCommandAsync(ToggleWishlistCommand command, CancellationToken cancellationToken)
     {

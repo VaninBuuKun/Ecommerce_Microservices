@@ -12,7 +12,7 @@ namespace Ecommerce.Services.Orders.Application.Features.Vouchers.Commands.Creat
 
 public class CreateVoucherCommandHandler(IEfUnitOfWork unitOfWork, ILogger<CreateVoucherCommandHandler> logger, IMapper mapper) : CommandHandler<CreateVoucherCommand,  VoucherDto>
 {
-    private IGenericEfRepository<Voucher, Guid> voucherRepo => unitOfWork.Repository<Voucher, Guid>();
+    private IGenericEfRepository<Voucher, long> voucherRepo => unitOfWork.Repository<Voucher, long>();
     protected override async Task<Result<VoucherDto>> HandleCommandAsync(CreateVoucherCommand command, CancellationToken cancellationToken)
     {
         try

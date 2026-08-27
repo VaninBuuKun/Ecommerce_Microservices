@@ -7,7 +7,7 @@ public class CheckoutSession
 {
     public Guid CheckoutSessionId { get; set; }
     public long CustomerId { get; set; }
-    public Guid UserAddressId { get; set; }
+    public long UserAddressId { get; set; }
     public List<CheckoutSessionItem> Items { get; set; } = new();
     public Dictionary<long, decimal> ShopShippingFees { get; set; } = new();
     public decimal SubTotal { get; set; }
@@ -24,7 +24,7 @@ public class CheckoutSession
 
 public class CheckoutSessionItem
 {
-    public Guid VariantId { get; set; }
+    public long VariantId { get; set; }
     public int Quantity { get; set; }
     public decimal UnitPrice { get; set; }
 }

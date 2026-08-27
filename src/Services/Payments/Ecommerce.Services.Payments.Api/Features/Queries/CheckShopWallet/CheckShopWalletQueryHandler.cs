@@ -14,8 +14,8 @@ public class CheckShopWalletQueryHandler(IEfUnitOfWork unitOfWork)
 {
     public async Task<Result<ShopWalletDto>> Handle(CheckShopWalletQuery request, CancellationToken cancellationToken)
     {
-        var repo = unitOfWork.Repository<Wallet, Guid>();
-        var wallet = await repo.FirstOrDefaultAsync(w => w.UserId == request.UserId);
+        var walletRepo = unitOfWork.Repository<Wallet, long>();
+        var wallet = await walletRepo.FirstOrDefaultAsync(w => w.UserId == request.UserId);
         
         if (wallet == null)
         {

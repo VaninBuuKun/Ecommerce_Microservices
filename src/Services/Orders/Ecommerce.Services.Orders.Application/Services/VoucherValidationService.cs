@@ -18,7 +18,7 @@ namespace Ecommerce.Services.Orders.Application.Services;
 /// </summary>
 public class VoucherValidationService(IEfUnitOfWork unitOfWork) : IVoucherValidationService
 {
-    private IGenericEfRepository<Voucher, Guid> voucherRepo => unitOfWork.Repository<Voucher, Guid>();
+    private IGenericEfRepository<Voucher, long> voucherRepo => unitOfWork.Repository<Voucher, long>();
     private IGenericEfRepository<VoucherUsage, Guid> voucherUsageRepo => unitOfWork.Repository<VoucherUsage, Guid>();
 
     public async Task<Result<VoucherValidationResult>> ValidateVouchersAsync(
@@ -56,7 +56,7 @@ public class VoucherValidationService(IEfUnitOfWork unitOfWork) : IVoucherValida
 
             // Batch query per-user usage (không N+1)
             var voucherIds = dbVouchers.Select(v => v.Id).ToList();
-            var userUsageCountsDict = new Dictionary<Guid, int>();
+            var userUsageCountsDict = new Dictionary<long, int>();
 
             if (voucherIds.Count > 0)
             {

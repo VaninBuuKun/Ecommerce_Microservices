@@ -15,8 +15,8 @@ namespace Ecommerce.Services.Payments.Api.Services;
 
 public class WithdrawalService(IEfUnitOfWork unitOfWork, IMapper mapper) : IWithdrawalService
 {
-    private readonly IGenericEfRepository<Wallet, Guid> _walletRepository = unitOfWork.Repository<Wallet, Guid>();
-    private readonly IGenericEfRepository<BankAccount, Guid> _bankAccountRepository = unitOfWork.Repository<BankAccount, Guid>();
+    private readonly IGenericEfRepository<Wallet, long> _walletRepository = unitOfWork.Repository<Wallet, long>();
+    private readonly IGenericEfRepository<BankAccount, long> _bankAccountRepository = unitOfWork.Repository<BankAccount, long>();
     private readonly IGenericEfRepository<WalletTransaction, Guid> _transactionRepository = unitOfWork.Repository<WalletTransaction, Guid>();
     private readonly IGenericEfRepository<WithdrawalRequest, Guid> _withdrawalRepository = unitOfWork.Repository<WithdrawalRequest, Guid>();
 
@@ -75,7 +75,7 @@ public class WithdrawalService(IEfUnitOfWork unitOfWork, IMapper mapper) : IWith
             Type = TransactionType.Debit,
             Reason = TransactionReason.WithdrawalHold,
             BalanceAfter = wallet.Balance,
-            ReferenceId = withdrawal.Id,
+            ReferenceId = withdrawal.Id.ToString(),
             Description = $"Giữ tiền thực hiện yêu cầu rút về ngân hàng {withdrawal.BankName} ({withdrawal.BankAccountNumber})."
         };
         _transactionRepository.Add(transaction);
@@ -178,7 +178,7 @@ public class WithdrawalService(IEfUnitOfWork unitOfWork, IMapper mapper) : IWith
             return Result.Failure("Chỉ có thể từ chối các yêu cầu rút tiền đang chờ duyệt hoặc đã duyệt chờ thanh toán.", EErrorCode.ValidationErrors);
         }
 
-        var wallet = await _walletRepository.GetByIdAsync(withdrawal.WalletId);
+        var wallet = await _walletRepository.FirstOrDefaultAsync(w => w.Id == withdrawal.WalletId);
         if (wallet == null)
         {
             return Result.Failure("Ví điện tử của người dùng không tồn tại.", EErrorCode.NotFound);
@@ -203,7 +203,7 @@ public class WithdrawalService(IEfUnitOfWork unitOfWork, IMapper mapper) : IWith
             Type = TransactionType.Credit,
             Reason = TransactionReason.WithdrawalReject,
             BalanceAfter = wallet.Balance,
-            ReferenceId = withdrawal.Id,
+            ReferenceId = withdrawal.Id.ToString(),
             Description = $"Hoàn tiền yêu cầu rút {withdrawal.Id} bị từ chối. Lý do: {withdrawal.AdminNote}"
         };
         _transactionRepository.Add(transaction);

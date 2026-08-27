@@ -11,7 +11,7 @@ using Microsoft.Extensions.Logging;
 
 namespace Ecommerce.Services.Catalog.Application.Features.Products.Commands.ToggleProductStatus;
 
-public record ToggleProductStatusCommand(Guid ProductId) : ICommand<ProductResponse>;
+public record ToggleProductStatusCommand(long ProductId) : ICommand<ProductResponse>;
 
 public class ToggleProductStatusCommandHandler(
     IEfUnitOfWork unitOfWork,
@@ -21,7 +21,7 @@ public class ToggleProductStatusCommandHandler(
     IMapper mapper
 ) : CommandHandler<ToggleProductStatusCommand, ProductResponse>
 {
-    private readonly IGenericEfRepository<Product, Guid> _productRepository = unitOfWork.Repository<Product, Guid>();
+    private readonly IGenericEfRepository<Product, long> _productRepository = unitOfWork.Repository<Product, long>();
 
     protected override async Task<Result<ProductResponse>> HandleCommandAsync(ToggleProductStatusCommand command, CancellationToken cancellationToken)
     {

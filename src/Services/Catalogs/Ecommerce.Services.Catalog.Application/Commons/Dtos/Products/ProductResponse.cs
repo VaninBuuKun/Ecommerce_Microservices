@@ -6,7 +6,7 @@ namespace Ecommerce.Services.Catalog.Application.Commons.Dtos.Products;
 
 public class ProductResponse
 {
-    public Guid Id { get; set; }
+    public long Id { get; set; }
     public string Name { get; set; } = null!;
     public string Description { get; set; } = null!;
     public double AverageRating { get; set; }
@@ -18,14 +18,14 @@ public class ProductResponse
     public decimal DiscountPrice { get; set; }
     public int AvailableStock { get; set; }
     public string Status { get; set; } = string.Empty;
-    public string ThumbnailUrl { get; set; }
+    public string ThumbnailUrl { get; set; } = string.Empty;
     public string? VideoUrl { get; set; }
     public List<string> ImageUrls { get; set; } = new();
     public double Weight { get; set; }
     public double Length { get; set; }
     public double Width { get; set; }
     public double Height { get; set; }
-    public Guid? CategoryId { get; set; }
+    public long? CategoryId { get; set; }
     public string? CategoryName { get; set; }
     public string? ParentCategoryName { get; set; }
     public long ShopId { get; set; }
@@ -41,7 +41,7 @@ public class ProductResponse
 
 public class ProductOptionDto
 {
-    public Guid Id { get; set; }
+    public long Id { get; set; }
     public string Name { get; set; } = null!;
     public int SortOrder { get; set; }
     public List<ProductOptionValueDto> Values { get; set; } = new();
@@ -49,7 +49,7 @@ public class ProductOptionDto
 
 public class ProductOptionValueDto
 {
-    public Guid Id { get; set; }
+    public long Id { get; set; }
     public string Value { get; set; } = null!;
     public string? ImageUrl { get; set; }
     public int SortOrder { get; set; }
@@ -57,7 +57,7 @@ public class ProductOptionValueDto
 
 public class ProductVariantDto
 {
-    public Guid Id { get; set; }
+    public long Id { get; set; }
     public string? Sku { get; set; }
     public decimal Price { get; set; }
     public decimal? DiscountPrice { get; set; }
@@ -73,5 +73,5 @@ public class ProductVariantDto
 
 public class ProductVariantOptionDto
 {
-    public Guid OptionValueId {get; set;}
+    public long OptionValueId { get; set; }
 }

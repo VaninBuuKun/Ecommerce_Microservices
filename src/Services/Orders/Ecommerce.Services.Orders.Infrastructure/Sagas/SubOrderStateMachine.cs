@@ -1,20 +1,17 @@
 using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text.Json;
-using Ecommerce.Services.Carts.Contracts.Dtos;
 using Ecommerce.Services.Orders.Contracts.Events;
-using Ecommerce.Services.Orders.Contracts.Requests;
-using Ecommerce.Services.Orders.Infrastructure.Extensions;
+using Ecommerce.Services.Orders.Domain.Enums;
 using MassTransit;
+using Microsoft.Extensions.Logging;
 
 namespace Ecommerce.Services.Orders.Infrastructure.Sagas;
 
 public class SubOrderStateMachine : MassTransitStateMachine<SubOrderSagaState>
 {
+    // States
+    public State AwaitingPayment { get; private set; }
     public State AwaitingConfirmation { get; private set; }
     public State Processing { get; private set; }
-    public State PackageReady { get; private set; }
     public State Shipping { get; private set; }
     public State Delivered { get; private set; }
     public State Completed { get; private set; }
@@ -29,34 +26,32 @@ public class SubOrderStateMachine : MassTransitStateMachine<SubOrderSagaState>
     public Event<SubOrderShippedEvent> SubOrderShipped { get; private set; }
     public Event<SubOrderDeliveredEvent> SubOrderDelivered { get; private set; }
     public Event<SubOrderCompletedEvent> SubOrderCompleted { get; private set; }
-    public Event<RefundApprovedEvent> RefundApproved{ get; private set; }
+    public Event<RefundApprovedEvent> RefundApproved { get; private set; }
+
     public SubOrderStateMachine()
     {
         InstanceState(x => x.CurrentState);
 
-        Event(() => SubOrderCreated, x => x.CorrelateById(context => context.Message.SubOrderId));
-        Event(() => SubOrderConfirmed, x => x.CorrelateById(context => context.Message.SubOrderId));
-        Event(() => SubOrderRejected, x => x.CorrelateById(context => context.Message.SubOrderId));
-        Event(() => SubOrderPackageReady, x => x.CorrelateById(context => context.Message.SubOrderId));
-        Event(() => SubOrderShipped, x => x.CorrelateById(context => context.Message.SubOrderId));
-        Event(() => SubOrderDelivered, x => x.CorrelateById(context => context.Message.SubOrderId));
-        Event(() => SubOrderCompleted, x => x.CorrelateById(context => context.Message.SubOrderId));
-        Event(() => RefundApproved, x => x.CorrelateById(context => context.Message.SubOrderId));
+        Event(() => SubOrderCreated, x => x.CorrelateBy((s, context) => s.SubOrderId == context.Message.SubOrderId).SelectId(context => NewId.NextGuid()));
+        Event(() => SubOrderConfirmed, x => x.CorrelateBy((s, context) => s.SubOrderId == context.Message.SubOrderId));
+        Event(() => SubOrderRejected, x => x.CorrelateBy((s, context) => s.SubOrderId == context.Message.SubOrderId));
+        Event(() => SubOrderPackageReady, x => x.CorrelateBy((s, context) => s.SubOrderId == context.Message.SubOrderId));
+        Event(() => SubOrderShipped, x => x.CorrelateBy((s, context) => s.SubOrderId == context.Message.SubOrderId));
+        Event(() => SubOrderDelivered, x => x.CorrelateBy((s, context) => s.SubOrderId == context.Message.SubOrderId));
+        Event(() => SubOrderCompleted, x => x.CorrelateBy((s, context) => s.SubOrderId == context.Message.SubOrderId));
+        Event(() => RefundApproved, x => x.CorrelateBy((s, context) => s.SubOrderId == context.Message.SubOrderId));
+
         Initially(
             When(SubOrderCreated)
                 .Then(context =>
                 {
-                    context.Saga.CorrelationId = context.Message.SubOrderId;
+                    context.Saga.SubOrderId = context.Message.SubOrderId;
                     context.Saga.OrderId = context.Message.OrderId;
-                    context.Saga.ShopId = context.Message.ShopId;
                     context.Saga.CustomerId = context.Message.CustomerId;
-                    context.Saga.IsOnlinePayment = context.Message.IsOnlinePayment;
+                    context.Saga.ShopId = context.Message.ShopId;
                     context.Saga.TotalAmount = context.Message.TotalAmount;
-                    context.Saga.ShippingAddress = context.Message.ShippingAddress;
-                    context.Saga.RecipientName = context.Message.RecipientName;
-                    context.Saga.RecipientPhone = context.Message.RecipientPhone;
-                    context.Saga.RecipientWardId = context.Message.RecipientWardId;
-                    context.Saga.ItemsJson = JsonSerializer.Serialize(context.Message.OrderItems);
+                    context.Saga.IsOnlinePayment = context.Message.IsOnlinePayment;
+                    context.Saga.CreatedDate = DateTime.UtcNow;
                 })
                 .TransitionTo(AwaitingConfirmation)
         );
@@ -64,82 +59,20 @@ public class SubOrderStateMachine : MassTransitStateMachine<SubOrderSagaState>
         During(AwaitingConfirmation,
             When(SubOrderConfirmed)
                 .TransitionTo(Processing),
-
             When(SubOrderRejected)
-                .HandleRejectionFlow()
                 .TransitionTo(Cancelled)
         );
 
         During(Processing,
             When(SubOrderPackageReady)
-                .Then(context =>
-                {
-                    context.Saga.Weight = context.Message.Weight;
-                    context.Saga.Height = context.Message.Height;
-                    context.Saga.Width = context.Message.Width;
-                    context.Saga.Length = context.Message.Length;
-                })
-                .PublishAsync(context => context.Init<CreateShipmentRequest>(new CreateShipmentRequest
-                {
-                    SubOrderId = context.Saga.CorrelationId,
-                    OrderId = context.Saga.OrderId,
-                    CustomerId = context.Saga.CustomerId,
-                    RecipientWardId = context.Saga.RecipientWardId,
-                    RecipientAddress = context.Saga.ShippingAddress,
-                    RecipientName = context.Saga.RecipientName,
-                    RecipientPhone = context.Saga.RecipientPhone,
-                    ShopId = context.Saga.ShopId,
-                    Weight = context.Saga.Weight,
-                    Height = context.Saga.Height,
-                    Width = context.Saga.Width,
-                    Length = context.Saga.Length,
-                    CodAmount = context.Saga.IsOnlinePayment ? 0m : context.Saga.TotalAmount,
-                    Items = string.IsNullOrEmpty(context.Saga.ItemsJson) 
-                        ? new List<ShipmentItemData>() 
-                        : JsonSerializer.Deserialize<List<ShipmentItemData>>(context.Saga.ItemsJson) ?? new List<ShipmentItemData>()
-                }))
-                .TransitionTo(PackageReady),
-
-
-            When(SubOrderRejected)
-                .HandleRejectionFlow()
-                .TransitionTo(Cancelled)
-        );
-
-        During(PackageReady,
-            When(SubOrderShipped)
-                .PublishAsync(context => context.Init<SubOrderStatusChangedEvent>(new SubOrderStatusChangedEvent
-                {
-                    SubOrderId = context.Saga.CorrelationId,
-                    Status = "Shipping"
-                }))
-                .TransitionTo(Shipping),
-
-            When(SubOrderRejected)
-                .PublishAsync(context => context.Init<CancelWaybillRequest>(new CancelWaybillRequest
-                {
-                    SubOrderId = context.Saga.CorrelationId
-                }))
-                .HandleRejectionFlow()
-                .TransitionTo(Cancelled)
+                .TransitionTo(Shipping)
         );
 
         During(Shipping,
+            When(SubOrderShipped)
+                .TransitionTo(Shipping),
             When(SubOrderDelivered)
-                .PublishAsync(context => context.Init<SubOrderStatusChangedEvent>(new SubOrderStatusChangedEvent
-                {
-                    SubOrderId = context.Saga.CorrelationId,
-                    Status = "Delivered"
-                }))
-                .TransitionTo(Delivered),
-
-            When(SubOrderRejected)
-                .PublishAsync(context => context.Init<CancelWaybillRequest>(new CancelWaybillRequest
-                {
-                    SubOrderId = context.Saga.CorrelationId
-                }))
-                .HandleRejectionFlow()
-                .TransitionTo(Cancelled)
+                .TransitionTo(Delivered)
         );
 
         During(Delivered,

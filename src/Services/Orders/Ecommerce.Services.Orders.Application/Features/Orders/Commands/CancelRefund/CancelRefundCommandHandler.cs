@@ -24,8 +24,8 @@ public class CancelRefundCommandHandler(
         logger.LogInformation("Customer {CustomerId} is withdrawing refund request {RefundRequestId}", command.CustomerId, command.RefundRequestId);
         try
         {
-            var refundRepo = unitOfWork.Repository<RefundRequest, Guid>();
-            var subOrderRepo = unitOfWork.Repository<SubOrder, Guid>();
+            var subOrderRepo = unitOfWork.Repository<SubOrder, long>();
+            var refundRepo = unitOfWork.Repository<RefundRequest, long>();
 
             var refundRequest = await refundRepo.GetByIdAsync(command.RefundRequestId, cancellationToken);
             if (refundRequest == null)
@@ -49,7 +49,7 @@ public class CancelRefundCommandHandler(
                 return Result.Failure("Đơn hàng liên kết không tồn tại.", EErrorCode.NotFound);
             }
 
-            // Xóa RefundRequest khỏi cơ sở dữ liệu
+            // Cập nhật RefundRequest sang Cancelled
             refundRepo.Delete(refundRequest);
 
             // Cập nhật lại trạng thái SubOrder từ Returning về Delivered

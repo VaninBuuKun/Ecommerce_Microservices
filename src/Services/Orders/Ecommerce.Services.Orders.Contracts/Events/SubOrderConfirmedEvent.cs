@@ -5,5 +5,5 @@ namespace Ecommerce.Services.Orders.Contracts.Events;
 
 public class SubOrderConfirmedEvent : IIntegrationEvent
 {
-    public Guid SubOrderId { get; init; }
+    public long SubOrderId { get; init; }
 }

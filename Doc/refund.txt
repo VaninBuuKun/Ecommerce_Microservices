@@ -1,0 +1,19 @@
+waller transactions: có 2 loại debit(trừ), credit(công), reason (withdraw, order refund, hold withdraw, seller revenue(ví seller dành cho từ system vào seller), refund rejection(đơn online bị từ chs), withdraw reject trả lại tiền hold.
+
+refund approve sẽ check điều kiện refund tồn tại k, sub tồn tại không, cả hai có trạng thái hợp lý không, tiền hành approve, refuned, public event để tạo ra transaction cộng vào ví người dugng (chưa có ví tạo ví), tạo transaction type là order refund.
+
+refund reject validate tương tự, chỉ cần cập nhật lại suborder là delivered và refund sẽ là rejected.
+
+TransactionReason (Lý do giao dịch)	                ReferenceId chứa ID gì?	                       Ý nghĩa & Mục tiêu đối soát
+OrderRefund
+(Hoàn tiền trả hàng được Seller duyệt)	       |       RefundRequestId	          |  Tra cứu trực tiếp được lý do khách trả hàng, ghi chú của seller, thời gian duyệt hoàn tiền.
+RefundRejection
+(Hoàn tiền tự động do hủy đơn trước giao)	   |RefundRequestId	                  |     Tra cứu được bản ghi hoàn trả tự động tương ứng (trạng thái AutoApproved) bên Order Service.
+SellerRevenue
+(Cộng doanh thu bán hàng khi đơn hoàn thành)	|SubOrderId	            |   Biết chính xác số tiền này được cộng từ đơn hàng con nào của shop.
+WithdrawalHold
+(Tạm khóa số dư để chờ rút tiền)                |	WithdrawalRequestId	        |       Liên kết trực tiếp với yêu cầu rút tiền đang chờ duyệt của User.
+WithdrawalReject
+(Hoàn tiền trả lại ví do bị từ chối rút)	WithdrawalRequestId	Biết số tiền hoàn này là hoàn tác cho yêu cầu rút tiền cụ thể nào bị từ chối.
+WithdrawalSuccess
+(Khấu trừ ví vĩnh viễn khi rút thành công)	WithdrawalRequestId	Đối chiếu với chứng từ chuyển khoản thực tế của ngân hàng.

@@ -1,6 +1,6 @@
 using BuildingBlocks.Application.Commons.Models;
 using BuildingBlocks.Web.Controllers;
-using Ecommerce.Services.Orders.Application.Features.Commands.CreateOrder;
+using Ecommerce.Services.Orders.Application.Features.Orders.Commands.CreateOrder;
 using Ecommerce.Services.Orders.Application.Features.Orders.Dtos;
 using Ecommerce.Services.Orders.Application.Features.Queries.GetCustomerOrders;
 using Ecommerce.Services.Orders.Application.Features.Orders.Queries.GetOrderById;
@@ -50,10 +50,10 @@ public class OrdersController(ICurrentUserService currentUserService, IInMemoryB
     /// <summary>
     /// Lấy thông tin đơn hàng chi tiết theo Id
     /// </summary>
-    [HttpGet("{orderId:guid}")]
+    [HttpGet("{orderId:long}")]
     [ProducesResponseType(typeof(CustomerOrderResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public async Task<IActionResult> GetOrderById(Guid orderId, CancellationToken cancellationToken)
+    public async Task<IActionResult> GetOrderById(long orderId, CancellationToken cancellationToken)
     {
         var result = await _sender.SendAsync(new GetOrderByIdQuery(orderId, UserId), cancellationToken);
 
@@ -147,8 +147,8 @@ public class OrdersController(ICurrentUserService currentUserService, IInMemoryB
     /// <summary>
     /// Lấy thông tin chi tiết của đơn hàng con (SubOrder) dùng Task.WhenAll kết nối các service
     /// </summary>
-    [HttpGet("suborder/{subOrderId:guid}/detail")]
-    public async Task<IActionResult> GetSubOrderDetail(Guid subOrderId, [FromQuery] bool isSeller, CancellationToken cancellationToken)
+    [HttpGet("suborder/{subOrderId:long}/detail")]
+    public async Task<IActionResult> GetSubOrderDetail(long subOrderId, [FromQuery] bool isSeller, CancellationToken cancellationToken)
     {
         var isAdmin = currentUserService.IsAdmin;
         var result = await _sender.SendAsync(new Ecommerce.Services.Orders.Application.Features.Orders.Queries.GetSubOrderDetail.GetSubOrderDetailQuery(subOrderId, UserId, isSeller, isAdmin), cancellationToken);
@@ -162,9 +162,9 @@ public class OrdersController(ICurrentUserService currentUserService, IInMemoryB
     /// <summary>
     /// Người bán xác nhận đơn hàng con bắt đầu xử lý
     /// </summary>
-    [HttpPut("suborder/{subOrderId:guid}/confirm")]
+    [HttpPut("suborder/{subOrderId:long}/confirm")]
     [ProducesResponseType(StatusCodes.Status200OK)]
-    public async Task<IActionResult> ConfirmSubOrder(Guid subOrderId, CancellationToken cancellationToken)
+    public async Task<IActionResult> ConfirmSubOrder(long subOrderId, CancellationToken cancellationToken)
     {
         var sellerId = currentUserService.UserId;
         var result = await _sender.SendAsync(new SellerConfirmSubOrderCommand(subOrderId, sellerId), cancellationToken);
@@ -177,9 +177,9 @@ public class OrdersController(ICurrentUserService currentUserService, IInMemoryB
     /// <summary>
     /// Người bán từ chối đơn hàng con (hết hàng, sự cố...)
     /// </summary>
-    [HttpPut("suborder/{subOrderId:guid}/reject")]
+    [HttpPut("suborder/{subOrderId:long}/reject")]
     [ProducesResponseType(StatusCodes.Status200OK)]
-    public async Task<IActionResult> RejectSubOrder(Guid subOrderId, [FromQuery] string reason, CancellationToken cancellationToken)
+    public async Task<IActionResult> RejectSubOrder(long subOrderId, [FromQuery] string reason, CancellationToken cancellationToken)
     {
         var sellerId = currentUserService.UserId;
         var result = await _sender.SendAsync(new SellerRejectSubOrderCommand(subOrderId, sellerId, reason), cancellationToken);
@@ -192,9 +192,9 @@ public class OrdersController(ICurrentUserService currentUserService, IInMemoryB
     /// <summary>
     /// Người bán hoàn tất đóng gói, nhập kích thước cân nặng thực tế và gửi hãng vận chuyển
     /// </summary>
-    [HttpPut("suborder/{subOrderId:guid}/package-ready")]
+    [HttpPut("suborder/{subOrderId:long}/package-ready")]
     [ProducesResponseType(StatusCodes.Status200OK)]
-    public async Task<IActionResult> PackageReady(Guid subOrderId, [FromBody] SellerPackageReadyRequest request, CancellationToken cancellationToken)
+    public async Task<IActionResult> PackageReady(long subOrderId, [FromBody] SellerPackageReadyRequest request, CancellationToken cancellationToken)
     {
         var sellerId = currentUserService.UserId;
         var result = await _sender.SendAsync(new SellerPackageReadyCommand(
@@ -214,9 +214,9 @@ public class OrdersController(ICurrentUserService currentUserService, IInMemoryB
     /// <summary>
     /// Khách hàng yêu cầu hủy đơn hàng con (chỉ khả dụng trước khi chuyển hàng)
     /// </summary>
-    [HttpPut("suborder/{subOrderId:guid}/cancel")]
+    [HttpPut("suborder/{subOrderId:long}/cancel")]
     [ProducesResponseType(StatusCodes.Status200OK)]
-    public async Task<IActionResult> CancelSubOrder(Guid subOrderId, [FromQuery] string reason, CancellationToken cancellationToken)
+    public async Task<IActionResult> CancelSubOrder(long subOrderId, [FromQuery] string reason, CancellationToken cancellationToken)
     {
         var result = await _sender.SendAsync(new CancelSubOrderCommand(subOrderId, UserId, reason), cancellationToken);
 
@@ -228,9 +228,9 @@ public class OrdersController(ICurrentUserService currentUserService, IInMemoryB
     /// <summary>
     /// Khách hàng xác nhận đã nhận hàng thành công và kết thúc đơn hàng
     /// </summary>
-    [HttpPut("suborder/{subOrderId:guid}/complete")]
+    [HttpPut("suborder/{subOrderId:long}/complete")]
     [ProducesResponseType(StatusCodes.Status200OK)]
-    public async Task<IActionResult> CompleteSubOrder(Guid subOrderId, CancellationToken cancellationToken)
+    public async Task<IActionResult> CompleteSubOrder(long subOrderId, CancellationToken cancellationToken)
     {
         var result = await _sender.SendAsync(new Ecommerce.Services.Orders.Application.Features.Orders.Commands.CompleteOrder.CompleteSubOrderCommand(subOrderId, UserId), cancellationToken);
 
@@ -249,7 +249,7 @@ public record SellerPackageReadyRequest(
 
 public class CalculateOrderTotalRequest
 {
-    public Guid UserAddressId { get; set; }
+    public long UserAddressId { get; set; }
     public Guid? CheckoutSessionId { get; set; }
     public Dictionary<long, string>? ShopShippingSelections { get; set; }
     public string? PlatformVoucherCode { get; set; }

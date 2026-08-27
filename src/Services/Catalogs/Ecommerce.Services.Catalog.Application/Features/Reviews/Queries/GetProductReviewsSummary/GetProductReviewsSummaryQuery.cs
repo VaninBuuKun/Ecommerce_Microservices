@@ -3,7 +3,6 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using BuildingBlocks.Shared.Commons;
-using BuildingBlocks.Shared.Enums;
 using BuildingBlocks.Shared.InfrastructureInterfaces.Persistence.EFCore;
 using Ecommerce.Services.Catalog.Application.Commons.Dtos.Products;
 using Ecommerce.Services.Catalog.Domain;
@@ -11,12 +10,12 @@ using MediatR;
 
 namespace Ecommerce.Services.Catalog.Application.Features.Reviews.Queries.GetProductReviewsSummary;
 
-public record GetProductReviewsSummaryQuery(Guid ProductId) : IRequest<Result<ProductReviewSummaryDto>>;
+public record GetProductReviewsSummaryQuery(long ProductId) : IRequest<Result<ProductReviewSummaryDto>>;
 
 public class GetProductReviewsSummaryQueryHandler(IEfUnitOfWork unitOfWork)
     : IRequestHandler<GetProductReviewsSummaryQuery, Result<ProductReviewSummaryDto>>
 {
-    private readonly IGenericEfRepository<ProductReview, Guid> _reviewRepository = unitOfWork.Repository<ProductReview, Guid>();
+    private readonly IGenericEfRepository<ProductReview, long> _reviewRepository = unitOfWork.Repository<ProductReview, long>();
 
     public async Task<Result<ProductReviewSummaryDto>> Handle(GetProductReviewsSummaryQuery request, CancellationToken cancellationToken)
     {

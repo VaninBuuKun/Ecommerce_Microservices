@@ -6,10 +6,10 @@ namespace Ecommerce.Services.Payments.Api.Models.Entities;
 
 public class WithdrawalRequest : EntityTrackingBase<Guid>
 {
-    public Guid WalletId { get; set; }
+    public long WalletId { get; set; }
     public long UserId { get; set; }
     public decimal Amount { get; set; }
-    public Guid BankAccountId { get; set; }
+    public long BankAccountId { get; set; }
 
     // Snapshot thông tin tài khoản ngân hàng lúc rút
     public string BankName { get; set; } = string.Empty;

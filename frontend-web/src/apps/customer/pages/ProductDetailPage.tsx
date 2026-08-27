@@ -310,7 +310,7 @@ export default function ProductDetailPage() {
 
 	// Sau bước này product chắc chắn tồn tại (Non-null Assertion)
 	return (
-		<div className="max-w-5xl mx-auto px-2 md:px-4 py-4 text-left font-sans select-none">
+		<div className="max-w-5xl mx-auto px-2 md:px-4 py-4 text-left font-sans">
 			{/* Breadcrumbs */}
 			<div className="flex items-center gap-1.5 text-xs text-brand-muted font-medium mb-4">
 				<Link
@@ -354,7 +354,7 @@ export default function ProductDetailPage() {
 				<div className="flex flex-col justify-between text-left space-y-4">
 					<div className="space-y-4">
 						{/* Title */}
-						<h1 className="text-lg md:text-xl font-black text-brand-dark leading-tight">
+						<h1 className="text-lg md:text-xl font-black text-brand-dark leading-tight select-text">
 							{product.name}
 						</h1>
 
@@ -362,13 +362,17 @@ export default function ProductDetailPage() {
 						<div className="flex flex-wrap items-center gap-3 text-xs font-semibold text-brand-muted">
 							<div className="flex items-center gap-1">
 								<span className="text-brand-dark font-extrabold border-b border-brand-primary text-sm">
-									{product.averageRating || 5.0}
+									{product.averageRating ? product.averageRating.toFixed(1) : "0.0"}
 								</span>
 								<div className="flex gap-0.5 text-brand-primary">
 									{Array.from({ length: 5 }).map((_, idx) => (
 										<Star
 											key={idx}
-											className="w-3.5 h-3.5 fill-brand-primary stroke-brand-primary"
+											className={`w-3.5 h-3.5 ${
+												idx < Math.round(product.averageRating || 0)
+													? "fill-brand-primary stroke-brand-primary"
+													: "text-gray-300 stroke-gray-300"
+											}`}
 										/>
 									))}
 								</div>
@@ -376,14 +380,14 @@ export default function ProductDetailPage() {
 							<div className="w-[1px] h-3.5 bg-brand-border" />
 							<div>
 								<span className="text-brand-dark font-extrabold">
-									{product.reviewCount || 342}
+									{product.reviewCount || 0}
 								</span>{" "}
 								Đánh giá
 							</div>
 							<div className="w-[1px] h-3.5 bg-brand-border" />
 							<div>
 								<span className="text-brand-dark font-extrabold">
-									1.2k
+									{product.soldCount || 0}
 								</span>{" "}
 								Đã bán
 							</div>
@@ -393,40 +397,31 @@ export default function ProductDetailPage() {
 						<ProductPrice priceCalculations={priceCalculations} />
 
 						{/* Shipping Specs */}
-						<div className="space-y-2 text-xs border-y border-brand-border/60 py-3">
-							<div className="flex items-center gap-3">
-								<Truck className="w-4 h-4 text-brand-muted shrink-0" />
-								<span className="font-bold text-brand-dark">
-									Vận chuyển:
-								</span>
-								<span className="text-brand-muted">
-									Giao hàng COD toàn quốc.
-								</span>
+						{((product.weight && product.weight > 0) ||
+							(product.width && product.width > 0)) && (
+							<div className="space-y-2 text-xs border-y border-brand-border/60 py-3">
+								<div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[11px] text-brand-muted font-medium">
+									{product.weight > 0 && (
+										<span>
+											Cân nặng:{" "}
+											<strong className="text-brand-dark">
+												{product.weight}g
+											</strong>
+										</span>
+									)}
+									{product.width > 0 && (
+										<span>
+											Kích thước:{" "}
+											<strong className="text-brand-dark">
+												{product.width} x{" "}
+												{product.length} x{" "}
+												{product.height} cm
+											</strong>
+										</span>
+									)}
+								</div>
 							</div>
-							{((product.weight && product.weight > 0) ||
-								(product.width && product.width > 0)) && (
-									<div className="flex flex-wrap items-center gap-x-4 gap-y-1 pl-7 text-[11px] text-brand-muted font-medium">
-										{product.weight > 0 && (
-											<span>
-												Cân nặng:{" "}
-												<strong className="text-brand-dark">
-													{product.weight}g
-												</strong>
-											</span>
-										)}
-										{product.width > 0 && (
-											<span>
-												Kích thước:{" "}
-												<strong className="text-brand-dark">
-													{product.width} x{" "}
-													{product.length} x{" "}
-													{product.height} cm
-												</strong>
-											</span>
-										)}
-									</div>
-								)}
-						</div>
+						)}
 
 						{/* Product Options Selector Sub-component */}
 						{product.options && product.options.length > 0 && (

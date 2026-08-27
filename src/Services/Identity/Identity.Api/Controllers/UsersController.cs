@@ -423,8 +423,8 @@ public class UsersController(
         });
     }
 
-    [HttpDelete("addresses/{id:guid}")]
-    public async Task<IActionResult> DeleteAddress(Guid id)
+    [HttpDelete("addresses/{id:long}")]
+    public async Task<IActionResult> DeleteAddress(long id)
     {
         long userId = currentUserService.UserId;
         
@@ -439,8 +439,8 @@ public class UsersController(
         return NoContent();
     }
 
-    [HttpPut("addresses/{id:guid}/default")]
-    public async Task<IActionResult> SetDefaultAddress(Guid id)
+    [HttpPut("addresses/{id:long}/default")]
+    public async Task<IActionResult> SetDefaultAddress(long id)
     {
         long userId = currentUserService.UserId;
         

@@ -24,7 +24,7 @@ public class ConfirmPaymentCommandHandler(
 
         try
         {
-            var subOrderRepo = unitOfWork.Repository<SubOrder, Guid>();
+            var subOrderRepo = unitOfWork.Repository<SubOrder, long>();
             
             // Tìm tất cả các SubOrder thuộc đơn gốc này
             var subOrders = await subOrderRepo.GetAllAsync(

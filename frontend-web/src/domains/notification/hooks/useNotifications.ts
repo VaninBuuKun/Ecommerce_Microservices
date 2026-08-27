@@ -1,15 +1,17 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { notificationApi } from "../api/notificationApi";
+import { useAuthStore } from "@/domains/auth/stores/useAuthStore";
 
 export function useNotifications() {
 	const queryClient = useQueryClient();
+	const accessToken = useAuthStore((s) => s.accessToken);
 
 	const notificationsQuery = useQuery({
 		queryKey: ["notifications"],
 		queryFn: () => notificationApi.getMyNotifications(),
+		enabled: !!accessToken,
 		staleTime: 1000 * 30, // 30s
 	});
-
 
 	const markAsReadMutation = useMutation({
 		mutationFn: (id: string) => notificationApi.markAsRead(id),

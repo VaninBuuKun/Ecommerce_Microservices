@@ -13,4 +13,4 @@ public record UserAddressDto(
     string AddressLine
 );
 
-public record GetUserAddressQuery(Guid AddressId, long UserId) : IRequest<Result<UserAddressDto>>;
+public record GetUserAddressQuery(long AddressId, long UserId) : IRequest<Result<UserAddressDto>>;

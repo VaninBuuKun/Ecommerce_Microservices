@@ -1,5 +1,5 @@
 export interface UserAddress {
-	id: string;
+	id: number | string;
 	recipientName: string;
 	phone: string;
 	provinceId: number;
@@ -20,7 +20,7 @@ export interface CreateUserAddressRequest {
 }
 
 export interface CalculateOrderTotalRequest {
-	userAddressId: string;
+	userAddressId: number | string;
 	checkoutSessionId?: string | null;
 	shopShippingSelections?: Record<number, string> | null;
 	platformVoucherCode?: string | null;
@@ -28,7 +28,7 @@ export interface CalculateOrderTotalRequest {
 }
 
 export interface CheckoutItemDto {
-	variantId: string;
+	variantId: number | string;
 	productName: string;
 	variantName: string;
 	unitPrice: number;
@@ -43,7 +43,7 @@ export interface CheckoutShopGroupDto {
 }
 
 export interface CalOrderGrandTotalResponse {
-	id: string;
+	id: number | string;
 	shopShippingFee: Record<number, number>;
 	shopGroups: CheckoutShopGroupDto[];
 	subTotal: number;
@@ -58,7 +58,7 @@ export interface CreateOrderCommand {
 }
 
 export interface CustomerOrderResponse {
-	id: string;
+	id: number | string;
 	customerId: number;
 	grandTotal: number;
 	shippingAddress: string;

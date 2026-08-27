@@ -12,7 +12,7 @@ using BuildingBlocks.Grpc.Services;
 
 namespace Ecommerce.Services.Carts.Api.Features.Carts.Commands.AddItemToCart;
 
-public record AddItemToCartCommand(long CustomerId, Guid ProductVariantId, int Quantity) : ICommand<CartItem>;
+public record AddItemToCartCommand(long CustomerId, long ProductVariantId, int Quantity) : ICommand<CartItem>;
 
 public class AddItemToCartCommandHandler(
     ICacheService cacheService,
@@ -65,8 +65,8 @@ public class AddItemToCartCommandHandler(
 
                 itemResponse = new CartItem
                 {
-                    ProductId = product.ProductId,
-                    ProductVariantId = product.VariantId == Guid.Empty ? product.ProductId : product.VariantId,
+                    ProductId = product.ProductId != 0 ? product.ProductId : request.ProductVariantId,
+                    ProductVariantId = product.VariantId != 0 ? product.VariantId : request.ProductVariantId,
                     Quantity = request.Quantity
                 };
                 cart.Items.Add(itemResponse);

@@ -1,28 +1,30 @@
+using System;
+using System.Collections.Generic;
 using BuildingBlocks.Shared.InfrastructureInterfaces.InMemoryBus;
 using Ecommerce.Services.Catalog.Application.Commons.Dtos.Products;
 
 namespace Ecommerce.Services.Catalog.Application.Features.Products.Commands.BulkUpdateVariants;
 
 public record BulkUpdateVariantsCommand(
-    Guid ProductId,
+    long ProductId,
     List<BulkUpdateOptionDto> Options,
     List<BulkUpdateVariantDto> Variants
 ) : ICommand<ProductResponse>;
 
 public record BulkUpdateOptionDto(
-    Guid? Id,
+    long? Id,
     string Name,
     List<BulkUpdateOptionValueDto> Values
 );
 
 public record BulkUpdateOptionValueDto(
-    Guid? Id,
+    long? Id,
     string Value,
     string? ImageUrl
 );
 
 public record BulkUpdateVariantDto(
-    Guid? Id,
+    long? Id,
     decimal Price,
     decimal? DiscountPrice,
     int AvailableStock,

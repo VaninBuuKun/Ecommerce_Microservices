@@ -292,7 +292,7 @@ export function useMyWithdrawalsQuery() {
 	return useQuery({
 		queryKey: ["wallet", "withdrawals"],
 		queryFn: async () => {
-			const res = await api.get("/payments/withdrawals/me");
+			const res = await api.get("/withdrawals");
 			return res.data?.value || res.data || [];
 		},
 	});

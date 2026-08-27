@@ -11,9 +11,9 @@ using Microsoft.EntityFrameworkCore;
 namespace Ecommerce.Services.Catalog.Infrastructure.Repositories;
 
 public class ProductRepository(ProductDbContext context) 
-    : GenericEfRepository<Product, Guid, ProductDbContext>(context), IProductRepository
+    : GenericEfRepository<Product, long, ProductDbContext>(context), IProductRepository
 {
-    public async Task UpdateProductRatingsAsync(Guid productId, int newRating, CancellationToken cancellationToken = default)
+    public async Task UpdateProductRatingsAsync(long productId, int newRating, CancellationToken cancellationToken = default)
     {
         // Thực thi câu lệnh SQL UPDATE nguyên tử (Atomic Update) ở mức Database chống tranh chấp (Lost Update)
         await context.Products

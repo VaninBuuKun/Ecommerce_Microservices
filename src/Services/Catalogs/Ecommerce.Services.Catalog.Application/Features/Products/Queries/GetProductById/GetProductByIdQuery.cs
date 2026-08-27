@@ -13,7 +13,7 @@ using Ecommerce.Services.Catalog.Application.Commons.Interfaces;
 
 namespace Ecommerce.Services.Catalog.Application.Features.Products.Queries.GetProductById;
 
-public record GetProductByIdQuery(Guid Id) : IQuery<ProductResponse>;
+public record GetProductByIdQuery(long Id) : IQuery<ProductResponse>;
 
 public class GetProductByIdQueryHandler(
     IEfUnitOfWork unitOfWork,
@@ -22,7 +22,7 @@ public class GetProductByIdQueryHandler(
     ISellerService sellerService)
     : QueryHandler<GetProductByIdQuery, ProductResponse>
 {
-    private readonly IGenericEfRepository<Product, Guid> _productRepository = unitOfWork.Repository<Product, Guid>();
+    private readonly IGenericEfRepository<Product, long> _productRepository = unitOfWork.Repository<Product, long>();
 
     protected override async Task<Result<ProductResponse>> HandleQueryAsync(GetProductByIdQuery query, CancellationToken cancellationToken)
     {

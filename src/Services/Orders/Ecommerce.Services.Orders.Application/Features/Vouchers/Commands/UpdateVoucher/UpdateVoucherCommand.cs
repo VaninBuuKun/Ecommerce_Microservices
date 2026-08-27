@@ -6,6 +6,6 @@ namespace Ecommerce.Services.Orders.Application.Features.Vouchers.Commands.Updat
 public record UpdateVoucherCommand(
     bool IsAdmin,
     long UserId,
-    Guid VoucherId,
+    long VoucherId,
     UpdateVoucherRequest Request
 ) : ICommand<VoucherDto>;

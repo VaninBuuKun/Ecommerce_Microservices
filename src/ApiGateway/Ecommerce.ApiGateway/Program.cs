@@ -65,7 +65,7 @@ try
         });
     });
 
-    var identityUrl = builder.Configuration["Services:IdentityUrl"] ?? "http://identity-service:5027";
+    var identityUrl = builder.Configuration["Services:IdentityUrl"] ?? "http://localhost:5027";
     builder.Services.AddHttpClient(HttpClientConstansts.IdentityClientName, client =>
     {
         client.BaseAddress = new Uri(identityUrl);

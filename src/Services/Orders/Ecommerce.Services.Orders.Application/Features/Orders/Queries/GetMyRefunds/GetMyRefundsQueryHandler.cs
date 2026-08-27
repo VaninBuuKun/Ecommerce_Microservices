@@ -23,7 +23,7 @@ public class GetMyRefundsQueryHandler(
         logger.LogInformation("Getting refund requests for Customer {CustomerId}", query.CustomerId);
         try
         {
-            var refundRepo = unitOfWork.Repository<RefundRequest, Guid>();
+            var refundRepo = unitOfWork.Repository<RefundRequest, long>();
             var refunds = await refundRepo.GetAllAsync(r => r.CustomerId == query.CustomerId, null, cancellationToken);
             
             var dtos = refunds
@@ -34,11 +34,15 @@ public class GetMyRefundsQueryHandler(
                     SubOrderId = r.SubOrderId,
                     CustomerId = r.CustomerId,
                     ShopId = r.ShopId,
-                    RefundAmount = r.RefundAmount,
+                    RequestedAmount = r.RequestedAmount,
                     Reason = r.Reason,
-                    SellerNote = r.SellerNote,
+                    Description = r.Description,
+                    ProofImagesJson = r.ProofImagesJson,
+                    AttemptCount = r.AttemptCount,
+                    SellerRejectReason = r.SellerRejectReason,
                     Status = r.Status.ToString(),
-                    CreatedDate = r.CreatedDate
+                    CreatedDate = r.CreatedDate,
+                    ExpirationDate = r.ExpirationDate
                 }).ToList();
 
             return Result<List<RefundRequestDto>>.Success(dtos);

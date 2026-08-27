@@ -30,8 +30,8 @@ public class ApproveRefundCommandHandler(
         logger.LogInformation("Seller {SellerId} approving refund request {RefundRequestId}", command.SellerId, command.RefundRequestId);
         try
         {
-            var subOrderRepo = unitOfWork.Repository<SubOrder, Guid>();
-            var refundRepo = unitOfWork.Repository<RefundRequest, Guid>();
+            var subOrderRepo = unitOfWork.Repository<SubOrder, long>();
+            var refundRepo = unitOfWork.Repository<RefundRequest, long>();
 
             var refundRequest = await refundRepo.GetByIdAsync(command.RefundRequestId, cancellationToken);
             if (refundRequest == null)
@@ -58,7 +58,7 @@ public class ApproveRefundCommandHandler(
             }
 
             // Nạp các sub-order items để phục vụ việc hoàn kho
-            var itemsRepo = unitOfWork.Repository<SubOrderItem, Guid>();
+            var itemsRepo = unitOfWork.Repository<SubOrderItem, long>();
             var subOrderItems = await itemsRepo.GetAllAsync(i => i.SubOrderId == subOrder.Id, null, cancellationToken);
 
             // Lấy thông tin vận chuyển của Shop để biết OwnerUserId
@@ -70,15 +70,14 @@ public class ApproveRefundCommandHandler(
             var shopInfo = shopInfoResult.Value;
 
             // RÀNG BUỘC: Kiểm tra số dư ví điện tử của Shop Owner xem có đủ hoàn trả
-            var checkWalletResult = await paymentService.CheckWalletAsync(command.SellerId, refundRequest.RefundAmount, cancellationToken);
+            var checkWalletResult = await paymentService.CheckWalletAsync(command.SellerId, refundRequest.RequestedAmount, cancellationToken);
             if (!checkWalletResult.IsSuccess)
             {
                 return Result.Failure(checkWalletResult.Message ?? "Ví của người bán không đủ số dư hoặc chưa đăng ký liên kết.", EErrorCode.ValidationErrors);
             }
 
             // Cập nhật Refund Request
-            refundRequest.Status = RefundStatus.Approved;
-            refundRequest.SellerNote = command.SellerNote?.Trim();
+            refundRequest.SellerApprove();
             refundRepo.Update(refundRequest);
 
             // Cập nhật SubOrder
@@ -91,7 +90,7 @@ public class ApproveRefundCommandHandler(
                 SubOrderId = subOrder.Id,
                 RefundRequestId = refundRequest.Id,
                 CustomerId = subOrder.CustomerId,
-                RefundAmount = refundRequest.RefundAmount,
+                RefundAmount = refundRequest.RequestedAmount,
                 CustomerRefundAmount = subOrder.GrandTotal,
                 ShopOwnerUserId = command.SellerId,
             }, cancellationToken);

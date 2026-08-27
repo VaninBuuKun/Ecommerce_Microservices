@@ -7,6 +7,7 @@ using Ecommerce.Services.Catalog.Application.Features.Products.Queries;
 using Ecommerce.Services.Catalog.Application.Features.Products.Queries.GetVariantById;
 using Grpc.Core;
 using MediatR;
+using Microsoft.Extensions.Logging;
 
 namespace Ecommerce.Services.Catalog.Api.GrpcServers;
 
@@ -14,12 +15,12 @@ public class ProductGrpcService(ISender sender, ILogger<ProductGrpcService> logg
 {
     public override async Task<GetVariantByIdResponse> GetVariantById(GetVariantByIdRequest request, ServerCallContext context)
     {
-        if (!Guid.TryParse(request.Id, out var variantId))
+        if (request.Id <= 0)
         {
-            throw new RpcException(new Status(StatusCode.InvalidArgument, "Invalid variant ID format"));
+            throw new RpcException(new Status(StatusCode.InvalidArgument, "Invalid variant ID"));
         } 
-        logger.LogInformation($"Getting variant with variant ID {variantId}");
-        var result = await sender.Send(new GetVariantByIdQuery(variantId));
+        logger.LogInformation($"Getting variant with variant ID {request.Id}");
+        var result = await sender.Send(new GetVariantByIdQuery(request.Id));
 
         if (!result.IsSuccess)
         {
@@ -29,18 +30,18 @@ public class ProductGrpcService(ISender sender, ILogger<ProductGrpcService> logg
         var response = new GetVariantByIdResponse();
         var variant = result.Value;
 
-        response.VariantId = variant.Id.ToString();
+        response.VariantId = variant.Id;
+        response.ProductId = variant.ProductId != 0 ? variant.ProductId : variant.Id;
         response.AvailableStocks = variant.AvailableStocks;
         response.ShopId = variant.ShopId;
 
         return response;
     }
     
-    //Hỗ trợ cho việc lấy full thông tin cho cart
     public override async Task<GetVariantsByIdsResponse> GetVariantsByIds(GetVariantsByIdsRequest request, ServerCallContext context)
     {
-        var variantIds = request.VariantIds.Where(id => !string.IsNullOrEmpty(id)).Select(id => Guid.Parse(id)).ToList();
-        var productIds = request.ProductIds.Where(id => !string.IsNullOrEmpty(id)).Select(id => Guid.Parse(id)).ToList();
+        var variantIds = request.VariantIds.ToList();
+        var productIds = request.ProductIds.ToList();
         var result = await sender.Send(new GetVariantsByIdsQuery(variantIds, productIds));
 
         if (!result.IsSuccess)
@@ -49,7 +50,6 @@ public class ProductGrpcService(ISender sender, ILogger<ProductGrpcService> logg
         }
         
         var response = new GetVariantsByIdsResponse();
-
         var variants = result.Value;
         
         foreach (var variantDto in variants)
@@ -58,9 +58,9 @@ public class ProductGrpcService(ISender sender, ILogger<ProductGrpcService> logg
             variant.UnitPrice = variantDto.Price.ToGrpcString();
             variant.DiscountPrice = variantDto.DiscountPrice.ToGrpcString();
             variant.ProductName = variantDto.ProductName;
-            variant.ProductId = variantDto.ProductId.ToString();
+            variant.ProductId = variantDto.ProductId;
             variant.AvailableStocks = variantDto.AvailableStocks;
-            variant.VariantId = variantDto.Id.ToString();
+            variant.VariantId = variantDto.Id;
             variant.VariantName = variantDto.VariantName;
             variant.ShopId = variantDto.ShopId;
             variant.Weight = variantDto.Weight;
@@ -79,7 +79,7 @@ public class ProductGrpcService(ISender sender, ILogger<ProductGrpcService> logg
         
         var variantDtos = request.Items.Select(x => new VariantStockDto
         {
-            VariantId = Guid.Parse(x.VariantId),
+            VariantId = x.VariantId,
             Quantity = x.Quantity
         }).ToList();
         

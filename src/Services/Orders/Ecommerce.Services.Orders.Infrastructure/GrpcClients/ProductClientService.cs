@@ -20,7 +20,7 @@ public class ProductClientService(ProductGrpc.ProductGrpcClient client) : IProdu
             {
                 request.Items.Add(new RpcReserveStockItemDto()
                 {
-                    VariantId = item.VariantId.ToString(),
+                    VariantId = item.VariantId,
                     Quantity = item.Quantity
                 });
             }

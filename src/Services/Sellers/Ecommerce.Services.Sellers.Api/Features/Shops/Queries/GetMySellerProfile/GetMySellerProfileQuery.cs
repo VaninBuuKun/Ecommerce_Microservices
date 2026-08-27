@@ -36,7 +36,7 @@ public class GetMySellerProfileQueryHandler(
         try
         {
             // 1. Lấy thông tin KYC của User
-            var kycRepo = unitOfWork.Repository<SellerKyc, Guid>();
+            var kycRepo = unitOfWork.Repository<SellerKyc, long>();
             var kyc = await kycRepo.FirstOrDefaultAsync(
                 predicate: k => k.UserId == request.UserId,
                 cancellationToken: cancellationToken

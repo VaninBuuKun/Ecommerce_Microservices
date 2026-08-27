@@ -3,9 +3,9 @@ using Ecommerce.Services.Orders.Domain.Enums;
 
 namespace Ecommerce.Services.Orders.Domain;
 
-public class SubOrder : EntityTrackingBase<Guid>
+public class SubOrder : EntityTrackingBase<long>
 {
-    public Guid OrderId { get; set; }
+    public long OrderId { get; set; }
     public long CustomerId { get; private set; }
     public long ShopId { get; private set; }
     
@@ -16,8 +16,8 @@ public class SubOrder : EntityTrackingBase<Guid>
     public long GrandTotal { get; private set; }
     
     // Truy vết voucher đã áp dụng để hỗ trợ rollback khi hủy đơn
-    public Guid? ShopVoucherId { get; private set; }
-    public Guid? PlatformVoucherId { get; private set; }
+    public long? ShopVoucherId { get; private set; }
+    public long? PlatformVoucherId { get; private set; }
     
     public SubOrderStatus Status { get; private set; }
     public bool IsOnlinePayment { get; private set; }
@@ -31,14 +31,20 @@ public class SubOrder : EntityTrackingBase<Guid>
 
     private SubOrder() {}
     
-    public SubOrder(long customerId, long shopId, bool isOnlinePayment)
+    public SubOrder(long id, long orderId, long customerId, long shopId, bool isOnlinePayment)
     {
-        Id = Guid.NewGuid();
+        Id = id;
+        OrderId = orderId;
         CustomerId = customerId;
         ShopId = shopId;
         IsOnlinePayment = isOnlinePayment;
 
         Status = isOnlinePayment ? SubOrderStatus.AwaitingPayment : SubOrderStatus.AwaitingConfirmation;
+    }
+
+    public SubOrder(long customerId, long shopId, bool isOnlinePayment)
+        : this(0, 0, customerId, shopId, isOnlinePayment)
+    {
     }
 
     public void AddOrderItem(SubOrderItem subOrderItem)
@@ -72,7 +78,7 @@ public class SubOrder : EntityTrackingBase<Guid>
     /// <summary>
     /// Gắn ID voucher đã áp dụng vào SubOrder để hỗ trợ rollback khi hủy đơn.
     /// </summary>
-    public void ApplyVouchers(Guid? shopVoucherId, Guid? platformVoucherId)
+    public void ApplyVouchers(long? shopVoucherId, long? platformVoucherId)
     {
         if (shopVoucherId.HasValue)
             ShopVoucherId = shopVoucherId;

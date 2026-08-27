@@ -1,27 +1,24 @@
+using System.Collections.Generic;
+using System.Threading.Tasks;
 using BuildingBlocks.Grpc.Extensions;
 using BuildingBlocks.Grpc.Services;
 using BuildingBlocks.Shared.Commons;
 using BuildingBlocks.Shared.Enums;
-using BuildingBlocks.Shared.Extensions;
 using Ecommerce.Services.Carts.Api.Models.Dtos;
-using Ecommerce.Services.Carts.Api.Models.Entities;
 using Ecommerce.Services.Carts.Api.Models.Interfaces;
 using Grpc.Core;
 using MapsterMapper;
+using Microsoft.Extensions.Logging;
 
 namespace Ecommerce.Services.Carts.Api.GrpcClients;
 
 public class ProductClientService(ILogger<ProductClientService> logger, ProductGrpc.ProductGrpcClient grpcClient, IMapper mapper) : IProductService
 {
-    public async Task<Result<ProductDto>> GetProductVariantAsync(Guid variantId)
+    public async Task<Result<ProductDto>> GetProductVariantAsync(long variantId)
     {
         try
         {
-            var variant = await grpcClient.GetVariantByIdAsync(new
-                    GetVariantByIdRequest()
-                    {
-                        Id = variantId.ToString()
-                    });
+            var variant = await grpcClient.GetVariantByIdAsync(new GetVariantByIdRequest { Id = variantId });
             if (variant == null) 
             {
                 return Result<ProductDto>.Failure("Product variant not found", EErrorCode.NotFound);
@@ -37,7 +34,7 @@ public class ProductClientService(ILogger<ProductClientService> logger, ProductG
         }
     }
 
-    public async Task<Result<List<ProductDto>>> GetProductVariantListAsync(List<string> variantIds, List<string> productIds)
+    public async Task<Result<List<ProductDto>>> GetProductVariantListAsync(List<long> variantIds, List<long> productIds)
     {
         try
         {

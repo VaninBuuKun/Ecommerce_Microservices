@@ -1,4 +1,7 @@
+using System;
+using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations.Schema;
+using System.Linq;
 using BuildingBlocks.Shared.Domains;
 using BuildingBlocks.Shared.Domains.Interfaces;
 using Ecommerce.Services.Orders.Domain.Rules;
@@ -6,7 +9,7 @@ using MediatR;
 
 namespace Ecommerce.Services.Orders.Domain;
 
-public sealed class Order : AggregateRoot<Guid>, IDateTracking
+public sealed class Order : AggregateRoot<long>, IDateTracking
 {   
     public long CustomerId { get; private set; }
     public ICollection<SubOrder> SubOrderItems { get; private set; } = new List<SubOrder>();
@@ -32,103 +35,77 @@ public sealed class Order : AggregateRoot<Guid>, IDateTracking
     [NotMapped]
     public bool IsOnlinePayment { get; private set; } //Xác định hình thức thanh toán, true: online, false: offline
 
-    public Order(long customerId, string shippingAddress, bool isOnlinePayment, string recipientName, string recipientPhone, long recipientWardId)
+    public Order(long id, long customerId, string shippingAddress, bool isOnlinePayment, string recipientName, string recipientPhone, long recipientWardId)
     {
+        Id = id;
         CustomerId = customerId;
         ShippingAddress = shippingAddress;
         RecipientName = recipientName;
         RecipientPhone = recipientPhone;
         RecipientWardId = recipientWardId;
         IsOnlinePayment = isOnlinePayment;
-    }
-    
-    private SubOrder CreateSubOrder(long shopId)
-    {
-        var subOrder = new SubOrder(CustomerId, shopId, IsOnlinePayment);
-        
-        SubOrderItems.Add(subOrder);
-        return subOrder;
+        CreatedDate = DateTimeOffset.UtcNow;
     }
 
-    public SubOrderItem AddOrderItem(long ShopId, Guid productId, Guid VariantId, string ProductName, string VariantName, decimal unitPrice, int quantity, string thumbnaiLUrl)
+    public Order(long customerId, string shippingAddress, bool isOnlinePayment, string recipientName, string recipientPhone, long recipientWardId)
+        : this(0, customerId, shippingAddress, isOnlinePayment, recipientName, recipientPhone, recipientWardId)
     {
-        var subOrder = SubOrderItems.SingleOrDefault(o => o.ShopId == ShopId) ?? CreateSubOrder(ShopId);
-        
-        
-        var orderItem = new SubOrderItem
+    }
+
+    public void AddOrderItem(long subOrderId, long shopId, long productId, long variantId, string productName, string variantName, decimal unitPrice, int quantity, string? thumbnailUrl = null, long? subOrderItemId = null)
+    {
+        var existingShopSubOrder = SubOrderItems.FirstOrDefault(x => x.ShopId == shopId);
+
+        if (existingShopSubOrder == null)
         {
-            SubOrderId = subOrder.Id,
-            ProductId = productId,
-            ProductName = ProductName,
-            UnitPrice = unitPrice,
-            Quantity = quantity,
-            VariantId = VariantId,
-            VariantName = VariantName,
-            ThumbnailUrl = thumbnaiLUrl
-        };
-        
-        subOrder.AddOrderItem(orderItem);
-        CalculateSubTotal();
-        CalculateShippingFee();
-        CalculateTotalDiscount();
-        CalculateGrandTotal();
-
-        return orderItem;
-    }
-
-    public void SetShippingFee(long shopId, decimal shippingFee)
-    {
-        var subOrder = SubOrderItems.SingleOrDefault(o => o.ShopId == shopId);
-        if (subOrder != null)
-        {
-            subOrder.SetShippingFee((long)shippingFee);
-            CalculateShippingFee();
-            CalculateGrandTotal();
+            existingShopSubOrder = new SubOrder(subOrderId, Id, CustomerId, shopId, IsOnlinePayment);
+            SubOrderItems.Add(existingShopSubOrder);
         }
-    }
 
-    public void ApplyDiscounts(long shopId, decimal sellerDiscount, decimal platformDiscount)
-    {
-        var subOrder = SubOrderItems.SingleOrDefault(o => o.ShopId == shopId);
-        if (subOrder != null)
+        var item = new SubOrderItem(variantId, productName, variantName, unitPrice, quantity, thumbnailUrl);
+        if (subOrderItemId.HasValue && subOrderItemId.Value > 0)
         {
-            subOrder.SetDiscounts((long)sellerDiscount, (long)platformDiscount);
-            CalculateTotalDiscount();
-            CalculateGrandTotal();
+            item.Id = subOrderItemId.Value;
         }
+        item.ProductId = productId;
+        item.SubOrderId = existingShopSubOrder.Id;
+        existingShopSubOrder.AddOrderItem(item);
+
+        CalculateTotals();
     }
 
-    /// <summary>
-    /// Gán ID các voucher đã áp dụng vào SubOrder tương ứng.
-    /// Dùng để hỗ trợ rollback khi hủy đơn.
-    /// </summary>
-    public void ApplyVoucherIds(long shopId, Guid? shopVoucherId, Guid? platformVoucherId)
+    public void AddOrderItem(long shopId, long productId, long variantId, string productName, string variantName, decimal unitPrice, int quantity, string? thumbnailUrl = null)
     {
-        var subOrder = SubOrderItems.SingleOrDefault(o => o.ShopId == shopId);
-        subOrder?.ApplyVouchers(shopVoucherId, platformVoucherId);
-    }
-    
-
-    private void CalculateSubTotal() 
-    {
-        SubTotal = SubOrderItems.Sum(item => item.SubTotal);
+        AddOrderItem(0, shopId, productId, variantId, productName, variantName, unitPrice, quantity, thumbnailUrl);
     }
 
-    private void CalculateGrandTotal() 
+    public void SetShippingFee(long shopId, long shippingFee)
     {
-        GrandTotal = SubOrderItems.Sum(item => item.GrandTotal);
+        var existingShopSubOrder = SubOrderItems.FirstOrDefault(x => x.ShopId == shopId);
+        existingShopSubOrder?.SetShippingFee(shippingFee);
+
+        CalculateTotals();
     }
 
-    private void CalculateTotalDiscount() 
+    public void ApplyDiscounts(long shopId, long sellerDiscount, long platformDiscount)
     {
-        TotalDiscount = SubOrderItems.Sum(item => item.SellerDiscount + item.PlatformDiscount);
+        var existingShopSubOrder = SubOrderItems.FirstOrDefault(x => x.ShopId == shopId);
+        existingShopSubOrder?.SetDiscounts(sellerDiscount, platformDiscount);
+
+        CalculateTotals();
     }
 
-    private void CalculateShippingFee() 
+    public void ApplyVoucherIds(long shopId, long? shopVoucherId, long? platformVoucherId)
     {
-        ShippingFee = SubOrderItems.Sum(item => item.ShippingFee);
+        var existingShopSubOrder = SubOrderItems.FirstOrDefault(x => x.ShopId == shopId);
+        existingShopSubOrder?.ApplyVouchers(shopVoucherId, platformVoucherId);
+    }
+
+    private void CalculateTotals()
+    {
+        SubTotal = SubOrderItems.Sum(x => x.SubTotal);
+        ShippingFee = SubOrderItems.Sum(x => x.ShippingFee);
+        TotalDiscount = SubOrderItems.Sum(x => x.SellerDiscount + x.PlatformDiscount);
+        GrandTotal = SubOrderItems.Sum(x => x.GrandTotal);
     }
 }
-
-
-//Awaiting Payment, Cancelled, status cha có thể dùng.

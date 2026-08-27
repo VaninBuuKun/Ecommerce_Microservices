@@ -1,18 +1,7 @@
-using BuildingBlocks.Application.InMemoryBus;
-using BuildingBlocks.Shared.Commons;
-using BuildingBlocks.Shared.Enums;
-using BuildingBlocks.Shared.InfrastructureInterfaces.InMemoryBus;
-using BuildingBlocks.Shared.InfrastructureInterfaces.Persistence.EFCore;
-using Ecommerce.Services.Catalog.Application.Commons.Dtos.Products;
-using Ecommerce.Services.Catalog.Domain.Products;
-using Ecommerce.Services.Catalog.Domain.Products.Specifications;
-using MapsterMapper;
-using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Threading;
-using System.Threading.Tasks;
+using BuildingBlocks.Shared.InfrastructureInterfaces.InMemoryBus;
+using Ecommerce.Services.Catalog.Application.Commons.Dtos.Products;
 
 namespace Ecommerce.Services.Catalog.Application.Features.Products.Commands.SetupProductVariants;
 
@@ -41,8 +30,7 @@ public record VariantDto(
 );
 
 public record InitVariantsCommand(
-    Guid ProductId,
+    long ProductId,
     List<OptionDto> Options,
     List<VariantDto> Variants
 ) : ICommand<ProductResponse>;
-

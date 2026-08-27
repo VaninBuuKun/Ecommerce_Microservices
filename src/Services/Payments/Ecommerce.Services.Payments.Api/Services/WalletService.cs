@@ -15,8 +15,8 @@ namespace Ecommerce.Services.Payments.Api.Services;
 
 public class WalletService(IEfUnitOfWork unitOfWork, IMapper mapper) : IWalletService
 {
-    private readonly IGenericEfRepository<Wallet, Guid> _walletRepository = unitOfWork.Repository<Wallet, Guid>();
-    private readonly IGenericEfRepository<BankAccount, Guid> _bankAccountRepository = unitOfWork.Repository<BankAccount, Guid>();
+    private readonly IGenericEfRepository<Wallet, long> _walletRepository = unitOfWork.Repository<Wallet, long>();
+    private readonly IGenericEfRepository<BankAccount, long> _bankAccountRepository = unitOfWork.Repository<BankAccount, long>();
     private readonly IGenericEfRepository<WalletTransaction, Guid> _transactionRepository = unitOfWork.Repository<WalletTransaction, Guid>();
 
     private static readonly HashSet<string> AllowedBanks = new(StringComparer.OrdinalIgnoreCase)
@@ -155,7 +155,7 @@ public class WalletService(IEfUnitOfWork unitOfWork, IMapper mapper) : IWalletSe
         return Result<List<BankAccountDto>>.Success(dtos);
     }
 
-    public async Task<Result<BankAccountDto>> UpdateBankAccount(long userId, Guid bankAccountId, AddBankAccountRequest request)
+    public async Task<Result<BankAccountDto>> UpdateBankAccount(long userId, long bankAccountId, AddBankAccountRequest request)
     {
         var wallet = await _walletRepository.FirstOrDefaultAsync(w => w.UserId == userId);
         if (wallet == null)
@@ -226,8 +226,9 @@ public class WalletService(IEfUnitOfWork unitOfWork, IMapper mapper) : IWalletSe
         return Result<List<WalletTransactionDto>>.Success(dtos);
     }
 
-    public async Task<Result> ProcessRefundAsync(long customerId, Guid refundRequestId, decimal amount, Ecommerce.Services.Payments.Api.Models.Enums.TransactionReason reason, string description)
+    public async Task<Result> ProcessRefundAsync(long customerId, object refundRequestId, decimal amount, Ecommerce.Services.Payments.Api.Models.Enums.TransactionReason reason, string description)
     {
+        var refStr = refundRequestId.ToString();
         var wallet = await _walletRepository.FirstOrDefaultAsync(w => w.UserId == customerId);
         if (wallet == null)
         {
@@ -241,7 +242,7 @@ public class WalletService(IEfUnitOfWork unitOfWork, IMapper mapper) : IWalletSe
         }
 
         // Chống hoàn tiền trùng lặp (Idempotency)
-        var existingTx = await _transactionRepository.FirstOrDefaultAsync(t => t.WalletId == wallet.Id && t.ReferenceId == refundRequestId && t.Type == TransactionType.Credit);
+        var existingTx = await _transactionRepository.FirstOrDefaultAsync(t => t.WalletId == wallet.Id && t.ReferenceId == refStr && t.Type == TransactionType.Credit);
         if (existingTx != null)
         {
             return Result.Success(); // Đã hoàn tiền trước đó, bỏ qua để tránh double refund
@@ -257,7 +258,7 @@ public class WalletService(IEfUnitOfWork unitOfWork, IMapper mapper) : IWalletSe
             Type = TransactionType.Credit,
             Reason = reason,
             BalanceAfter = wallet.Balance,
-            ReferenceId = refundRequestId,
+            ReferenceId = refStr,
             Description = description
         };
         _transactionRepository.Add(transaction);
@@ -266,8 +267,9 @@ public class WalletService(IEfUnitOfWork unitOfWork, IMapper mapper) : IWalletSe
         return Result.Success();
     }
 
-    public async Task<Result> DebitWalletAsync(long userId, Guid referenceId, decimal amount, TransactionReason reason, string description)
+    public async Task<Result> DebitWalletAsync(long userId, object referenceId, decimal amount, TransactionReason reason, string description)
     {
+        var refStr = referenceId.ToString();
         var wallet = await _walletRepository.FirstOrDefaultAsync(w => w.UserId == userId);
         if (wallet == null)
         {
@@ -275,7 +277,7 @@ public class WalletService(IEfUnitOfWork unitOfWork, IMapper mapper) : IWalletSe
         }
 
         // Chống trùng lặp (Idempotency)
-        var existingTx = await _transactionRepository.FirstOrDefaultAsync(t => t.WalletId == wallet.Id && t.ReferenceId == referenceId && t.Type == TransactionType.Debit);
+        var existingTx = await _transactionRepository.FirstOrDefaultAsync(t => t.WalletId == wallet.Id && t.ReferenceId == refStr && t.Type == TransactionType.Debit);
         if (existingTx != null)
         {
             return Result.Success(); 
@@ -291,7 +293,7 @@ public class WalletService(IEfUnitOfWork unitOfWork, IMapper mapper) : IWalletSe
             Type = TransactionType.Debit,
             Reason = reason,
             BalanceAfter = wallet.Balance,
-            ReferenceId = referenceId,
+            ReferenceId = refStr,
             Description = description
         };
         _transactionRepository.Add(transaction);
@@ -300,19 +302,19 @@ public class WalletService(IEfUnitOfWork unitOfWork, IMapper mapper) : IWalletSe
         return Result.Success();
     }
 
-    public async Task<Result> CreditWalletAsync(long userId, Guid referenceId, decimal amount, TransactionReason reason, string description)
+    public async Task<Result> CreditWalletAsync(long userId, object referenceId, decimal amount, TransactionReason reason, string description)
     {
+        var refStr = referenceId.ToString();
         var wallet = await _walletRepository.FirstOrDefaultAsync(w => w.UserId == userId);
         if (wallet == null)
         {
-            return Result.Failure($"Không tìm thấy ví của người dùng {userId} để thực hiện trừ tiền hoàn trả.", EErrorCode.NotFound);
-        }
-
-        // Chống trùng lặp (Idempotency)
-        var existingTx = await _transactionRepository.FirstOrDefaultAsync(t => t.WalletId == wallet.Id && t.ReferenceId == referenceId && t.Type == TransactionType.Debit);
-        if (existingTx != null)
-        {
-            return Result.Success(); 
+            wallet = new Wallet
+            {
+                UserId = userId,
+                Balance = 0m,
+                IsLocked = false
+            };
+            _walletRepository.Add(wallet);
         }
 
         wallet.Balance += amount;
@@ -325,7 +327,7 @@ public class WalletService(IEfUnitOfWork unitOfWork, IMapper mapper) : IWalletSe
             Type = TransactionType.Credit,
             Reason = reason,
             BalanceAfter = wallet.Balance,
-            ReferenceId = referenceId,
+            ReferenceId = refStr,
             Description = description
         };
         _transactionRepository.Add(transaction);

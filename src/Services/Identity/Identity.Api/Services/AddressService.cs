@@ -12,8 +12,8 @@ public interface IAddressService
 {
     Task<List<UserAddress>> GetAddressesByUserIdAsync(long userId);
     Task<UserAddress> CreateAddressAsync(long userId, CreateAddressDto dto);
-    Task<bool> DeleteAddressAsync(long userId, Guid addressId);
-    Task<bool> SetDefaultAddressAsync(long userId, Guid addressId);
+    Task<bool> DeleteAddressAsync(long userId, long addressId);
+    Task<bool> SetDefaultAddressAsync(long userId, long addressId);
 }
 
 public class CreateAddressDto
@@ -39,13 +39,11 @@ public class AddressService(AppDbContext dbContext) : IAddressService
 
     public async Task<UserAddress> CreateAddressAsync(long userId, CreateAddressDto dto)
     {
-        // Kiểm tra xem đã có địa chỉ nào chưa
         bool isFirstAddress = !await dbContext.UserAddresses.AnyAsync(a => a.UserId == userId);
         bool setAsDefault = dto.IsDefault || isFirstAddress;
 
         if (setAsDefault)
         {
-            // Reset các địa chỉ mặc định cũ
             var defaultAddresses = await dbContext.UserAddresses
                 .Where(a => a.UserId == userId && a.IsDefault)
                 .ToListAsync();
@@ -58,7 +56,6 @@ public class AddressService(AppDbContext dbContext) : IAddressService
 
         var newAddress = new UserAddress
         {
-            Id = Guid.NewGuid(),
             UserId = userId,
             RecipientName = dto.RecipientName,
             Phone = dto.Phone,
@@ -75,7 +72,7 @@ public class AddressService(AppDbContext dbContext) : IAddressService
         return newAddress;
     }
 
-    public async Task<bool> DeleteAddressAsync(long userId, Guid addressId)
+    public async Task<bool> DeleteAddressAsync(long userId, long addressId)
     {
         var address = await dbContext.UserAddresses
             .FirstOrDefaultAsync(a => a.Id == addressId && a.UserId == userId);
@@ -88,7 +85,6 @@ public class AddressService(AppDbContext dbContext) : IAddressService
         dbContext.UserAddresses.Remove(address);
         await dbContext.SaveChangesAsync();
 
-        // Tự động set địa chỉ khác làm mặc định nếu địa chỉ bị xóa đang là mặc định
         if (address.IsDefault)
         {
             var nextAddress = await dbContext.UserAddresses
@@ -106,7 +102,7 @@ public class AddressService(AppDbContext dbContext) : IAddressService
         return true;
     }
 
-    public async Task<bool> SetDefaultAddressAsync(long userId, Guid addressId)
+    public async Task<bool> SetDefaultAddressAsync(long userId, long addressId)
     {
         var target = await dbContext.UserAddresses
             .FirstOrDefaultAsync(a => a.Id == addressId && a.UserId == userId);

@@ -23,7 +23,7 @@ public class SellerConfirmSubOrderCommandHandler(
         logger.LogInformation("Seller {SellerId} confirming sub-order {SubOrderId}", command.SellerId, command.SubOrderId);
         try
         {
-            var subOrderRepo = unitOfWork.Repository<SubOrder, Guid>();
+            var subOrderRepo = unitOfWork.Repository<SubOrder, long>();
             var subOrder = await subOrderRepo.GetByIdAsync(command.SubOrderId, cancellationToken);
             
             if (subOrder == null)

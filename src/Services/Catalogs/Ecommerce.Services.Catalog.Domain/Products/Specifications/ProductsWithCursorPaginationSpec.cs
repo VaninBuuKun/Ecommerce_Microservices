@@ -7,7 +7,7 @@ public class ProductsWithCursorPaginationSpec : Specification<Product>
 {
     public ProductsWithCursorPaginationSpec(
         string? searchTerm, 
-        Guid? categoryId, 
+        long? categoryId, 
         double? minRating, 
         string sortBy, 
         string? lastValue, 
@@ -45,9 +45,7 @@ public class ProductsWithCursorPaginationSpec : Specification<Product>
         // 5. Load Navigation Properties
         Query.Include(p => p.Category);
 
-
-        // 6. Áp dụng sắp xếp và Keyset Pagination (ý tương đơn giản duyệt so với lần cuối cùng, nếu bằng thì sẽ lấy id lớn hơn, nói chung là thay vì load các phần tử lên Ram,
-        // thì chỉ cần duyệt skip qua những thằng k hợp lý chỉ load nhưng sản phẩm cần thiêt)
+        // 6. Áp dụng sắp xếp và Keyset Pagination
         switch (sortBy.ToLower())
         {
             case "rating":

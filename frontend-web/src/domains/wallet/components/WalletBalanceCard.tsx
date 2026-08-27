@@ -12,7 +12,7 @@ export function WalletBalanceCard({ wallet, onWithdrawClick }: WalletBalanceCard
 			<div className="flex justify-between items-start">
 				<div className="space-y-1">
 					<p className="text-[10px] uppercase font-black tracking-widest text-brand-primary/80">Ví điện tử cá nhân</p>
-					<p className="text-[11px] font-bold text-slate-300">ID: #{wallet.id.split("-")[0]}</p>
+					<p className="text-[11px] font-bold text-slate-300">ID: #{wallet.id}</p>
 				</div>
 				<ShieldCheck className="w-6 h-6 text-brand-primary" />
 			</div>
@@ -25,7 +25,7 @@ export function WalletBalanceCard({ wallet, onWithdrawClick }: WalletBalanceCard
 					</p>
 				</div>
 				{!wallet.isLocked && (
-					<button 
+					<button
 						onClick={onWithdrawClick}
 						className="px-3.5 py-1.5 bg-brand-primary text-brand-dark rounded-xl text-xs font-black hover:bg-brand-primary-deep transition-all cursor-pointer border-none shadow-sm"
 					>
@@ -35,7 +35,7 @@ export function WalletBalanceCard({ wallet, onWithdrawClick }: WalletBalanceCard
 			</div>
 
 			<div className="flex justify-between items-center border-t border-white/10 pt-3 mt-3 text-[10px] font-bold text-slate-400">
-				<span>Trạng thái: 
+				<span>Trạng thái:
 					<span className={`ml-1 px-1.5 py-0.2 rounded text-[9px] uppercase ${wallet.isLocked ? "bg-red-500/20 text-red-400 border border-red-500/30" : "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30"}`}>
 						{wallet.isLocked ? "Đang khóa" : "Hoạt động"}
 					</span>

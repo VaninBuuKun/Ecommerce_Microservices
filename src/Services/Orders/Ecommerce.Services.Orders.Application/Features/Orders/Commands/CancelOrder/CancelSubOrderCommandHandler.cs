@@ -24,7 +24,7 @@ public class CancelSubOrderCommandHandler(
 
         try
         {
-            var subOrderRepo = unitOfWork.Repository<SubOrder, Guid>();
+            var subOrderRepo = unitOfWork.Repository<SubOrder, long>();
             var subOrder = await subOrderRepo.GetByIdAsync(command.SubOrderId, cancellationToken);
 
             if (subOrder == null)
@@ -53,21 +53,22 @@ public class CancelSubOrderCommandHandler(
             // ============================================================
             await RollbackVouchersAsync(subOrder, cancellationToken);
 
-            Guid? refundRequestId = null;
+            long? refundRequestId = null;
 
             // Nếu đơn hàng đã thanh toán online trước đó -> Tạo bản ghi RefundRequest ở trạng thái AutoApproved
             if (subOrder.IsOnlinePayment && subOrder.Status != SubOrderStatus.AwaitingPayment)
             {
-                var refundRepo = unitOfWork.Repository<RefundRequest, Guid>();
-                var refundRequest = new RefundRequest
-                {
-                    SubOrderId = subOrder.Id,
-                    CustomerId = subOrder.CustomerId,
-                    ShopId = subOrder.ShopId,
-                    RefundAmount = subOrder.GrandTotal,
-                    Reason = $"Hệ thống tự động hoàn tiền do khách hàng hủy đơn hàng (Lý do: {command.Reason}).",
-                    Status = RefundStatus.AutoApproved
-                };
+                var refundRepo = unitOfWork.Repository<RefundRequest, long>();
+                var refundRequest = new RefundRequest(
+                    subOrder.Id,
+                    subOrder.CustomerId,
+                    subOrder.ShopId,
+                    $"Hệ thống tự động hoàn tiền do khách hàng hủy đơn hàng (Lý do: {command.Reason}).",
+                    command.Reason,
+                    "[]",
+                    (decimal)subOrder.GrandTotal,
+                    DateTimeOffset.UtcNow.AddDays(2)
+                );
                 refundRepo.Add(refundRequest);
                 refundRequestId = refundRequest.Id;
             }
@@ -105,7 +106,7 @@ public class CancelSubOrderCommandHandler(
         // --- Rollback Shop Voucher (ngay lập tức) ---
         if (cancelledSubOrder.ShopVoucherId.HasValue)
         {
-            var shopVoucherId = cancelledSubOrder.ShopVoucherId.Value;
+            long shopVoucherId = cancelledSubOrder.ShopVoucherId.Value;
 
             await voucherRepository.DecrementUsageAsync(shopVoucherId, cancellationToken);
             logger.LogInformation("Rolled back Shop Voucher {VoucherId} for SubOrder {SubOrderId}",
@@ -122,8 +123,8 @@ public class CancelSubOrderCommandHandler(
         // --- Rollback Platform Voucher (chỉ khi toàn bộ SubOrder đều đã Cancelled/Refunded) ---
         if (cancelledSubOrder.PlatformVoucherId.HasValue)
         {
-            var platformVoucherId = cancelledSubOrder.PlatformVoucherId.Value;
-            var subOrderRepo = unitOfWork.Repository<SubOrder, Guid>();
+            long platformVoucherId = cancelledSubOrder.PlatformVoucherId.Value;
+            var subOrderRepo = unitOfWork.Repository<SubOrder, long>();
 
             // Lấy tất cả SubOrder cùng Order (không bao gồm SubOrder đang xử lý — đã bị cancelled ở trên)
             var siblings = await subOrderRepo.GetAllAsync(

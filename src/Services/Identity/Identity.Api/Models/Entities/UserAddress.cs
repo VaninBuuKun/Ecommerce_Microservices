@@ -5,7 +5,7 @@ namespace Ecommerce.Services.Identity.Api.Models.Entities;
 
 public class UserAddress
 {
-    public Guid Id { get; set; }
+    public long Id { get; set; }
     public long UserId { get; set; }
     public AppUser User { get; set; } = null!;
     

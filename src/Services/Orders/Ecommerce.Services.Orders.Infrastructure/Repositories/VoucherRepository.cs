@@ -18,7 +18,7 @@ public class VoucherRepository(
     /// Tăng UsageCount lên 1 cho toàn bộ danh sách voucher trong 1 câu SQL duy nhất.
     /// Trả về true nếu số lượng dòng được update bằng đúng số lượng voucher truyền vào.
     /// </summary>
-    public async Task<bool> TryIncrementUsagesAsync(ICollection<Guid> voucherIds, CancellationToken cancellationToken = default)
+    public async Task<bool> TryIncrementUsagesAsync(ICollection<long> voucherIds, CancellationToken cancellationToken = default)
     {
         if (voucherIds == null || voucherIds.Count == 0)
             return true;
@@ -44,7 +44,7 @@ public class VoucherRepository(
     /// Giảm UsageCount xuống 1 khi hoàn lại voucher do hủy đơn.
     /// Đảm bảo không giảm xuống dưới 0.
     /// </summary>
-    public async Task DecrementUsageAsync(Guid voucherId, CancellationToken cancellationToken = default)
+    public async Task DecrementUsageAsync(long voucherId, CancellationToken cancellationToken = default)
     {
         var affected = await dbContext.Vouchers
             .Where(v => v.Id == voucherId && v.UsageCount > 0)
@@ -66,7 +66,7 @@ public class VoucherRepository(
     /// Giảm UsageCount xuống 1 cho danh sách voucher trong 1 câu SQL duy nhất.
     /// Đảm bảo không giảm xuống dưới 0.
     /// </summary>
-    public async Task DecrementUsagesAsync(ICollection<Guid> voucherIds, CancellationToken cancellationToken = default)
+    public async Task DecrementUsagesAsync(ICollection<long> voucherIds, CancellationToken cancellationToken = default)
     {
         if (voucherIds == null || voucherIds.Count == 0) return;
 

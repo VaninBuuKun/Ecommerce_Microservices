@@ -24,9 +24,11 @@ namespace Ecommerce.Services.Payments.Api.Migrations
 
             modelBuilder.Entity("Ecommerce.Services.Payments.Api.Models.Entities.BankAccount", b =>
                 {
-                    b.Property<Guid>("Id")
+                    b.Property<long>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
+                        .HasColumnType("bigint");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
 
                     b.Property<string>("BankAccountHolder")
                         .IsRequired()
@@ -49,8 +51,8 @@ namespace Ecommerce.Services.Payments.Api.Migrations
                     b.Property<DateTimeOffset?>("LastModifiedDate")
                         .HasColumnType("timestamp with time zone");
 
-                    b.Property<Guid>("WalletId")
-                        .HasColumnType("uuid");
+                    b.Property<long>("WalletId")
+                        .HasColumnType("bigint");
 
                     b.HasKey("Id");
 
@@ -139,9 +141,11 @@ namespace Ecommerce.Services.Payments.Api.Migrations
 
             modelBuilder.Entity("Ecommerce.Services.Payments.Api.Models.Entities.Wallet", b =>
                 {
-                    b.Property<Guid>("Id")
+                    b.Property<long>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
+                        .HasColumnType("bigint");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
 
                     b.Property<decimal>("Balance")
                         .HasColumnType("decimal(18,2)");
@@ -196,8 +200,8 @@ namespace Ecommerce.Services.Payments.Api.Migrations
                     b.Property<int>("Type")
                         .HasColumnType("integer");
 
-                    b.Property<Guid>("WalletId")
-                        .HasColumnType("uuid");
+                    b.Property<long>("WalletId")
+                        .HasColumnType("bigint");
 
                     b.HasKey("Id");
 
@@ -222,8 +226,8 @@ namespace Ecommerce.Services.Payments.Api.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
-                    b.Property<Guid>("BankAccountId")
-                        .HasColumnType("uuid");
+                    b.Property<long>("BankAccountId")
+                        .HasColumnType("bigint");
 
                     b.Property<string>("BankAccountNumber")
                         .IsRequired()
@@ -255,8 +259,8 @@ namespace Ecommerce.Services.Payments.Api.Migrations
                     b.Property<long>("UserId")
                         .HasColumnType("bigint");
 
-                    b.Property<Guid>("WalletId")
-                        .HasColumnType("uuid");
+                    b.Property<long>("WalletId")
+                        .HasColumnType("bigint");
 
                     b.HasKey("Id");
 

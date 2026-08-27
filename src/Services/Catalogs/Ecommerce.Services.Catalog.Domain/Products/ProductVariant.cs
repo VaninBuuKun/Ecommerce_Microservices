@@ -4,9 +4,9 @@ using Ecommerce.Services.Catalog.Domain.Products.Rules;
 
 namespace Ecommerce.Services.Catalog.Domain.Products;
 
-public class ProductVariant : EntityTrackingBase<Guid>
+public class ProductVariant : EntityTrackingBase<long>
 {
-    public Guid ProductId { get; private set; }
+    public long ProductId { get; private set; }
     public decimal Price { get; private set; }
     public int AvailableStocks { get; private set; }
     public int ReservedStocks { get; private set; }
@@ -23,20 +23,15 @@ public class ProductVariant : EntityTrackingBase<Guid>
 
     private ProductVariant() { }
 
-    internal ProductVariant(Guid productId, decimal price, int availableStocks, double? weight = null, double? length = null, double? width = null, double? height = null, decimal? discountPrice = null)
+    internal ProductVariant(long productId, decimal price, int availableStocks, string? thumbnailUrl = null, decimal? discountPrice = null)
     {
         Check(new ProductStocksCannotBeNegativeRule(availableStocks));
 
-        Id = Guid.NewGuid();
         ProductId = productId;
         Price = price;
         AvailableStocks = availableStocks;
         ReservedStocks = 0;
         IsDeleted = false;
-        Weight = weight;
-        Length = length;
-        Width = width;
-        Height = height;
         DiscountPrice = discountPrice ?? Price;
     }
 
@@ -90,7 +85,6 @@ public class ProductVariant : EntityTrackingBase<Guid>
         }
     }
 
-
     public string GetVariantName()
     {
         List<string> names = _variantOptions
@@ -114,7 +108,6 @@ public class ProductVariant : EntityTrackingBase<Guid>
         }
 
         var firstOptionValue = _variantOptions
-            // 2. Thêm điều kiện safe-check null cho các navigation property
             .Where(o => o.OptionValue?.Option != null && !o.OptionValue.Option.IsDeleted)
             .OrderBy(o => o.OptionValue.Option.SortOrder)
             .ThenBy(o => o.OptionValue.SortOrder)

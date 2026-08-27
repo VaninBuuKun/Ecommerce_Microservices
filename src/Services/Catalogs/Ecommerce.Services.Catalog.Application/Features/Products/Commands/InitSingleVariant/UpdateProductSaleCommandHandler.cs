@@ -16,8 +16,8 @@ public class UpdateProductSaleCommandHandler(
     IMapper mapper
 ) : CommandHandler<UpdateProductSaleCommand, ProductResponse>
 {
-    private readonly IGenericEfRepository<Product, Guid> _productRepository = unitOfWork.Repository<Product, Guid>();
-    private readonly IGenericEfRepository<ProductVariant, Guid> _variantRepository = unitOfWork.Repository<ProductVariant, Guid>();
+    private readonly IGenericEfRepository<Product, long> _productRepository = unitOfWork.Repository<Product, long>();
+    private readonly IGenericEfRepository<ProductVariant, long> _variantRepository = unitOfWork.Repository<ProductVariant, long>();
 
     protected override async Task<Result<ProductResponse>> HandleCommandAsync(UpdateProductSaleCommand command, CancellationToken cancellationToken)
     {

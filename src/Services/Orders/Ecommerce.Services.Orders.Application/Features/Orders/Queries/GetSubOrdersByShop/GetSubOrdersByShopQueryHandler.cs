@@ -33,7 +33,7 @@ public class GetSubOrdersByShopQueryHandler(
             return Result<PagedOrdersResponse>.Failure("Bạn không phải là chủ sở hữu cửa hàng này", EErrorCode.Forbidden);
         }
 
-        var subOrderRepo = unitOfWork.Repository<SubOrder, Guid>();
+        var subOrderRepo = unitOfWork.Repository<SubOrder, long>();
 
         Ecommerce.Services.Orders.Domain.Enums.SubOrderStatus? statusEnum = null;
         if (!string.IsNullOrEmpty(query.Status) && Enum.TryParse<Ecommerce.Services.Orders.Domain.Enums.SubOrderStatus>(query.Status, true, out var parsedStatus))

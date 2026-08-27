@@ -17,14 +17,14 @@ public class OrderGrpcServer(
         ServerCallContext context)
     {
         if (!long.TryParse(request.CustomerId, out var customerIdLong) ||
-            !Guid.TryParse(request.ProductId, out var productIdGuid))
+            !long.TryParse(request.ProductId, out var productIdLong))
         {
             return new GetCompletedSubOrderCountForProductResponse { Count = 0 };
         }
 
-        logger.LogInformation("OrderGrpcServer: Nhận yêu cầu đếm đơn hàng cho Customer {CustomerId}, Product {ProductId}", customerIdLong, productIdGuid);
+        logger.LogInformation("OrderGrpcServer: Nhận yêu cầu đếm đơn hàng cho Customer {CustomerId}, Product {ProductId}", customerIdLong, productIdLong);
 
-        var result = await sender.Send(new GetCompletedSubOrderCountForProductQuery(customerIdLong, productIdGuid), context.CancellationToken);
+        var result = await sender.Send(new GetCompletedSubOrderCountForProductQuery(customerIdLong, productIdLong), context.CancellationToken);
 
         if (!result.IsSuccess)
         {

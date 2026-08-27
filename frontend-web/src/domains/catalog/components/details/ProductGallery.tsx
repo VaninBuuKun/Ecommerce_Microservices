@@ -1,8 +1,8 @@
 import { Play } from "lucide-react";
-import type { ProductDto } from "../../types/catalog.types";
+import type { Product } from "../../types/catalog.types";
 
 interface ProductGalleryProps {
-	product: ProductDto;
+	product: Product;
 	activeMedia: { type: "image" | "video"; url: string } | null;
 	setActiveMedia: (media: { type: "image" | "video"; url: string }) => void;
 }

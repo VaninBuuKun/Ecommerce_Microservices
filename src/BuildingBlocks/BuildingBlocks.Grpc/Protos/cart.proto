@@ -14,10 +14,10 @@ message GetCartByIdRequest {
 }
 
 message RpcCartItemDto {
-  string variantId = 1;
+  int64 variantId = 1;
   int32 quantity = 7;
   bool isSelected = 8;
-  string productId = 9;
+  int64 productId = 9;
   string productName = 10;
   string variantName = 11;
   string unitPrice = 12;
@@ -38,7 +38,7 @@ message GetCartByIdResponse {
 
 message ClearCartRequest {
   int64 customer_id = 1;
-  repeated string variant_ids = 2;
+  repeated int64 variant_ids = 2;
 }
 
 message ClearCartResponse {

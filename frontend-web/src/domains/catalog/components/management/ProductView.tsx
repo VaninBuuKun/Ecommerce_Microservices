@@ -2,11 +2,15 @@ import { useState } from "react";
 import { Plus, Loader2 } from "lucide-react";
 import { useNavigate, useParams } from "react-router-dom";
 import { toast } from "react-toastify";
-import { useMyProductsQuery, useDeleteProductMutation, catalogApi } from "@/domains/catalog";
+import { 
+	useMyProductsQuery, 
+	useDeleteProductMutation, 
+	useToggleProductStatusMutation,
+	productApi 
+} from "@/domains/catalog";
 import { CreateProductModal } from "./CreateProductModal";
 import { ProductTable } from "./ProductTable";
 import { ProductSearchBar } from "./ProductSearchBar";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { ConfirmModal } from "@/shared";
 
 export function ProductsView() {
@@ -33,24 +37,10 @@ export function ProductsView() {
 	});
 
 	const deleteProductMutation = useDeleteProductMutation();
-
-	const queryClient = useQueryClient();
 	const [updatingStatusId, setUpdatingStatusId] = useState<string | null>(null);
 
-	const toggleStatusMutation = useMutation({
-		mutationFn: (id: string) => catalogApi.toggleProductStatus(id),
-		onSuccess: () => {
-			queryClient.invalidateQueries({ queryKey: ["catalog"] });
-			toast.success("Cập nhật trạng thái sản phẩm thành công!");
-		},
-		onError: (err: any) => {
-			toast.error(`Cập nhật trạng thái thất bại: ${err?.message || "Lỗi hệ thống"}`);
-		},
-		onSettled: () => {
-			setUpdatingStatusId(null);
-			setConfirmModal(null);
-		}
-	});
+	const toggleStatusMutation = useToggleProductStatusMutation();
+
 
 	const handleSearch = (term: string) => {
 		setSearchTerm(term);

@@ -3,11 +3,11 @@ using Ecommerce.Services.Catalog.Domain.Products;
 
 namespace Ecommerce.Services.Catalog.Domain;
 
-public class Category : EntityTrackingBase<Guid>
+public class Category : EntityTrackingBase<long>
 {
     public string Name { get; private set; }
     public string Description { get; private set; }
-    public Guid? ParentId { get; private set; }
+    public long? ParentId { get; private set; }
     public string? IconUrl { get; private set; }
     public bool IsActive { get; private set; }
 
@@ -17,9 +17,8 @@ public class Category : EntityTrackingBase<Guid>
 
     private Category() {}
 
-    public Category(string name, string description, string? iconUrl, Guid? parentId = null)
+    public Category(string name, string description, string? iconUrl, long? parentId = null)
     {
-        Id = Guid.NewGuid();
         Name = name;
         Description = description;
         ParentId = parentId;
@@ -27,7 +26,7 @@ public class Category : EntityTrackingBase<Guid>
         IsActive = true;
     }
 
-    public void Update(string name, string description, Guid? parentId)
+    public void Update(string name, string description, long? parentId)
     {
         if (parentId == Id)
         {

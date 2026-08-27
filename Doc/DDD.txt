@@ -1,0 +1,5 @@
+1.  Tại sao ít tạo object bằng constructor trong DDD mà lại dùng factory method?
+- Constructor không có ngôn ngữ nghiệp vụ, việc dùng factory method để tạo một đối tưởng ở ngữ cảnh khác nhau. Ví dụ việc tạo một notification
+có nhiều phương thức tạo như là tạo notification cho email, tạo notification cho sms, tạo notification cho zalo,... mỗi phương thức sẽ có logic khác nhau để tạo ra một đối tượng notification phù hợp với ngữ cảnh sử dụng.
+hay vì để new constructor có nhiều tham số tùm lum. Dễ cho việc đọc hiểu code.
+- Factory method không tạo object ngay mà phải validate từ trước rồi ms gọi constructor private để khởi tạo.

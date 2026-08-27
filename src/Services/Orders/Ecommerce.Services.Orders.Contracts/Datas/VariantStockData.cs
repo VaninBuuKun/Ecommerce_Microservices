@@ -1,7 +1,7 @@
-namespace Ecommerce.Services.Carts.Contracts.Dtos;
+namespace Ecommerce.Services.Orders.Contracts.Requests;
 
 public class VariantStockData
 {
-    public Guid VariantId { get; set; }
+    public long VariantId { get; set; }
     public int Quantity { get; set; }
 }

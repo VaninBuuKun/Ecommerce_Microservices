@@ -19,7 +19,7 @@ public class GetOrderByIdQueryHandler(
     {
         logger.LogInformation("Getting order: {OrderId} for customer {CustomerId}", query.OrderId, query.CustomerId);
 
-        var subOrderRepo = unitOfWork.Repository<SubOrder, Guid>();
+        var subOrderRepo = unitOfWork.Repository<SubOrder, long>();
         
         var subOrder = await subOrderRepo.FirstOrDefaultAsync(
             predicate: o => o.Id == query.OrderId && o.CustomerId == query.CustomerId,

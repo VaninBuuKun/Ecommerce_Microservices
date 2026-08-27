@@ -7,6 +7,6 @@ namespace Ecommerce.Services.Orders.Contracts.Requests;
 
 public class ReleaseStocksRequest : IIntegrationEvent
 {
-    public Guid OrderId { get; set; }
+    public long OrderId { get; set; }
     public List<VariantStockData> VariantItems { get; set; } = new List<VariantStockData>();
 }

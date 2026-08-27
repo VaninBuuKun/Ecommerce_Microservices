@@ -1,12 +1,12 @@
-using BuildingBlocks.Shared.Domains;
 using System;
 using System.Collections.Generic;
+using BuildingBlocks.Shared.Domains;
 
 namespace Ecommerce.Services.Catalog.Domain.Products;
 
-public class ProductOption : EntityTrackingBase<Guid>
+public class ProductOption : EntityTrackingBase<long>
 {
-    public Guid ProductId { get; private set; }
+    public long ProductId { get; private set; }
     public string Name { get; private set; }
     public int SortOrder { get; private set; }
     
@@ -17,9 +17,8 @@ public class ProductOption : EntityTrackingBase<Guid>
 
     private ProductOption() { Name = null!;}
 
-    public ProductOption(Guid productId, string name, int sortOrder)
+    public ProductOption(long productId, string name, int sortOrder)
     {
-        Id = Guid.NewGuid();
         ProductId = productId;
         Name = name;
         SortOrder = sortOrder;

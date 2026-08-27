@@ -20,8 +20,8 @@ public class CreateProductCommandHandler(
     ILogger<CreateProductCommandHandler> logger, IMapper mapper)
     : CommandHandler<CreateProductCommand, ProductResponse>
 {
-    private readonly IGenericEfRepository<Product, Guid> _productRepository = unitOfWork.Repository<Product, Guid>();
-    private readonly IGenericEfRepository<ProductVariant, Guid> _productVariantRepository = unitOfWork.Repository<ProductVariant, Guid>();
+    private readonly IGenericEfRepository<Product, long> _productRepository = unitOfWork.Repository<Product, long>();
+    private readonly IGenericEfRepository<ProductVariant, long> _variantRepository = unitOfWork.Repository<ProductVariant, long>();
 
     protected override async Task<Result<ProductResponse>> HandleCommandAsync(CreateProductCommand command, CancellationToken cancellationToken)
     {
@@ -41,15 +41,11 @@ public class CreateProductCommandHandler(
                 return Result<ProductResponse>.Failure("Bạn không có quyền quản lý hoặc thêm sản phẩm cho cửa hàng này.", EErrorCode.Forbidden);
             }
 
-            var product = Product.CreateNewProduct(
+            var product = new Product(
                 command.ShopId,
                 command.Name,
                 command.Description,
-                command.thumbnailUrl,
-                0,
-                0,
-                0,
-                0
+                command.thumbnailUrl
             );
 
             _productRepository.Add(product);

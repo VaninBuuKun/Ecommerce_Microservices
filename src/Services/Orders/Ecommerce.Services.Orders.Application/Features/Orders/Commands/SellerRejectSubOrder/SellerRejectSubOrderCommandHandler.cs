@@ -9,6 +9,7 @@ using Ecommerce.Services.Orders.Domain;
 using Ecommerce.Services.Orders.Domain.Enums;
 using Ecommerce.Services.Orders.Application.Services;
 using Microsoft.Extensions.Logging;
+
 namespace Ecommerce.Services.Orders.Application.Features.Orders.Commands.SellerRejectSubOrder;
 
 public class SellerRejectSubOrderCommandHandler(
@@ -24,7 +25,7 @@ public class SellerRejectSubOrderCommandHandler(
 
         try
         {
-            var subOrderRepo = unitOfWork.Repository<SubOrder, Guid>();
+            var subOrderRepo = unitOfWork.Repository<SubOrder, long>();
             var subOrder = await subOrderRepo.GetByIdAsync(command.SubOrderId, cancellationToken);
 
             if (subOrder == null)
@@ -49,21 +50,22 @@ public class SellerRejectSubOrderCommandHandler(
             subOrder.UpdateSubOrderStatus(SubOrderStatus.Cancelled);
             subOrderRepo.Update(subOrder);
 
-            Guid? refundRequestId = null;
+            long? refundRequestId = null;
 
             // Nếu đơn hàng đã thanh toán online trước đó và chưa giao cho shipper (chưa ở trạng thái Shipping) -> Tạo bản ghi RefundRequest ở trạng thái AutoApproved
             if (subOrder.IsOnlinePayment && originalStatus != SubOrderStatus.AwaitingPayment && originalStatus != SubOrderStatus.Shipping)
             {
-                var refundRepo = unitOfWork.Repository<RefundRequest, Guid>();
-                var refundRequest = new RefundRequest
-                {
-                    SubOrderId = subOrder.Id,
-                    CustomerId = subOrder.CustomerId,
-                    ShopId = subOrder.ShopId,
-                    RefundAmount = subOrder.GrandTotal,
-                    Reason = $"Hệ thống tự động hoàn tiền do cửa hàng hủy/từ chối đơn hàng (Lý do: {command.Reason}).",
-                    Status = RefundStatus.AutoApproved
-                };
+                var refundRepo = unitOfWork.Repository<RefundRequest, long>();
+                var refundRequest = new RefundRequest(
+                    subOrder.Id,
+                    subOrder.CustomerId,
+                    subOrder.ShopId,
+                    $"Hệ thống tự động hoàn tiền do cửa hàng hủy/từ chối đơn hàng (Lý do: {command.Reason}).",
+                    command.Reason,
+                    "[]",
+                    (decimal)subOrder.GrandTotal,
+                    DateTimeOffset.UtcNow.AddDays(2)
+                );
                 refundRepo.Add(refundRequest);
                 refundRequestId = refundRequest.Id;
             }

@@ -1,3 +1,7 @@
+using System;
+using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
 using BuildingBlocks.Shared.Commons;
 using BuildingBlocks.Shared.Enums;
 using BuildingBlocks.Shared.InfrastructureInterfaces.Caching;
@@ -8,7 +12,7 @@ using Microsoft.Extensions.Logging;
 
 namespace Ecommerce.Services.Carts.Api.Features.Carts.Commands.UpdateSelectState;
 
-public record UpdateSelectStateCommand(long CustomerId, Guid ProductVariantId, bool IsSelected) : ICommand;
+public record UpdateSelectStateCommand(long CustomerId, long ProductVariantId, bool IsSelected) : ICommand;
 
 public class UpdateSelectStateCommandHandler(
     ICacheService cacheService,

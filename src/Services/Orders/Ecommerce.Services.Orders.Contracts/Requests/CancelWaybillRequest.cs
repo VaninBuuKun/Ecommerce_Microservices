@@ -5,5 +5,5 @@ namespace Ecommerce.Services.Orders.Contracts.Requests;
 
 public record CancelWaybillRequest : IIntegrationEvent
 {
-    public Guid SubOrderId { get; init; }
+    public long SubOrderId { get; init; }
 }

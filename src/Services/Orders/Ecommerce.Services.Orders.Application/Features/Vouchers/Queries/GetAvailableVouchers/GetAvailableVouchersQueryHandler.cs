@@ -16,7 +16,7 @@ public class GetAvailableVouchersQueryHandler(
     IMapper mapper)
     : QueryHandler<GetAvailableVouchersQuery, List<VoucherDto>>
 {
-    private IGenericEfRepository<Voucher, Guid> voucherRepo => unitOfWork.Repository<Voucher, Guid>();
+    private IGenericEfRepository<Voucher, long> voucherRepo => unitOfWork.Repository<Voucher, long>();
     private IGenericEfRepository<VoucherUsage, Guid> voucherUsageRepo => unitOfWork.Repository<VoucherUsage, Guid>();
 
     protected override async Task<Result<List<VoucherDto>>> HandleQueryAsync(

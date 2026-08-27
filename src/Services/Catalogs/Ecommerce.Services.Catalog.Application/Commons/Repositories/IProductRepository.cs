@@ -3,7 +3,7 @@ using Ecommerce.Services.Catalog.Domain.Products;
 
 namespace Ecommerce.Services.Catalog.Application.Commons.Repositories;
 
-public interface IProductRepository : IGenericEfRepository<Product, Guid>
+public interface IProductRepository : IGenericEfRepository<Product, long>
 {
-    Task UpdateProductRatingsAsync(Guid productId, int newRating, CancellationToken cancellationToken = default);
+    Task UpdateProductRatingsAsync(long productId, int newRating, CancellationToken cancellationToken = default);
 }

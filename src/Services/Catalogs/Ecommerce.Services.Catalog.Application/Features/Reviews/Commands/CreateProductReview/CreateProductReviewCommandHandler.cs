@@ -16,32 +16,32 @@ public class CreateProductReviewCommandHandler(
     IEfUnitOfWork unitOfWork, 
     IProductRepository productRepository,
     IOrderService orderService) 
-    : IRequestHandler<CreateProductReviewCommand, Result<Guid>>
+    : IRequestHandler<CreateProductReviewCommand, Result<long>>
 {
-    public async Task<Result<Guid>> Handle(CreateProductReviewCommand request, CancellationToken cancellationToken)
+    public async Task<Result<long>> Handle(CreateProductReviewCommand request, CancellationToken cancellationToken)
     {
         var product = await productRepository.GetByIdAsync(request.ProductId, cancellationToken);
         if (product == null)
         {
-            return Result<Guid>.Failure("Sản phẩm không tồn tại.", EErrorCode.NotFound);
+            return Result<long>.Failure("Sản phẩm không tồn tại.", EErrorCode.NotFound);
         }
 
         // 1. Kiểm tra gRPC xem người dùng có bao nhiêu đơn hàng thành công chứa sản phẩm này
         var completedSubOrderResult = await orderService.GetCompletedSubOrderCountForProductAsync(request.CustomerId, request.ProductId, cancellationToken);
         if (!completedSubOrderResult.IsSuccess)
         {
-            return Result<Guid>.Failure(completedSubOrderResult.Message, completedSubOrderResult.ErrorCode);
+            return Result<long>.Failure(completedSubOrderResult.Message, completedSubOrderResult.ErrorCode);
         }
 
         var completedSubOrderCount = completedSubOrderResult.Value;
 
         // 2. Đếm số lượt review hiện tại của người dùng cho sản phẩm này
-        var reviewRepository = unitOfWork.Repository<ProductReview, Guid>();
+        var reviewRepository = unitOfWork.Repository<ProductReview, long>();
         var existingReviewsCount = await reviewRepository.CountAsync(r => r.CustomerId == request.CustomerId && r.ProductId == request.ProductId, cancellationToken);
 
         if (existingReviewsCount >= completedSubOrderCount)
         {
-            return Result<Guid>.Failure("Bạn chưa thể đánh giá sản phẩm này. Số lượt đánh giá không thể vượt quá số đơn hàng đã giao thành công.", EErrorCode.Forbidden);
+            return Result<long>.Failure("Bạn chưa thể đánh giá sản phẩm này. Số lượt đánh giá không thể vượt quá số đơn hàng đã giao thành công.", EErrorCode.Forbidden);
         }
         
         // Khởi tạo Review kèm theo danh sách media (ảnh/video)
@@ -59,7 +59,7 @@ public class CreateProductReviewCommandHandler(
         // Cập nhật rating trung bình của sản phẩm
         await productRepository.UpdateProductRatingsAsync(request.ProductId, request.Rating, cancellationToken);
 
-        return Result<Guid>.Success(review.Id);
+        return Result<long>.Success(review.Id);
     }
 }
 

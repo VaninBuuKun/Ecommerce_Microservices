@@ -21,7 +21,7 @@ public class CreateShopCommandHandler(
         try
         {
             var shopRepo = unitOfWork.Repository<Shop, long>();
-            var kycRepo = unitOfWork.Repository<SellerKyc, Guid>();
+            var kycRepo = unitOfWork.Repository<SellerKyc, long>();
 
             // RÀNG BUỘC: Kiểm tra ví đã được kích hoạt hay chưa
             var walletCheck = await paymentService.CheckShopWalletAsync(request.OwnerUserId, cancellationToken);
