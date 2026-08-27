@@ -73,3 +73,5 @@ appsettings.*.json
 .scratch/
 scratchpad.md
 AGENTS.md
+
+*.csv
