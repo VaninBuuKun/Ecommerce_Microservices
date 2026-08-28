@@ -24,7 +24,7 @@ export function ShippingAddressTab() {
 	const getDistrictName = (id: number) => districts?.find((d) => d.id === id)?.displayName || `Huyện #${id}`;
 	const getWardName = (id: number) => wards?.find((w) => w.id === id)?.displayName || `Xã #${id}`;
 
-	const handleSetDefault = (addrId: string) => {
+	const handleSetDefault = (addrId: number) => {
 		setDefaultAddressMutation.mutate(addrId, {
 			onSuccess: () => {
 				toast.success("Đã thiết lập địa chỉ mặc định!");
@@ -36,7 +36,7 @@ export function ShippingAddressTab() {
 		});
 	};
 
-	const handleDelete = (addrId: string) => {
+	const handleDelete = (addrId: number) => {
 		if (window.confirm("Bạn có chắc chắn muốn xóa địa chỉ này?")) {
 			deleteAddressMutation.mutate(addrId, {
 				onSuccess: () => {

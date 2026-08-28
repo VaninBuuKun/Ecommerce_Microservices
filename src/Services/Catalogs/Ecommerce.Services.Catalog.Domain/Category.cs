@@ -15,18 +15,19 @@ public class Category : EntityTrackingBase<long>
     public ICollection<Category> SubCategories { get; private set; } = new List<Category>();
     public ICollection<Product> Products { get; private set; } = new List<Product>();
 
-    private Category() {}
+    private Category() { Name = null!; Description = null!; }
 
-    public Category(string name, string description, string? iconUrl, long? parentId = null)
+    public Category(string name, string? description, string? iconUrl, long? parentId = null)
     {
         Name = name;
-        Description = description;
         ParentId = parentId;
-        IconUrl = iconUrl;
+        // Ràng buộc: Nếu là SubCategory (ParentId != null) -> IconUrl và Description để rỗng/null
+        Description = parentId.HasValue ? string.Empty : (description ?? string.Empty);
+        IconUrl = parentId.HasValue ? null : iconUrl;
         IsActive = true;
     }
 
-    public void Update(string name, string description, long? parentId)
+    public void Update(string name, string? description, string? iconUrl, long? parentId)
     {
         if (parentId == Id)
         {
@@ -34,8 +35,9 @@ public class Category : EntityTrackingBase<long>
         }
 
         Name = name;
-        Description = description;
         ParentId = parentId;
+        Description = parentId.HasValue ? string.Empty : (description ?? string.Empty);
+        IconUrl = parentId.HasValue ? null : iconUrl;
     }
 
     public void Deactivate()

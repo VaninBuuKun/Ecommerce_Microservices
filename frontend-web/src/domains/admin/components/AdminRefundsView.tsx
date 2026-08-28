@@ -57,7 +57,7 @@ export function AdminRefundsView() {
 						<tbody className="divide-y divide-brand-border">
 							{refunds.map((r: any) => (
 								<tr key={r.id} className="hover:bg-brand-light-soft/10 transition-colors">
-									<td className="p-3 font-mono font-bold text-brand-dark">#{r.subOrderId.split("-")[0].toUpperCase()}</td>
+									<td className="p-3 font-mono font-bold text-brand-dark">#{r.subOrderId}</td>
 									<td className="p-3 text-brand-dark font-semibold">{r.reason}</td>
 									<td className="p-3 text-right font-black text-brand-dark">{Number(r.refundAmount).toLocaleString("vi-VN")}đ</td>
 									<td className="p-3 text-center">

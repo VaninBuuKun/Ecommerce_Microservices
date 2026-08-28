@@ -82,6 +82,8 @@ export function ShopSettingsPage() {
 		formState: { errors },
 	} = useForm<ShopSettingsFormValues>({
 		resolver: zodResolver(shopSettingsSchema),
+		mode: "onSubmit",
+		reValidateMode: "onSubmit",
 		defaultValues: {
 			name: "",
 			description: "",
@@ -366,9 +368,9 @@ export function ShopSettingsPage() {
 											{...register("provinceId", {
 												onChange: (e) => {
 													const val = e.target.value ? Number(e.target.value) : undefined;
-													setValue("provinceId", val as any, { shouldValidate: true });
-													setValue("districtId", undefined as any, { shouldValidate: true });
-													setValue("wardId", undefined as any, { shouldValidate: true });
+													setValue("provinceId", val as any);
+													setValue("districtId", undefined as any);
+													setValue("wardId", undefined as any);
 												},
 											})}
 											className={`w-full h-8 px-2 border rounded-lg text-xs bg-white focus:outline-none ${
@@ -402,8 +404,8 @@ export function ShopSettingsPage() {
 											{...register("districtId", {
 												onChange: (e) => {
 													const val = e.target.value ? Number(e.target.value) : undefined;
-													setValue("districtId", val as any, { shouldValidate: true });
-													setValue("wardId", undefined as any, { shouldValidate: true });
+													setValue("districtId", val as any);
+													setValue("wardId", undefined as any);
 												},
 											})}
 											disabled={!selectedProvinceId}

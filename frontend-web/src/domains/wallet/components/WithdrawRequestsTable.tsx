@@ -61,7 +61,7 @@ export function WithdrawRequestsTable({
 						<tbody className="divide-y divide-brand-border text-xs">
 							{paginatedWithdraws.map((w: any, idx: number) => (
 								<tr key={idx} className="hover:bg-brand-light-soft/10">
-									<td className="p-3 font-mono font-bold text-brand-muted">#{w.id.split("-")[0]}</td>
+									<td className="p-3 font-mono font-bold text-brand-muted">#{w.id}</td>
 									<td className="p-3 text-brand-muted font-semibold">{formatTime(w.createdDate || w.createdAt)}</td>
 									<td className="p-3 text-right font-black text-brand-dark">{Number(w.amount).toLocaleString("vi-VN")}đ</td>
 									<td className="p-3">

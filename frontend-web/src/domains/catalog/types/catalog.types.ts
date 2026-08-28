@@ -1,17 +1,19 @@
 export interface ProductOptionValue {
-	id: number | string;
+	id: number;
 	value: string;
 	imageUrl?: string;
+	sortOrder?: number;
 }
 
 export interface ProductOption {
-	id: number | string;
+	id: number;
 	name: string;
+	sortOrder?: number;
 	values: ProductOptionValue[];
 }
 
 export interface ProductVariant {
-	id: number | string;
+	id: number;
 	sku?: string;
 	price: number;
 	discountPrice?: number;
@@ -22,11 +24,11 @@ export interface ProductVariant {
 	height?: number;
 	variantName?: string;
 	thumbnailUrl?: string;
-	variantOptions?: { optionValueId: number | string }[];
+	variantOptions?: { optionValueId: number }[];
 }
 
 export interface Product {
-	id: number | string;
+	id: number;
 	shopId: number;
 	shopName?: string;
 	shopAddress?: string;
@@ -56,9 +58,9 @@ export interface Product {
 }
 
 export interface Category {
-	id: number | string;
+	id: number;
 	name: string;
-	parentId?: number | string;
+	parentId?: number;
 	description?: string;
 	iconUrl?: string;
 	subCategories?: Category[];
@@ -66,9 +68,9 @@ export interface Category {
 }
 
 export interface ProductReview {
-	id: string;
-	productId: string;
-	userId: string;
+	id: number;
+	productId: number;
+	userId: number;
 	userName: string;
 	userAvatarUrl?: string;
 	rating: number;
@@ -81,7 +83,12 @@ export interface ProductReview {
 export interface ProductReviewSummary {
 	averageRating: number;
 	totalReviews: number;
-	starDistribution: Record<number, number>;
+	oneStarCount: number;
+	twoStarCount: number;
+	threeStarCount: number;
+	fourStarCount: number;
+	fiveStarCount: number;
+	starDistribution?: Record<number, number>;
 }
 
 // Backward compatibility type aliases

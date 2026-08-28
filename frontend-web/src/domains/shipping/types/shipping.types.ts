@@ -22,9 +22,9 @@ export interface Ward {
 }
 
 export interface Shipment {
-	id: string;
-	orderId: string;
-	subOrderId: string;
+	id: number;
+	orderId: number;
+	subOrderId: number;
 	trackingNumber?: string;
 	carrier: string;
 	status: string;

@@ -3,8 +3,8 @@ import { Link } from "react-router-dom";
 import { useProductsQuery } from "@/domains/catalog";
 
 interface RelatedProductsProps {
-	categoryId?: string | null;
-	currentProductId?: string | number | null;
+	categoryId?: number | null;
+	currentProductId?: number | null;
 }
 
 export function RelatedProducts({

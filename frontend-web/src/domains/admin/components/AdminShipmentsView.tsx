@@ -3,9 +3,9 @@ import api from "@/core/api/axiosInstance";
 import { Loader2, RefreshCw, Search, Truck, AlertCircle, CheckCircle2, ArrowRight } from "lucide-react";
 
 export interface ShipmentItem {
-	id: string;
-	subOrderId: string;
-	orderId: string;
+	id: number;
+	subOrderId: number;
+	orderId: number;
 	customerId: number;
 	waybillCode?: string;
 	carrierName: string;
@@ -219,7 +219,7 @@ export function AdminShipmentsView() {
 											)}
 										</td>
 										<td className="p-3 font-mono font-bold text-brand-muted">
-											#{item.subOrderId.split("-")[0].toUpperCase()}
+											#{String(item.subOrderId).split("-")[0].toUpperCase()}
 										</td>
 										<td className="p-3">
 											<p className="font-extrabold text-brand-dark">{item.recipientName || "Khách hàng"}</p>

@@ -27,7 +27,7 @@ export function useApproveKycMutation() {
 export function useRejectKycMutation() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ kycId, reason }: { kycId: string; reason: string }) => adminApi.rejectKyc(kycId, reason),
+    mutationFn: ({ kycId, reason }: { kycId: number; reason: string }) => adminApi.rejectKyc(kycId, reason),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: adminQueryKeys.pendingKycs });
     },
@@ -44,7 +44,7 @@ export function useAdminWithdrawalsQuery(params?: any) {
 export function useApproveWithdrawalMutation() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (id: string) => adminApi.approveWithdrawal(id),
+    mutationFn: (id: number) => adminApi.approveWithdrawal(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: adminQueryKeys.withdrawals });
     },
@@ -54,7 +54,7 @@ export function useApproveWithdrawalMutation() {
 export function useRejectWithdrawalMutation() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ id, adminNote }: { id: string; adminNote: string }) => adminApi.rejectWithdrawal(id, adminNote),
+    mutationFn: ({ id, adminNote }: { id: number; adminNote: string }) => adminApi.rejectWithdrawal(id, adminNote),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: adminQueryKeys.withdrawals });
     },
@@ -64,7 +64,7 @@ export function useRejectWithdrawalMutation() {
 export function useCompleteWithdrawalMutation() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ id, data }: { id: string; data: { adminNote?: string; proofImageUrl?: string } }) => adminApi.completeWithdrawal(id, data),
+    mutationFn: ({ id, data }: { id: number; data: { adminNote?: string; proofImageUrl?: string } }) => adminApi.completeWithdrawal(id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: adminQueryKeys.withdrawals });
     },
@@ -91,7 +91,7 @@ export function useCreateAdminVoucherMutation() {
 export function useUpdateAdminVoucherMutation() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ id, payload }: { id: string; payload: any }) => adminApi.updateVoucher({ id, payload }),
+    mutationFn: ({ id, payload }: { id: number; payload: any }) => adminApi.updateVoucher({ id, payload }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: adminQueryKeys.vouchers });
     },
@@ -101,7 +101,7 @@ export function useUpdateAdminVoucherMutation() {
 export function useDeleteAdminVoucherMutation() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (id: string) => adminApi.deleteVoucher(id),
+    mutationFn: (id: number) => adminApi.deleteVoucher(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: adminQueryKeys.vouchers });
     },

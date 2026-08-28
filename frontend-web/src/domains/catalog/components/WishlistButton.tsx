@@ -4,7 +4,7 @@ import { Heart } from "lucide-react";
 import { useWishlist } from "../hooks/useWishlist";
 
 interface WishlistButtonProps {
-	productId: string;
+	productId: number;
 	className?: string;
 	size?: number;
 	showLabel?: boolean;
@@ -33,11 +33,10 @@ export const WishlistButton: React.FC<WishlistButtonProps> = ({
 			whileHover={{ scale: 1.08 }}
 			onClick={handleClick}
 			disabled={isToggling}
-			className={`inline-flex items-center justify-center gap-2 rounded-full p-2.5 transition-colors shadow-sm cursor-pointer ${
-				liked
+			className={`inline-flex items-center justify-center gap-2 rounded-full p-2.5 transition-colors shadow-sm cursor-pointer ${liked
 					? "bg-rose-50 text-rose-600 hover:bg-rose-100 border border-rose-200"
 					: "bg-white/80 backdrop-blur-md text-slate-500 hover:text-rose-500 hover:bg-white border border-slate-200/80"
-			} ${className}`}
+				} ${className}`}
 			title={liked ? "Bỏ yêu thích" : "Thêm vào yêu thích"}
 		>
 			<Heart

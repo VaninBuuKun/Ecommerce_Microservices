@@ -3,11 +3,11 @@ import type { ProductOption, ProductVariant } from "../../types/catalog.types";
 
 interface ProductOptionsProps {
 	options: ProductOption[];
-	variants: ProductVariant[];
-	selectedOptions: Record<string, string>;
+	variants?: ProductVariant[];
+	selectedOptions: Record<number, number>;
 	onOptionSelect: (
-		optionId: string,
-		valueId: string,
+		optionId: number,
+		valueId: number,
 		tierIndex: number,
 	) => void;
 }

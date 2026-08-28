@@ -8,6 +8,7 @@ import {
 	useToggleProductStatusMutation,
 	productApi 
 } from "@/domains/catalog";
+import { useSellerStore, useSellerProfileQuery } from "@/domains/seller";
 import { CreateProductModal } from "./CreateProductModal";
 import { ProductTable } from "./ProductTable";
 import { ProductSearchBar } from "./ProductSearchBar";
@@ -16,44 +17,55 @@ import { ConfirmModal } from "@/shared";
 export function ProductsView() {
 	const navigate = useNavigate();
 	const { shopId } = useParams<{ shopId?: string }>();
-	const numericShopId = shopId ? Number(shopId) : 0;
+	const { activeShop } = useSellerStore();
+	const { data: profile } = useSellerProfileQuery();
+
+	const resolvedShop =
+		activeShop ??
+		profile?.shops?.find((shop: any) => String(shop.id) === shopId) ??
+		profile?.shops?.[0] ??
+		null;
+	const numericShopId = resolvedShop?.id
+		? Number(resolvedShop.id)
+		: shopId
+			? Number(shopId)
+			: 0;
 
 	const [page, setPage] = useState(1);
 	const pageSize = 10;
 	const [isCreateOpen, setIsCreateOpen] = useState(false);
 	const [confirmModal, setConfirmModal] = useState<{
 		isOpen: boolean;
-		productId: string;
+		productId: number;
 		currentStatus: string;
 	} | null>(null);
 
 	const [searchTerm, setSearchTerm] = useState("");
 
 	const { data, isLoading, isError, error } = useMyProductsQuery({
-		ShopId: numericShopId,
+		shopId: numericShopId,
 		page,
 		pageSize,
 		searchTerm: searchTerm.trim() || undefined,
 	});
 
 	const deleteProductMutation = useDeleteProductMutation();
-	const [updatingStatusId, setUpdatingStatusId] = useState<string | null>(null);
+	const [updatingStatusId, setUpdatingStatusId] = useState<number | null>(null);
 
 	const toggleStatusMutation = useToggleProductStatusMutation();
-
 
 	const handleSearch = (term: string) => {
 		setSearchTerm(term);
 		setPage(1);
 	};
 
-	const handleEditProduct = (productId: string) => {
+	const handleEditProduct = (productId: number) => {
 		navigate(
-			`/seller/${shopId || "default"}/dashboard/products/edit/${productId}`,
+			`/seller/${numericShopId || "default"}/dashboard/products/edit/${productId}`,
 		);
 	};
 
-	const handleDeleteProduct = (productId: string) => {
+	const handleDeleteProduct = (productId: number) => {
 		if (window.confirm("Bạn có chắc chắn muốn xóa sản phẩm này?")) {
 			deleteProductMutation.mutate(productId, {
 				onSuccess: () => {
@@ -68,7 +80,7 @@ export function ProductsView() {
 		}
 	};
 
-	const handleToggleStatus = (productId: string, currentStatus: string) => {
+	const handleToggleStatus = (productId: number, currentStatus: string) => {
 		setConfirmModal({
 			isOpen: true,
 			productId,

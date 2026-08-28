@@ -113,6 +113,10 @@ export default function AdminLayout() {
 							<Store className="w-4 h-4 text-brand-muted" />
 							<span>Quản lý Shop</span>
 						</Link>
+						<Link to="/admin/kyc" className={getSidebarLinkClass("/admin/kyc")}>
+							<ShieldAlert className="w-4 h-4 text-brand-muted" />
+							<span>Quản lý KYC</span>
+						</Link>
 						<Link to="/admin/vouchers" className={getSidebarLinkClass("/admin/vouchers")}>
 							<Ticket className="w-4 h-4 text-brand-muted" />
 							<span>Quản lý Voucher</span>

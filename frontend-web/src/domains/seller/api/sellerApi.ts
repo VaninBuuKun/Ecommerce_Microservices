@@ -7,7 +7,7 @@ export const sellerApi = {
 		return res.data;
 	},
 
-	getShopById: async (id: string): Promise<any> => {
+	getShopById: async (id: number): Promise<any> => {
 		const res = await api.get(`/shop/${id}`);
 		return res.data;
 	},
@@ -17,7 +17,7 @@ export const sellerApi = {
 		return res.data;
 	},
 
-	updateShop: async (id: string, payload: any): Promise<any> => {
+	updateShop: async (id: number, payload: any): Promise<any> => {
 		const res = await api.put(`/shop/${id}`, payload);
 		return res.data;
 	},
@@ -62,12 +62,12 @@ export const sellerApi = {
 		return res.data?.value || res.data;
 	},
 
-	updateVoucher: async (voucherId: string, payload: any): Promise<any> => {
+	updateVoucher: async (voucherId: number, payload: any): Promise<any> => {
 		const res = await api.put(`/vouchers/${voucherId}`, payload);
 		return res.data?.value || res.data;
 	},
 
-	deleteVoucher: async (voucherId: string): Promise<any> => {
+	deleteVoucher: async (voucherId: number): Promise<any> => {
 		const res = await api.put(`/vouchers/${voucherId}`, {
 			isActive: false,
 			discountValue: 0,

@@ -1,5 +1,5 @@
 export interface UserAddressDto {
-  id: string;
+  id: number;
   recipientName: string;
   phone: string;
   provinceId: number;

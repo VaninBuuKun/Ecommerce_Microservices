@@ -10,7 +10,7 @@ import {
 } from "@/domains/order";
 
 interface CustomerOrderDetailViewProps {
-	subOrderId: string;
+	subOrderId: number;
 	onBack: () => void;
 }
 
@@ -41,7 +41,7 @@ export function CustomerOrderDetailView({ subOrderId, onBack }: CustomerOrderDet
 	if (!detail) {
 		return (
 			<div className="p-8 text-center text-red-600 font-bold text-xs space-y-4">
-				<p>Không thể lấy chi tiết đơn hàng #{subOrderId.split("-")[0]}</p>
+				<p>Không thể lấy chi tiết đơn hàng #{String(subOrderId).split("-")[0]}</p>
 				<button
 					onClick={onBack}
 					className="text-xs text-brand-primary hover:underline font-extrabold cursor-pointer"
@@ -129,7 +129,7 @@ export function CustomerOrderDetailView({ subOrderId, onBack }: CustomerOrderDet
 			<div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 pb-3 border-b border-brand-border">
 				<div>
 					<h2 className="text-sm font-black text-brand-dark uppercase tracking-wide flex items-center gap-1.5 flex-wrap">
-						Chi tiết đơn hàng #{detail.id.split("-")[0]} - <span>{getOrderStatusBadge(detail.status)}</span>
+						Chi tiết đơn hàng #{String(detail.id).split("-")[0]} - <span>{getOrderStatusBadge(detail.status)}</span>
 					</h2>
 				</div>
 				<span className="text-[11px] text-brand-muted font-bold">
@@ -225,7 +225,7 @@ export function CustomerOrderDetailView({ subOrderId, onBack }: CustomerOrderDet
 												{item.variantName && (
 													<p className="text-[10px] font-bold text-brand-muted">Phân loại: {item.variantName}</p>
 												)}
-												<p className="text-[10px] text-brand-muted font-bold font-mono">Sku: {item.variantId.split("-")[0]}</p>
+												<p className="text-[10px] text-brand-muted font-bold font-mono">Sku: {String(item.variantId).split("-")[0]}</p>
 												<div className="flex gap-2 pt-1">
 													<button type="button" className="px-2 py-1 bg-white border border-brand-border hover:bg-brand-light-soft text-[10px] font-black text-brand-dark rounded transition-all cursor-pointer">
 														Chat với nhà bán

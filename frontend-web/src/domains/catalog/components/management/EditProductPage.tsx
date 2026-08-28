@@ -30,11 +30,12 @@ export function EditProductPage() {
 	const navigate = useNavigate();
 
 	const isNew = productId === "new";
+	const numProductId = isNew || !productId ? undefined : Number(productId);
 	const {
 		data: loadedProduct,
 		isLoading,
 		isError,
-	} = useProductByIdQuery(isNew ? undefined : productId);
+	} = useProductByIdQuery(numProductId);
 
 	const updateProductMutation = useUpdateProductMutation();
 	const updateProductSaleMutation = useUpdateProductSaleMutation();
@@ -50,7 +51,7 @@ export function EditProductPage() {
 	const [coverImage, setCoverImage] = useState("");
 	const [videoUrl, setVideoUrl] = useState("");
 	const [imageUrls, setImageUrls] = useState<string[]>([]);
-	const [categoryId, setCategoryId] = useState("");
+	const [categoryId, setCategoryId] = useState<number | null>(null);
 
 	// Shipping State
 	const [weight, setWeight] = useState(0);
@@ -74,8 +75,8 @@ export function EditProductPage() {
 	useEffect(() => {
 		if (loadedProduct && !isNew) {
 			setName(loadedProduct.name);
-			setDescription(loadedProduct.description);
-			setCategoryId(loadedProduct.categoryId || "");
+			setDescription(loadedProduct.description || "");
+			setCategoryId(loadedProduct.categoryId ? Number(loadedProduct.categoryId) : null);
 			setCoverImage(
 				loadedProduct.thumbnailUrl || loadedProduct.thumbnailUrl || "",
 			);
@@ -118,7 +119,7 @@ export function EditProductPage() {
 
 							for (const opt of loadedProduct.options) {
 								const matchedVal = opt.values.find(
-									(val: any) => val.id === vo.optionValueId,
+									(val: any) => Number(val.id) === Number(vo.optionValueId),
 								);
 								if (matchedVal) {
 									optionName = opt.name;
@@ -366,12 +367,12 @@ export function EditProductPage() {
 	};
 
 	const handleSave = async () => {
-		if (!productId) return;
+		if (!numProductId) return;
 
 		try {
 			if (activeSection === "basic") {
 				await updateProductMutation.mutateAsync({
-					id: productId,
+					id: numProductId,
 					payload: {
 						name,
 						description,
@@ -384,7 +385,7 @@ export function EditProductPage() {
 			} else {
 				if (!enableVariants) {
 					await updateProductSaleMutation.mutateAsync({
-						id: productId,
+						id: numProductId,
 						payload: {
 							price: simplePrice,
 							availableStock: simpleStock,
@@ -400,7 +401,7 @@ export function EditProductPage() {
 					});
 				} else {
 					await bulkUpdateVariantsMutation.mutateAsync({
-						id: productId,
+						id: numProductId,
 						payload: {
 							options: options.map((opt) => ({
 								id: opt.id || null,
@@ -477,8 +478,8 @@ export function EditProductPage() {
 					<button
 						onClick={() => setActiveSection("basic")}
 						className={`w-full text-left px-3 py-2 rounded-lg font-bold transition-all cursor-pointer ${activeSection === "basic"
-								? "bg-brand-primary/10 text-brand-primary-deep"
-								: "hover:bg-brand-light-soft text-brand-muted"
+							? "bg-brand-primary/10 text-brand-primary-deep"
+							: "hover:bg-brand-light-soft text-brand-muted"
 							}`}
 					>
 						Thông tin cơ bản
@@ -486,8 +487,8 @@ export function EditProductPage() {
 					<button
 						onClick={() => setActiveSection("variants")}
 						className={`w-full text-left px-3 py-2 rounded-lg font-bold transition-all cursor-pointer ${activeSection === "variants"
-								? "bg-brand-primary/10 text-brand-primary-deep"
-								: "hover:bg-brand-light-soft text-brand-muted"
+							? "bg-brand-primary/10 text-brand-primary-deep"
+							: "hover:bg-brand-light-soft text-brand-muted"
 							}`}
 					>
 						Thông tin bán hàng

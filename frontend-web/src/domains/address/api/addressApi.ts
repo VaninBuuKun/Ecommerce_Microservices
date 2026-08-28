@@ -11,12 +11,12 @@ export const addressApi = {
     return res.data;
   },
 
-  setDefaultAddress: async (id: string): Promise<any> => {
+  setDefaultAddress: async (id: number): Promise<any> => {
     const res = await api.put(`/users/addresses/${id}/default`);
     return res.data;
   },
 
-  deleteAddress: async (id: string): Promise<void> => {
+  deleteAddress: async (id: number): Promise<void> => {
     await api.delete(`/users/addresses/${id}`);
   },
 };

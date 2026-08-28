@@ -1,4 +1,3 @@
-import { Link, useNavigate } from "react-router-dom";
 import { useState, useEffect, useRef } from "react";
 import {
 	ShoppingCart,
@@ -21,6 +20,7 @@ import {
 	useClearCartMutation,
 	useCartQuery,
 } from "@/domains/cart";
+import { Link, useNavigate } from "react-router-dom";
 
 export default function CartPage() {
 	const navigate = useNavigate();
@@ -32,8 +32,8 @@ export default function CartPage() {
 	const clearCartMutation = useClearCartMutation();
 
 	// Local quantities state to debounce server sync
-	const [localQuantities, setLocalQuantities] = useState<Record<string, number>>({});
-	const debounceTimers = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
+	const [localQuantities, setLocalQuantities] = useState<Record<number, number>>({});
+	const debounceTimers = useRef<Record<number, ReturnType<typeof setTimeout>>>({});
 
 	// Synchronize local quantities when cart query updates
 	useEffect(() => {
@@ -101,7 +101,7 @@ export default function CartPage() {
 		0,
 	);
 
-	const handleQuantityChange = (productVariantId: string, currentQty: number, change: number, maxStock: number) => {
+	const handleQuantityChange = (productVariantId: number, currentQty: number, change: number, maxStock: number) => {
 		const targetQty = (localQuantities[productVariantId] ?? currentQty) + change;
 
 		// 1. Giới hạn không vượt quá availableStocks
@@ -140,7 +140,7 @@ export default function CartPage() {
 		}, 300);
 	};
 
-	const handleToggleSelect = (variantId: string, currentSelected: boolean) => {
+	const handleToggleSelect = (variantId: number, currentSelected: boolean) => {
 		updateSelectStateMutation.mutate({ variantId, isSelected: !currentSelected });
 	};
 
@@ -160,9 +160,9 @@ export default function CartPage() {
 	};
 
 	return (
-		<div className="py-10 px-4 md:px-6 max-w-5xl mx-auto w-full select-none text-left font-sans">
+		<div className="py-4 md:py-6 px-4 md:px-6 max-w-5xl mx-auto w-full text-left font-sans">
 			{/* Breadcrumbs / Back button */}
-			<div className="flex items-center gap-2 mb-6">
+			<div className="flex items-center gap-2 mb-4">
 				<Link
 					to="/"
 					className="inline-flex items-center gap-1.5 text-xs text-brand-muted hover:text-brand-primary transition-colors font-medium"
@@ -172,8 +172,8 @@ export default function CartPage() {
 				</Link>
 			</div>
 
-			<div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 mb-8">
-				<h1 className="text-2xl font-black text-brand-dark flex items-center gap-2.5">
+			<div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 mb-5">
+				<h1 className="text-xl md:text-2xl font-black text-brand-dark flex items-center gap-2.5">
 					<ShoppingCart className="w-6 h-6 text-brand-primary" />
 					Giỏ hàng của bạn
 					<span className="text-xs font-bold text-brand-muted bg-brand-border/40 px-2 py-0.5 rounded-full">
@@ -240,13 +240,18 @@ export default function CartPage() {
 									key={group.shopId}
 									className="bg-white border border-brand-border rounded-xl overflow-hidden shadow-sm"
 								>
-									{/* Shop Name Header */}
-									<div className="flex items-center gap-2 px-4 py-3 bg-brand-light-soft/20 border-b border-brand-border">
-										<Store className="w-4 h-4 text-brand-primary" />
-										<span className="font-extrabold text-xs text-brand-dark">
+									{/* Shop Name Header (Click opens ShopProfilePublicPage in new tab) */}
+									<Link
+										to={`/shops/${group.shopId}`}
+										target="_blank"
+										rel="noopener noreferrer"
+										className="flex items-center gap-2 px-4 py-3 bg-brand-light-soft/20 border-b border-brand-border hover:bg-brand-light-soft/50 transition-colors group cursor-pointer"
+									>
+										<Store className="w-4 h-4 text-brand-primary group-hover:scale-110 transition-transform" />
+										<span className="font-extrabold text-xs text-brand-dark group-hover:text-brand-primary transition-colors">
 											{group.shopName || `Shop #${group.shopId}`}
 										</span>
-									</div>
+									</Link>
 
 									{/* Group items in Table format */}
 									<div className="overflow-x-auto">
@@ -271,11 +276,10 @@ export default function CartPage() {
 													return (
 														<tr
 															key={item.productVariantId}
-															className={`transition-colors hover:bg-brand-light-soft/5 ${
-																item.isSelected ? "bg-brand-primary/5 hover:bg-brand-primary/8" : ""
-															}`}
+															className={`transition-colors hover:bg-brand-light-soft/5 ${item.isSelected ? "bg-brand-primary/5 hover:bg-brand-primary/8" : ""
+																}`}
 														>
-															{/* Cột sản phẩm */}
+															{/* Cột sản phẩm (Click opens ProductDetailPage in new tab) */}
 															<td className="py-4 px-4 flex items-center gap-3">
 																<button
 																	onClick={() => handleToggleSelect(item.productVariantId, item.isSelected)}
@@ -288,22 +292,29 @@ export default function CartPage() {
 																	)}
 																</button>
 
-																<img
-																	src={item.thumbnailUrl}
-																	alt={item.productName}
-																	className="w-14 h-14 object-cover rounded-lg border border-brand-border flex-shrink-0"
-																/>
+																<Link
+																	to={`/products/${item.productId}`}
+																	target="_blank"
+																	rel="noopener noreferrer"
+																	className="flex items-center gap-3 group flex-1 min-w-0"
+																>
+																	<img
+																		src={item.thumbnailUrl}
+																		alt={item.productName}
+																		className="w-14 h-14 object-cover rounded-lg border border-brand-border flex-shrink-0 group-hover:opacity-90 group-hover:border-brand-primary transition-all"
+																	/>
 
-																<div className="min-w-0 space-y-1">
-																	<h3 className="font-extrabold text-brand-dark text-xs truncate max-w-[280px]" title={item.productName}>
-																		{item.productName}
-																	</h3>
-																	{item.variantName && (
-																		<span className="inline-block text-[9px] font-bold text-brand-muted bg-brand-light-soft px-1.5 py-0.5 rounded-sm">
-																			Phân loại: {item.variantName}
-																		</span>
-																	)}
-																</div>
+																	<div className="min-w-0 space-y-1">
+																		<h3 className="font-extrabold text-brand-dark text-xs truncate max-w-[280px] group-hover:text-brand-primary transition-colors" title={item.productName}>
+																			{item.productName}
+																		</h3>
+																		{item.variantName && (
+																			<span className="inline-block text-[9px] font-bold text-brand-muted bg-brand-light-soft px-1.5 py-0.5 rounded-sm">
+																				Phân loại: {item.variantName}
+																			</span>
+																		)}
+																	</div>
+																</Link>
 															</td>
 
 															{/* Cột đơn giá */}
@@ -377,34 +388,46 @@ export default function CartPage() {
 					</div>
 
 					{/* Right Side: Order Summary Card */}
-					<div className="w-full lg:w-80 p-5 bg-white border border-brand-border rounded-xl space-y-5 lg:sticky lg:top-24">
-						<h2 className="text-sm font-bold text-brand-dark uppercase tracking-wider pb-3 border-b border-brand-border">
+					<div className="w-full lg:w-96 p-6 bg-white border border-brand-border rounded-2xl space-y-6 shadow-md lg:sticky lg:top-20">
+						<h2 className="text-base font-black text-brand-dark uppercase tracking-wider pb-3 border-b border-brand-border flex items-center justify-between">
 							Chi tiết thanh toán
+							<span className="text-[10px] font-extrabold text-brand-muted bg-brand-light-soft px-2 py-0.5 rounded-full uppercase tracking-normal">
+								Tạm tính
+							</span>
 						</h2>
 
-						<div className="space-y-3.5 text-xs font-semibold text-brand-muted">
-							<div className="flex justify-between">
-								<span>Tạm tính ({selectedItems.length} sản phẩm)</span>
-								<span className="text-brand-dark font-bold">
+						<div className="space-y-4 text-xs font-semibold text-brand-muted">
+							<div className="flex justify-between items-center">
+								<span>Sản phẩm đã chọn ({selectedItems.length})</span>
+								<span className="text-brand-dark font-extrabold text-sm">
 									{subTotal.toLocaleString("vi-VN")}đ
 								</span>
 							</div>
+							<div className="flex justify-between items-center text-[11px] text-gray-500">
+								<span>Phí vận chuyển</span>
+								<span className="italic font-medium">Tính tại bước đặt hàng</span>
+							</div>
 						</div>
 
-						<div className="border-t border-brand-border pt-4 flex justify-between font-black text-brand-dark">
-							<span className="text-xs uppercase tracking-wider">Tổng thanh toán</span>
-							<span className="text-brand-primary-deep text-lg">
-								{subTotal.toLocaleString("vi-VN")}đ
-							</span>
+						<div className="border-t border-brand-border/80 pt-4 space-y-1">
+							<div className="flex justify-between items-baseline">
+								<span className="text-xs font-black uppercase tracking-wider text-brand-dark">Tổng thanh toán</span>
+								<span className="text-brand-primary-deep text-2xl font-black tracking-tight">
+									{subTotal.toLocaleString("vi-VN")}<span className="text-sm font-bold ml-0.5">đ</span>
+								</span>
+							</div>
+							<p className="text-[10px] text-brand-muted text-right italic font-medium">
+								(Đã bao gồm thuế & phí)
+							</p>
 						</div>
 
 						<button
 							disabled={selectedItems.length === 0}
 							onClick={() => navigate("/checkout")}
-							className="w-full h-10 inline-flex items-center justify-center gap-2 bg-brand-primary hover:bg-brand-primary-deep disabled:opacity-50 disabled:cursor-not-allowed text-brand-dark font-extrabold rounded-lg transition-colors border-none cursor-pointer text-xs"
+							className="w-full h-11 inline-flex items-center justify-center gap-2 bg-brand-primary hover:bg-brand-primary-deep disabled:opacity-50 disabled:cursor-not-allowed text-brand-dark font-black text-xs uppercase tracking-wide rounded-xl transition-all shadow-md hover:shadow-lg border-none cursor-pointer active:scale-[0.98]"
 						>
 							Tiến hành đặt hàng
-							<ArrowRight className="w-3.5 h-3.5" />
+							<ArrowRight className="w-4 h-4" />
 						</button>
 					</div>
 				</div>

@@ -32,11 +32,11 @@ export function AdminOrdersView() {
 
 	// State for expanded order details
 	const [expandedOrders, setExpandedOrders] = useState<
-		Record<string, boolean>
+		Record<string | number, boolean>
 	>({});
 
 	// Toggle detail expand
-	const toggleExpand = (orderId: string) => {
+	const toggleExpand = (orderId: number) => {
 		setExpandedOrders((prev) => ({
 			...prev,
 			[orderId]: !prev[orderId],

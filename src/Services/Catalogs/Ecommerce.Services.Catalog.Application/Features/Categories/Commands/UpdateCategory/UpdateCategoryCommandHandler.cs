@@ -17,7 +17,16 @@ public class UpdateCategoryCommandHandler(IEfUnitOfWork unitOfWork) : IRequestHa
             return Result<bool>.Failure("Danh mục không tồn tại.");
         }
 
-        category.Update(request.Name, request.Description, request.ParentId);
+        if (request.ParentId.HasValue)
+        {
+            var parentExists = await categoryRepository.GetByIdAsync(request.ParentId.Value, cancellationToken);
+            if (parentExists == null)
+            {
+                return Result<bool>.Failure("Danh mục cha không tồn tại.");
+            }
+        }
+
+        category.Update(request.Name, request.Description, request.IconUrl, request.ParentId);
 
         categoryRepository.Update(category);
         await unitOfWork.SaveChangesAsync(cancellationToken);

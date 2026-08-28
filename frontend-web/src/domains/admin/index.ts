@@ -10,3 +10,4 @@ export * from "./components/AdminOrdersView";
 export * from "./components/AdminRefundsView";
 export * from "./components/AdminCategoriesView";
 export * from "./components/AdminShopsView";
+export * from "./components/AdminKycView";

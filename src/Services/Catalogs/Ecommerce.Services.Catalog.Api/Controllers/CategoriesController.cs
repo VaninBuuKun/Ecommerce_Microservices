@@ -41,6 +41,7 @@ public class CategoriesController(ISender sender) : ControllerBase
             id,
             request.Name,
             request.Description,
+            request.IconUrl,
             request.ParentId
         ));
 
@@ -79,5 +80,5 @@ public class CategoriesController(ISender sender) : ControllerBase
     }
 }
 
-public record CreateCategoryRequest(string Name, string Description, string? IconUrl, long? ParentId);
-public record UpdateCategoryRequest(string Name, string Description, long? ParentId);
+public record CreateCategoryRequest(string Name, string? Description, string? IconUrl, long? ParentId);
+public record UpdateCategoryRequest(string Name, string? Description, string? IconUrl, long? ParentId);

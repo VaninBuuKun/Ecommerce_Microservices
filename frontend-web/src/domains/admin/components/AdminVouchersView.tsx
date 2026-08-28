@@ -164,7 +164,7 @@ export function AdminVouchersView() {
 		}
 	};
 
-	const handleDelete = (voucherId: string) => {
+	const handleDelete = (voucherId: number) => {
 		if (window.confirm("Bạn có chắc chắn muốn ngừng kích hoạt (Xóa) mã voucher này?")) {
 			deleteVoucherMutation.mutate(voucherId, {
 				onSuccess: () => {

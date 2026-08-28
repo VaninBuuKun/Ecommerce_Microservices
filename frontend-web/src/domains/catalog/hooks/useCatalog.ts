@@ -10,11 +10,11 @@ import {
 
 export const catalogQueryKeys = {
 	products: ["catalog", "products"] as const,
-	productById: (id?: string) => ["catalog", "products", id] as const,
+	productById: (id?: number) => ["catalog", "products", id] as const,
 	myProducts: (params?: GetMyProductsParams) => ["catalog", "myProducts", params] as const,
 	categories: ["catalog", "categories"] as const,
-	reviews: (productId: string) => ["catalog", "reviews", productId] as const,
-	reviewSummary: (productId: string) => ["catalog", "reviewSummary", productId] as const,
+	reviews: (productId: number) => ["catalog", "reviews", productId] as const,
+	reviewSummary: (productId: number) => ["catalog", "reviewSummary", productId] as const,
 };
 
 export function useProductsQuery(params?: GetProductsParams) {
@@ -27,11 +27,12 @@ export function useProductsQuery(params?: GetProductsParams) {
 export function useMyProductsQuery(params?: GetMyProductsParams) {
 	return useQuery({
 		queryKey: catalogQueryKeys.myProducts(params),
-		queryFn: () => productApi.getMyProducts(params),
+		queryFn: () => (params?.shopId ? productApi.getMyProducts(params) : null),
+		enabled: Boolean(params?.shopId && Number(params.shopId) > 0),
 	});
 }
 
-export function useProductByIdQuery(id?: string) {
+export function useProductByIdQuery(id?: number) {
 	return useQuery({
 		queryKey: catalogQueryKeys.productById(id),
 		queryFn: () => (id ? productApi.getProductById(id) : null),
@@ -60,7 +61,7 @@ export function useCreateProductMutation() {
 export function useUpdateProductMutation() {
 	const queryClient = useQueryClient();
 	return useMutation({
-		mutationFn: ({ id, payload }: { id: string; payload: UpdateProductRequest }) =>
+		mutationFn: ({ id, payload }: { id: number; payload: UpdateProductRequest }) =>
 			productApi.updateProduct(id, payload),
 		onSuccess: (_, variables) => {
 			queryClient.invalidateQueries({ queryKey: catalogQueryKeys.productById(variables.id) });
@@ -72,7 +73,7 @@ export function useUpdateProductMutation() {
 export function useUpdateProductSaleMutation() {
 	const queryClient = useQueryClient();
 	return useMutation({
-		mutationFn: ({ id, payload }: { id: string; payload: UpdateProductSaleRequest }) =>
+		mutationFn: ({ id, payload }: { id: number; payload: UpdateProductSaleRequest }) =>
 			productApi.updateProductSale(id, payload),
 		onSuccess: (_, variables) => {
 			queryClient.invalidateQueries({ queryKey: catalogQueryKeys.productById(variables.id) });
@@ -83,7 +84,7 @@ export function useUpdateProductSaleMutation() {
 export function useBulkUpdateVariantsMutation() {
 	const queryClient = useQueryClient();
 	return useMutation({
-		mutationFn: ({ id, payload }: { id: string; payload: BulkUpdateVariantsRequest | any }) =>
+		mutationFn: ({ id, payload }: { id: number; payload: BulkUpdateVariantsRequest | any }) =>
 			productApi.bulkUpdateVariants(id, payload),
 		onSuccess: (_, variables) => {
 			queryClient.invalidateQueries({ queryKey: catalogQueryKeys.productById(variables.id) });
@@ -94,7 +95,7 @@ export function useBulkUpdateVariantsMutation() {
 export function useDeleteProductMutation() {
 	const queryClient = useQueryClient();
 	return useMutation({
-		mutationFn: (id: string) => productApi.deleteProduct(id),
+		mutationFn: (id: number) => productApi.deleteProduct(id),
 		onSuccess: () => {
 			queryClient.invalidateQueries({ queryKey: catalogQueryKeys.products });
 			queryClient.invalidateQueries({ queryKey: ["catalog"] });
@@ -105,7 +106,7 @@ export function useDeleteProductMutation() {
 export function useToggleProductStatusMutation() {
 	const queryClient = useQueryClient();
 	return useMutation({
-		mutationFn: (id: string) => productApi.toggleProductStatus(id),
+		mutationFn: (id: number) => productApi.toggleProductStatus(id),
 		onSuccess: () => {
 			queryClient.invalidateQueries({ queryKey: catalogQueryKeys.products });
 			queryClient.invalidateQueries({ queryKey: ["catalog"] });
@@ -113,7 +114,7 @@ export function useToggleProductStatusMutation() {
 	});
 }
 
-export function useProductReviewsQuery(productId: string, params?: GetProductReviewsParams) {
+export function useProductReviewsQuery(productId: number, params?: GetProductReviewsParams) {
 	return useQuery({
 		queryKey: [...catalogQueryKeys.reviews(productId), params],
 		queryFn: () => reviewApi.getProductReviews(productId, params),
@@ -121,7 +122,7 @@ export function useProductReviewsQuery(productId: string, params?: GetProductRev
 	});
 }
 
-export function useProductReviewsSummaryQuery(productId: string) {
+export function useProductReviewsSummaryQuery(productId: number) {
 	return useQuery({
 		queryKey: catalogQueryKeys.reviewSummary(productId),
 		queryFn: () => reviewApi.getProductReviewsSummary(productId),

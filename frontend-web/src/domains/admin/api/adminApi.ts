@@ -7,12 +7,12 @@ export const adminApi = {
     return res.data;
   },
 
-  approveKyc: async (kycId: string): Promise<any> => {
+  approveKyc: async (kycId: number): Promise<any> => {
     const res = await api.post(`/admin/kyc/${kycId}/approve`);
     return res.data;
   },
 
-  rejectKyc: async (kycId: string, reason: string): Promise<any> => {
+  rejectKyc: async (kycId: number, reason: string): Promise<any> => {
     const res = await api.post(`/admin/kyc/${kycId}/reject`, { reason });
     return res.data;
   },
@@ -23,17 +23,17 @@ export const adminApi = {
     return res.data?.value || res.data;
   },
 
-  approveWithdrawal: async (id: string): Promise<any> => {
+  approveWithdrawal: async (id: number): Promise<any> => {
     const res = await api.put(`/admin/withdrawals/${id}/approve`);
     return res.data;
   },
 
-  rejectWithdrawal: async (id: string, adminNote: string): Promise<any> => {
+  rejectWithdrawal: async (id: number, adminNote: string): Promise<any> => {
     const res = await api.put(`/admin/withdrawals/${id}/reject`, { adminNote });
     return res.data;
   },
 
-  completeWithdrawal: async (id: string, data: { adminNote?: string; proofImageUrl?: string }): Promise<any> => {
+  completeWithdrawal: async (id: number, data: { adminNote?: string; proofImageUrl?: string }): Promise<any> => {
     const res = await api.put(`/admin/withdrawals/${id}/complete`, data);
     return res.data;
   },
@@ -50,12 +50,12 @@ export const adminApi = {
     return res.data;
   },
 
-  updateVoucher: async ({ id, payload }: { id: string; payload: any }): Promise<any> => {
+  updateVoucher: async ({ id, payload }: { id: number; payload: any }): Promise<any> => {
     const res = await api.put(`/vouchers/${id}`, payload);
     return res.data;
   },
 
-  deleteVoucher: async (id: string): Promise<any> => {
+  deleteVoucher: async (id: number): Promise<any> => {
     const res = await api.delete(`/vouchers/${id}`);
     return res.data;
   },

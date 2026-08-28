@@ -200,7 +200,7 @@ export function AdminWithdrawsView() {
 						<tbody className="divide-y divide-brand-border">
 							{withdraws.map((w: any) => (
 								<tr key={w.id} className="hover:bg-brand-light-soft/10 transition-colors">
-									<td className="p-3 font-mono font-bold text-brand-muted">#{w.id.split("-")[0]}</td>
+									<td className="p-3 font-mono font-bold text-brand-muted">#{w.id}</td>
 									<td className="p-3">
 										<button 
 											onClick={() => openUserTab(w.userId)}

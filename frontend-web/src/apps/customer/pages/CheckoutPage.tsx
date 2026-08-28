@@ -66,7 +66,7 @@ export default function CheckoutPage() {
 
 	// Checkout session calculations from backend
 	const [calcResult, setCalcResult] = useState<any>(null);
-	const [checkoutSessionId, setCheckoutSessionId] = useState<string | null>(null);
+	const [checkoutSessionKey, setcheckoutSessionKey] = useState<string | null>(null);
 
 	// Vouchers state
 	const [shopVouchers, setShopVouchers] = useState<Record<number, string>>({});
@@ -105,14 +105,14 @@ export default function CheckoutPage() {
 	}, [paymentMethods]);
 
 	// Recalculate helper function
-	const triggerRecalculate = (addressId: string, customShopVouchers?: Record<number, string>, customPlatformVoucher?: string) => {
+	const triggerRecalculate = (addressId: number, customShopVouchers?: Record<number, string>, customPlatformVoucher?: string) => {
 		const targetShopVouchers = customShopVouchers ?? shopVouchers;
 		const targetPlatformVoucher = customPlatformVoucher ?? platformVoucher;
 
 		calculateTotalMutation.mutate(
 			{
 				userAddressId: addressId,
-				checkoutSessionId: checkoutSessionId,
+				checkoutSessionId: checkoutSessionKey,
 				shopShippingSelections: null,
 				platformVoucherCode: targetPlatformVoucher || null,
 				shopVoucherCodes: Object.keys(targetShopVouchers).length > 0 ? targetShopVouchers : null,
@@ -121,7 +121,7 @@ export default function CheckoutPage() {
 				onSuccess: (res: any) => {
 					const data = res?.value || res;
 					setCalcResult(data);
-					setCheckoutSessionId(data?.id);
+					setcheckoutSessionKey(data?.id);
 				},
 				onError: (err: any) => {
 					toast.error(err?.response?.data || "Lỗi khi tính toán chi phí đơn hàng");
@@ -174,7 +174,7 @@ export default function CheckoutPage() {
 		setShowAddressModal(false);
 	};
 
-	const handleSetDefaultAddress = (e: React.MouseEvent, addrId: string) => {
+	const handleSetDefaultAddress = (e: React.MouseEvent, addrId: number) => {
 		e.stopPropagation();
 		setDefaultAddressMutation.mutate(addrId, {
 			onSuccess: () => {
@@ -187,7 +187,7 @@ export default function CheckoutPage() {
 		});
 	};
 
-	const handleDeleteAddress = (e: React.MouseEvent, addrId: string) => {
+	const handleDeleteAddress = (e: React.MouseEvent, addrId: number) => {
 		e.stopPropagation();
 		if (window.confirm("Bạn có chắc chắn muốn xóa địa chỉ này?")) {
 			deleteAddressMutation.mutate(addrId, {
@@ -244,7 +244,7 @@ export default function CheckoutPage() {
 			toast.error("Vui lòng chọn hoặc thêm địa chỉ nhận hàng!");
 			return;
 		}
-		if (!checkoutSessionId) {
+		if (!checkoutSessionKey) {
 			toast.error("Không tìm thấy phiên giao dịch tính toán. Vui lòng thử lại!");
 			return;
 		}
@@ -252,7 +252,8 @@ export default function CheckoutPage() {
 		checkoutMutation.mutate(
 			{
 				paymentProvider: paymentProvider,
-				checkoutSessionId: checkoutSessionId,
+				checkoutSessionKey: checkoutSessionKey,
+				addressId: selectedAddress.id,
 			},
 			{
 				onSuccess: (res: any) => {
@@ -306,7 +307,7 @@ export default function CheckoutPage() {
 	const getWardName = (id: number) => wards?.find((w) => w.id === id)?.displayName || `Xã #${id}`;
 
 	return (
-		<div className="py-10 px-4 md:px-6 max-w-5xl mx-auto w-full select-none text-left font-sans relative">
+		<div className="py-10 px-4 md:px-6 max-w-5xl mx-auto w-full text-left font-sans relative">
 			{/* recalculate skeleton opacity loading overlay */}
 			{calculateTotalMutation.isPending && (
 				<div className="absolute inset-0 bg-white/60 backdrop-blur-[1px] z-40 flex items-center justify-center rounded-2xl pointer-events-none">

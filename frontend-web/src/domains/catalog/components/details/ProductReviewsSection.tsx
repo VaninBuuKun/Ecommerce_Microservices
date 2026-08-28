@@ -1,17 +1,17 @@
 import { useState, useRef } from "react";
 import { Star, MessageSquare, X, Play, Loader2, Upload } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import { 
-  useProductReviewsQuery, 
-  useProductReviewsSummaryQuery, 
-  useAddProductReviewMutation 
+import {
+  useProductReviewsQuery,
+  useProductReviewsSummaryQuery,
+  useAddProductReviewMutation
 } from "@/domains/catalog";
 import { toast } from "react-toastify";
 import api from "@/core/api/axiosInstance";
 import axios from "axios";
 
 interface ProductReviewsSectionProps {
-  productId: string;
+  productId: number;
 }
 
 export function ProductReviewsSection({ productId }: ProductReviewsSectionProps) {
@@ -39,7 +39,7 @@ export function ProductReviewsSection({ productId }: ProductReviewsSectionProps)
     try {
       for (let i = 0; i < files.length; i++) {
         const file = files[i];
-        
+
         if (!file.type.startsWith("image/") && !file.type.startsWith("video/")) {
           toast.error(`File "${file.name}" không hợp lệ. Chỉ chấp nhận hình ảnh hoặc video!`);
           continue;
@@ -85,9 +85,10 @@ export function ProductReviewsSection({ productId }: ProductReviewsSectionProps)
 
     addReviewMutation.mutate(
       {
+        productId,
         rating,
         comment: comment.trim(),
-        imageUrls: mediaList
+        mediaList,
       },
       {
         onSuccess: () => {
@@ -152,9 +153,9 @@ export function ProductReviewsSection({ productId }: ProductReviewsSectionProps)
           </div>
           <div className="flex gap-1.5 justify-center">
             {[1, 2, 3, 4, 5].map((s) => (
-              <Star 
-                key={s} 
-                className={`w-4 h-4 ${s <= Math.round(ratingsSummary.averageRating) ? "text-amber-400 fill-amber-400" : "text-brand-border"}`} 
+              <Star
+                key={s}
+                className={`w-4 h-4 ${s <= Math.round(ratingsSummary.averageRating) ? "text-amber-400 fill-amber-400" : "text-brand-border"}`}
               />
             ))}
           </div>
@@ -172,7 +173,7 @@ export function ProductReviewsSection({ productId }: ProductReviewsSectionProps)
                     {star} <Star className="w-3.5 h-3.5 text-amber-400 fill-amber-400" />
                   </span>
                   <div className="flex-1 h-2.5 bg-brand-light-soft/50 rounded-full overflow-hidden border border-brand-border/40">
-                    <div 
+                    <div
                       className="h-full bg-gradient-to-r from-amber-300 to-amber-500 rounded-full transition-all duration-500"
                       style={{ width: `${pct}%` }}
                     />
@@ -204,11 +205,10 @@ export function ProductReviewsSection({ productId }: ProductReviewsSectionProps)
                 className="focus:outline-none transition-transform hover:scale-110 cursor-pointer"
               >
                 <Star
-                  className={`w-6 h-6 transition-all ${
-                    s <= (hoverRating ?? rating) 
-                      ? "text-amber-400 fill-amber-400 drop-shadow-sm" 
+                  className={`w-6 h-6 transition-all ${s <= (hoverRating ?? rating)
+                      ? "text-amber-400 fill-amber-400 drop-shadow-sm"
                       : "text-brand-border"
-                  }`}
+                    }`}
                 />
               </button>
             ))}
@@ -229,13 +229,13 @@ export function ProductReviewsSection({ productId }: ProductReviewsSectionProps)
         <div className="space-y-2">
           <label className="font-extrabold text-[10px] text-brand-muted uppercase block">Hình ảnh / Video nhận xét:</label>
           <div className="flex flex-wrap gap-2">
-            <input 
-              type="file" 
-              ref={fileInputRef} 
-              onChange={handleFileUpload} 
-              multiple 
-              accept="image/*,video/*" 
-              className="hidden" 
+            <input
+              type="file"
+              ref={fileInputRef}
+              onChange={handleFileUpload}
+              multiple
+              accept="image/*,video/*"
+              className="hidden"
             />
             <button
               type="button"
@@ -299,13 +299,12 @@ export function ProductReviewsSection({ productId }: ProductReviewsSectionProps)
       <div className="space-y-4 text-left">
         <div className="flex justify-between items-center pb-2 border-b border-brand-border">
           <h3 className="font-black text-brand-dark text-xs uppercase tracking-wide">Nhận xét khách hàng ({ratingsSummary.totalReviews})</h3>
-          
+
           <div className="flex flex-wrap gap-1.5">
             <button
               onClick={() => { setActiveTab("all"); setPage(1); }}
-              className={`px-2.5 py-1 rounded-lg text-[10px] font-black transition-all cursor-pointer ${
-                activeTab === "all" ? "bg-brand-dark text-white" : "bg-brand-light-soft/40 hover:bg-brand-light-soft/80 text-brand-muted"
-              }`}
+              className={`px-2.5 py-1 rounded-lg text-[10px] font-black transition-all cursor-pointer ${activeTab === "all" ? "bg-brand-dark text-white" : "bg-brand-light-soft/40 hover:bg-brand-light-soft/80 text-brand-muted"
+                }`}
             >
               Tất cả
             </button>
@@ -313,9 +312,8 @@ export function ProductReviewsSection({ productId }: ProductReviewsSectionProps)
               <button
                 key={s}
                 onClick={() => { setActiveTab(s); setPage(1); }}
-                className={`px-2.5 py-1 rounded-lg text-[10px] font-black transition-all flex items-center gap-1 cursor-pointer ${
-                  activeTab === s ? "bg-brand-dark text-white" : "bg-brand-light-soft/40 hover:bg-brand-light-soft/80 text-brand-muted"
-                }`}
+                className={`px-2.5 py-1 rounded-lg text-[10px] font-black transition-all flex items-center gap-1 cursor-pointer ${activeTab === s ? "bg-brand-dark text-white" : "bg-brand-light-soft/40 hover:bg-brand-light-soft/80 text-brand-muted"
+                  }`}
               >
                 {s} <Star className="w-2.5 h-2.5 fill-current" />
               </button>
@@ -335,15 +333,15 @@ export function ProductReviewsSection({ productId }: ProductReviewsSectionProps)
             {filteredReviews.map((rev: any) => (
               <div key={rev.id} className="py-5 space-y-2.5 first:pt-0">
                 <div className="flex items-start gap-3">
-                  <div 
+                  <div
                     onClick={() => navigate(`/users/${rev.customerId}`)}
                     className="w-10 h-10 rounded-full overflow-hidden bg-slate-100 border border-brand-border shrink-0 cursor-pointer hover:opacity-80 transition-all"
                   >
                     {rev.customerAvatarUrl ? (
-                      <img 
-                        src={rev.customerAvatarUrl} 
-                        alt={rev.customerName} 
-                        className="w-full h-full object-cover" 
+                      <img
+                        src={rev.customerAvatarUrl}
+                        alt={rev.customerName}
+                        className="w-full h-full object-cover"
                       />
                     ) : (
                       <div className="w-full h-full bg-brand-primary/10 text-brand-primary flex items-center justify-center font-black text-sm uppercase">
@@ -351,10 +349,10 @@ export function ProductReviewsSection({ productId }: ProductReviewsSectionProps)
                       </div>
                     )}
                   </div>
-                  
+
                   <div className="space-y-1">
                     <div className="flex items-center gap-2">
-                      <span 
+                      <span
                         onClick={() => navigate(`/users/${rev.customerId}`)}
                         className="font-extrabold text-[12px] text-brand-dark cursor-pointer hover:underline"
                       >
@@ -364,9 +362,9 @@ export function ProductReviewsSection({ productId }: ProductReviewsSectionProps)
                     </div>
                     <div className="flex gap-0.5">
                       {[1, 2, 3, 4, 5].map((s) => (
-                        <Star 
-                          key={s} 
-                          className={`w-3.5 h-3.5 ${s <= rev.rating ? "text-amber-400 fill-amber-400" : "text-brand-border"}`} 
+                        <Star
+                          key={s}
+                          className={`w-3.5 h-3.5 ${s <= rev.rating ? "text-amber-400 fill-amber-400" : "text-brand-border"}`}
                         />
                       ))}
                     </div>
@@ -380,8 +378,8 @@ export function ProductReviewsSection({ productId }: ProductReviewsSectionProps)
                 {rev.media && rev.media.length > 0 && (
                   <div className="flex flex-wrap gap-2.5 pt-1">
                     {rev.media.map((url: string, idx: number) => (
-                      <div 
-                        key={idx} 
+                      <div
+                        key={idx}
                         onClick={() => setLightboxMedia(url)}
                         className="relative w-20 h-20 rounded-2xl overflow-hidden border border-brand-border bg-slate-50 cursor-zoom-in hover:brightness-95 transition-all shadow-xs shrink-0"
                       >
@@ -418,18 +416,17 @@ export function ProductReviewsSection({ productId }: ProductReviewsSectionProps)
               >
                 Trước
               </button>
-              
+
               {Array.from({ length: Math.ceil(reviewsData.totalCount / 5) }).map((_, i) => {
                 const pageNum = i + 1;
                 return (
                   <button
                     key={pageNum}
                     onClick={() => setPage(pageNum)}
-                    className={`w-7 h-7 flex items-center justify-center text-[10px] font-black rounded-lg border transition-all cursor-pointer ${
-                      page === pageNum 
-                        ? "bg-brand-dark text-white border-brand-dark" 
+                    className={`w-7 h-7 flex items-center justify-center text-[10px] font-black rounded-lg border transition-all cursor-pointer ${page === pageNum
+                        ? "bg-brand-dark text-white border-brand-dark"
                         : "bg-white text-brand-muted border-brand-border hover:bg-brand-light-soft"
-                    }`}
+                      }`}
                   >
                     {pageNum}
                   </button>
@@ -458,17 +455,17 @@ export function ProductReviewsSection({ productId }: ProductReviewsSectionProps)
           </button>
           <div className="max-w-4xl max-h-[85vh] w-full flex items-center justify-center select-none">
             {isVideo(lightboxMedia) ? (
-              <video 
-                src={lightboxMedia} 
-                controls 
-                autoPlay 
+              <video
+                src={lightboxMedia}
+                controls
+                autoPlay
                 className="max-w-full max-h-[85vh] rounded-2xl shadow-2xl"
               />
             ) : (
-              <img 
-                src={lightboxMedia} 
-                alt="Zoomed review asset" 
-                className="max-w-full max-h-[85vh] object-contain rounded-2xl shadow-2xl" 
+              <img
+                src={lightboxMedia}
+                alt="Zoomed review asset"
+                className="max-w-full max-h-[85vh] object-contain rounded-2xl shadow-2xl"
               />
             )}
           </div>

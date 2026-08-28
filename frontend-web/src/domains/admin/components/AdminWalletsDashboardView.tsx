@@ -172,9 +172,9 @@ export function AdminWalletsDashboardView() {
 										const isDebit = tx.type === "Debit" || tx.type === "1" || tx.type === 1;
 										return (
 											<tr key={tx.id} className="hover:bg-brand-light-soft/10 transition-colors">
-												<td className="p-3 font-mono font-bold text-brand-muted">#{tx.id.split("-")[0]}</td>
+												<td className="p-3 font-mono font-bold text-brand-muted">#{tx.id}</td>
 												<td className="p-3 text-brand-muted font-semibold">{formatTime(tx.createdDate)}</td>
-												<td className="p-3 font-mono font-extrabold text-brand-dark">#{tx.walletId.split("-")[0]}</td>
+												<td className="p-3 font-mono font-extrabold text-brand-dark">#{tx.walletId}</td>
 												<td className="p-3 text-center">{getTypeBadge(tx.type)}</td>
 												<td className="p-3 text-center text-[10px]">{getReasonBadge(tx.reason)}</td>
 												<td className="p-3 text-brand-dark font-medium">{tx.description}</td>

@@ -26,12 +26,12 @@ export const walletApi = {
     return res.data;
   },
 
-  updateBankAccount: async (id: string, data: { bankName: string; bankAccountNumber: string; bankAccountHolder: string; isDefault: boolean }): Promise<any> => {
+  updateBankAccount: async (id: number, data: { bankName: string; bankAccountNumber: string; bankAccountHolder: string; isDefault: boolean }): Promise<any> => {
     const res = await api.put(`/wallet/bank-accounts/${id}`, data);
     return res.data;
   },
 
-  createWithdrawal: async (data: { amount: number; bankAccountId: string }): Promise<any> => {
+  createWithdrawal: async (data: { amount: number; bankAccountId: number }): Promise<any> => {
     const res = await api.post("/withdrawals", data);
     return res.data;
   },

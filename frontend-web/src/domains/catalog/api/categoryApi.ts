@@ -3,14 +3,14 @@ import type { Category } from "../types/catalog.types";
 
 export interface CreateCategoryRequest {
 	name: string;
-	parentId?: number | string;
+	parentId?: number;
 	description?: string;
 	iconUrl?: string;
 }
 
 export interface UpdateCategoryRequest {
 	name: string;
-	parentId?: number | string;
+	parentId?: number;
 	description?: string;
 	iconUrl?: string;
 }
@@ -27,14 +27,14 @@ export const categoryApi = {
 	},
 
 	updateCategory: async (
-		id: string | number,
+		id: number,
 		payload: UpdateCategoryRequest,
 	): Promise<Category> => {
 		const response = await api.put(`/categories/${id}`, payload);
 		return response.data?.value || response.data;
 	},
 
-	deleteCategory: async (id: string | number): Promise<void> => {
+	deleteCategory: async (id: number): Promise<void> => {
 		await api.delete(`/categories/${id}`);
 	},
 };

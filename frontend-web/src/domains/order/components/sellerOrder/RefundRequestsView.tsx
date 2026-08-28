@@ -21,8 +21,8 @@ import {
 import { toast } from "react-toastify";
 
 interface RefundRequest {
-	id: string;
-	subOrderId: string;
+	id: number;
+	subOrderId: number;
 	customerId: number;
 	shopId: number;
 	refundAmount: number;
@@ -34,8 +34,8 @@ interface RefundRequest {
 
 const MOCK_REFUND_DATA: RefundRequest[] = [
 	{
-		id: "b28766bf-4638-4e89-bdc7-87383bbcc57a",
-		subOrderId: "87383bbc-c57a-4c28-9ebd-6bbfe6db68aa",
+		id: 1,
+		subOrderId: 101,
 		customerId: 6,
 		shopId: 1,
 		refundAmount: 250000,
@@ -44,8 +44,8 @@ const MOCK_REFUND_DATA: RefundRequest[] = [
 		createdDate: new Date(Date.now() - 3600000 * 3).toISOString(),
 	},
 	{
-		id: "f9d3b846-17b2-4d22-97bb-e2b25b68266d",
-		subOrderId: "e2b25b68-266d-472b-8a8b-3e5f29d3b846",
+		id: 2,
+		subOrderId: 102,
 		customerId: 12,
 		shopId: 1,
 		refundAmount: 590000,
@@ -63,17 +63,17 @@ export default function RefundRequestsView() {
 		data: serverData,
 		isLoading,
 		refetch,
-	} = useShopRefundsQuery(shopId);
+	} = useShopRefundsQuery(shopId ? Number(shopId) : undefined);
 
 	const approveMutation = useApproveRefundMutation();
 	const rejectMutation = useRejectRefundMutation();
 
 	// Modal and action states
-	const [activeSubOrderId, setActiveSubOrderId] = useState<string | null>(
+	const [activeSubOrderId, setActiveSubOrderId] = useState<number | null>(
 		null,
 	);
 	const [actionRequest, setActionRequest] = useState<{
-		id: string;
+		id: number;
 		type: "approve" | "reject";
 	} | null>(null);
 	const [sellerNote, setSellerNote] = useState("");

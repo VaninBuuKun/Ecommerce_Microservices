@@ -10,7 +10,7 @@ export const notificationApi = {
 	},
 
 
-	markAsRead: async (notificationId: string): Promise<void> => {
+	markAsRead: async (notificationId: number): Promise<void> => {
 		await api.put(`/notifications/${notificationId}/read`);
 	},
 

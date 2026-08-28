@@ -1,7 +1,7 @@
 import api from "@/core/api/axiosInstance";
 
 export interface AddItemRequest {
-	variantId: string;
+	variantId: number;
 	quantity: number;
 }
 
@@ -28,7 +28,7 @@ export const cartApi = {
 		productId,
 		quantity,
 	}: {
-		productId: string;
+		productId: number;
 		quantity: number;
 	}): Promise<any> => {
 		const response = await api.put(`/carts/items/${productId}`, { quantity });
@@ -39,14 +39,14 @@ export const cartApi = {
 		variantId,
 		isSelected,
 	}: {
-		variantId: string;
+		variantId: number;
 		isSelected: boolean;
 	}): Promise<any> => {
 		const response = await api.put(`/carts/items/${variantId}/select`, { isSelected });
 		return response.data;
 	},
 
-	removeItem: async (productId: string): Promise<any> => {
+	removeItem: async (productId: number): Promise<any> => {
 		const response = await api.delete(`/carts/items/${productId}`);
 		return response.data;
 	},

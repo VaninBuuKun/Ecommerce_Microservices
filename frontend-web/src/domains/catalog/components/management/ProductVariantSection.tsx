@@ -4,13 +4,13 @@ import { z } from "zod";
 import { NumberInput, UploadSmallImage } from "@/shared";
 
 export interface OptionType {
-	id?: string;
+	id?: number;
 	name: string;
-	values: { id?: string; value: string; imageUrl?: string }[];
+	values: { id?: number; value: string; imageUrl?: string }[];
 }
 
 export interface GeneratedVariantType {
-	id?: string;
+	id?: number;
 	sku?: string;
 	price: number;
 	discountPrice?: number;

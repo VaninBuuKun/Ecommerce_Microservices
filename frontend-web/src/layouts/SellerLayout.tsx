@@ -54,8 +54,8 @@ export default function SellerLayout() {
 			)
 		: "";
 	const resolvedShop =
-		shops.find((shop: any) => String(shop.id) === shopId) ?? activeShop ?? null;
-	const resolvedShopId = resolvedShop?.id ? String(resolvedShop.id) : null;
+		shops.find((shop: any) => Number(shop.id) === Number(shopId)) ?? activeShop ?? null;
+	const resolvedShopId = resolvedShop?.id ? Number(resolvedShop.id) : null;
 	const sellerBasePath = resolvedShopId
 		? `/seller/${resolvedShopId}/dashboard`
 		: "/seller/dashboard";

@@ -2,7 +2,7 @@ import { useSubOrderDetailQuery } from "../../hooks/useOrders";
 import { Loader2, Calendar, User, MapPin } from "lucide-react";
 import { getOrderStatusBadge, getPaymentStatusLabel } from "../VoucherHelpers";
 
-export function SubOrderDetailView({ subOrderId, isSeller }: { subOrderId: string, isSeller: boolean }) {
+export function SubOrderDetailView({ subOrderId, isSeller }: { subOrderId: number, isSeller: boolean }) {
 	const { data: detail, isLoading } = useSubOrderDetailQuery(subOrderId, isSeller);
 
 	if (isLoading) {

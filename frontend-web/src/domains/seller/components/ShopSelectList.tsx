@@ -2,7 +2,7 @@ import React from "react";
 import { Plus } from "lucide-react";
 
 interface ShopItem {
-	id: number | string;
+	id: number;
 	name: string;
 	description?: string;
 	logoUrl?: string;

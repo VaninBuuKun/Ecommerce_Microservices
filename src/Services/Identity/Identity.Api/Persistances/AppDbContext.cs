@@ -1,5 +1,4 @@
-using BuildingBlocks.EfCore.Persistence.Commons;
-using BuildingBlocks.Shared.InfrastructureInterfaces.InMemoryBus;
+using BuildingBlocks.Shared.Domains.Interfaces;
 using Ecommerce.Services.Identity.Api.Models.Entities;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
@@ -10,6 +9,41 @@ namespace Ecommerce.Services.Identity.Api.Persistances;
 public class AppDbContext(DbContextOptions<AppDbContext> options) : IdentityDbContext<AppUser, IdentityRole<long>, long>(options)
 {
     public DbSet<UserAddress> UserAddresses { get; set; }
+
+    public override int SaveChanges(bool acceptAllChangesOnSuccess)
+    {
+        UpdateTrackingEntities();
+        return base.SaveChanges(acceptAllChangesOnSuccess);
+    }
+
+    public override async Task<int> SaveChangesAsync(bool acceptAllChangesOnSuccess, CancellationToken cancellationToken = default)
+    {
+        UpdateTrackingEntities();
+        return await base.SaveChangesAsync(acceptAllChangesOnSuccess, cancellationToken);
+    }
+
+    private void UpdateTrackingEntities()
+    {
+        var entries = ChangeTracker.Entries<IDateTracking>();
+        var now = DateTimeOffset.UtcNow;
+
+        foreach (var entry in entries)
+        {
+            if (entry.State == EntityState.Added)
+            {
+                if (entry.Entity.CreatedDate == default)
+                {
+                    entry.Entity.CreatedDate = now;
+                }
+                entry.Entity.LastModifiedDate = now;
+            }
+
+            if (entry.State == EntityState.Modified)
+            {
+                entry.Entity.LastModifiedDate = now;
+            }
+        }
+    }
 
     protected override void OnModelCreating(ModelBuilder builder)
     {

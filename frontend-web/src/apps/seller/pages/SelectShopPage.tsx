@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
 import { useNavigate } from "react-router-dom";
+import { toast } from "react-toastify";
 import Header from "@/components/Header";
 import {
 	KycUnverifiedState,
@@ -41,13 +42,16 @@ export default function SelectShopPage() {
 			if (idNum) setIdentityNumber(idNum);
 			if (idFront) setIdentityFront(idFront);
 			if (idBack) setIdentityBack(idBack);
-			if (kyc.status === "Draft" || kyc.status === "Rejected") {
-				setShowKycForm(true);
-			} else {
-				setShowKycForm(false);
-			}
 		}
 	}, [kyc]);
+
+	useEffect(() => {
+		if (kyc?.status === "Draft" || kyc?.status === "Rejected") {
+			setShowKycForm(true);
+		} else if (kyc?.status === "Submitted" || kyc?.status === "Verified") {
+			setShowKycForm(false);
+		}
+	}, [kyc?.status]);
 
 	const handleSelectShop = (shop: any) => {
 		if (setActiveShop) setActiveShop(shop);
@@ -56,11 +60,11 @@ export default function SelectShopPage() {
 
 	const validateForm = () => {
 		if (!identityNumber.trim()) {
-			alert("Vui lòng nhập số CMND/CCCD!");
+			toast.warning("Vui lòng nhập số CMND/CCCD!");
 			return false;
 		}
 		if (!identityFront || !identityBack) {
-			alert("Vui lòng tải lên đầy đủ ảnh mặt trước và mặt sau CCCD!");
+			toast.warning("Vui lòng tải lên đầy đủ ảnh mặt trước và mặt sau CCCD!");
 			return false;
 		}
 		return true;
@@ -76,9 +80,9 @@ export default function SelectShopPage() {
 				identityCardBackUrl: identityBack,
 				isDraft: true,
 			});
-			alert("Đã cập nhật bản nháp KYC thành công!");
+			toast.success("Đã cập nhật bản nháp KYC thành công!");
 		} catch (err: any) {
-			alert(err?.response?.data || "Có lỗi xảy ra khi lưu bản nháp KYC.");
+			toast.error(err?.response?.data || "Có lỗi xảy ra khi lưu bản nháp KYC.");
 		} finally {
 			setIsSubmitting(false);
 		}
@@ -100,9 +104,10 @@ export default function SelectShopPage() {
 				identityCardBackUrl: identityBack,
 				isDraft: false,
 			});
+			toast.success("Đã gửi hồ sơ KYC thành công! Vui lòng chờ quản trị viên duyệt.");
 			setShowKycForm(false);
 		} catch (err: any) {
-			alert(err?.response?.data || "Có lỗi xảy ra khi gửi hồ sơ KYC.");
+			toast.error(err?.response?.data || "Có lỗi xảy ra khi gửi hồ sơ KYC.");
 		} finally {
 			setIsSubmitting(false);
 		}
@@ -113,9 +118,10 @@ export default function SelectShopPage() {
 		setIsSubmitting(true);
 		try {
 			await withdrawKycMutation.mutateAsync();
+			toast.info("Đã rút hồ sơ KYC thành công. Bạn có thể chỉnh sửa lại thông tin.");
 			setShowKycForm(true);
 		} catch (err: any) {
-			alert(err?.response?.data || "Có lỗi xảy ra khi rút hồ sơ KYC.");
+			toast.error(err?.response?.data || "Có lỗi xảy ra khi rút hồ sơ KYC.");
 		} finally {
 			setIsSubmitting(false);
 		}

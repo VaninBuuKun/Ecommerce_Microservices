@@ -1,6 +1,6 @@
 export interface SellerKycDto {
-  id: string;
-  userId: string;
+  id: number;
+  userId: number;
   idCardNumber?: string;
   idCardFrontUrl?: string;
   idCardBackUrl?: string;

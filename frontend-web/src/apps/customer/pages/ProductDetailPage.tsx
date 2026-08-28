@@ -39,7 +39,7 @@ export default function ProductDetailPage() {
 	} | null>(null);
 
 	const [selectedOptions, setSelectedOptions] = useState<
-		Record<string, string>
+		Record<number, number>
 	>({});
 	const [selectedVariant, setSelectedVariant] = useState<any>(null);
 	const [quantity, setQuantity] = useState(1);
@@ -68,34 +68,38 @@ export default function ProductDetailPage() {
 
 	// Find Variant matching selected options
 	useEffect(() => {
-		if (!product?.variants?.length) return;
-
-		if (!product.options?.length) {
-			setSelectedVariant(product.variants[0]);
+		if (!product || !product.variants || product.variants.length === 0) {
+			setSelectedVariant(null);
 			return;
 		}
 
-		const totalOptions = product.options.length;
-		const selectedCount = Object.keys(selectedOptions).length;
+		const numSelected = Object.keys(selectedOptions).length;
+		const totalOptions = product.options?.length || 0;
 
-		if (selectedCount === totalOptions && totalOptions > 0) {
-			const matched = product.variants.find((variant: any) => {
-				return variant.variantOptions?.every((vo: any) => {
-					const parentOption = product.options?.find((o: any) =>
-						o.values?.some(
-							(val: any) => val.id === vo.optionValueId,
-						),
-					);
-					if (!parentOption) return false;
-					return (
-						selectedOptions[parentOption.id] === vo.optionValueId
-					);
-				});
-			});
-			setSelectedVariant(matched || null);
-		} else {
+		if (numSelected !== totalOptions) {
 			setSelectedVariant(null);
+			return;
 		}
+
+		const matched = product.variants.find((variant: any) => {
+			return variant.variantOptions?.every((vo: any) => {
+				const valObj = product.options
+					?.flatMap((o: any) => o.values)
+					.find((v: any) => v.id === vo.optionValueId);
+
+				if (!valObj) return false;
+
+				const parentOpt = product.options?.find((o: any) =>
+					o.values.some((v: any) => v.id === valObj.id),
+				);
+
+				return parentOpt
+					? selectedOptions[parentOpt.id] === valObj.id
+					: false;
+			});
+		});
+
+		setSelectedVariant(matched || null);
 	}, [selectedOptions, product]);
 
 	// Calculate prices dynamically
@@ -189,8 +193,8 @@ export default function ProductDetailPage() {
 
 	// Handle Option Click with Toggle (Deselect) & Tier-1 Image update
 	const handleOptionSelect = (
-		optionId: string,
-		valueId: string,
+		optionId: number,
+		valueId: number,
 		tierIndex: number,
 	) => {
 		if (!product) return;

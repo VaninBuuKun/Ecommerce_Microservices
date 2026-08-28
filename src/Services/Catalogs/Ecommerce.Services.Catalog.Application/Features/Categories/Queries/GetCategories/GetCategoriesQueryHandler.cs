@@ -14,9 +14,37 @@ public class GetCategoriesQueryHandler(IEfUnitOfWork unitOfWork) : CommandHandle
         {
             var cateRepo = unitOfWork.Repository<Category, long>();
 
-            var categories = await cateRepo.GetAllAsync(c => c.IsActive && c.ParentId == null, cancellationToken: cancellationToken);
+            // Lấy tất cả danh mục đang hoạt động và sắp xếp cố định 100% theo CreatedDate rồi đến Id
+            var allCategories = await cateRepo.GetAllAsync(c => c.IsActive, cancellationToken: cancellationToken);
+            
+            var sortedCategories = allCategories
+                .OrderBy(c => c.CreatedDate)
+                .ThenBy(c => c.Id)
+                .ToList();
 
-            var response = MapToDtoList(categories);
+            // Nhóm theo ParentId để dựng cây danh mục n-cấp
+            var lookup = sortedCategories.ToLookup(c => c.ParentId);
+
+            CategoryDto MapNode(Category c) => new CategoryDto
+            {
+                Id = c.Id,
+                Name = c.Name,
+                Description = c.Description,
+                ParentId = c.ParentId,
+                IconUrl = c.IconUrl,
+                SubCategories = lookup[c.Id]
+                    .OrderBy(sub => sub.CreatedDate)
+                    .ThenBy(sub => sub.Id)
+                    .Select(MapNode)
+                    .ToList()
+            };
+
+            // Root categories có ParentId == null
+            var response = lookup[null]
+                .OrderBy(root => root.CreatedDate)
+                .ThenBy(root => root.Id)
+                .Select(MapNode)
+                .ToList();
 
             return Result<List<CategoryDto>>.Success(response);
         }
@@ -24,18 +52,5 @@ public class GetCategoriesQueryHandler(IEfUnitOfWork unitOfWork) : CommandHandle
         {
             return Result<List<CategoryDto>>.Failure($"An error occurred while retrieving categories: {ex.Message}");
         }
-    }
-
-    private static List<CategoryDto> MapToDtoList(IEnumerable<Category> categories)
-    {
-        return categories.Select(c => new CategoryDto
-        {
-            Id = c.Id,
-            Name = c.Name,
-            Description = c.Description,
-            ParentId = c.ParentId,
-            IconUrl = c.IconUrl,
-            SubCategories = MapToDtoList(c.SubCategories ?? new List<Category>())
-        }).ToList();
     }
 }

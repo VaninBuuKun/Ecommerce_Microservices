@@ -37,7 +37,21 @@ export function useRegisterKycMutation() {
       identityCardBackUrl: string;
       isDraft?: boolean;
     }) => kycApi.registerKyc(payload),
-    onSuccess: () => {
+    onSuccess: (res: any, variables) => {
+      // Optimistically update sellerProfile query data so kyc status instantly updates to "Submitted" or "Draft" without UI flicker
+      queryClient.setQueryData(kycQueryKeys.profile, (oldProfile: any) => {
+        if (!oldProfile) return oldProfile;
+        const updatedKyc = res?.data?.value || res?.data || res?.value || res;
+        const newStatus = variables.isDraft === false ? "Submitted" : "Draft";
+        return {
+          ...oldProfile,
+          kyc: {
+            ...(oldProfile.kyc || {}),
+            ...(typeof updatedKyc === "object" ? updatedKyc : {}),
+            status: newStatus,
+          },
+        };
+      });
       queryClient.invalidateQueries({ queryKey: kycQueryKeys.myKyc });
       queryClient.invalidateQueries({ queryKey: kycQueryKeys.profile });
     },
@@ -49,6 +63,16 @@ export function useWithdrawKycMutation() {
   return useMutation({
     mutationFn: () => kycApi.withdrawDraft(),
     onSuccess: () => {
+      queryClient.setQueryData(kycQueryKeys.profile, (oldProfile: any) => {
+        if (!oldProfile) return oldProfile;
+        return {
+          ...oldProfile,
+          kyc: {
+            ...(oldProfile.kyc || {}),
+            status: "Draft",
+          },
+        };
+      });
       queryClient.invalidateQueries({ queryKey: kycQueryKeys.myKyc });
       queryClient.invalidateQueries({ queryKey: kycQueryKeys.profile });
     },

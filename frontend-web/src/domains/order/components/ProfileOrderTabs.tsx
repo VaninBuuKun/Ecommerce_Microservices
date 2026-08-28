@@ -21,11 +21,11 @@ export function MyOrdersTab({ customerId }: { customerId?: number }) {
 		data: customerOrders = [],
 		isLoading: ordersLoading,
 		refetch,
-	} = useCustomerOrdersQuery(String(customerId || 1));
+	} = useCustomerOrdersQuery(customerId || 1);
 
 	const [orderTab, setOrderTab] = useState("All");
 	const [searchQuery, setSearchQuery] = useState("");
-	const [detailSubOrderId, setDetailSubOrderId] = useState<string | null>(null);
+	const [detailSubOrderId, setDetailSubOrderId] = useState<number | null>(null);
 	const [showAllItems, setShowAllItems] = useState<Record<string, boolean>>({});
 
 	const matchesTab = (order: any, tab: string) => {
@@ -246,7 +246,7 @@ export function RefundRequestsTab() {
 	const { data: refunds = [], isLoading, refetch } = useMyRefundsQuery();
 	const cancelRefundMutation = useCancelRefundMutation();
 
-	const handleCancelRefund = async (id: string) => {
+	const handleCancelRefund = async (id: number) => {
 		if (window.confirm("Bạn muốn rút lại yêu cầu hoàn tiền này?")) {
 			try {
 				await cancelRefundMutation.mutateAsync(id);

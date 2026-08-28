@@ -42,7 +42,7 @@ export function OrdersView() {
 		refetch,
 		isFetching,
 	} = useShopSubOrdersQuery(
-		resolvedShop?.id?.toString(),
+		resolvedShop?.id ? Number(resolvedShop.id) : undefined,
 		currentPage,
 		PAGE_SIZE,
 		statusFilter === "All" ? undefined : statusFilter,
@@ -54,31 +54,31 @@ export function OrdersView() {
 
 	// State for expanded order details
 	const [expandedOrders, setExpandedOrders] = useState<
-		Record<string, boolean>
+		Record<string | number, boolean>
 	>({});
 
 	// State for cancel modal
-	const [cancelingOrderId, setCancelingOrderId] = useState<string | null>(
+	const [cancelingOrderId, setCancelingOrderId] = useState<number | null>(
 		null,
 	);
 	const [cancelReason, setCancelReason] = useState("");
 
 	// State for package ready modal
-	const [packingOrderId, setPackingOrderId] = useState<string | null>(null);
+	const [packingOrderId, setPackingOrderId] = useState<number | null>(null);
 	const [weight, setWeight] = useState(500); // grams
 	const [length, setLength] = useState(10); // cm
 	const [width, setWidth] = useState(10); // cm
 	const [height, setHeight] = useState(10); // cm
 
 	// Toggle detail expand
-	const toggleExpand = (orderId: string) => {
+	const toggleExpand = (orderId: number) => {
 		setExpandedOrders((prev) => ({
 			...prev,
 			[orderId]: !prev[orderId],
 		}));
 	};
 
-	const handleConfirm = async (id: string) => {
+	const handleConfirm = async (id: number) => {
 		try {
 			await confirmSubOrderMutation.mutateAsync(id);
 			toast.success("Xác nhận đơn hàng thành công!");
@@ -135,7 +135,7 @@ export function OrdersView() {
 	const filteredOrders = backendItems.filter((order: any) => {
 		if (!searchQuery.trim()) return true;
 		return (
-			order.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
+			String(order.id).toLowerCase().includes(searchQuery.toLowerCase()) ||
 			(order.shippingAddress &&
 				order.shippingAddress
 					.toLowerCase()
@@ -246,7 +246,7 @@ export function OrdersView() {
 												className="p-3 font-bold text-brand-dark truncate max-w-40"
 												title={order.id}
 											>
-												#{order.id.split("-")[0]}
+												#{String(order.id).split("-")[0]}
 											</td>
 											<td className="p-3 text-brand-muted">
 												{new Date(

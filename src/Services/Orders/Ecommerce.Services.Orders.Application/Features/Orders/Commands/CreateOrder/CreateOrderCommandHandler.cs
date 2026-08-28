@@ -37,11 +37,16 @@ public class CreateOrderCommandHandler(
         long customerId = command.CustomerId;
         logger.LogInformation("Bắt đầu khởi tạo đơn hàng cho khách hàng {CustomerId} từ Redis CheckoutSession Key: {SessionKey}", customerId, command.CheckoutSessionKey);
 
-        var redisKey = $"checkout:{customerId}:{command.CheckoutSessionKey}";
+        var redisKey = $"checkout_session:{command.CheckoutSessionKey}";
         var checkoutSession = await cacheService.GetAsync<CheckoutSession>(redisKey, cancellationToken);
         if (checkoutSession == null)
         {
             return Result<CustomerOrderResponse>.Failure("Phiên thanh toán đã hết hạn hoặc không tồn tại. Vui lòng tiến hành thanh toán lại từ giỏ hàng.", EErrorCode.NotFound);
+        }
+
+        if (checkoutSession.CustomerId != customerId)
+        {
+            return Result<CustomerOrderResponse>.Failure("Phiên thanh toán này không thuộc về tài khoản của bạn.", EErrorCode.Unauthorized);
         }
 
         var selectedItems = checkoutSession.Items;
