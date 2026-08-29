@@ -13,6 +13,7 @@ export function RelatedProducts({
 }: RelatedProductsProps) {
 	const { data: productsData, isLoading } = useProductsQuery({
 		categoryId: categoryId || undefined,
+		limit: 10,
 	});
 
 	const products = productsData?.items || productsData || [];
@@ -61,7 +62,7 @@ export function RelatedProducts({
 					return (
 						<Link
 							key={item.id}
-							to={`/product/${item.id}`}
+							to={`/products/${item.id}`}
 							className="group border border-brand-border/60 hover:border-brand-primary rounded-xl p-2.5 transition-all bg-white hover:shadow-md flex flex-col justify-between"
 						>
 							<div>

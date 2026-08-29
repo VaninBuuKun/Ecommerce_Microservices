@@ -14,6 +14,8 @@ public class PaymentDbContext(DbContextOptions options, IInMemoryBus bus) : EfDb
     public DbSet<BankAccount> BankAccounts { get; set; }
     public DbSet<WalletTransaction> WalletTransactions { get; set; }
     public DbSet<WithdrawalRequest> WithdrawalRequests { get; set; }
+    public DbSet<PlatformCommissionConfig> PlatformCommissionConfigs { get; set; }
+    public DbSet<RevenueRecord> RevenueRecords { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -45,6 +47,29 @@ public class PaymentDbContext(DbContextOptions options, IInMemoryBus bus) : EfDb
         {
             e.Property(w => w.Amount).HasColumnType("decimal(18,2)");
             e.Property(w => w.Status).HasConversion<string>();
+        });
+
+        modelBuilder.Entity<PlatformCommissionConfig>(e =>
+        {
+            e.Property(c => c.RatePercentage).HasColumnType("decimal(5,2)");
+            e.HasData(new PlatformCommissionConfig
+            {
+                Id = 1,
+                RatePercentage = 5.0m,
+                CreatedDate = new DateTimeOffset(2026, 1, 1, 0, 0, 0, TimeSpan.Zero),
+                LastModifiedDate = new DateTimeOffset(2026, 1, 1, 0, 0, 0, TimeSpan.Zero)
+            });
+        });
+
+        modelBuilder.Entity<RevenueRecord>(e =>
+        {
+            e.Property(r => r.GrossAmount).HasColumnType("decimal(18,2)");
+            e.Property(r => r.PlatformDiscountAmount).HasColumnType("decimal(18,2)");
+            e.Property(r => r.CommissionRatePercentage).HasColumnType("decimal(5,2)");
+            e.Property(r => r.CommissionAmount).HasColumnType("decimal(18,2)");
+            e.Property(r => r.NetAmount).HasColumnType("decimal(18,2)");
+            e.HasIndex(r => r.SubOrderId);
+            e.HasIndex(r => r.ShopId);
         });
     }
 }

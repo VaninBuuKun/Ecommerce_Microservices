@@ -6,6 +6,8 @@ using Ecommerce.Services.Shippings.Api.Models.Dtos;
 using Ecommerce.Services.Shippings.Api.Persistances;
 using Microsoft.EntityFrameworkCore;
 
+using Ecommerce.Services.Shippings.Api.Models.Interfaces;
+
 namespace Ecommerce.Services.Shippings.Api.Services;
 
 public class LocationService(ShippingDbContext dbContext) : ILocationService

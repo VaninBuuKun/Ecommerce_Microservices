@@ -1,4 +1,5 @@
 using Ecommerce.Services.Notifications.Api.Models;
+using Ecommerce.Services.Notifications.Api.Models.Entities;
 using MassTransit;
 using Microsoft.EntityFrameworkCore;
 

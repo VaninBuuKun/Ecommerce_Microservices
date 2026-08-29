@@ -1,9 +1,12 @@
 using Ecommerce.Services.Notifications.Api.Hubs;
 using Ecommerce.Services.Notifications.Api.Models;
+using Ecommerce.Services.Notifications.Api.Models.Entities;
 using Ecommerce.Services.Notifications.Api.Persistances;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+
+using Ecommerce.Services.Notifications.Api.Models.Interfaces;
 
 namespace Ecommerce.Services.Notifications.Api.Services;
 

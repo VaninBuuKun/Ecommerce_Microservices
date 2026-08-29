@@ -2,19 +2,17 @@ using System.Linq;
 using System.Threading.Tasks;
 using BuildingBlocks.Grpc.Extensions;
 using BuildingBlocks.Grpc.Services;
-using Ecommerce.Services.Carts.Api.Features.Carts.Queries.GetCart;
+using Ecommerce.Services.Carts.Api.Models.Interfaces;
 using Grpc.Core;
-using MapsterMapper;
-using MediatR;
 
 namespace Ecommerce.Services.Carts.Api.GrpcServers;
 
-public class CartGrpcServer(ISender sender, IMapper mapper) : CartGrpc.CartGrpcBase
+public class CartGrpcServer(ICartService cartService) : CartGrpc.CartGrpcBase
 {
     public override async Task<GetCartByIdResponse> GetCartByCustomerId(GetCartByIdRequest request, ServerCallContext context)
     {
-        var result = await sender.Send(new GetCartQuery(request.CustomerId));
-        if (!result.IsSuccess)
+        var result = await cartService.GetCartAsync(request.CustomerId, context.CancellationToken);
+        if (!result.IsSuccess || result.Value == null)
         {
             throw result.ToRpcException();
         }
@@ -31,7 +29,7 @@ public class CartGrpcServer(ISender sender, IMapper mapper) : CartGrpc.CartGrpcB
             {
                 foreach (var item in group.Items)
                 {
-                    response.Items.Add(new RpcCartItemDto()
+                    response.Items.Add(new RpcCartItemDto
                     {
                         VariantId = item.ProductVariantId,
                         Quantity = item.Quantity,
@@ -54,7 +52,7 @@ public class CartGrpcServer(ISender sender, IMapper mapper) : CartGrpc.CartGrpcB
     public override async Task<ClearCartResponse> ClearCart(ClearCartRequest request, ServerCallContext context)
     {
         var variantIds = request.VariantIds.ToList();
-        var result = await sender.Send(new Ecommerce.Services.Carts.Api.Features.Carts.Commands.ClearCart.ClearCartCommand(request.CustomerId, variantIds));
+        var result = await cartService.ClearCartAsync(request.CustomerId, variantIds, context.CancellationToken);
         
         if (!result.IsSuccess)
         {

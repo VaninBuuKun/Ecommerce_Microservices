@@ -14,6 +14,7 @@ public static class ServiceConfigurations
         services.AddScoped<IPaymentService, PaymentService>();
         services.AddScoped<IWalletService, WalletService>();
         services.AddScoped<IWithdrawalService, WithdrawalService>();
+        services.AddScoped<ICommissionService, CommissionService>();
         services.AddScoped<IEfUnitOfWork, EfUnitOfWork<PaymentDbContext>>();
         services.AddScoped<PaymentGatewayFactory>();
         services.AddScoped<IPaymentGateway, MomoPaymentGateway>();

@@ -11,6 +11,7 @@ export function InterestedProductsSection() {
 	const { data: topProductsData } = useProductsQuery({
 		limit: 18,
 		pageSize: 18,
+		sortBy: "rating",
 	});
 
 	const allInterested = topProductsData?.items ? [...topProductsData.items].reverse() : [];

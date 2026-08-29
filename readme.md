@@ -185,13 +185,21 @@ GHN Delivered → ShipmentDeliveredEvent → Orders Service → SubOrder Deliver
 
 ---
 
-## 🔔 Real-time Notifications
-
+## 🔔 Real-time Notifications & Chat
 * SignalR Hub for real-time push.
+* **SignalR Customer ↔ Shop Chat Page (`/chat`)**: Fullscreen real-time messaging between Customers and Sellers with chat history.
+* **MailKit / MimeKit Email System**: HTML email notifications (Order confirmations, Password reset).
 * Event-driven consumers:
   * Payment succeeded / failed
   * New order created (notify seller)
   * Order shipped (notify buyer)
+
+---
+
+## 🔍 Native Full-Text Search & Explore Page
+* **PostgreSQL Native Full-Text Search**: `to_tsvector` and `websearch_to_tsquery` for Vietnamese text search.
+* **Autocomplete Search Suggestions**: Real-time search keyword suggestions via `/api/products/search-suggestions`.
+* **Explore Products Page (`/explore`)**: 2-column layout with 1-5 star ratings filter, single-choice sort criteria (Newest, Price asc/desc, Best Seller), and keyword title header.
 
 ---
 

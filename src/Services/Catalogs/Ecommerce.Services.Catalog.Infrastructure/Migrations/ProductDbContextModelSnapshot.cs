@@ -109,6 +109,9 @@ namespace Ecommerce.Services.Catalog.Infrastructure.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
 
+                    b.Property<string>("AttributesJson")
+                        .HasColumnType("text");
+
                     b.Property<int>("AvailableStock")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("integer")
@@ -119,6 +122,9 @@ namespace Ecommerce.Services.Catalog.Infrastructure.Migrations
 
                     b.Property<long?>("CategoryId")
                         .HasColumnType("bigint");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("Description")
                         .IsRequired()
@@ -161,6 +167,11 @@ namespace Ecommerce.Services.Catalog.Infrastructure.Migrations
                     b.Property<long>("ShopId")
                         .HasColumnType("bigint");
 
+                    b.Property<int>("Sold")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(0);
+
                     b.Property<string>("Status")
                         .IsRequired()
                         .HasMaxLength(20)
@@ -169,6 +180,9 @@ namespace Ecommerce.Services.Catalog.Infrastructure.Migrations
                     b.Property<string>("ThumbnailUrl")
                         .HasMaxLength(1000)
                         .HasColumnType("character varying(1000)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("VideoUrl")
                         .HasMaxLength(1000)

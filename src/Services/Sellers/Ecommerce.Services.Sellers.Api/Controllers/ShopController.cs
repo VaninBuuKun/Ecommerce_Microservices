@@ -1,16 +1,8 @@
-using System;
 using System.Threading.Tasks;
 using BuildingBlocks.Auth;
-using BuildingBlocks.Shared.Commons;
 using BuildingBlocks.Shared.Extensions;
-using Ecommerce.Services.Sellers.Api.Features.Shops.Commands.ActivateShop;
-using Ecommerce.Services.Sellers.Api.Features.Shops.Commands.BanShop;
-using Ecommerce.Services.Sellers.Api.Features.Shops.Commands.CreateShop;
-using Ecommerce.Services.Sellers.Api.Features.Shops.Commands.SuspendShop;
-using Ecommerce.Services.Sellers.Api.Features.Shops.Commands.UpdateShop;
-using Ecommerce.Services.Sellers.Api.Features.Shops.Queries.GetPublicShopById;
-using Ecommerce.Services.Sellers.Api.Features.Shops.Queries.GetPublicShopsByOwnerId;
-using MediatR;
+using Ecommerce.Services.Sellers.Api.Services;
+using Ecommerce.Services.Sellers.Api.Models.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -18,7 +10,7 @@ namespace Ecommerce.Services.Sellers.Api.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
-public class ShopController(ISender sender, ICurrentUserService currentUserService) : ControllerBase
+public class ShopController(IShopService shopService, ICurrentUserService currentUserService) : ControllerBase
 {
     [HttpGet("all")]
     public async Task<IActionResult> GetAllShops(
@@ -27,14 +19,7 @@ public class ShopController(ISender sender, ICurrentUserService currentUserServi
         [FromQuery] string? searchTerm = null,
         [FromQuery] string? status = null)
     {
-        var query = new Ecommerce.Services.Sellers.Api.Features.Shops.Queries.GetAllShops.GetAllShopsQuery(
-            pageNumber,
-            pageSize,
-            searchTerm,
-            status
-        );
-
-        var result = await sender.Send(query);
+        var result = await shopService.GetAllShopsAsync(pageNumber, pageSize, searchTerm, status);
         if (!result.IsSuccess)
         {
             return StatusCode((int)result.ErrorCode.ToHttpStatusCode(), result.Message);
@@ -52,7 +37,7 @@ public class ShopController(ISender sender, ICurrentUserService currentUserServi
             return Unauthorized("Tài khoản chưa được xác thực danh tính.");
         }
 
-        var result = await sender.Send(new Ecommerce.Services.Sellers.Api.Features.Shops.Queries.GetMySellerProfile.GetMySellerProfileQuery(currentUserService.UserId));
+        var result = await shopService.GetMySellerProfileAsync(currentUserService.UserId);
         if (!result.IsSuccess)
         {
             return StatusCode((int)result.ErrorCode.ToHttpStatusCode(), result.Message);
@@ -70,7 +55,7 @@ public class ShopController(ISender sender, ICurrentUserService currentUserServi
             return Unauthorized("Tài khoản chưa được xác thực danh tính.");
         }
 
-        var result = await sender.Send(new Ecommerce.Services.Sellers.Api.Features.Shops.Queries.GetShopById.GetShopByIdQuery(id, currentUserService.UserId));
+        var result = await shopService.GetShopByIdAsync(id, currentUserService.UserId);
         if (!result.IsSuccess)
         {
             return StatusCode((int)result.ErrorCode.ToHttpStatusCode(), result.Message);
@@ -82,7 +67,7 @@ public class ShopController(ISender sender, ICurrentUserService currentUserServi
     [HttpGet("{id:long}/public")]
     public async Task<IActionResult> GetPublicShopById(long id)
     {
-        var result = await sender.Send(new GetPublicShopByIdQuery(id));
+        var result = await shopService.GetPublicShopByIdAsync(id);
         if (!result.IsSuccess)
         {
             return StatusCode((int)result.ErrorCode.ToHttpStatusCode(), result.Message);
@@ -94,7 +79,7 @@ public class ShopController(ISender sender, ICurrentUserService currentUserServi
     [HttpGet("owner/{ownerUserId:long}")]
     public async Task<IActionResult> GetPublicShopsByOwnerId(long ownerUserId)
     {
-        var result = await sender.Send(new GetPublicShopsByOwnerIdQuery(ownerUserId));
+        var result = await shopService.GetPublicShopsByOwnerIdAsync(ownerUserId);
         if (!result.IsSuccess)
         {
             return StatusCode((int)result.ErrorCode.ToHttpStatusCode(), result.Message);
@@ -112,14 +97,7 @@ public class ShopController(ISender sender, ICurrentUserService currentUserServi
             return Unauthorized("Tài khoản chưa được xác thực danh tính.");
         }
 
-        var command = new CreateShopCommand(
-            OwnerUserId: currentUserService.UserId,
-            Name: request.Name,
-            Description: request.Description,
-            LogoUrl: request.LogoUrl
-        );
-
-        var result = await sender.Send(command);
+        var result = await shopService.CreateShopAsync(currentUserService.UserId, request.Name, request.Description, request.LogoUrl);
         if (!result.IsSuccess)
         {
             return StatusCode((int)result.ErrorCode.ToHttpStatusCode(), result.Message);
@@ -137,21 +115,20 @@ public class ShopController(ISender sender, ICurrentUserService currentUserServi
             return Unauthorized("Tài khoản chưa được xác thực danh tính.");
         }
 
-        var command = new UpdateShopCommand(
-            ShopId: id,
-            OwnerUserId: currentUserService.UserId,
-            Name: request.Name,
-            Description: request.Description,
-            LogoUrl: request.LogoUrl,
-            RecipientName: request.RecipientName,
-            Phone: request.Phone,
-            AddressLine: request.AddressLine,
-            ProvinceId: request.ProvinceId,
-            DistrictId: request.DistrictId,
-            WardId: request.WardId
+        var result = await shopService.UpdateShopAsync(
+            id,
+            currentUserService.UserId,
+            request.Name,
+            request.Description,
+            request.LogoUrl,
+            request.RecipientName,
+            request.Phone,
+            request.AddressLine,
+            request.ProvinceId,
+            request.DistrictId,
+            request.WardId
         );
 
-        var result = await sender.Send(command);
         if (!result.IsSuccess)
         {
             return StatusCode((int)result.ErrorCode.ToHttpStatusCode(), result.Message);
@@ -170,7 +147,7 @@ public class ShopController(ISender sender, ICurrentUserService currentUserServi
         }
 
         var isAdmin = User.IsInRole("Admin");
-        var result = await sender.Send(new SuspendShopCommand(id, currentUserService.UserId, isAdmin));
+        var result = await shopService.SuspendShopAsync(id, currentUserService.UserId, isAdmin);
         if (!result.IsSuccess)
         {
             return StatusCode((int)result.ErrorCode.ToHttpStatusCode(), result.Message);
@@ -189,7 +166,7 @@ public class ShopController(ISender sender, ICurrentUserService currentUserServi
         }
 
         var isAdmin = User.IsInRole("Admin");
-        var result = await sender.Send(new ActivateShopCommand(id, currentUserService.UserId, isAdmin));
+        var result = await shopService.ActivateShopAsync(id, currentUserService.UserId, isAdmin);
         if (!result.IsSuccess)
         {
             return StatusCode((int)result.ErrorCode.ToHttpStatusCode(), result.Message);
@@ -202,7 +179,7 @@ public class ShopController(ISender sender, ICurrentUserService currentUserServi
     [Authorize(Roles = "Admin")]
     public async Task<IActionResult> BanShop(long id)
     {
-        var result = await sender.Send(new BanShopCommand(id));
+        var result = await shopService.BanShopAsync(id);
         if (!result.IsSuccess)
         {
             return StatusCode((int)result.ErrorCode.ToHttpStatusCode(), result.Message);

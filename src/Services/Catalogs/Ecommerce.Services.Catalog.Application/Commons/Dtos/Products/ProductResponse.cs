@@ -17,6 +17,8 @@ public class ProductResponse
     public decimal PriceDisplay { get; set; }
     public decimal DiscountPrice { get; set; }
     public int AvailableStock { get; set; }
+    public int Sold { get; set; }
+    public string? AttributesJson { get; set; }
     public string Status { get; set; } = string.Empty;
     public string ThumbnailUrl { get; set; } = string.Empty;
     public string? VideoUrl { get; set; }

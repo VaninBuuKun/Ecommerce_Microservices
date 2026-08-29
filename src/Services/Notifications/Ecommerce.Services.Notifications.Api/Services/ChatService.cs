@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using BuildingBlocks.Shared.Commons;
 using Ecommerce.Services.Notifications.Api.Controllers;
 using Ecommerce.Services.Notifications.Api.Persistances;
+using Ecommerce.Services.Notifications.Api.Models.Interfaces;
 using Microsoft.EntityFrameworkCore;
 
 namespace Ecommerce.Services.Notifications.Api.Services;

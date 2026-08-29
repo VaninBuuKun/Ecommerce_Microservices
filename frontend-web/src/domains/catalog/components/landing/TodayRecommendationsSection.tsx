@@ -16,7 +16,7 @@ export function TodayRecommendationsSection() {
 
 	const productsList = recommendedData?.items || [];
 	const totalRecommendCount = recommendedData?.totalCount || productsList.length;
-	const hasMoreRecommend = totalRecommendCount > productsList.length || (productsList.length % BATCH_SIZE === 0 && productsList.length > 0);
+	const hasMoreRecommend = (recommendedData as any)?.hasNext ?? (totalRecommendCount > productsList.length);
 
 	const renderPriceBlock = (price: number, discountPrice?: number) => {
 		const hasDiscount = discountPrice && discountPrice > 0 && discountPrice < price;

@@ -29,7 +29,7 @@ public class GetProductsQueryHandler(
         {
             // 1. Giải mã Cursor
             string? lastValue = null;
-            Guid? lastId = null;
+            long? lastId = null;
 
             if (!string.IsNullOrEmpty(query.Cursor))
             {
@@ -40,7 +40,7 @@ public class GetProductsQueryHandler(
                     if (parts.Length == 2)
                     {
                         lastValue = parts[0];
-                        lastId = Guid.Parse(parts[1]);
+                        lastId = long.Parse(parts[1]);
                     }
                 }
                 catch
@@ -72,10 +72,13 @@ public class GetProductsQueryHandler(
             if (hasNext && itemsToReturn.Any())
             {
                 var lastItem = itemsToReturn.Last();
-                string cursorValue = query.SortBy.ToLower() switch
+                string cursorValue = (query.SortBy ?? "name").ToLower() switch
                 {
                     "rating" => lastItem.AverageRating.ToString("F1"),
                     "reviews" => lastItem.ReviewCount.ToString(),
+                    "price_asc" or "price_desc" => lastItem.Price.ToString("F2"),
+                    "newest" or "oldest" => lastItem.CreatedAt.Ticks.ToString(),
+                    "sold" or "best_selling" => lastItem.Sold.ToString(),
                     _ => lastItem.Name
                 };
                 var rawCursor = $"{cursorValue}|{lastItem.Id}";

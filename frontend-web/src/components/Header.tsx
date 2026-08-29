@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import { authService, useAuthStore } from "@/domains/auth";
 import { useCartQuery } from "@/domains/cart";
+import { api } from "@/core";
 
 import { checkIsAdmin } from "../shared/utils/authHelper";
 import { useWishlist } from "@/domains/catalog";
@@ -30,8 +31,45 @@ export default function Header() {
 	const [showNotificationDropdown, setShowNotificationDropdown] = useState(false);
 	const [showUserDropdown, setShowUserDropdown] = useState(false);
 	const [searchQuery, setSearchQuery] = useState("");
+	const [suggestions, setSuggestions] = useState<any[]>([]);
+	const [isSearchingSuggestions, setIsSearchingSuggestions] = useState(false);
 
 	const searchRef = useRef<HTMLDivElement>(null);
+
+	// Fetch autocomplete suggestions from Catalog Service (PostgreSQL FTS)
+	useEffect(() => {
+		if (!searchQuery.trim()) {
+			setSuggestions([]);
+			return;
+		}
+
+		const timer = setTimeout(async () => {
+			try {
+				setIsSearchingSuggestions(true);
+				const res = await api.get("/catalog/products", {
+					params: { searchTerm: searchQuery.trim(), limit: 5 },
+				});
+				const items = res.data?.value?.items || res.data?.items || [];
+				setSuggestions(items);
+			} catch (e) {
+				console.error("Lỗi gợi ý tìm kiếm:", e);
+			} finally {
+				setIsSearchingSuggestions(false);
+			}
+		}, 250);
+
+		return () => clearTimeout(timer);
+	}, [searchQuery]);
+
+	const handleExecuteSearch = (queryToSearch?: string) => {
+		const term = (queryToSearch !== undefined ? queryToSearch : searchQuery).trim();
+		setShowSearchSuggestions(false);
+		if (term) {
+			navigate(`/explore?search=${encodeURIComponent(term)}`);
+		} else {
+			navigate("/explore");
+		}
+	};
 
 	// Close search suggestions when clicking outside
 	useEffect(() => {
@@ -103,7 +141,13 @@ export default function Header() {
 					ref={searchRef}
 					className="relative w-full max-w-2xl hidden sm:block"
 				>
-					<div className="relative flex items-center w-full">
+					<form
+						onSubmit={(e) => {
+							e.preventDefault();
+							handleExecuteSearch();
+						}}
+						className="relative flex items-center w-full"
+					>
 						<input
 							type="text"
 							placeholder="Tìm kiếm sản phẩm, thương hiệu..."
@@ -112,39 +156,81 @@ export default function Header() {
 							onFocus={() => setShowSearchSuggestions(true)}
 							className="w-full h-8 pl-3 pr-10 bg-brand-light-soft border border-brand-border rounded text-xs focus:outline-none focus:border-brand-primary text-brand-dark font-sans"
 						/>
-						<button className="absolute right-2 p-1 text-brand-muted hover:text-brand-primary transition-colors flex items-center justify-center">
+						<button
+							type="submit"
+							className="absolute right-2 p-1 text-brand-muted hover:text-brand-primary transition-colors flex items-center justify-center border-none bg-transparent cursor-pointer"
+						>
 							<Search className="w-3.5 h-3.5" />
 						</button>
-					</div>
+					</form>
 
-					{/* Gợi ý tìm kiếm */}
+					{/* Gợi ý tìm kiếm Fuzzy Search từ PostgreSQL */}
 					{showSearchSuggestions && (
-						<div className="absolute top-full left-0 right-0 mt-1 bg-white border border-brand-border rounded shadow-lg p-2 text-left z-50">
+						<div className="absolute top-full left-0 right-0 mt-1 bg-white border border-brand-border rounded-xl shadow-xl p-2.5 text-left z-50 animate-in fade-in duration-150">
 							<span className="block text-[10px] text-brand-muted font-bold px-2 py-1 uppercase tracking-wider">
-								Tìm kiếm phổ biến
+								{searchQuery.trim() ? "Gợi ý sản phẩm phù hợp" : "Tìm kiếm phổ biến"}
 							</span>
-							<div className="mt-1">
-								{mockSuggestions
-									.filter((s) =>
-										s
-											.toLowerCase()
-											.includes(
-												searchQuery.toLowerCase(),
-											),
-									)
-									.map((suggestion, idx) => (
+
+							<div className="mt-1 space-y-1">
+								{isSearchingSuggestions ? (
+									<div className="p-3 text-center text-xs text-brand-muted font-medium">
+										Đang tìm gợi ý...
+									</div>
+								) : searchQuery.trim() && suggestions.length > 0 ? (
+									suggestions.map((item: any) => (
+										<div
+											key={item.id}
+											onClick={() => {
+												setShowSearchSuggestions(false);
+												navigate(`/products/${item.id}`);
+											}}
+											className="flex items-center gap-3 p-2 hover:bg-slate-50 rounded-lg cursor-pointer transition-colors"
+										>
+											<img
+												src={item.thumbnailUrl || "https://images.unsplash.com/photo-1523275335684-37898b6baf30?auto=format&fit=crop&w=120&q=80"}
+												alt={item.name}
+												className="w-9 h-9 object-cover rounded border border-brand-border"
+											/>
+											<div className="flex-1 min-w-0">
+												<h4 className="text-xs font-bold text-brand-dark truncate">
+													{item.name}
+												</h4>
+												<span className="text-[10px] text-brand-primary-deep font-black">
+													{item.price?.toLocaleString("vi-VN")}đ
+												</span>
+											</div>
+										</div>
+									))
+								) : searchQuery.trim() && suggestions.length === 0 ? (
+									<div className="p-3 text-center text-xs text-brand-muted font-medium">
+										Không tìm thấy gợi ý khớp với "{searchQuery}"
+									</div>
+								) : (
+									mockSuggestions.map((suggestion, idx) => (
 										<button
 											key={idx}
 											onClick={() => {
 												setSearchQuery(suggestion);
-												setShowSearchSuggestions(false);
+												handleExecuteSearch(suggestion);
 											}}
-											className="w-full text-left px-2 py-1.5 text-xs text-brand-dark hover:bg-brand-light-soft hover:text-brand-primary rounded transition-colors"
+											className="w-full text-left px-2.5 py-1.5 text-xs text-brand-dark hover:bg-brand-light-soft hover:text-brand-primary rounded-lg transition-colors border-none bg-transparent cursor-pointer font-medium"
 										>
-											{suggestion}
+											🔍 {suggestion}
 										</button>
-									))}
+									))
+								)}
 							</div>
+
+							{searchQuery.trim() && (
+								<div className="border-t border-brand-border/60 mt-2 pt-2 text-center">
+									<button
+										onClick={() => handleExecuteSearch()}
+										className="w-full py-1.5 text-xs text-brand-dark font-extrabold hover:bg-brand-primary hover:text-brand-dark rounded-lg transition-colors border-none bg-brand-light-soft cursor-pointer"
+									>
+										Xem tất cả kết quả cho "{searchQuery}" ➔
+									</button>
+								</div>
+							)}
 						</div>
 					)}
 				</div>

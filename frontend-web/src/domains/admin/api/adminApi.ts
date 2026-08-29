@@ -1,19 +1,19 @@
-import api from "@/core/api/axiosInstance";
+import { api } from "@/core";
 
 export const adminApi = {
   // KYC Admin API
-  getPendingKycs: async (params?: any): Promise<any> => {
-    const res = await api.get("/admin/kyc/pending", { params });
-    return res.data;
+  getAdminKycs: async (params?: { page?: number; pageSize?: number; status?: string }): Promise<any> => {
+    const res = await api.get("/kyc/admin/list", { params });
+    return res.data?.value || res.data;
   },
 
   approveKyc: async (kycId: number): Promise<any> => {
-    const res = await api.post(`/admin/kyc/${kycId}/approve`);
+    const res = await api.put(`/kyc/${kycId}/approve`);
     return res.data;
   },
 
   rejectKyc: async (kycId: number, reason: string): Promise<any> => {
-    const res = await api.post(`/admin/kyc/${kycId}/reject`, { reason });
+    const res = await api.put(`/kyc/${kycId}/reject`, { reason });
     return res.data;
   },
 

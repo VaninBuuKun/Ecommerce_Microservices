@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using BuildingBlocks.Shared.InfrastructureInterfaces.Messaging;
 
 namespace Ecommerce.Services.Orders.Contracts.Events;
@@ -14,6 +15,11 @@ public class SubOrderCompletedEvent : IIntegrationEvent
     /// Doanh thu thực tế người bán nhận = TotalAmount - PlatformDiscount.
     /// </summary>
     public long PlatformDiscount { get; init; }
+    public List<SubOrderCompletedItemContract> Items { get; init; } = new();
 }
 
-
+public class SubOrderCompletedItemContract
+{
+    public long VariantId { get; init; }
+    public int Quantity { get; init; }
+}

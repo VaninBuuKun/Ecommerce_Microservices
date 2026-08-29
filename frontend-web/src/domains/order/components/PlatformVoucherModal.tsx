@@ -45,11 +45,14 @@ export function PlatformVoucherModal({
 					) : platformVouchers.length > 0 ? (
 						platformVouchers.map((voucher: any) => {
 							const isCurrent = selectedVoucherCode === voucher.code;
+							const isEligible = !voucher.minOrderValue || subTotal >= voucher.minOrderValue;
+							const missingAmount = (voucher.minOrderValue || 0) - subTotal;
+
 							return (
 								<div
 									key={voucher.id}
 									className={`p-3.5 rounded-xl border flex justify-between items-center gap-2.5 transition-all ${
-										isCurrent ? "border-brand-primary bg-brand-primary/5" : "border-brand-border bg-white"
+										isCurrent ? "border-brand-primary bg-brand-primary/5" : !isEligible ? "border-slate-200 bg-slate-50 opacity-70" : "border-brand-border bg-white"
 									}`}
 								>
 									<div className="text-left space-y-1">
@@ -63,13 +66,18 @@ export function PlatformVoucherModal({
 										<div className="text-[10px] text-brand-muted font-semibold">
 											Đơn tối thiểu: {voucher.minOrderValue?.toLocaleString("vi-VN")}đ
 										</div>
+										{!isEligible && (
+											<div className="text-[9px] font-extrabold text-red-500">
+												Cần mua thêm {missingAmount.toLocaleString("vi-VN")}đ để sử dụng
+											</div>
+										)}
 									</div>
 									<button
 										onClick={() => onApply(voucher.code)}
-										disabled={isCurrent}
-										className="h-7 px-3 bg-brand-primary hover:bg-brand-primary-deep text-brand-dark font-black text-[10px] rounded-lg transition-colors border-none cursor-pointer disabled:opacity-60"
+										disabled={isCurrent || !isEligible}
+										className="h-7 px-3 bg-brand-primary hover:bg-brand-primary-deep text-brand-dark font-black text-[10px] rounded-lg transition-colors border-none cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
 									>
-										{isCurrent ? "Đang áp dụng" : "Áp Dụng"}
+										{isCurrent ? "Đang áp dụng" : !isEligible ? "Chưa đủ Đ/K" : "Áp Dụng"}
 									</button>
 								</div>
 							);

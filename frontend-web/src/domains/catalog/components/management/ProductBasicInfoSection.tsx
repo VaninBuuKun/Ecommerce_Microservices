@@ -11,6 +11,13 @@ const basicInfoSchema = z.object({
 
 type BasicInfoErrors = Partial<Record<"name" | "description", string>>;
 
+import { Plus, Trash2 } from "lucide-react";
+
+export interface AttributeItem {
+	key: string;
+	value: string;
+}
+
 interface ProductBasicInfoProps {
 	name: string;
 	setName: (val: string) => void;
@@ -24,6 +31,8 @@ interface ProductBasicInfoProps {
 	setVideoUrl: (val: string) => void;
 	categoryId: number | null;
 	setCategoryId: (val: number | null) => void;
+	attributes: AttributeItem[];
+	setAttributes: React.Dispatch<React.SetStateAction<AttributeItem[]>>;
 }
 
 export const ProductBasicInfoSection: React.FC<ProductBasicInfoProps> = ({
@@ -39,6 +48,8 @@ export const ProductBasicInfoSection: React.FC<ProductBasicInfoProps> = ({
 	setVideoUrl,
 	categoryId,
 	setCategoryId,
+	attributes,
+	setAttributes,
 }) => {
 	const [errors, setErrors] = useState<BasicInfoErrors>({});
 
@@ -297,6 +308,74 @@ export const ProductBasicInfoSection: React.FC<ProductBasicInfoProps> = ({
 							<AlertCircle className="w-3 h-3 shrink-0" />
 							{errors.description}
 						</p>
+					)}
+				</div>
+
+				{/* Specification Attributes Section */}
+				<div className="pt-4 border-t border-brand-border/60 space-y-3">
+					<div className="flex items-center justify-between">
+						<div>
+							<label className="block text-xs font-bold text-brand-dark">
+								Thông số & Thuộc tính sản phẩm
+							</label>
+							<p className="text-[11px] text-brand-muted font-medium">
+								Ví dụ: Xuất xứ - Việt Nam, Chất liệu - Cotton 100%, Thương hiệu - Local Brand
+							</p>
+						</div>
+						<button
+							type="button"
+							onClick={() => setAttributes([...attributes, { key: "", value: "" }])}
+							className="px-3 py-1.5 bg-brand-primary/10 text-brand-primary-deep hover:bg-brand-primary/20 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1"
+						>
+							<Plus className="w-3.5 h-3.5" />
+							Thêm thuộc tính
+						</button>
+					</div>
+
+					{attributes.length === 0 ? (
+						<div className="p-3 text-center text-brand-muted text-xs bg-gray-50 border border-brand-border/60 rounded-xl italic">
+							Chưa thêm thuộc tính nào cho sản phẩm.
+						</div>
+					) : (
+						<div className="space-y-2">
+							{attributes.map((attr, idx) => (
+								<div key={idx} className="flex items-center gap-2">
+									<input
+										type="text"
+										value={attr.key}
+										onChange={(e) => {
+											const updated = [...attributes];
+											updated[idx].key = e.target.value;
+											setAttributes(updated);
+										}}
+										placeholder="Tên thuộc tính (VD: Chất liệu)"
+										className="w-1/3 h-8 px-3 border border-brand-border rounded-lg text-xs bg-white focus:outline-none focus:border-brand-primary text-brand-dark font-sans"
+									/>
+									<input
+										type="text"
+										value={attr.value}
+										onChange={(e) => {
+											const updated = [...attributes];
+											updated[idx].value = e.target.value;
+											setAttributes(updated);
+										}}
+										placeholder="Giá trị (VD: 100% Cotton)"
+										className="flex-1 h-8 px-3 border border-brand-border rounded-lg text-xs bg-white focus:outline-none focus:border-brand-primary text-brand-dark font-sans"
+									/>
+									<button
+										type="button"
+										onClick={() => {
+											const updated = attributes.filter((_, i) => i !== idx);
+											setAttributes(updated);
+										}}
+										className="p-1.5 text-red-500 hover:bg-red-50 rounded-lg transition-colors cursor-pointer border-none shrink-0"
+										title="Xóa thuộc tính"
+									>
+										<Trash2 className="w-4 h-4" />
+									</button>
+								</div>
+							))}
+						</div>
 					)}
 				</div>
 			</div>

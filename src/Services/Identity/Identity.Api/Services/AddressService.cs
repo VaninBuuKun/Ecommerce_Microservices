@@ -2,19 +2,14 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using BuildingBlocks.Shared.Commons;
+using BuildingBlocks.Shared.Enums;
 using Ecommerce.Services.Identity.Api.Models.Entities;
 using Ecommerce.Services.Identity.Api.Persistances;
+using Ecommerce.Services.Identity.Api.Models.Interfaces;
 using Microsoft.EntityFrameworkCore;
 
 namespace Ecommerce.Services.Identity.Api.Services;
-
-public interface IAddressService
-{
-    Task<List<UserAddress>> GetAddressesByUserIdAsync(long userId);
-    Task<UserAddress> CreateAddressAsync(long userId, CreateAddressDto dto);
-    Task<bool> DeleteAddressAsync(long userId, long addressId);
-    Task<bool> SetDefaultAddressAsync(long userId, long addressId);
-}
 
 public class CreateAddressDto
 {
@@ -123,5 +118,28 @@ public class AddressService(AppDbContext dbContext) : IAddressService
         target.IsDefault = true;
         await dbContext.SaveChangesAsync();
         return true;
+    }
+
+    public async Task<Result<UserAddressDto>> GetAddressByIdAsync(long addressId, long userId)
+    {
+        var address = await dbContext.UserAddresses
+            .AsNoTracking()
+            .FirstOrDefaultAsync(a => a.Id == addressId && a.UserId == userId);
+
+        if (address == null)
+        {
+            return Result<UserAddressDto>.Failure("Không tìm thấy địa chỉ giao hàng.", EErrorCode.NotFound);
+        }
+
+        var dto = new UserAddressDto(
+            address.RecipientName,
+            address.Phone,
+            address.ProvinceId,
+            address.DistrictId,
+            address.WardId,
+            address.AddressLine
+        );
+
+        return Result<UserAddressDto>.Success(dto);
     }
 }

@@ -1,44 +1,44 @@
 import { useState } from "react";
 import { createPortal } from "react-dom";
-import { ShieldAlert, CheckCircle, XCircle, Eye, Loader2, RefreshCw, AlertCircle, FileText } from "lucide-react";
+import { ShieldAlert, CheckCircle, XCircle, Eye, Loader2, RefreshCw, AlertCircle, FileText, Filter } from "lucide-react";
 import { toast } from "react-toastify";
-import { usePendingKycsQuery, useApproveKycMutation, useRejectKycMutation } from "../hooks/useAdmin";
+import { useAdminKycsQuery, useApproveKycMutation, useRejectKycMutation } from "../hooks/useAdmin";
 import { Pagination } from "@/shared/components/Pagination";
 
 export function AdminKycView() {
-	const { data: kycsData, isLoading, isError, refetch } = usePendingKycsQuery();
-	const approveKycMutation = useApproveKycMutation();
-	const rejectKycMutation = useRejectKycMutation();
-
-	// Search & Pagination states
-	const [searchQuery, setSearchQuery] = useState("");
+	const [statusFilter, setStatusFilter] = useState<string>("Submitted");
 	const [page, setPage] = useState(1);
 	const pageSize = 8;
+	const [searchQuery, setSearchQuery] = useState("");
+
+	const { data: kycsData, isLoading, isError, refetch } = useAdminKycsQuery({
+		page,
+		pageSize,
+		status: statusFilter !== "ALL" ? statusFilter : undefined,
+	});
+
+	const approveKycMutation = useApproveKycMutation();
+	const rejectKycMutation = useRejectKycMutation();
 
 	// Modal States for Preview & Rejection
 	const [previewKyc, setPreviewKyc] = useState<any>(null);
 	const [rejectTargetKyc, setRejectTargetKyc] = useState<any>(null);
 	const [rejectReason, setRejectReason] = useState("");
 
-	const kycsList = Array.isArray(kycsData) ? kycsData : (kycsData?.value || kycsData?.items || []);
+	const rawItems = kycsData?.items || (Array.isArray(kycsData) ? kycsData : []);
+	const totalCount = kycsData?.totalCount ?? rawItems.length;
+	const totalPages = kycsData?.totalPages ?? (Math.ceil(totalCount / pageSize) || 1);
 
-	// Filter by search query
-	const filteredKycs = kycsList.filter((item: any) => {
+	// Client search filter on current page items
+	const paginatedKycs = rawItems.filter((item: any) => {
 		if (!searchQuery.trim()) return true;
 		const query = searchQuery.toLowerCase().trim();
 		return (
 			item.identityCardNumber?.toLowerCase().includes(query) ||
 			item.idCardNumber?.toLowerCase().includes(query) ||
-			String(item.userId)?.includes(query) ||
-			item.userName?.toLowerCase().includes(query) ||
-			item.userEmail?.toLowerCase().includes(query)
+			String(item.userId)?.includes(query)
 		);
 	});
-
-	// Pagination
-	const totalItems = filteredKycs.length;
-	const totalPages = Math.ceil(totalItems / pageSize) || 1;
-	const paginatedKycs = filteredKycs.slice((page - 1) * pageSize, page * pageSize);
 
 	const handleApprove = async (kycId: number) => {
 		if (!window.confirm("Bạn có chắc chắn muốn PHÊ DUYỆT hồ sơ KYC này?")) return;
@@ -107,6 +107,32 @@ export function AdminKycView() {
 						<RefreshCw className="w-4 h-4" />
 					</button>
 				</div>
+			</div>
+
+			{/* Status Filter Tabs */}
+			<div className="flex items-center gap-2 bg-white p-1 rounded-xl border border-brand-border w-fit text-xs font-bold">
+				{[
+					{ label: "Chờ duyệt", value: "Submitted" },
+					{ label: "Đã phê duyệt", value: "Verified" },
+					{ label: "Từ chối", value: "Rejected" },
+					{ label: "Tất cả", value: "ALL" },
+				].map((tab) => (
+					<button
+						key={tab.value}
+						type="button"
+						onClick={() => {
+							setStatusFilter(tab.value);
+							setPage(1);
+						}}
+						className={`px-3 py-1.5 rounded-lg transition-all cursor-pointer border-none ${
+							statusFilter === tab.value
+								? "bg-brand-dark text-white shadow-xs"
+								: "text-brand-muted hover:text-brand-dark hover:bg-brand-light-soft"
+						}`}
+					>
+						{tab.label}
+					</button>
+				))}
 			</div>
 
 			{/* Main Table */}

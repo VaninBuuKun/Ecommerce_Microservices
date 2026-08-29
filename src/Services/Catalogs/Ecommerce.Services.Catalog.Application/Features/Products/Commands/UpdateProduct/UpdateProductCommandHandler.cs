@@ -57,6 +57,7 @@ public class UpdateProductCommandHandler(
             );
 
             existsProduct.SetCategory(command.CategoryId);
+            existsProduct.SetAttributes(command.AttributesJson);
 
             _productRepository.Update(existsProduct);
             await unitOfWork.SaveChangesAsync(cancellationToken);

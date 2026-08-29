@@ -34,4 +34,14 @@ public class PaymentMethodService(IEfUnitOfWork unitOfWork, IMapper mapper) : IP
         var methods = await _paymentMethodRepository.GetAllAsync();
         return Result<List<PaymentMethod>>.Success(methods);
     }
+
+    public async Task<Result<PaymentMethod>> GetPaymentMethodById(long id)
+    {
+        var method = await _paymentMethodRepository.GetByIdAsync(id);
+        if (method == null)
+        {
+            return Result<PaymentMethod>.ValidationFailure("Payment method not found.");
+        }
+        return Result<PaymentMethod>.Success(method);
+    }
 }

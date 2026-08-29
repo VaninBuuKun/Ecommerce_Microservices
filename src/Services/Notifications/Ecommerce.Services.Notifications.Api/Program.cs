@@ -2,6 +2,7 @@ using BuildingBlocks.Logging;
 
 using Ecommerce.Services.Notifications.Api.Configurations;
 using Ecommerce.Services.Notifications.Api.Hubs;
+using Ecommerce.Services.Notifications.Api.Models.Interfaces;
 using Scalar.AspNetCore;
 using Serilog;
 

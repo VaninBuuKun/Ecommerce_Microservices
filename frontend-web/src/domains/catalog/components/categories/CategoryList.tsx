@@ -1,9 +1,11 @@
 import { useRef } from "react";
+import { useNavigate } from "react-router-dom";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useCategoriesQuery } from "../../hooks/useCatalog";
 import { motion } from "framer-motion";
 
 export function CategoryList() {
+	const navigate = useNavigate();
 	const categoryRef = useRef<HTMLDivElement>(null);
 	const { data: categories = [], isLoading, error } = useCategoriesQuery();
 
@@ -77,6 +79,7 @@ export function CategoryList() {
 							<motion.div
 								whileHover={{ y: -2 }}
 								key={c.id}
+								onClick={() => navigate(`/explore?parentCategoryId=${c.id}`)}
 								className="snap-start group cursor-pointer w-[120px] text-center"
 							>
 								<div className="aspect-square rounded-full overflow-hidden mb-2 border border-brand-border p-1 bg-white">

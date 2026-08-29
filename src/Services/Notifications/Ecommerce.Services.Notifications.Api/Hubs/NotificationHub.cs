@@ -1,5 +1,6 @@
 using BuildingBlocks.Auth;
 using Ecommerce.Services.Notifications.Api.Models;
+using Ecommerce.Services.Notifications.Api.Models.Entities;
 using Ecommerce.Services.Notifications.Api.Persistances;
 using Ecommerce.Services.Notifications.Api.Services;
 using Microsoft.AspNetCore.Authorization;

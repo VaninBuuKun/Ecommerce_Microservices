@@ -13,7 +13,8 @@ public record UpdateProductRequest(
     string? ThumbnailUrl,
     string? VideoUrl,
     List<string> ImageUrls,
-    long? CategoryId
+    long? CategoryId,
+    string? AttributesJson
 );
 
 public record UpdateProductSaleRequest(

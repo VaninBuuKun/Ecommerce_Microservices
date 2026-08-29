@@ -1,13 +1,9 @@
-using System;
 using System.Threading.Tasks;
 using BuildingBlocks.Auth;
-using BuildingBlocks.Shared.Commons;
 using BuildingBlocks.Shared.Extensions;
-using Ecommerce.Services.Sellers.Api.Features.Kycs.Commands.ApproveKyc;
-using Ecommerce.Services.Sellers.Api.Features.Kycs.Commands.RegisterKyc;
-using Ecommerce.Services.Sellers.Api.Features.Kycs.Commands.WithdrawKycDraft;
-using Ecommerce.Services.Sellers.Api.Features.Kycs.Queries.GetMyKyc;
-using MediatR;
+using Ecommerce.Services.Sellers.Api.Models.Entities;
+using Ecommerce.Services.Sellers.Api.Services;
+using Ecommerce.Services.Sellers.Api.Models.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -15,7 +11,7 @@ namespace Ecommerce.Services.Sellers.Api.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
-public class KycController(ISender sender, ICurrentUserService currentUserService) : ControllerBase
+public class KycController(IKycService kycService, ICurrentUserService currentUserService) : ControllerBase
 {
     [HttpGet("my-kyc")]
     [Authorize]
@@ -26,7 +22,7 @@ public class KycController(ISender sender, ICurrentUserService currentUserServic
             return Unauthorized("Tài khoản chưa được xác thực danh tính.");
         }
 
-        var result = await sender.Send(new GetMyKycQuery(currentUserService.UserId));
+        var result = await kycService.GetKycByOwnerIdAsync(currentUserService.UserId);
         if (!result.IsSuccess)
         {
             return StatusCode((int)result.ErrorCode.ToHttpStatusCode(), result.Message);
@@ -44,30 +40,15 @@ public class KycController(ISender sender, ICurrentUserService currentUserServic
             return Unauthorized("Tài khoản chưa được xác thực danh tính.");
         }
 
-        var result = await sender.Send(new RegisterKycCommand(
-            currentUserService.UserId,
+        var submitReq = new SubmitKycRequest(
+            request.FullName ?? "Chưa đặt tên",
             request.IdentityCardNumber,
             request.IdentityCardFrontUrl,
             request.IdentityCardBackUrl,
-            request.IsDraft));
-        if (!result.IsSuccess)
-        {
-            return StatusCode((int)result.ErrorCode.ToHttpStatusCode(), result.Message);
-        }
+            request.TaxNumber ?? ""
+        );
 
-        return Ok(result.Value);
-    }
-
-    [HttpPut("withdraw-draft")]
-    [Authorize]
-    public async Task<IActionResult> WithdrawKycDraft()
-    {
-        if (!currentUserService.IsAuthenticated)
-        {
-            return Unauthorized("Tài khoản chưa được xác thực danh tính.");
-        }
-
-        var result = await sender.Send(new WithdrawKycDraftCommand(currentUserService.UserId));
+        var result = await kycService.SubmitKycAsync(currentUserService.UserId, submitReq);
         if (!result.IsSuccess)
         {
             return StatusCode((int)result.ErrorCode.ToHttpStatusCode(), result.Message);
@@ -80,7 +61,8 @@ public class KycController(ISender sender, ICurrentUserService currentUserServic
     [Authorize(Roles = "Admin")]
     public async Task<IActionResult> ApproveKyc(long id)
     {
-        var result = await sender.Send(new ApproveKycCommand(id));
+        var adminUserId = currentUserService.IsAuthenticated ? currentUserService.UserId : 1L;
+        var result = await kycService.ApproveKycAsync(id, adminUserId);
         if (!result.IsSuccess)
         {
             return StatusCode((int)result.ErrorCode.ToHttpStatusCode(), result.Message);
@@ -88,10 +70,43 @@ public class KycController(ISender sender, ICurrentUserService currentUserServic
 
         return Ok("Duyệt yêu cầu xác minh thành công.");
     }
+
+    [HttpPut("{id:long}/reject")]
+    [Authorize(Roles = "Admin")]
+    public async Task<IActionResult> RejectKyc(long id, [FromBody] RejectKycRequest request)
+    {
+        var result = await kycService.RejectKycAsync(id, request.Reason);
+        if (!result.IsSuccess)
+        {
+            return StatusCode((int)result.ErrorCode.ToHttpStatusCode(), result.Message);
+        }
+
+        return Ok("Từ chối hồ sơ xác minh thành công.");
+    }
+
+    [HttpGet("admin/list")]
+    [Authorize(Roles = "Admin")]
+    public async Task<IActionResult> GetAdminKycs(
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 10,
+        [FromQuery] KycStatus? status = null)
+    {
+        var result = await kycService.GetAdminKycsAsync(page, pageSize, status);
+        if (!result.IsSuccess)
+        {
+            return StatusCode((int)result.ErrorCode.ToHttpStatusCode(), result.Message);
+        }
+
+        return Ok(result.Value);
+    }
 }
 
+public record RejectKycRequest(string Reason);
+
 public record RegisterKycRequest(
+    string? FullName,
     string IdentityCardNumber,
     string IdentityCardFrontUrl,
     string IdentityCardBackUrl,
+    string? TaxNumber,
     bool IsDraft = false);

@@ -2,15 +2,15 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { adminApi } from "../api/adminApi";
 
 export const adminQueryKeys = {
-  pendingKycs: ["admin", "kyc", "pending"] as const,
+  kycs: ["admin", "kycs"] as const,
   withdrawals: ["admin", "withdrawals"] as const,
   vouchers: ["admin", "vouchers"] as const,
 };
 
-export function usePendingKycsQuery() {
+export function useAdminKycsQuery(params?: { page?: number; pageSize?: number; status?: string }) {
   return useQuery({
-    queryKey: adminQueryKeys.pendingKycs,
-    queryFn: adminApi.getPendingKycs,
+    queryKey: [...adminQueryKeys.kycs, params],
+    queryFn: () => adminApi.getAdminKycs(params),
   });
 }
 
@@ -19,7 +19,7 @@ export function useApproveKycMutation() {
   return useMutation({
     mutationFn: adminApi.approveKyc,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: adminQueryKeys.pendingKycs });
+      queryClient.invalidateQueries({ queryKey: adminQueryKeys.kycs });
     },
   });
 }
@@ -29,7 +29,7 @@ export function useRejectKycMutation() {
   return useMutation({
     mutationFn: ({ kycId, reason }: { kycId: number; reason: string }) => adminApi.rejectKyc(kycId, reason),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: adminQueryKeys.pendingKycs });
+      queryClient.invalidateQueries({ queryKey: adminQueryKeys.kycs });
     },
   });
 }

@@ -8,4 +8,5 @@ public interface IPaymentMethodService
 { 
     Task<Result<PaymentMethod>> CreateNewPaymentMethod(CreatePaymentMethodRequest paymentMethod);
     Task<Result<List<PaymentMethod>>> GetPaymentMethods();
+    Task<Result<PaymentMethod>> GetPaymentMethodById(long id);
 }

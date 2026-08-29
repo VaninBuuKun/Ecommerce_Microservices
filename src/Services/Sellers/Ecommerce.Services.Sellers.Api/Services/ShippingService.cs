@@ -2,6 +2,8 @@ using BuildingBlocks.Grpc.Services;
 using BuildingBlocks.Shared.Commons;
 using BuildingBlocks.Shared.Enums;
 
+using Ecommerce.Services.Sellers.Api.Models.Interfaces;
+
 namespace Ecommerce.Services.Sellers.Api.Services;
 
 public class ShippingService(ShippingGrpc.ShippingGrpcClient shippingGrpcClient) : IShippingService

@@ -11,6 +11,7 @@ export function BestSellersSection() {
 	const { data: topProductsData } = useProductsQuery({
 		limit: 18,
 		pageSize: 18,
+		sortBy: "best_selling",
 	});
 
 	const allBestSellers = topProductsData?.items || [];

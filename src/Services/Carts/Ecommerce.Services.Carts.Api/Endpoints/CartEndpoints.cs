@@ -1,16 +1,16 @@
-using Ecommerce.Services.Carts.Api.Models.Dtos;
-using Ecommerce.Services.Carts.Api.Features.Carts.Queries.GetCart;
-using Ecommerce.Services.Carts.Api.Features.Carts.Commands.AddItemToCart;
-using Ecommerce.Services.Carts.Api.Features.Carts.Commands.RemoveItemFromCart;
-using Ecommerce.Services.Carts.Api.Features.Carts.Commands.UpdateQuantity;
-using Ecommerce.Services.Carts.Api.Features.Carts.Commands.RemoveCart;
-using Ecommerce.Services.Carts.Api.Features.Carts.Commands.UpdateSelectState;
-using MediatR;
-using Microsoft.AspNetCore.Mvc;
+using System.Threading.Tasks;
 using BuildingBlocks.Auth;
+using Ecommerce.Services.Carts.Api.Models.Dtos;
+using Ecommerce.Services.Carts.Api.Models.Interfaces;
+using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Routing;
 using Serilog;
 
 namespace Ecommerce.Services.Carts.Api.Endpoints;
+
+public record LocalUpdateSelectStateRequest(bool IsSelected);
 
 public static class CartEndpoints
 {
@@ -55,18 +55,19 @@ public static class CartEndpoints
     }
 
     // 1. LẤY GIỎ HÀNG
-    private static async Task<IResult> GetCart(ISender sender, ICurrentUserService userService)
+    private static async Task<IResult> GetCart(ICartService cartService, ICurrentUserService userService)
     {
-        var result = await sender.Send(new GetCartQuery(userService.UserId));
+        var result = await cartService.GetCartAsync(userService.UserId);
         return result.IsSuccess 
                 ? Results.Json(result.Value, statusCode: result.GetHttpStatusCode()) 
                 : Results.Content(result.Message, statusCode: result.GetHttpStatusCode());
     }
 
     // 2. THÊM SẢN PHẨM VÀO GIỎ
-    private static async Task<IResult> AddItem([FromBody] CartItemRequest cartItem, ISender sender, ICurrentUserService userService)
+    private static async Task<IResult> AddItem([FromBody] CartItemRequest cartItem, ICartService cartService, ICurrentUserService userService)
     {
-        var result = await sender.Send(new AddItemToCartCommand(userService.UserId, cartItem.VariantId, cartItem.Quantity));
+        var req = new AddItemToCartRequest(cartItem.ProductId, cartItem.VariantId, cartItem.Quantity, true);
+        var result = await cartService.AddItemToCartAsync(userService.UserId, req);
         
         Log.Information("User {UserId} added product {VariantId} with quantity {Quantity} to cart", userService.UserId, cartItem.VariantId, cartItem.Quantity);
         return result.IsSuccess
@@ -75,33 +76,35 @@ public static class CartEndpoints
     }
     
     // 3. CẬP NHẬT SỐ LƯỢNG SẢN PHẨM
-    private static async Task<IResult> UpdateQuantity(long productId, [FromBody] CartItemRequest cartItem, ISender sender, ICurrentUserService userService)
+    private static async Task<IResult> UpdateQuantity(long productId, [FromBody] CartItemRequest cartItem, ICartService cartService, ICurrentUserService userService)
     {
-        var result = await sender.Send(new UpdateQuantityCommand(userService.UserId, productId, cartItem.Quantity));
+        var req = new UpdateQuantityRequest(productId, cartItem.VariantId, cartItem.Quantity);
+        var result = await cartService.UpdateQuantityAsync(userService.UserId, req);
         
         return Results.Content(result.Message, statusCode: result.GetHttpStatusCode());
     }
 
     // 3.5. CẬP NHẬT TRẠNG THÁI CHỌN SẢN PHẨM
-    private static async Task<IResult> UpdateSelectState(long variantId, [FromBody] UpdateSelectStateRequest request, ISender sender, ICurrentUserService userService)
+    private static async Task<IResult> UpdateSelectState(long variantId, [FromBody] LocalUpdateSelectStateRequest request, ICartService cartService, ICurrentUserService userService)
     {
-        var result = await sender.Send(new UpdateSelectStateCommand(userService.UserId, variantId, request.IsSelected));
+        var req = new CartSelectStateRequest(0, variantId, request.IsSelected);
+        var result = await cartService.UpdateSelectStateAsync(userService.UserId, req);
         
         return Results.Content(result.Message, statusCode: result.GetHttpStatusCode());
     }
     
     // 4. XÓA SẢN PHẨM KHỎI GIỎ
-    private static async Task<IResult> RemoveItem(long productId, ISender sender, ICurrentUserService userService)
+    private static async Task<IResult> RemoveItem(long productId, ICartService cartService, ICurrentUserService userService)
     {
-        var result = await sender.Send(new RemoveItemFromCartCommand(userService.UserId, productId));
+        var result = await cartService.RemoveItemFromCartAsync(userService.UserId, productId, 0);
         
         return Results.Content(result.Message, statusCode: result.GetHttpStatusCode());
     }
     
     // 5. XÓA TOÀN BỘ GIỎ HÀNG
-    private static async Task<IResult> ClearCart(ISender sender, ICurrentUserService userService)
+    private static async Task<IResult> ClearCart(ICartService cartService, ICurrentUserService userService)
     {
-        var result = await sender.Send(new RemoveCartCommand(userService.UserId));
+        var result = await cartService.ClearCartAsync(userService.UserId);
         
         return Results.Content(result.Message, statusCode: result.GetHttpStatusCode());
     }

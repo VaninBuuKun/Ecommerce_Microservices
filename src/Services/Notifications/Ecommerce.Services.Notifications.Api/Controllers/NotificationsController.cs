@@ -1,5 +1,7 @@
 using Ecommerce.Services.Notifications.Api.Models;
+using Ecommerce.Services.Notifications.Api.Models.Entities;
 using Ecommerce.Services.Notifications.Api.Services;
+using Ecommerce.Services.Notifications.Api.Models.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 

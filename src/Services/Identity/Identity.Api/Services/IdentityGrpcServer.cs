@@ -1,16 +1,14 @@
-using System;
 using System.Threading.Tasks;
 using BuildingBlocks.Grpc.Services;
-using Ecommerce.Services.Identity.Api.Features.Queries.GetUserAddress;
-using Ecommerce.Services.Identity.Api.Features.Queries.GetUserById;
+using Ecommerce.Services.Identity.Api.Models.Interfaces;
 using Grpc.Core;
-using MediatR;
 using Microsoft.Extensions.Logging;
 
 namespace Ecommerce.Services.Identity.Api.Services;
 
 public class IdentityGrpcServer(
-    ISender sender,
+    IAddressService addressService,
+    IUserService userService,
     ILogger<IdentityGrpcServer> logger) : IdentityGrpc.IdentityGrpcBase
 {
     public override async Task<GetUserAddressResponse> GetUserAddress(GetUserAddressRequest request, ServerCallContext context)
@@ -18,7 +16,7 @@ public class IdentityGrpcServer(
         logger.LogInformation("gRPC Request to get user address: AddressId: {AddressId}, UserId: {UserId}", 
             request.AddressId, request.UserId);
 
-        var result = await sender.Send(new GetUserAddressQuery(request.AddressId, request.UserId), context.CancellationToken);
+        var result = await addressService.GetAddressByIdAsync(request.AddressId, request.UserId);
 
         if (!result.IsSuccess || result.Value == null)
         {
@@ -43,7 +41,7 @@ public class IdentityGrpcServer(
     {
         logger.LogInformation("gRPC Request to get user details: UserId: {UserId}", request.UserId);
 
-        var result = await sender.Send(new GetUserByIdQuery(request.UserId), context.CancellationToken);
+        var result = await userService.GetUserByIdAsync(request.UserId);
 
         if (!result.IsSuccess || result.Value == null)
         {

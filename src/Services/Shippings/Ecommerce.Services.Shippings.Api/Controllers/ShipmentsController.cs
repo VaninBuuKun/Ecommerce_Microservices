@@ -1,6 +1,7 @@
 using System.Threading.Tasks;
 using BuildingBlocks.Shared.Commons;
 using Ecommerce.Services.Shippings.Api.Services;
+using Ecommerce.Services.Shippings.Api.Models.Interfaces;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Ecommerce.Services.Shippings.Api.Controllers;

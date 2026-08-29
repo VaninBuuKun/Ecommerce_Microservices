@@ -39,7 +39,8 @@ export default function ShopProfilePublicPage() {
   const [nextCursor, setNextCursor] = useState<string | null>(null);
   const [hasNext, setHasNext] = useState(false);
   const [loadingShop, setLoadingShop] = useState(true);
-  const [loadingProducts, setLoadingProducts] = useState(false);
+  const [selectedCategoryId, setSelectedCategoryId] = useState<number | null>(null);
+  const [sortBy, setSortBy] = useState<string>("name");
 
   useEffect(() => {
     const fetchShopInfo = async () => {
@@ -57,21 +58,28 @@ export default function ShopProfilePublicPage() {
 
     if (shopId) {
       fetchShopInfo();
-      fetchProducts(null);
     }
   }, [shopId]);
+
+  useEffect(() => {
+    if (shopId) {
+      fetchProducts(null);
+    }
+  }, [shopId, selectedCategoryId, sortBy]);
 
   const fetchProducts = async (cursor: string | null = null, append = false) => {
     setLoadingProducts(true);
     try {
-      const res = await api.get("/products", {
-        params: {
-          shopId,
-          limit: 10,
-          cursor
-        }
-      });
-      const data = res.data;
+      const params: Record<string, any> = {
+        shopId,
+        limit: 10,
+        cursor,
+        sortBy,
+      };
+      if (selectedCategoryId) params.categoryId = selectedCategoryId;
+
+      const res = await api.get("/products", { params });
+      const data = res.data?.value || res.data;
       if (append) {
         setProducts(prev => [...prev, ...(data.items || [])]);
       } else {
@@ -188,10 +196,26 @@ export default function ShopProfilePublicPage() {
 
       {/* CARD 3: DANH SÁCH SẢN PHẨM (CARD STYLE BẮT CHƯỚC LANDINGPAGE) */}
       <div className="space-y-6 pt-2">
-        <h2 className="text-sm font-black text-brand-dark uppercase tracking-wider border-b border-brand-border pb-3 flex items-center gap-2">
-          <ShoppingBag className="w-4 h-4 text-brand-primary" />
-          Sản phẩm của cửa hàng ({products.length})
-        </h2>
+        <div className="flex flex-wrap items-center justify-between border-b border-brand-border pb-3 gap-3">
+          <h2 className="text-sm font-black text-brand-dark uppercase tracking-wider flex items-center gap-2">
+            <ShoppingBag className="w-4 h-4 text-brand-primary" />
+            Sản phẩm của cửa hàng ({products.length})
+          </h2>
+          <div className="flex items-center gap-2">
+            <span className="text-[11px] font-bold text-brand-muted">Sắp xếp:</span>
+            <select
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value)}
+              className="h-8 px-2.5 bg-white border border-brand-border rounded-xl text-xs font-bold text-brand-dark cursor-pointer focus:outline-none"
+            >
+              <option value="name">Tên A-Z</option>
+              <option value="newest">Mới nhất</option>
+              <option value="price_asc">Giá: Thấp đến Cao</option>
+              <option value="price_desc">Giá: Cao đến Thấp</option>
+              <option value="sold">Bán chạy nhất</option>
+            </select>
+          </div>
+        </div>
 
         {products.length === 0 && !loadingProducts ? (
           <div className="p-12 border border-dashed border-brand-border rounded-2xl bg-white text-center">

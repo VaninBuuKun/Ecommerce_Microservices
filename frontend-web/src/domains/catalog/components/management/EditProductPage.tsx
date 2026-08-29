@@ -13,7 +13,7 @@ import {
 	type GeneratedVariantType,
 	type OptionType,
 } from "./ProductVariantSection";
-import { ProductBasicInfoSection } from "./ProductBasicInfoSection";
+import { ProductBasicInfoSection, type AttributeItem } from "./ProductBasicInfoSection";
 
 function cartesianProduct<T>(arrays: T[][]): T[][] {
 	return arrays.reduce<T[][]>(
@@ -52,6 +52,7 @@ export function EditProductPage() {
 	const [videoUrl, setVideoUrl] = useState("");
 	const [imageUrls, setImageUrls] = useState<string[]>([]);
 	const [categoryId, setCategoryId] = useState<number | null>(null);
+	const [attributes, setAttributes] = useState<AttributeItem[]>([]);
 
 	// Shipping State
 	const [weight, setWeight] = useState(0);
@@ -82,6 +83,21 @@ export function EditProductPage() {
 			);
 			setVideoUrl(loadedProduct.videoUrl || "");
 			setImageUrls(loadedProduct.imageUrls || []);
+
+			if (loadedProduct.attributesJson) {
+				try {
+					const parsed = JSON.parse(loadedProduct.attributesJson);
+					if (Array.isArray(parsed)) {
+						setAttributes(parsed.filter((item: any) => item.key || item.value));
+					} else {
+						setAttributes([]);
+					}
+				} catch {
+					setAttributes([]);
+				}
+			} else {
+				setAttributes([]);
+			}
 
 			setWeight(loadedProduct.weight);
 			setLength(loadedProduct.length);
@@ -371,6 +387,9 @@ export function EditProductPage() {
 
 		try {
 			if (activeSection === "basic") {
+				const validAttrs = attributes.filter((a) => a.key.trim() || a.value.trim());
+				const attributesJson = validAttrs.length > 0 ? JSON.stringify(validAttrs) : undefined;
+
 				await updateProductMutation.mutateAsync({
 					id: numProductId,
 					payload: {
@@ -380,6 +399,7 @@ export function EditProductPage() {
 						videoUrl,
 						imageUrls,
 						categoryId: categoryId || undefined,
+						attributesJson,
 					},
 				});
 			} else {
@@ -512,6 +532,8 @@ export function EditProductPage() {
 						setVideoUrl={setVideoUrl}
 						categoryId={categoryId}
 						setCategoryId={setCategoryId}
+						attributes={attributes}
+						setAttributes={setAttributes}
 					/>
 				) : (
 					<VariantsSection

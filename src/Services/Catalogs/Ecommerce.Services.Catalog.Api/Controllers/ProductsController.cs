@@ -29,9 +29,16 @@ namespace Ecommerce.Services.Catalog.Api.Controllers;
 public class ProductsController(ISender sender) : ControllerBase
 {
     [HttpGet]
-    public async Task<IActionResult> GetProducts([FromQuery] string? cursor = null, [FromQuery] int limit = 10)
+    public async Task<IActionResult> GetProducts(
+        [FromQuery] string? searchTerm = null,
+        [FromQuery] long? categoryId = null,
+        [FromQuery] double? minRating = null,
+        [FromQuery] string? cursor = null,
+        [FromQuery] int limit = 10,
+        [FromQuery] string sortBy = "name",
+        [FromQuery] long? shopId = null)
     {
-        var result = await sender.Send(new GetProductsQuery(null, null, null, cursor, limit));
+        var result = await sender.Send(new GetProductsQuery(searchTerm, categoryId, minRating, cursor, limit, sortBy, shopId));
 
         if (result.IsSuccess)
         {
@@ -145,7 +152,8 @@ public class ProductsController(ISender sender) : ControllerBase
             request.ThumbnailUrl,
             request.VideoUrl,
             request.ImageUrls,
-            request.CategoryId
+            request.CategoryId,
+            request.AttributesJson
         ));
 
         if (result.IsSuccess)
@@ -217,6 +225,19 @@ public class ProductsController(ISender sender) : ControllerBase
         return StatusCode(result.GetHttpStatusCode(), result.Message);
     }
 
+    [HttpPut("{id:long}/attributes")]
+    public async Task<IActionResult> UpdateAttributes(long id, [FromBody] UpdateAttributesRequest request)
+    {
+        var result = await sender.Send(new Ecommerce.Services.Catalog.Application.Features.Products.Commands.UpdateProductAttributes.UpdateProductAttributesCommand(id, request.AttributesJson));
+
+        if (result.IsSuccess)
+        {
+            return Ok(result.Value);
+        }
+        
+        return StatusCode(result.GetHttpStatusCode(), result.Message);
+    }
+
     [HttpDelete("{id:long}")]
     public async Task<IActionResult> DeleteProduct(long id)
     {
@@ -256,3 +277,5 @@ public class ProductsController(ISender sender) : ControllerBase
         return StatusCode(result.GetHttpStatusCode(), result.Message);
     }
 }
+
+public record UpdateAttributesRequest(string? AttributesJson);

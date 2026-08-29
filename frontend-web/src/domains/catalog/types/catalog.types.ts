@@ -51,7 +51,9 @@ export interface Product {
 	imageUrls?: string[];
 	averageRating?: number;
 	reviewCount?: number;
+	sold?: number;
 	soldCount?: number;
+	attributesJson?: string;
 	status: string;
 	options?: ProductOption[];
 	variants?: ProductVariant[];

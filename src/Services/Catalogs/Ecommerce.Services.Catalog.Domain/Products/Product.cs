@@ -28,11 +28,17 @@ public class Product : AggregateRoot<long>
     public decimal Price { get; private set; }
     public decimal DiscountPrice { get; private set; }
     public int AvailableStock { get; private set; }
+    public int Sold { get; private set; }
+    public string? AttributesJson { get; private set; }
 
     // Thông tin Ratings & Reviews (2NF)
     public double AverageRating { get; private set; }
     public int ReviewCount { get; private set; }
     public int RatingSum { get; private set; }
+
+    // Date tracking
+    public DateTime CreatedAt { get; private set; } = DateTime.UtcNow;
+    public DateTime? UpdatedAt { get; private set; }
 
     // Navigation properties for EAV
     private readonly List<ProductOption> _options = new();
@@ -183,6 +189,19 @@ public class Product : AggregateRoot<long>
         ReviewCount++;
         RatingSum += rating;
         AverageRating = Math.Round((double)RatingSum / ReviewCount, 1);
+    }
+
+    public void IncreaseSold(int count)
+    {
+        if (count > 0)
+        {
+            Sold += count;
+        }
+    }
+
+    public void SetAttributes(string? attributesJson)
+    {
+        AttributesJson = attributesJson;
     }
 
     public void RecalculateCachedPricesAndStock()

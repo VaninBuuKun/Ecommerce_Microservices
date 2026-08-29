@@ -97,6 +97,8 @@ public class ProductDbContext(DbContextOptions<ProductDbContext> options, IInMem
             entity.Property(p => p.Price).HasColumnType("decimal(18,2)").HasDefaultValue(0);
             entity.Property(p => p.DiscountPrice).HasColumnType("decimal(18,2)").HasDefaultValue(0);
             entity.Property(p => p.AvailableStock).HasDefaultValue(0);
+            entity.Property(p => p.Sold).HasDefaultValue(0);
+            entity.Property(p => p.AttributesJson).HasColumnType("text");
             entity.Property(p => p.Weight).HasDefaultValue(0);
             entity.Property(p => p.Height).HasDefaultValue(0);
             entity.Property(p => p.Width).HasDefaultValue(0);

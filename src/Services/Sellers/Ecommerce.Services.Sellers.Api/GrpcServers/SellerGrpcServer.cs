@@ -1,19 +1,17 @@
 using System.Linq;
 using System.Threading.Tasks;
 using BuildingBlocks.Grpc.Services;
-using Ecommerce.Services.Sellers.Api.Features.Shops.Queries.GetShopsByIds;
-using Ecommerce.Services.Sellers.Api.Features.Shops.Queries.GetShopShippingInfo;
-using Ecommerce.Services.Sellers.Api.Features.Shops.Queries.ValidateShopOwner;
+using Ecommerce.Services.Sellers.Api.Services;
+using Ecommerce.Services.Sellers.Api.Models.Interfaces;
 using Grpc.Core;
-using MediatR;
 
 namespace Ecommerce.Services.Sellers.Api.GrpcServers;
 
-public class SellerGrpcServer(ISender sender) : SellerGrpc.SellerGrpcBase
+public class SellerGrpcServer(IShopService shopService) : SellerGrpc.SellerGrpcBase
 {
     public override async Task<ValidateShopOwnerResponse> ValidateShopOwner(ValidateShopOwnerRequest request, ServerCallContext context)
     {
-        var result = await sender.Send(new ValidateShopOwnerQuery(request.ShopId, request.UserId), context.CancellationToken);
+        var result = await shopService.ValidateShopOwnerAsync(request.ShopId, request.UserId);
 
         if (!result.IsSuccess || result.Value == null)
         {
@@ -31,7 +29,7 @@ public class SellerGrpcServer(ISender sender) : SellerGrpc.SellerGrpcBase
     public override async Task<GetShopsByIdsResponse> GetShopsByIds(GetShopsByIdsRequest request, ServerCallContext context)
     {
         var shopIds = request.ShopIds.ToList();
-        var result = await sender.Send(new GetShopsByIdsQuery(shopIds), context.CancellationToken);
+        var result = await shopService.GetShopsByIdsAsync(shopIds);
 
         var response = new GetShopsByIdsResponse();
         if (result.IsSuccess && result.Value != null)
@@ -40,7 +38,7 @@ public class SellerGrpcServer(ISender sender) : SellerGrpc.SellerGrpcBase
             {
                 response.Shops.Add(new ShopGrpcModel
                 {
-                    ShopId = shop.ShopId,
+                    ShopId = shop.Id,
                     Name = shop.Name
                 });
             }
@@ -51,7 +49,7 @@ public class SellerGrpcServer(ISender sender) : SellerGrpc.SellerGrpcBase
 
     public override async Task<GetShopShippingInfoResponse> GetShopShippingInfo(GetShopShippingInfoRequest request, ServerCallContext context)
     {
-        var result = await sender.Send(new GetShopShippingInfoQuery(request.ShopId), context.CancellationToken);
+        var result = await shopService.GetShopShippingInfoAsync(request.ShopId);
 
         if (!result.IsSuccess || result.Value == null)
         {
@@ -76,7 +74,7 @@ public class SellerGrpcServer(ISender sender) : SellerGrpc.SellerGrpcBase
     public override async Task<GetShopsShippingInfoResponse> GetShopsShippingInfo(GetShopsShippingInfoRequest request, ServerCallContext context)
     {
         var shopIds = request.ShopIds.ToList();
-        var result = await sender.Send(new GetShopsShippingInfoQuery(shopIds), context.CancellationToken);
+        var result = await shopService.GetShopsShippingInfoAsync(shopIds);
 
         var response = new GetShopsShippingInfoResponse();
         if (result.IsSuccess && result.Value != null)

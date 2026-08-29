@@ -32,6 +32,7 @@ export interface UpdateProductRequest {
 	videoUrl?: string;
 	imageUrls: string[];
 	categoryId?: number;
+	attributesJson?: string;
 }
 
 export interface BulkUpdateVariantsRequest {
@@ -60,27 +61,28 @@ export interface UpdateProductSaleRequest {
 }
 
 export const productApi = {
-	getProducts: async (params?: GetProductsParams): Promise<{ items: Product[]; totalCount: number; nextCursor?: string }> => {
+	getProducts: async (params?: GetProductsParams): Promise<{ items: Product[]; totalCount: number; nextCursor?: string; hasNext?: boolean }> => {
 		const queryParams: any = { ...params };
 		if (params?.pageSize && !params?.limit) {
 			queryParams.limit = params.pageSize;
 		}
-		if (params?.pageNumber && !params?.page) {
+		if (params?.pageNumber) {
 			queryParams.page = params.pageNumber;
 		}
 		const response = await api.get("/products", { params: queryParams });
 		const raw = response.data?.value || response.data;
 		if (Array.isArray(raw)) {
-			return { items: raw, totalCount: raw.length };
+			return { items: raw, totalCount: raw.length, hasNext: false };
 		}
 		if (raw && typeof raw === "object") {
 			return {
 				items: raw.items || raw.products || [],
 				totalCount: raw.totalCount || raw.total || (raw.items ? raw.items.length : 0),
 				nextCursor: raw.nextCursor,
+				hasNext: raw.hasNext ?? !!raw.nextCursor,
 			};
 		}
-		return { items: [], totalCount: 0 };
+		return { items: [], totalCount: 0, hasNext: false };
 	},
 
 	getMyProducts: async (params: GetMyProductsParams): Promise<any> => {
@@ -95,8 +97,18 @@ export const productApi = {
 	},
 
 	getProductById: async (id: number): Promise<Product> => {
+		const { USE_MOCK_DATA, MOCK_PRODUCTS } = await import("./catalogMockData");
+		if (USE_MOCK_DATA) {
+			const found = MOCK_PRODUCTS.find((p) => p.id === Number(id));
+			if (found) return found;
+		}
 		const response = await api.get(`/products/${id}`);
 		return response.data?.value || response.data;
+	},
+
+	updateProductAttributes: async (id: number, attributesJson: string): Promise<any> => {
+		const response = await api.put(`/products/${id}/attributes`, { attributesJson });
+		return response.data;
 	},
 
 	updateProduct: async (

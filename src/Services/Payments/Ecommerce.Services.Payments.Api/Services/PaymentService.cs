@@ -63,4 +63,15 @@ public class PaymentService(IEfUnitOfWork unitOfWork, PaymentGatewayFactory fact
 
         return Result<CreatePaymentResult>.Success(paymentResult);
     }
+
+    public async Task<Result<Payment>> GetPaymentByOrderIdAsync(long orderId)
+    {
+        var payment = await _paymentRepository.FirstOrDefaultAsync(p => p.OrderId == orderId);
+        if (payment == null)
+        {
+            return Result<Payment>.Failure("Payment not found for the specified order.");
+        }
+
+        return Result<Payment>.Success(payment);
+    }
 }

@@ -1,4 +1,4 @@
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient, useInfiniteQuery } from "@tanstack/react-query";
 import { productApi, type CreateProductRequest, type UpdateProductRequest, type UpdateProductSaleRequest, type BulkUpdateVariantsRequest, type GetProductsParams, type GetMyProductsParams } from "../api/productApi";
 import { categoryApi } from "../api/categoryApi";
 import { reviewApi, type AddProductReviewRequest, type GetProductReviewsParams } from "../api/reviewApi";
@@ -21,6 +21,19 @@ export function useProductsQuery(params?: GetProductsParams) {
 	return useQuery({
 		queryKey: [...catalogQueryKeys.products, params],
 		queryFn: () => productApi.getProducts(params),
+	});
+}
+
+export function useInfiniteProductsQuery(params?: GetProductsParams) {
+	return useInfiniteQuery({
+		queryKey: [...catalogQueryKeys.products, "infinite", params],
+		queryFn: ({ pageParam }) =>
+			productApi.getProducts({
+				...params,
+				cursor: pageParam ? (pageParam as string) : undefined,
+			}),
+		initialPageParam: undefined as string | undefined,
+		getNextPageParam: (lastPage) => (lastPage.hasNext ? lastPage.nextCursor : undefined),
 	});
 }
 

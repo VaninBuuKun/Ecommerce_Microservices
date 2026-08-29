@@ -391,7 +391,7 @@ export default function ProductDetailPage() {
 							<div className="w-[1px] h-3.5 bg-brand-border" />
 							<div>
 								<span className="text-brand-dark font-extrabold">
-									{product.soldCount || 0}
+									{product.sold || product.soldCount || 0}
 								</span>{" "}
 								Đã bán
 							</div>
@@ -594,7 +594,7 @@ export default function ProductDetailPage() {
 			</div>
 
 			{/* Description Section */}
-			<ProductDescription description={product.description} />
+			<ProductDescription description={product.description} attributesJson={product.attributesJson} />
 
 			{/* Ratings & Reviews System */}
 			<ProductReviewsSection productId={product.id} />

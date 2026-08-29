@@ -6,6 +6,7 @@ using Ecommerce.Services.Identity.Api.Configurations;
 using Ecommerce.Services.Identity.Api.Models.Entities;
 using Ecommerce.Services.Identity.Api.Persistances;
 using Ecommerce.Services.Identity.Api.Services;
+using Ecommerce.Services.Identity.Api.Models.Interfaces;
 using Identity.Extensions;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
@@ -23,6 +24,8 @@ try
 
     builder.Services.AddGrpc();
     builder.Services.AddScoped<IAddressService, AddressService>();
+    builder.Services.AddScoped<IUserService, UserService>();
+    builder.Services.AddScoped<IRoleService, RoleService>();
 
     builder.Services.ConfigureApplicationCookie(options =>
     {

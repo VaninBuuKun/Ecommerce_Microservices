@@ -2,21 +2,19 @@ using System;
 using System.Globalization;
 using System.Threading.Tasks;
 using BuildingBlocks.Grpc.Services;
-using Ecommerce.Services.Payments.Api.Features.Queries.CheckShopWallet;
-using Ecommerce.Services.Payments.Api.Features.Queries.GetPaymentByOrderId;
-using Ecommerce.Services.Payments.Api.Features.Queries.GetPaymentMethodById;
 using Ecommerce.Services.Payments.Api.Models.Dtos;
 using Ecommerce.Services.Payments.Api.Models.Enums;
 using Ecommerce.Services.Payments.Api.Models.Interfaces;
+using Ecommerce.Services.Payments.Api.Services;
 using Grpc.Core;
-using MediatR;
 using Microsoft.Extensions.Logging;
 
 namespace Ecommerce.Services.Payments.Api.GrpcServers;
 
 public class PaymentGrpcServer(
     IPaymentService paymentService,
-    ISender sender,
+    IPaymentMethodService paymentMethodService,
+    IWalletService walletService,
     ILogger<PaymentGrpcServer> logger) : PaymentGrpc.PaymentGrpcBase
 {
     public override async Task<CreatePaymentGrpcResponse> CreatePayment(CreatePaymentGrpcRequest request, ServerCallContext context)
@@ -66,7 +64,7 @@ public class PaymentGrpcServer(
     {
         logger.LogInformation("gRPC Request to get payment method: {Id}", request.Id);
 
-        var result = await sender.Send(new GetPaymentMethodByIdQuery(request.Id), context.CancellationToken);
+        var result = await paymentMethodService.GetPaymentMethodById(request.Id);
 
         if (!result.IsSuccess || result.Value == null)
         {
@@ -90,7 +88,7 @@ public class PaymentGrpcServer(
     {
         logger.LogInformation("gRPC Request to get payment by order: {OrderId}", request.OrderId);
 
-        var result = await sender.Send(new GetPaymentByOrderIdQuery(request.OrderId), context.CancellationToken);
+        var result = await paymentService.GetPaymentByOrderIdAsync(request.OrderId);
 
         if (!result.IsSuccess || result.Value == null)
         {
@@ -101,12 +99,12 @@ public class PaymentGrpcServer(
         return new GetPaymentByOrderResponse
         {
             Found = true,
-            PaymentId = payment.PaymentId.ToString(),
-            IconUrl = payment.IconUrl,
-            Status = payment.Status,
-            MethodTitle = payment.MethodTitle,
-            ProviderName = payment.ProviderName,
-            PaymentUrl = payment.PaymentUrl
+            PaymentId = payment.Id.ToString(),
+            IconUrl = payment.Method?.IconUrl ?? string.Empty,
+            Status = payment.Status.ToString(),
+            MethodTitle = payment.Method?.Title ?? string.Empty,
+            ProviderName = payment.Method?.ProviderName ?? string.Empty,
+            PaymentUrl = payment.PaymentUrl ?? string.Empty
         };
     }
 
@@ -114,7 +112,7 @@ public class PaymentGrpcServer(
     {
         logger.LogInformation("gRPC Request to check shop wallet for user: {UserId}", request.UserId);
 
-        var result = await sender.Send(new CheckShopWalletQuery(request.UserId), context.CancellationToken);
+        var result = await walletService.GetWalletByUserId(request.UserId);
 
         if (!result.IsSuccess || result.Value == null)
         {
@@ -124,9 +122,9 @@ public class PaymentGrpcServer(
         var wallet = result.Value;
         return new CheckWalletResponse
         {
-            HasWallet = wallet.HasWallet,
+            HasWallet = true,
             IsLocked = wallet.IsLocked,
-            Balance = wallet.Balance
+            Balance = wallet.Balance.ToString(CultureInfo.InvariantCulture)
         };
     }
 }

@@ -1,8 +1,7 @@
+using System.Threading.Tasks;
 using BuildingBlocks.Auth;
-using Ecommerce.Services.Sellers.Api.Features.Shops.Commands.ToggleFollowShop;
-using Ecommerce.Services.Sellers.Api.Features.Shops.Queries.CheckFollowShopStatus;
-using Ecommerce.Services.Sellers.Api.Features.Shops.Queries.GetFollowedShops;
-using MediatR;
+using Ecommerce.Services.Sellers.Api.Services;
+using Ecommerce.Services.Sellers.Api.Models.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -11,7 +10,7 @@ namespace Ecommerce.Services.Sellers.Api.Controllers;
 [ApiController]
 [Route("api/shop")]
 [Authorize]
-public class ShopFollowersController(ISender sender, ICurrentUserService userService) : ControllerBase
+public class ShopFollowersController(IShopService shopService, ICurrentUserService userService) : ControllerBase
 {
     [HttpPost("{shopId}/follow")]
     public async Task<IActionResult> ToggleFollowShop(long shopId)
@@ -22,7 +21,7 @@ public class ShopFollowersController(ISender sender, ICurrentUserService userSer
             return Unauthorized("Không tìm thấy thông tin người dùng.");
         }
 
-        var result = await sender.Send(new ToggleFollowShopCommand(customerId, shopId));
+        var result = await shopService.ToggleFollowShopAsync(customerId, shopId);
         if (result.IsSuccess)
         {
             return Ok(new { isFollowing = result.Value });
@@ -40,7 +39,7 @@ public class ShopFollowersController(ISender sender, ICurrentUserService userSer
             return Unauthorized("Không tìm thấy thông tin người dùng.");
         }
 
-        var result = await sender.Send(new GetFollowedShopsQuery(customerId));
+        var result = await shopService.GetFollowedShopsAsync(customerId);
         if (result.IsSuccess)
         {
             return Ok(result.Value);
@@ -58,7 +57,7 @@ public class ShopFollowersController(ISender sender, ICurrentUserService userSer
             return Unauthorized("Không tìm thấy thông tin người dùng.");
         }
 
-        var result = await sender.Send(new CheckFollowShopStatusQuery(customerId, shopId));
+        var result = await shopService.CheckFollowStatusAsync(customerId, shopId);
         if (result.IsSuccess)
         {
             return Ok(new { isFollowing = result.Value });
