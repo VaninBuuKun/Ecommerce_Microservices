@@ -1,6 +1,7 @@
-import api from "@/core/api/axiosInstance";
+import { api } from "@/core";
 
 export interface AddItemRequest {
+	productId?: number;
 	variantId: number;
 	quantity: number;
 }
@@ -46,8 +47,10 @@ export const cartApi = {
 		return response.data;
 	},
 
-	removeItem: async (productId: number): Promise<any> => {
-		const response = await api.delete(`/carts/items/${productId}`);
+	removeItem: async (productId: number, variantId?: number): Promise<any> => {
+		const response = await api.delete(`/carts/items/${productId}`, {
+			params: variantId ? { variantId } : undefined
+		});
 		return response.data;
 	},
 

@@ -87,7 +87,7 @@ namespace Ecommerce.Services.Catalog.Infrastructure.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("Banners");
+                    b.ToTable("Banners", (string)null);
                 });
 
             modelBuilder.Entity("Ecommerce.Services.Catalog.Domain.Category", b =>
@@ -127,7 +127,7 @@ namespace Ecommerce.Services.Catalog.Infrastructure.Migrations
 
                     b.HasIndex("ParentId");
 
-                    b.ToTable("Categories");
+                    b.ToTable("Categories", (string)null);
                 });
 
             modelBuilder.Entity("Ecommerce.Services.Catalog.Domain.ProductReview", b =>
@@ -166,7 +166,7 @@ namespace Ecommerce.Services.Catalog.Infrastructure.Migrations
 
                     b.HasIndex("ProductId");
 
-                    b.ToTable("ProductReviews");
+                    b.ToTable("ProductReviews", (string)null);
                 });
 
             modelBuilder.Entity("Ecommerce.Services.Catalog.Domain.Products.Product", b =>
@@ -270,7 +270,7 @@ namespace Ecommerce.Services.Catalog.Infrastructure.Migrations
 
                     b.HasIndex("CategoryId");
 
-                    b.ToTable("Products");
+                    b.ToTable("Products", (string)null);
                 });
 
             modelBuilder.Entity("Ecommerce.Services.Catalog.Domain.Products.ProductOption", b =>
@@ -305,7 +305,7 @@ namespace Ecommerce.Services.Catalog.Infrastructure.Migrations
 
                     b.HasIndex("ProductId");
 
-                    b.ToTable("ProductOptions");
+                    b.ToTable("ProductOptions", (string)null);
                 });
 
             modelBuilder.Entity("Ecommerce.Services.Catalog.Domain.Products.ProductOptionValue", b =>
@@ -344,7 +344,7 @@ namespace Ecommerce.Services.Catalog.Infrastructure.Migrations
 
                     b.HasIndex("OptionId");
 
-                    b.ToTable("ProductOptionValues");
+                    b.ToTable("ProductOptionValues", (string)null);
                 });
 
             modelBuilder.Entity("Ecommerce.Services.Catalog.Domain.Products.ProductVariant", b =>
@@ -395,7 +395,7 @@ namespace Ecommerce.Services.Catalog.Infrastructure.Migrations
 
                     b.HasIndex("ProductId");
 
-                    b.ToTable("ProductVariants");
+                    b.ToTable("ProductVariants", (string)null);
                 });
 
             modelBuilder.Entity("Ecommerce.Services.Catalog.Domain.Products.ProductVariantOption", b =>
@@ -410,7 +410,7 @@ namespace Ecommerce.Services.Catalog.Infrastructure.Migrations
 
                     b.HasIndex("OptionValueId");
 
-                    b.ToTable("ProductVariantOptions");
+                    b.ToTable("ProductVariantOptions", (string)null);
                 });
 
             modelBuilder.Entity("Ecommerce.Services.Catalog.Domain.Products.Wishlist", b =>
@@ -443,7 +443,7 @@ namespace Ecommerce.Services.Catalog.Infrastructure.Migrations
                     b.HasIndex("CustomerId", "ProductId")
                         .IsUnique();
 
-                    b.ToTable("Wishlists");
+                    b.ToTable("Wishlists", (string)null);
                 });
 
             modelBuilder.Entity("Ecommerce.Services.Catalog.Domain.Category", b =>

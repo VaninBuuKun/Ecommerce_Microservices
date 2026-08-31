@@ -23,19 +23,35 @@ public class GetVariantsByIdsCommandHandler(IEfUnitOfWork unitOfWork, IMapper ma
         var productRepository = unitOfWork.Repository<Product, long>();
         
         var results = new List<VariantDto>();
+        var missingVariantIds = new List<long>();
 
         if (request.VariantIds != null && request.VariantIds.Any())
         {
             var spec = new VariantsAndOptionsSpec(request.VariantIds);
             var productVariants = await productVariantRepository.GetListAsync(spec, cancellationToken: cancellationToken);
             
-            results.AddRange(mapper.Map<List<VariantDto>>(productVariants));
+            var mappedVariants = mapper.Map<List<VariantDto>>(productVariants);
+            results.AddRange(mappedVariants);
+
+            // Tìm những ID gửi trong VariantIds nhưng không có trong bảng ProductVariants (có thể là ProductId đơn giản)
+            var foundVariantIds = mappedVariants.Select(v => v.Id).ToHashSet();
+            missingVariantIds = request.VariantIds.Where(id => !foundVariantIds.Contains(id)).ToList();
         }
 
+        var allProductIds = new HashSet<long>();
         if (request.ProductIds != null && request.ProductIds.Any())
         {
+            foreach (var pid in request.ProductIds) allProductIds.Add(pid);
+        }
+        foreach (var mid in missingVariantIds)
+        {
+            allProductIds.Add(mid);
+        }
+
+        if (allProductIds.Any())
+        {
             var products = await productRepository.GetAllAsync(
-                p => request.ProductIds.Contains(p.Id),
+                p => allProductIds.Contains(p.Id),
                 cancellationToken: cancellationToken
             );
             results.AddRange(mapper.Map<List<VariantDto>>(products));

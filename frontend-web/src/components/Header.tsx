@@ -100,9 +100,10 @@ export default function Header() {
 
 	const isSystemAdmin = checkIsAdmin();
 
-	// Flatten all items from shop groups to preview in dropdown
-	const previewCartItems = cart?.shopGroups?.flatMap((group: any) => group.items) || [];
-	const totalCartItemsCount = previewCartItems.length;
+	// Flatten all items from shop groups to preview in dropdown (Lọc chỉ các item hợp lệ)
+	const previewCartItems = cart?.shopGroups?.flatMap((group: any) => group.items || [])
+		.filter((item: any) => item && item.productName && item.shopId > 0) || [];
+	const totalCartItemsCount = previewCartItems.reduce((sum: number, item: any) => sum + (item.quantity || 1), 0);
 
 
 	return (

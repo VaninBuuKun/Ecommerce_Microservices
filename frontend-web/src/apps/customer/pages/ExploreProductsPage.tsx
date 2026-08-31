@@ -496,8 +496,14 @@ export function ExploreProductsPage() {
 														onClick={(e) => {
 															e.stopPropagation();
 															addItemToCartMutation.mutate(
-																{ variantId: p.id, quantity: 1 },
-																{ onSuccess: () => toast.success("Đã thêm vào giỏ hàng!") }
+																{ productId: p.id, variantId: 0, quantity: 1 },
+																{ 
+																	onSuccess: () => toast.success("Đã thêm vào giỏ hàng!"),
+																	onError: (err: any) => {
+																		const msg = err.response?.data?.message || err.response?.data || "Không thể thêm vào giỏ";
+																		toast.error(msg);
+																	}
+																}
 															);
 														}}
 														className="w-full mt-2 py-1.5 bg-brand-light-soft hover:bg-brand-primary text-brand-dark rounded-md text-[11px] font-bold transition-colors flex items-center justify-center gap-1 cursor-pointer border border-brand-border/60"

@@ -37,11 +37,11 @@ TestResults/
 _ReSharper*/
 [Tt]est[Rr]esult*/
 
-# File cấu hình môi trường chứa THÔNG TIN BẢO MẬT
-appsettings.Development.json
-appsettings.Local.json
+# File cấu hình môi trường chứa THÔNG TIN BẢO MẬT & DATABASE CONNECTION
+appsettings.json
 appsettings.*.json
-!appsettings.json
+!appsettings.Example.json
+!appsettings.Template.json
 *.env
 *.env.*
 secrets.json

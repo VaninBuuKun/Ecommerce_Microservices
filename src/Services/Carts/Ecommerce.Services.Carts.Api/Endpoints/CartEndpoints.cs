@@ -60,7 +60,7 @@ public static class CartEndpoints
         var result = await cartService.GetCartAsync(userService.UserId);
         return result.IsSuccess 
                 ? Results.Json(result.Value, statusCode: result.GetHttpStatusCode()) 
-                : Results.Content(result.Message, statusCode: result.GetHttpStatusCode());
+                : Results.Json(new { message = result.Message }, statusCode: result.GetHttpStatusCode());
     }
 
     // 2. THÊM SẢN PHẨM VÀO GIỎ
@@ -72,7 +72,7 @@ public static class CartEndpoints
         Log.Information("User {UserId} added product {VariantId} with quantity {Quantity} to cart", userService.UserId, cartItem.VariantId, cartItem.Quantity);
         return result.IsSuccess
             ? Results.Json(result.Value, statusCode: result.GetHttpStatusCode())
-            : Results.Content(result.Message, statusCode: result.GetHttpStatusCode());
+            : Results.Json(new { message = result.Message }, statusCode: result.GetHttpStatusCode());
     }
     
     // 3. CẬP NHẬT SỐ LƯỢNG SẢN PHẨM
@@ -81,7 +81,9 @@ public static class CartEndpoints
         var req = new UpdateQuantityRequest(productId, cartItem.VariantId, cartItem.Quantity);
         var result = await cartService.UpdateQuantityAsync(userService.UserId, req);
         
-        return Results.Content(result.Message, statusCode: result.GetHttpStatusCode());
+        return result.IsSuccess
+            ? Results.Json(result.Value, statusCode: result.GetHttpStatusCode())
+            : Results.Json(new { message = result.Message }, statusCode: result.GetHttpStatusCode());
     }
 
     // 3.5. CẬP NHẬT TRẠNG THÁI CHỌN SẢN PHẨM
@@ -90,15 +92,19 @@ public static class CartEndpoints
         var req = new CartSelectStateRequest(0, variantId, request.IsSelected);
         var result = await cartService.UpdateSelectStateAsync(userService.UserId, req);
         
-        return Results.Content(result.Message, statusCode: result.GetHttpStatusCode());
+        return result.IsSuccess
+            ? Results.Json(result.Value, statusCode: result.GetHttpStatusCode())
+            : Results.Json(new { message = result.Message }, statusCode: result.GetHttpStatusCode());
     }
     
     // 4. XÓA SẢN PHẨM KHỎI GIỎ
-    private static async Task<IResult> RemoveItem(long productId, ICartService cartService, ICurrentUserService userService)
+    private static async Task<IResult> RemoveItem(long productId, [FromQuery] long? variantId, ICartService cartService, ICurrentUserService userService)
     {
-        var result = await cartService.RemoveItemFromCartAsync(userService.UserId, productId, 0);
+        var result = await cartService.RemoveItemFromCartAsync(userService.UserId, productId, variantId ?? 0);
         
-        return Results.Content(result.Message, statusCode: result.GetHttpStatusCode());
+        return result.IsSuccess
+            ? Results.Json(result.Value, statusCode: result.GetHttpStatusCode())
+            : Results.Json(new { message = result.Message }, statusCode: result.GetHttpStatusCode());
     }
     
     // 5. XÓA TOÀN BỘ GIỎ HÀNG
@@ -106,6 +112,8 @@ public static class CartEndpoints
     {
         var result = await cartService.ClearCartAsync(userService.UserId);
         
-        return Results.Content(result.Message, statusCode: result.GetHttpStatusCode());
+        return result.IsSuccess
+            ? Results.Ok()
+            : Results.Json(new { message = result.Message }, statusCode: result.GetHttpStatusCode());
     }
 }
