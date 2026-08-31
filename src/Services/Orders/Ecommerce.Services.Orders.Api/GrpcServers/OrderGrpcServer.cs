@@ -19,19 +19,23 @@ public class OrderGrpcServer(
         if (!long.TryParse(request.CustomerId, out var customerIdLong) ||
             !long.TryParse(request.ProductId, out var productIdLong))
         {
+            logger.LogWarning("gRPC GetCompletedSubOrderCountForProduct nhận định danh không hợp lệ: CustomerId={CustomerId}, ProductId={ProductId}", 
+                request.CustomerId, request.ProductId);
             return new GetCompletedSubOrderCountForProductResponse { Count = 0 };
         }
 
-        logger.LogInformation("OrderGrpcServer: Nhận yêu cầu đếm đơn hàng cho Customer {CustomerId}, Product {ProductId}", customerIdLong, productIdLong);
+        logger.LogInformation("gRPC GetCompletedSubOrderCountForProduct: Đếm đơn hàng hoàn tất cho Customer #{CustomerId}, Product #{ProductId}", 
+            customerIdLong, productIdLong);
 
         var result = await sender.Send(new GetCompletedSubOrderCountForProductQuery(customerIdLong, productIdLong), context.CancellationToken);
 
         if (!result.IsSuccess)
         {
-            logger.LogWarning("OrderGrpcServer: Đếm đơn hàng thất bại: {Message}", result.Message);
-            throw new RpcException(new Status(StatusCode.Internal, result.Message ?? "Lỗi truy vấn số lượng đơn hàng"));
+            logger.LogWarning("gRPC GetCompletedSubOrderCountForProduct thất bại: {Message}", result.Message);
+            throw new RpcException(new Status(StatusCode.Internal, result.Message ?? "Lỗi truy vấn số lượng đơn hàng đã hoàn tất."));
         }
 
+        logger.LogInformation("gRPC GetCompletedSubOrderCountForProduct: Kết quả {Count} đơn hàng", result.Value);
         return new GetCompletedSubOrderCountForProductResponse { Count = result.Value };
     }
 }

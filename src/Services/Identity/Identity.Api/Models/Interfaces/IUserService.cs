@@ -19,4 +19,7 @@ public interface IUserService
     Task<Result> AssignRoleAsync(long id, string roleName);
     Task<Result> LockUserAsync(long id);
     Task<Result> UnlockUserAsync(long id);
+    Task<Result> ForgotPasswordAsync(ForgotPasswordRequest request);
+    Task<Result> ResetPasswordWithOtpAsync(ResetPasswordWithOtpRequest request);
+    Task RegisterOrUpdateDeviceAsync(long userId, string email, bool isRegistration = false);
 }

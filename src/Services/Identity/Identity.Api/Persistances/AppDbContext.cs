@@ -9,6 +9,7 @@ namespace Ecommerce.Services.Identity.Api.Persistances;
 public class AppDbContext(DbContextOptions<AppDbContext> options) : IdentityDbContext<AppUser, IdentityRole<long>, long>(options)
 {
     public DbSet<UserAddress> UserAddresses { get; set; }
+    public DbSet<UserKnownDevice> UserKnownDevices { get; set; }
 
     public override int SaveChanges(bool acceptAllChangesOnSuccess)
     {
@@ -65,6 +66,21 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : IdentityDbCo
             entity.HasOne(a => a.User)
                   .WithMany()
                   .HasForeignKey(a => a.UserId)
+                  .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        builder.Entity<UserKnownDevice>(entity =>
+        {
+            entity.ToTable("UserKnownDevices");
+            entity.HasKey(d => d.Id);
+            entity.Property(d => d.DeviceHash).IsRequired().HasMaxLength(64);
+            entity.Property(d => d.DeviceName).HasMaxLength(150);
+            entity.Property(d => d.LastIpAddress).HasMaxLength(50);
+            entity.HasIndex(d => new { d.UserId, d.DeviceHash }).IsUnique();
+
+            entity.HasOne(d => d.User)
+                  .WithMany()
+                  .HasForeignKey(d => d.UserId)
                   .OnDelete(DeleteBehavior.Cascade);
         });
 

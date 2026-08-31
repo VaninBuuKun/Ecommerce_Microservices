@@ -9,7 +9,8 @@ import {
 	LogOut,
 	ShieldAlert,
 	Ticket,
-	Wallet
+	Wallet,
+	Image as ImageIcon
 } from "lucide-react";
 import { useAuthStore } from "@/domains/auth";
 
@@ -92,6 +93,10 @@ export default function AdminLayout() {
 						<Link to="/admin/products" className={getSidebarLinkClass("/admin/products")}>
 							<ShoppingBag className="w-4 h-4 text-brand-muted" />
 							<span>Quản lý sản phẩm</span>
+						</Link>
+						<Link to="/admin/banners" className={getSidebarLinkClass("/admin/banners")}>
+							<ImageIcon className="w-4 h-4 text-brand-muted" />
+							<span>Quản lý Banner</span>
 						</Link>
 						<Link to="/admin/orders" className={getSidebarLinkClass("/admin/orders")}>
 							<Package className="w-4 h-4 text-brand-muted" />

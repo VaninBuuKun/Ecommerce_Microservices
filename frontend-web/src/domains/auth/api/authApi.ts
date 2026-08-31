@@ -163,6 +163,42 @@ export const authService = {
     const response = await api.put("/users/profile", data);
     return response.data;
   },
+
+  async forgotPassword(email: string): Promise<Result<any>> {
+    try {
+      const response = await api.post("/auth/forgot-password", { email });
+      return {
+        isSuccess: true,
+        value: response.data,
+      };
+    } catch (err: any) {
+      return {
+        isSuccess: false,
+        error: {
+          code: "FORGOT_PASSWORD_FAILED",
+          message: err.response?.data?.message || err.response?.data || "Không thể gửi yêu cầu đặt lại mật khẩu.",
+        },
+      };
+    }
+  },
+
+  async resetPasswordWithOtp(payload: { email: string; otp: string; newPassword: string }): Promise<Result<any>> {
+    try {
+      const response = await api.post("/auth/reset-password", payload);
+      return {
+        isSuccess: true,
+        value: response.data,
+      };
+    } catch (err: any) {
+      return {
+        isSuccess: false,
+        error: {
+          code: "RESET_PASSWORD_FAILED",
+          message: err.response?.data?.message || err.response?.data || "Đặt lại mật khẩu thất bại.",
+        },
+      };
+    }
+  },
 };
 
 export const authApi = authService;

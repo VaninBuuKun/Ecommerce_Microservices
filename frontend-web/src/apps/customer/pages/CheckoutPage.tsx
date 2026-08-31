@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 import {
 	MapPin,
 	Plus,
@@ -37,6 +37,7 @@ import {
 
 export default function CheckoutPage() {
 	const navigate = useNavigate();
+	const location = useLocation();
 
 	// State
 	const [selectedAddress, setSelectedAddress] = useState<UserAddress | null>(null);
@@ -68,9 +69,13 @@ export default function CheckoutPage() {
 	const [calcResult, setCalcResult] = useState<any>(null);
 	const [checkoutSessionKey, setcheckoutSessionKey] = useState<string | null>(null);
 
-	// Vouchers state
-	const [shopVouchers, setShopVouchers] = useState<Record<number, string>>({});
-	const [platformVoucher, setPlatformVoucher] = useState<string>("");
+	// Vouchers state (support pre-selected vouchers from CartPage)
+	const [shopVouchers, setShopVouchers] = useState<Record<number, string>>(
+		location.state?.shopVouchers || {}
+	);
+	const [platformVoucher, setPlatformVoucher] = useState<string>(
+		location.state?.platformVoucher || ""
+	);
 
 	// General order success screen state
 	const [isSuccess, setIsSuccess] = useState(false);
@@ -307,36 +312,35 @@ export default function CheckoutPage() {
 	const getWardName = (id: number) => wards?.find((w) => w.id === id)?.displayName || `Xã #${id}`;
 
 	return (
-		<div className="py-10 px-4 md:px-6 max-w-5xl mx-auto w-full text-left font-sans relative">
+		<div className="pt-4 pb-10 px-3 sm:px-6 max-w-7xl mx-auto w-full text-left font-sans relative">
 			{/* recalculate skeleton opacity loading overlay */}
 			{calculateTotalMutation.isPending && (
-				<div className="absolute inset-0 bg-white/60 backdrop-blur-[1px] z-40 flex items-center justify-center rounded-2xl pointer-events-none">
-					<div className="bg-brand-dark/80 text-brand-light py-2 px-4 rounded-xl flex items-center gap-2 shadow-xl border border-brand-border/40 text-xs font-extrabold animate-pulse">
+				<div className="absolute inset-0 bg-white/60 backdrop-blur-[1px] z-40 flex items-center justify-center rounded-md pointer-events-none">
+					<div className="bg-brand-dark/80 text-brand-light py-2 px-4 rounded-md flex items-center gap-2 shadow-sm border border-brand-border/40 text-xs font-extrabold animate-pulse">
 						<Loader2 className="w-4 h-4 animate-spin text-brand-primary" />
 						Đang tính lại tổng tiền...
 					</div>
 				</div>
 			)}
 
-			{/* Back Link */}
-			<div className="flex items-center gap-2 mb-6">
-				<Link
-					to="/cart"
-					className="inline-flex items-center gap-1.5 text-xs text-brand-muted hover:text-brand-primary transition-colors font-medium"
-				>
-					<ArrowLeft className="w-3.5 h-3.5" />
-					Quay lại giỏ hàng
-				</Link>
+			{/* Breadcrumb Navigation */}
+			<div className="flex items-center justify-between gap-4 mb-4">
+				<nav className="flex items-center gap-1.5 text-xs text-brand-muted font-medium">
+					<Link to="/" className="hover:text-brand-primary transition-colors">
+						Trang chủ
+					</Link>
+					<span className="text-gray-400">/</span>
+					<Link to="/cart" className="hover:text-brand-primary transition-colors">
+						Giỏ hàng
+					</Link>
+					<span className="text-gray-400">/</span>
+					<span className="text-brand-dark font-bold">Thanh toán</span>
+				</nav>
 			</div>
 
-			<h1 className="text-2xl font-black text-brand-dark mb-8 flex items-center gap-2.5">
-				<CreditCard className="w-6 h-6 text-brand-primary" />
-				Thanh toán đơn hàng
-			</h1>
-
-			<div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
-				{/* Main Checkout content */}
-				<div className="lg:col-span-2 space-y-5 w-full">
+			<div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
+				{/* Main Checkout content (8 cols) */}
+				<div className="lg:col-span-8 space-y-3.5 w-full">
 					{/* 1. SHIPPING ADDRESS CARD */}
 					<ShippingAddressCard
 						selectedAddress={selectedAddress}
@@ -363,7 +367,8 @@ export default function CheckoutPage() {
 					/>
 				</div>
 
-				<div className="lg:col-span-1 w-full space-y-4">
+				{/* Summary (4 cols) */}
+				<div className="lg:col-span-4 w-full space-y-3">
 					<CheckoutSummary
 						platformVoucher={platformVoucher}
 						handleRemovePlatformVoucher={handleRemovePlatformVoucher}

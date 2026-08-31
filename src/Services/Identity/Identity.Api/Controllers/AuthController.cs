@@ -30,4 +30,30 @@ public class AuthController(IUserService userService) : ControllerBase
 
         return Ok(result.Value);
     }
+
+    [HttpPost("forgot-password")]
+    [AllowAnonymous]
+    public async Task<IActionResult> ForgotPassword([FromBody] ForgotPasswordRequest request)
+    {
+        var result = await userService.ForgotPasswordAsync(request);
+        if (!result.IsSuccess)
+        {
+            return StatusCode((int)result.ErrorCode.ToHttpStatusCode(), result.Message);
+        }
+
+        return Ok(new { isSuccess = true, message = "Nếu email tồn tại, mã xác thực OTP đã được gửi đến hộp thư của bạn." });
+    }
+
+    [HttpPost("reset-password")]
+    [AllowAnonymous]
+    public async Task<IActionResult> ResetPassword([FromBody] ResetPasswordWithOtpRequest request)
+    {
+        var result = await userService.ResetPasswordWithOtpAsync(request);
+        if (!result.IsSuccess)
+        {
+            return StatusCode((int)result.ErrorCode.ToHttpStatusCode(), result.Message);
+        }
+
+        return Ok(new { isSuccess = true, message = "Đặt lại mật khẩu thành công! Vui lòng đăng nhập bằng mật khẩu mới." });
+    }
 }

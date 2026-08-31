@@ -16,7 +16,7 @@ export function OrderItemsList({
 	handleRemoveShopVoucher,
 }: OrderItemsListProps) {
 	return (
-		<div className="space-y-4 font-sans text-left">
+		<div className="space-y-3.5 font-sans text-left">
 			{shopGroups.map((group) => {
 				const groupSelectedItems = (group.items || []).filter((i: any) => i.isSelected);
 				if (groupSelectedItems.length === 0) return null;
@@ -34,76 +34,103 @@ export function OrderItemsList({
 					return sum + activePrice * item.quantity;
 				}, 0);
 
-				// Tổng tiền thực tế của từng Shop sau khi cộng phí ship và trừ voucher của Shop đó
 				const shopGrandTotal = Math.max(0, shopSubTotal + shippingFee - shopDiscount);
-
 				const appliedVoucherCode = shopVouchers[group.shopId];
 
 				return (
 					<div
 						key={group.shopId}
-						className="bg-white border border-brand-border rounded-xl overflow-hidden shadow-sm text-left"
+						className="bg-white border border-brand-border rounded-md overflow-hidden shadow-xs text-left"
 					>
-						{/* Shop Header */}
-						<div className="flex items-center gap-2 px-4 py-3 bg-brand-light-soft/20 border-b border-brand-border">
+						{/* Shop header */}
+						<div className="flex items-center gap-2 px-4 py-2.5 bg-brand-light-soft/20 border-b border-brand-border">
 							<Store className="w-4 h-4 text-brand-primary" />
 							<span className="font-extrabold text-xs text-brand-dark">
 								{group.shopName || `Cửa hàng #${group.shopId}`}
 							</span>
 						</div>
 
-						{/* Item list */}
-						<div className="divide-y divide-brand-border/60">
-							{groupSelectedItems.map((item: any) => (
-								<div key={item.productVariantId} className="flex gap-3 p-4">
-									<img
-										src={item.thumbnailUrl || "https://images.unsplash.com/photo-1556821840-3a63f95609a7?auto=format&fit=crop&q=80&w=150"}
-										alt={item.productName}
-										className="w-14 h-14 object-cover rounded-lg border border-brand-border flex-shrink-0"
-									/>
-									<div className="flex-1 min-w-0 text-left">
-										<h4 className="font-extrabold text-brand-dark text-xs truncate">
-											{item.productName}
-										</h4>
-										{item.variantName && (
-											<span className="inline-block text-[9px] font-bold text-brand-muted bg-brand-light-soft px-1.5 py-0.5 rounded-sm mt-1">
-												Phân loại: {item.variantName}
-											</span>
-										)}
-										<div className="flex justify-between items-baseline mt-2">
-											<span className="text-[10px] text-brand-muted font-bold">
-												Số lượng: {item.quantity}
-											</span>
-											<div className="flex items-baseline gap-1.5">
-												{item.discountPrice && item.discountPrice < item.unitPrice ? (
-													<>
-														<span className="font-extrabold text-brand-primary-deep text-xs">
-															{(item.discountPrice * item.quantity).toLocaleString("vi-VN")}đ
-														</span>
-														<span className="text-[9px] text-brand-muted line-through font-bold">
-															{(item.unitPrice * item.quantity).toLocaleString("vi-VN")}đ
-														</span>
-													</>
-												) : (
-													<span className="font-extrabold text-brand-dark text-xs">
-														{(item.unitPrice * item.quantity).toLocaleString("vi-VN")}đ
+						{/* Items Table Header */}
+						<div className="hidden sm:grid sm:grid-cols-12 gap-3 px-4 py-2 bg-gray-50/50 border-b border-brand-border/60 text-[10px] font-bold text-brand-muted uppercase tracking-wider">
+							<div className="col-span-6">Sản phẩm</div>
+							<div className="col-span-2 text-right">Đơn giá</div>
+							<div className="col-span-2 text-center">Số lượng</div>
+							<div className="col-span-2 text-right">Thành tiền</div>
+						</div>
+
+						{/* Items list */}
+						<div className="divide-y divide-brand-border/50">
+							{group.items.map((item: any) => (
+								<div key={item.productVariantId} className="p-3 sm:p-3.5 hover:bg-gray-50/30 transition-colors">
+									<div className="grid grid-cols-1 sm:grid-cols-12 gap-3 items-center">
+										{/* Product info (6 cols) */}
+										<div className="sm:col-span-6 flex gap-3 items-center">
+											{item.thumbnailUrl ? (
+												<img
+													src={item.thumbnailUrl}
+													alt={item.productName}
+													className="w-12 h-12 object-cover rounded-md border border-brand-border/80 flex-shrink-0 shadow-xs"
+												/>
+											) : (
+												<div className="w-12 h-12 rounded-md bg-brand-light-soft border border-brand-border/80 flex items-center justify-center flex-shrink-0 text-brand-muted text-[10px] font-bold">
+													No img
+												</div>
+											)}
+											<div className="min-w-0 flex-1 text-left space-y-0.5">
+												<h4 className="font-extrabold text-brand-dark text-xs truncate" title={item.productName}>
+													{item.productName}
+												</h4>
+												{item.variantName && (
+													<span className="inline-block text-[9px] font-bold text-brand-muted bg-brand-light-soft px-1.5 py-0.5 rounded-sm">
+														Phân loại: {item.variantName}
 													</span>
 												)}
 											</div>
+										</div>
+
+										{/* Unit Price (2 cols) */}
+										<div className="sm:col-span-2 flex sm:flex-col sm:items-end justify-between sm:justify-center">
+											<span className="text-[10px] text-brand-muted font-bold sm:hidden">Đơn giá:</span>
+											<div className="text-right">
+												<span className="font-bold text-brand-dark text-xs">
+													{(item.discountPrice && item.discountPrice > 0 && item.discountPrice < item.unitPrice ? item.discountPrice : item.unitPrice).toLocaleString("vi-VN")}đ
+												</span>
+												{item.discountPrice && item.discountPrice < item.unitPrice && (
+													<span className="text-[10px] text-gray-400 line-through block font-medium">
+														{item.unitPrice.toLocaleString("vi-VN")}đ
+													</span>
+												)}
+											</div>
+										</div>
+
+										{/* Quantity (2 cols) */}
+										<div className="sm:col-span-2 flex sm:justify-center justify-between items-center">
+											<span className="text-[10px] text-brand-muted font-bold sm:hidden">Số lượng:</span>
+											<span className="text-xs font-bold text-brand-dark bg-gray-100 px-2 py-0.5 rounded">
+												x{item.quantity}
+											</span>
+										</div>
+
+										{/* Subtotal (2 cols) */}
+										<div className="sm:col-span-2 flex sm:justify-end justify-between items-center text-right">
+											<span className="text-[10px] text-brand-muted font-bold sm:hidden">Thành tiền:</span>
+											<span className="font-black text-brand-primary-deep text-xs">
+												{((item.discountPrice && item.discountPrice > 0 && item.discountPrice < item.unitPrice ? item.discountPrice : item.unitPrice) * item.quantity).toLocaleString("vi-VN")}đ
+											</span>
 										</div>
 									</div>
 								</div>
 							))}
 						</div>
 
-						{/* Interactive Shop Voucher modal row */}
-						<div className="px-4 py-3.5 bg-brand-light-soft/10 border-t border-brand-border/50 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+						{/* Interactive Shop Voucher row */}
+						<div className="px-4 py-2.5 bg-brand-light-soft/10 border-t border-brand-border/50 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
 							<div className="flex items-center gap-2 flex-1">
 								<Ticket className="w-4 h-4 text-brand-primary flex-shrink-0" />
 								<span className="text-[11px] font-bold text-brand-dark mr-1">Voucher của Shop:</span>
 
 								{appliedVoucherCode ? (
-									<div className="flex items-center gap-1.5 bg-brand-primary/10 border border-brand-primary/30 px-2.5 py-1 rounded-lg text-xs font-bold text-brand-dark">
+									<div className="flex items-center gap-1.5 bg-brand-primary/10 border border-brand-primary/30 px-2 py-0.5 rounded-md text-xs font-bold text-brand-dark">
 										<span>{appliedVoucherCode}</span>
 										{shopDiscount > 0 && (
 											<span className="text-[10px] text-red-500 font-bold">(-{shopDiscount.toLocaleString("vi-VN")}đ)</span>
@@ -118,7 +145,7 @@ export function OrderItemsList({
 								) : (
 									<button
 										onClick={() => setActiveShopVoucherModal(group.shopId)}
-										className="inline-flex items-center gap-1 px-3 py-1 border border-dashed border-brand-border hover:bg-brand-light-soft text-brand-muted hover:text-brand-dark rounded-lg text-xs font-bold transition-all cursor-pointer bg-white"
+										className="inline-flex items-center gap-1 px-2.5 py-0.5 border border-dashed border-brand-border hover:bg-brand-light-soft text-brand-muted hover:text-brand-dark rounded-md text-xs font-bold transition-all cursor-pointer bg-white"
 									>
 										Chọn voucher từ shop
 									</button>
@@ -127,8 +154,8 @@ export function OrderItemsList({
 						</div>
 
 						{/* Shipping & Shop Total Row */}
-						<div className="p-4 bg-brand-light-soft/10 border-t border-brand-border/60 text-left space-y-3">
-							<div className="flex items-center justify-between border-b border-dashed border-brand-border/80 pb-3">
+						<div className="p-3 bg-brand-light-soft/10 border-t border-brand-border/60 text-left space-y-2">
+							<div className="flex items-center justify-between border-b border-dashed border-brand-border/80 pb-2">
 								<div>
 									<span className="text-xs font-extrabold text-brand-dark block">
 										Phương thức vận chuyển

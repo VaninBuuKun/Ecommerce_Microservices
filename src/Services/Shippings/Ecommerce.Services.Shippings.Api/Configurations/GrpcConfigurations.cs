@@ -1,10 +1,15 @@
+using System;
+using BuildingBlocks.Grpc.Extensions;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
+
 namespace Ecommerce.Services.Shippings.Api.Configurations;
 
 public static class GrpcConfigurations
 {
     public static void AddGrpcConfigurations(this IServiceCollection services, IConfiguration configuration)
     {
-        services.AddGrpc();
+        services.AddBuildingBlocksGrpc();
         AppContext.SetSwitch("System.Net.Http.SocketsHttpHandler.Http2UnencryptedSupport", true);
         services.AddGrpcClient<BuildingBlocks.Grpc.Services.SellerGrpc.SellerGrpcClient>(o =>
         {

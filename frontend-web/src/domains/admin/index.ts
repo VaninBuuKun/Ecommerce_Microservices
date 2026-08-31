@@ -1,4 +1,5 @@
 export * from "./api/adminApi";
+export * from "./api/bannerApi";
 export * from "./hooks/useAdmin";
 export * from "./components/AdminWithdrawsView";
 export * from "./components/AdminUsersView";
@@ -11,3 +12,4 @@ export * from "./components/AdminRefundsView";
 export * from "./components/AdminCategoriesView";
 export * from "./components/AdminShopsView";
 export * from "./components/AdminKycView";
+export * from "./components/AdminBannersView";

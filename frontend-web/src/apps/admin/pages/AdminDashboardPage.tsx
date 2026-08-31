@@ -10,6 +10,7 @@ import {
 	AdminVouchersView, 
 	AdminWalletsDashboardView,
 	AdminKycView,
+	AdminBannersView,
 } from "@/domains/admin";
 
 export default function AdminDashboardPage() {
@@ -17,6 +18,7 @@ export default function AdminDashboardPage() {
 		<Routes>
 			<Route index element={<Navigate to="products" replace />} />
 			<Route path="products" element={<AdminProductsView />} />
+			<Route path="banners" element={<AdminBannersView />} />
 			<Route path="orders" element={<AdminOrdersView />} />
 			<Route path="shipments" element={<AdminShipmentsView />} />
 			<Route path="refunds" element={<AdminRefundsView />} />

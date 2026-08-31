@@ -30,6 +30,7 @@
       <ProjectReference Include="..\..\..\BuildingBlocks\BuildingBlocks.Shared\BuildingBlocks.Shared.csproj" />
       <ProjectReference Include="..\..\..\BuildingBlocks\BuildingBlocks.Web\BuildingBlocks.Web.csproj" />
       <ProjectReference Include="..\..\..\BuildingBlocks\BuildingBlocks.Grpc\BuildingBlocks.Grpc.csproj" />
+      <ProjectReference Include="..\..\..\BuildingBlocks\BuildingBlocks.Messaging\BuildingBlocks.Messaging.csproj" />
     </ItemGroup>
 
     <ItemGroup>

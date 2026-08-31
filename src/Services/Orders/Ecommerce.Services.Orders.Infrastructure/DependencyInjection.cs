@@ -5,6 +5,7 @@ using Microsoft.Extensions.Configuration;
 using Ecommerce.Services.Orders.Infrastructure.Persistence;
 using BuildingBlocks.Shared.InfrastructureInterfaces.Persistence.EFCore;
 using BuildingBlocks.EfCore.Persistence.Commons;
+using BuildingBlocks.Grpc.Extensions;
 using BuildingBlocks.Grpc.Services;
 using BuildingBlocks.Messaging;
 using Ecommerce.Services.Orders.Application.Services;
@@ -45,7 +46,7 @@ public static class DependencyInjection
         });
         
         //Grpc
-        services.AddGrpc();
+        services.AddBuildingBlocksGrpc();
         AppContext.SetSwitch("System.Net.Http.SocketsHttpHandler.Http2UnencryptedSupport", true);
         services.AddGrpcClient<ProductGrpc.ProductGrpcClient>(o =>
         {

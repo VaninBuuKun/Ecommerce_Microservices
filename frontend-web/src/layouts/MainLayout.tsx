@@ -15,11 +15,6 @@ export default function MainLayout() {
 
       {/* Floating Chat Tool */}
       <ChatFloatingWidget />
-
-      {/* Footer */}
-      <footer className="mt-auto py-12 border-t border-brand-border bg-brand-light text-center text-xs text-brand-muted">
-        <p>© 2026 Supabaze Store. Powered by OpenTelemetry, NestJS, and EF Core 8.</p>
-      </footer>
     </div>
   );
 }

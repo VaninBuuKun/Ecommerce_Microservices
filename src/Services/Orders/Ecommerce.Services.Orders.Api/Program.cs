@@ -1,4 +1,5 @@
 using BuildingBlocks.Auth;
+using BuildingBlocks.Grpc.Extensions;
 using BuildingBlocks.Logging;
 
 using Ecommerce.Services.Orders.Infrastructure;
@@ -22,7 +23,7 @@ try
             options.JsonSerializerOptions.Converters.Add(new System.Text.Json.Serialization.JsonStringEnumConverter());
         });
     builder.Services.AddHttpContextAccessor();
-    builder.Services.AddGrpc();
+    builder.Services.AddBuildingBlocksGrpc();
     builder.Services.AddBuildingBlocksWeb(builder.Configuration);
     builder.Services.AddBuildingBlocsAuth(builder.Configuration);
     

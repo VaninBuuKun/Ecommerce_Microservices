@@ -16,6 +16,7 @@ public class ProductDbContext(DbContextOptions<ProductDbContext> options, IInMem
     public DbSet<Category> Categories { get; set; }
     public DbSet<ProductReview> ProductReviews { get; set; }
     public DbSet<Wishlist> Wishlists { get; set; }
+    public DbSet<Banner> Banners { get; set; }
 
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -57,6 +58,20 @@ public class ProductDbContext(DbContextOptions<ProductDbContext> options, IInMem
                       v => System.Text.Json.JsonSerializer.Deserialize<List<string>>(v, (System.Text.Json.JsonSerializerOptions)null) ?? new List<string>()
                   )
                   .HasColumnType("json");
+        });
+
+        modelBuilder.Entity<Banner>(entity =>
+        {
+            entity.HasKey(b => b.Id);
+            entity.Property(b => b.Title).HasMaxLength(255).IsRequired();
+            entity.Property(b => b.Subtitle).HasMaxLength(500);
+            entity.Property(b => b.Badge).HasMaxLength(100);
+            entity.Property(b => b.ImageUrl).HasMaxLength(1000).IsRequired();
+            entity.Property(b => b.ButtonText).HasMaxLength(100).HasDefaultValue("Mua ngay");
+            entity.Property(b => b.TargetUrl).HasMaxLength(500).HasDefaultValue("/products");
+            entity.Property(b => b.ThemeGradient).HasMaxLength(255).HasDefaultValue("bg-gradient-to-r from-blue-600 via-indigo-600 to-blue-700");
+            entity.Property(b => b.DisplayOrder).HasDefaultValue(0);
+            entity.Property(b => b.IsActive).HasDefaultValue(true);
         });
 
         modelBuilder.Entity<Product>(entity =>

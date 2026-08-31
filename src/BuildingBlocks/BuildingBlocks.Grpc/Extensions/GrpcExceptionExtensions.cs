@@ -1,11 +1,26 @@
-﻿using BuildingBlocks.Shared.Commons;
+using System;
+using BuildingBlocks.Grpc.Interceptors;
+using BuildingBlocks.Shared.Commons;
 using BuildingBlocks.Shared.Enums;
 using Grpc.Core;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace BuildingBlocks.Grpc.Extensions;
 
 public static class GrpcExceptionExtensions
 {
+    /// <summary>
+    /// Đăng ký gRPC Server tích hợp sẵn Global Server Exception Interceptor
+    /// </summary>
+    public static IServiceCollection AddBuildingBlocksGrpc(this IServiceCollection services)
+    {
+        services.AddGrpc(options =>
+        {
+            options.Interceptors.Add<GrpcGlobalServerExceptionInterceptor>();
+        });
+        return services;
+    }
+
     // 1. Hàm ánh xạ mã lỗi EErrorCode sang gRPC StatusCode
     private static StatusCode MapToGrpcStatusCode(this EErrorCode errorCode)
     {
@@ -16,7 +31,7 @@ public static class GrpcExceptionExtensions
             EErrorCode.Unauthorized => StatusCode.Unauthenticated,
             EErrorCode.Forbidden => StatusCode.PermissionDenied,
             EErrorCode.NotFound => StatusCode.NotFound,
-            EErrorCode.ValidationErrors => StatusCode.FailedPrecondition, // Hoặc InvalidArgument tùy thiết kế
+            EErrorCode.ValidationErrors => StatusCode.FailedPrecondition,
             _ => StatusCode.Internal
         };
     }
@@ -38,27 +53,38 @@ public static class GrpcExceptionExtensions
     public static RpcException ToRpcException<T>(this Result<T> result)
     {
         var grpcStatusCode = result.ErrorCode.MapToGrpcStatusCode();
-        return new RpcException(new Status(grpcStatusCode, result.Message ?? ""));
+        var message = string.IsNullOrWhiteSpace(result.Message) ? "Thao tác gRPC không thành công" : result.Message;
+        return new RpcException(new Status(grpcStatusCode, message));
     }
 
     public static RpcException ToRpcException(this Result result)
     {
         var grpcStatusCode = result.ErrorCode.MapToGrpcStatusCode();
-        return new RpcException(new Status(grpcStatusCode, result.Message ?? ""));
+        var message = string.IsNullOrWhiteSpace(result.Message) ? "Thao tác gRPC không thành công" : result.Message;
+        return new RpcException(new Status(grpcStatusCode, message));
     }
     
+    private static string NormalizeGrpcErrorMessage(string? detail)
+    {
+        if (string.IsNullOrWhiteSpace(detail) || detail.Contains("Exception was thrown by handler", StringComparison.OrdinalIgnoreCase))
+        {
+            return "Dịch vụ liên kết tạm thời không phản hồi hoặc gặp sự cố xử lý. Vui lòng thử lại.";
+        }
+        return detail;
+    }
     
     public static Result<T> ToResultFailure<T>(this RpcException ex)
     {
         var errorCode = ex.StatusCode.ToEErrorCode();
-        // ex.Status.Detail chính là cái Message mà Server ném ra trong RpcException
-        return Result<T>.Failure(ex.Status.Detail, errorCode);
+        var cleanMessage = NormalizeGrpcErrorMessage(ex.Status.Detail);
+        return Result<T>.Failure(cleanMessage, errorCode);
     }
     
     // 3. Tự động chuyển RpcException thành Result dạng Failure
     public static Result ToResultFailure(this RpcException ex)
     {
         var errorCode = ex.StatusCode.ToEErrorCode();
-        return Result.Failure(ex.Status.Detail,  errorCode);
+        var cleanMessage = NormalizeGrpcErrorMessage(ex.Status.Detail);
+        return Result.Failure(cleanMessage, errorCode);
     }
 }
