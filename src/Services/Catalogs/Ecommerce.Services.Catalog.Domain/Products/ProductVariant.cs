@@ -66,6 +66,12 @@ public class ProductVariant : EntityTrackingBase<long>
         AvailableStocks += stock;
     }
 
+    public void CommitStock(int stock)
+    {
+        Check(new ProductStocksCannotBeNegativeRule(stock));
+        ReservedStocks = Math.Max(0, ReservedStocks - stock);
+    }
+
     public void AddOption(ProductVariantOption option)
     {
         _variantOptions.Add(option);

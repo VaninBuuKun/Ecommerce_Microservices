@@ -8,7 +8,7 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
 #nullable disable
 
-namespace Ecommerce.Services.Orders.Infrastructure.Migrations
+namespace Ecommerce.Services.Orders.Infrastructure.Persistence.Migrations
 {
     [DbContext(typeof(OrderDbContext))]
     partial class OrderDbContextModelSnapshot : ModelSnapshot
@@ -104,10 +104,7 @@ namespace Ecommerce.Services.Orders.Infrastructure.Migrations
             modelBuilder.Entity("Ecommerce.Services.Orders.Domain.Order", b =>
                 {
                     b.Property<long>("Id")
-                        .ValueGeneratedOnAdd()
                         .HasColumnType("bigint");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
 
                     b.Property<DateTimeOffset>("CreatedDate")
                         .HasColumnType("timestamp with time zone");
@@ -289,10 +286,7 @@ namespace Ecommerce.Services.Orders.Infrastructure.Migrations
             modelBuilder.Entity("Ecommerce.Services.Orders.Domain.SubOrder", b =>
                 {
                     b.Property<long>("Id")
-                        .ValueGeneratedOnAdd()
                         .HasColumnType("bigint");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
 
                     b.Property<DateTimeOffset>("CreatedDate")
                         .HasColumnType("timestamp with time zone");
@@ -350,10 +344,7 @@ namespace Ecommerce.Services.Orders.Infrastructure.Migrations
             modelBuilder.Entity("Ecommerce.Services.Orders.Domain.SubOrderItem", b =>
                 {
                     b.Property<long>("Id")
-                        .ValueGeneratedOnAdd()
                         .HasColumnType("bigint");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
 
                     b.Property<DateTimeOffset>("CreatedDate")
                         .HasColumnType("timestamp with time zone");

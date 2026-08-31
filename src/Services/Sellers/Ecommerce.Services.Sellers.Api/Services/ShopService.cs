@@ -54,6 +54,7 @@ public class ShopService(
         {
             KycStatus = kyc?.Status.ToString() ?? "None",
             RejectionReason = kyc?.RejectReason,
+            Kyc = kyc != null ? mapper.Map<SellerKycDto>(kyc) : null,
             Shops = mapper.Map<List<ShopDto>>(shops)
         };
 

@@ -44,4 +44,42 @@ public class PaymentMethodService(IEfUnitOfWork unitOfWork, IMapper mapper) : IP
         }
         return Result<PaymentMethod>.Success(method);
     }
+
+    public async Task<Result<PaymentMethod>> UpdatePaymentMethod(long id, UpdatePaymentMethodRequest request)
+    {
+        var method = await _paymentMethodRepository.GetByIdAsync(id);
+        if (method == null)
+        {
+            return Result<PaymentMethod>.ValidationFailure("Phương thức thanh toán không tồn tại.");
+        }
+
+        method.Title = request.Title;
+        method.SubTitle = request.SubTitle;
+        method.IsActive = request.IsActive;
+        method.ProviderName = request.ProviderName;
+        method.IconUrl = request.IconUrl;
+        method.LastModifiedDate = DateTimeOffset.UtcNow;
+
+        _paymentMethodRepository.Update(method);
+        await unitOfWork.SaveChangesAsync();
+
+        return Result<PaymentMethod>.Success(method);
+    }
+
+    public async Task<Result<PaymentMethod>> TogglePaymentMethodStatus(long id)
+    {
+        var method = await _paymentMethodRepository.GetByIdAsync(id);
+        if (method == null)
+        {
+            return Result<PaymentMethod>.ValidationFailure("Phương thức thanh toán không tồn tại.");
+        }
+
+        method.IsActive = !method.IsActive;
+        method.LastModifiedDate = DateTimeOffset.UtcNow;
+
+        _paymentMethodRepository.Update(method);
+        await unitOfWork.SaveChangesAsync();
+
+        return Result<PaymentMethod>.Success(method);
+    }
 }

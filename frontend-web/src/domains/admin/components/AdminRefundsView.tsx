@@ -31,12 +31,12 @@ export function AdminRefundsView() {
 					<h2 className="text-sm font-black text-brand-dark uppercase tracking-wide">Yêu cầu hoàn trả & hoàn tiền</h2>
 					<p className="text-[10px] text-brand-muted font-bold mt-0.5">Danh sách các yêu cầu khiếu nại hoàn trả hàng của khách hàng gửi cho shop</p>
 				</div>
-				<button onClick={fetchRefunds} className="p-1.5 text-brand-muted hover:text-brand-dark rounded hover:bg-brand-light-soft transition-colors cursor-pointer border-none bg-transparent">
+				<button onClick={fetchRefunds} className="p-1.5 text-brand-muted hover:text-brand-dark rounded-md hover:bg-brand-light-soft transition-colors cursor-pointer border-none bg-transparent">
 					<RefreshCw className="w-4 h-4" />
 				</button>
 			</div>
 
-			<div className="border border-brand-border rounded-lg bg-white overflow-hidden shadow-[0_1px_3px_rgba(0,0,0,0.02)]">
+			<div className="border border-brand-border rounded-md bg-white overflow-hidden shadow-[0_1px_3px_rgba(0,0,0,0.02)]">
 				{loading ? (
 					<div className="flex justify-center items-center py-16 text-xs text-brand-muted gap-2">
 						<Loader2 className="w-4 h-4 animate-spin text-brand-primary" /> Đang tải danh sách khiếu nại...
@@ -61,7 +61,7 @@ export function AdminRefundsView() {
 									<td className="p-3 text-brand-dark font-semibold">{r.reason}</td>
 									<td className="p-3 text-right font-black text-brand-dark">{Number(r.refundAmount).toLocaleString("vi-VN")}đ</td>
 									<td className="p-3 text-center">
-										<span className={`px-2 py-0.5 rounded text-[9px] font-black uppercase ${r.status === "Pending" ? "bg-yellow-50 text-yellow-700 border border-yellow-200" : r.status === "Approved" ? "bg-emerald-50 text-emerald-700 border border-emerald-200" : "bg-red-50 text-red-700 border border-red-200"}`}>
+										<span className={`px-2 py-0.5 rounded-md text-[9px] font-black uppercase ${r.status === "Pending" ? "bg-yellow-50 text-yellow-700 border border-yellow-200" : r.status === "Approved" ? "bg-emerald-50 text-emerald-700 border border-emerald-200" : "bg-red-50 text-red-700 border border-red-200"}`}>
 											{r.status === "Pending" ? "Chờ duyệt" : r.status === "Approved" ? "Chấp nhận" : "Từ chối"}
 										</span>
 									</td>

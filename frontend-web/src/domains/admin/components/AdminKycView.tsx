@@ -1,28 +1,51 @@
 import { useState } from "react";
 import { createPortal } from "react-dom";
-import { ShieldAlert, CheckCircle, XCircle, Eye, Loader2, RefreshCw, AlertCircle, FileText, Filter } from "lucide-react";
+import {
+	useAdminKycsQuery,
+	useApproveKycMutation,
+	useRejectKycMutation,
+} from "@/domains/admin";
+import {
+	CheckCircle,
+	XCircle,
+	Eye,
+	RefreshCw,
+	Loader2,
+	AlertCircle,
+	X,
+	FileText,
+	User,
+	CreditCard,
+	Calendar,
+	Check,
+} from "lucide-react";
 import { toast } from "react-toastify";
-import { useAdminKycsQuery, useApproveKycMutation, useRejectKycMutation } from "../hooks/useAdmin";
 import { Pagination } from "@/shared/components/Pagination";
 
 export function AdminKycView() {
 	const [statusFilter, setStatusFilter] = useState<string>("Submitted");
 	const [page, setPage] = useState(1);
-	const pageSize = 8;
+	const pageSize = 10;
 	const [searchQuery, setSearchQuery] = useState("");
 
-	const { data: kycsData, isLoading, isError, refetch } = useAdminKycsQuery({
-		page,
-		pageSize,
-		status: statusFilter !== "ALL" ? statusFilter : undefined,
+	const {
+		data: kycsData,
+		isLoading,
+		isError,
+		refetch,
+		isFetching,
+	} = useAdminKycsQuery({
+		pageNumber: page,
+		pageSize: pageSize,
+		status: statusFilter === "ALL" ? undefined : statusFilter,
 	});
 
 	const approveKycMutation = useApproveKycMutation();
 	const rejectKycMutation = useRejectKycMutation();
 
-	// Modal States for Preview & Rejection
-	const [previewKyc, setPreviewKyc] = useState<any>(null);
-	const [rejectTargetKyc, setRejectTargetKyc] = useState<any>(null);
+	// Modal states
+	const [previewKyc, setPreviewKyc] = useState<any | null>(null);
+	const [rejectTargetKyc, setRejectTargetKyc] = useState<any | null>(null);
 	const [rejectReason, setRejectReason] = useState("");
 
 	const rawItems = kycsData?.items || (Array.isArray(kycsData) ? kycsData : []);
@@ -36,7 +59,8 @@ export function AdminKycView() {
 		return (
 			item.identityCardNumber?.toLowerCase().includes(query) ||
 			item.idCardNumber?.toLowerCase().includes(query) ||
-			String(item.userId)?.includes(query)
+			item.fullName?.toLowerCase().includes(query) ||
+			String(item.ownerUserId || item.userId)?.includes(query)
 		);
 	});
 
@@ -46,6 +70,7 @@ export function AdminKycView() {
 			await approveKycMutation.mutateAsync(kycId);
 			toast.success("Phê duyệt hồ sơ KYC thành công!");
 			if (previewKyc?.id === kycId) setPreviewKyc(null);
+			refetch();
 		} catch (err: any) {
 			toast.error(`Phê duyệt thất bại: ${err?.response?.data || err.message}`);
 		}
@@ -54,63 +79,94 @@ export function AdminKycView() {
 	const handleConfirmReject = async () => {
 		if (!rejectTargetKyc) return;
 		if (!rejectReason.trim()) {
-			toast.warning("Vui lòng nhập lý do từ chối!");
+			toast.error("Vui lòng nhập lý do từ chối hồ sơ.");
 			return;
 		}
-
 		try {
 			await rejectKycMutation.mutateAsync({
 				kycId: rejectTargetKyc.id,
 				reason: rejectReason.trim(),
 			});
-			toast.info("Đã từ chối hồ sơ KYC thành công.");
+			toast.success("Đã từ chối hồ sơ KYC!");
 			setRejectTargetKyc(null);
-			setRejectReason("");
 			if (previewKyc?.id === rejectTargetKyc.id) setPreviewKyc(null);
+			refetch();
 		} catch (err: any) {
 			toast.error(`Từ chối thất bại: ${err?.response?.data || err.message}`);
 		}
 	};
 
+	// Helper hiển thị badge trạng thái chuẩn tiếng Việt và màu sắc đồng bộ
+	const renderKycStatusBadge = (status: string) => {
+		switch (status?.toLowerCase()) {
+			case "verified":
+			case "approved":
+				return (
+					<span className="px-2 py-0.5 bg-emerald-50 text-emerald-700 border border-emerald-200 text-[10px] font-black rounded uppercase tracking-wide inline-flex items-center gap-1">
+						<Check className="w-3 h-3" /> Đã phê duyệt
+					</span>
+				);
+			case "rejected":
+				return (
+					<span className="px-2 py-0.5 bg-red-50 text-red-700 border border-red-200 text-[10px] font-black rounded uppercase tracking-wide inline-flex items-center gap-1">
+						<X className="w-3 h-3" /> Bị từ chối
+					</span>
+				);
+			case "draft":
+				return (
+					<span className="px-2 py-0.5 bg-slate-50 text-slate-600 border border-slate-200 text-[10px] font-black rounded uppercase tracking-wide">
+						Bản nháp
+					</span>
+				);
+			case "submitted":
+			default:
+				return (
+					<span className="px-2 py-0.5 bg-amber-50 text-amber-700 border border-amber-200 text-[10px] font-black rounded uppercase tracking-wide inline-flex items-center gap-1">
+						<Loader2 className="w-3 h-3 animate-spin" /> Chờ duyệt
+					</span>
+				);
+		}
+	};
+
 	return (
 		<div className="space-y-4 text-left font-sans animate-in fade-in duration-200">
-			{/* Header */}
+			{/* Header Bar */}
 			<div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 pb-2.5 border-b border-brand-border">
 				<div>
-					<h2 className="text-sm font-black text-brand-dark uppercase tracking-wide flex items-center gap-2">
-						<ShieldAlert className="w-4 h-4 text-brand-primary-deep" />
-						Quản lý hồ sơ định danh KYC
+					<h2 className="text-sm font-black text-brand-dark uppercase tracking-wide">
+						Phê duyệt định danh KYC
 					</h2>
 					<p className="text-[10px] text-brand-muted font-bold mt-0.5">
-						Xét duyệt các hồ sơ định danh cá nhân (CCCD/CMND) do người bán đăng ký
+						Xác thực thông tin căn cước công dân của các chủ shop để mở quyền bán hàng
 					</p>
 				</div>
 				<div className="flex items-center gap-2 w-full sm:w-auto">
-					<div className="relative flex-1 sm:w-60">
+					<div className="relative flex-1 sm:w-64">
 						<input
 							type="text"
-							placeholder="Tìm theo số CCCD, Mã người dùng..."
+							placeholder="Tìm theo số CCCD, Họ tên, Mã User..."
 							value={searchQuery}
 							onChange={(e) => {
 								setSearchQuery(e.target.value);
 								setPage(1);
 							}}
-							className="w-full pl-8 pr-3 py-1.5 border border-brand-border rounded-lg text-xs focus:outline-none focus:border-brand-primary font-bold text-brand-dark bg-white"
+							className="w-full pl-8 pr-3 py-1.5 border border-brand-border rounded-md text-xs focus:outline-none focus:border-brand-primary font-bold text-brand-dark bg-white"
 						/>
 						<FileText className="w-3.5 h-3.5 absolute left-2.5 top-2.5 text-brand-muted" />
 					</div>
 					<button
 						onClick={() => refetch()}
+						disabled={isFetching}
 						title="Làm mới"
-						className="p-1.5 text-brand-muted hover:text-brand-dark rounded-lg hover:bg-brand-light-soft transition-colors cursor-pointer border border-brand-border bg-white shrink-0"
+						className="p-1.5 text-brand-muted hover:text-brand-dark rounded-md hover:bg-brand-light-soft transition-colors cursor-pointer border border-brand-border bg-white shrink-0 disabled:opacity-60"
 					>
-						<RefreshCw className="w-4 h-4" />
+						<RefreshCw className={`w-4 h-4 ${isFetching ? "animate-spin" : ""}`} />
 					</button>
 				</div>
 			</div>
 
-			{/* Status Filter Tabs */}
-			<div className="flex items-center gap-2 bg-white p-1 rounded-xl border border-brand-border w-fit text-xs font-bold">
+			{/* Tab bars */}
+			<div className="flex border-b border-brand-border overflow-x-auto select-none no-scrollbar">
 				{[
 					{ label: "Chờ duyệt", value: "Submitted" },
 					{ label: "Đã phê duyệt", value: "Verified" },
@@ -124,10 +180,10 @@ export function AdminKycView() {
 							setStatusFilter(tab.value);
 							setPage(1);
 						}}
-						className={`px-3 py-1.5 rounded-lg transition-all cursor-pointer border-none ${
+						className={`py-3 px-4 text-xs font-extrabold border-b-2 whitespace-nowrap cursor-pointer transition-all ${
 							statusFilter === tab.value
-								? "bg-brand-dark text-white shadow-xs"
-								: "text-brand-muted hover:text-brand-dark hover:bg-brand-light-soft"
+								? "border-brand-primary text-brand-primary-deep"
+								: "border-transparent text-brand-muted hover:text-brand-dark"
 						}`}
 					>
 						{tab.label}
@@ -135,21 +191,21 @@ export function AdminKycView() {
 				))}
 			</div>
 
-			{/* Main Table */}
-			<div className="border border-brand-border rounded-lg bg-white overflow-hidden shadow-[0_1px_3px_rgba(0,0,0,0.02)]">
+			{/* Main Table - Đồng bộ theo chuẩn bảng của Admin Orders / Refunds */}
+			<div className="border border-brand-border rounded-md bg-white overflow-hidden shadow-sm">
 				<div className="overflow-x-auto">
 					<table className="w-full text-left text-xs font-semibold text-brand-dark border-collapse">
 						<thead>
-							<tr className="bg-brand-light-soft/50 border-b border-brand-border text-brand-muted uppercase text-[10px] tracking-wider font-extrabold select-none">
+							<tr className="bg-brand-light-soft border-b border-brand-border text-brand-muted uppercase text-[10px] tracking-wider font-extrabold select-none">
 								<th className="py-3 px-4">Mã hồ sơ</th>
-								<th className="py-3 px-4">Mã User</th>
+								<th className="py-3 px-4">Chủ sở hữu</th>
 								<th className="py-3 px-4">Số CCCD</th>
-								<th className="py-3 px-4">Trạng thái</th>
+								<th className="py-3 px-4 text-center">Trạng thái</th>
 								<th className="py-3 px-4">Hình ảnh CCCD</th>
-								<th className="py-3 px-4 text-center">Hành động</th>
+								<th className="py-3 px-4 text-right">Hành động</th>
 							</tr>
 						</thead>
-						<tbody className="divide-y divide-brand-border/60">
+						<tbody className="divide-y divide-brand-border">
 							{isLoading ? (
 								<tr>
 									<td colSpan={6} className="py-16 text-center text-brand-muted">
@@ -168,7 +224,7 @@ export function AdminKycView() {
 							) : paginatedKycs.length === 0 ? (
 								<tr>
 									<td colSpan={6} className="py-16 text-center text-brand-muted font-bold">
-										Không có hồ sơ KYC nào đang chờ duyệt.
+										Không tìm thấy hồ sơ KYC nào.
 									</td>
 								</tr>
 							) : (
@@ -176,69 +232,83 @@ export function AdminKycView() {
 									const idNumber = item.identityCardNumber || item.idCardNumber || "—";
 									const frontUrl = item.identityCardFrontUrl || item.idCardFrontUrl;
 									const backUrl = item.identityCardBackUrl || item.idCardBackUrl;
+									const userId = item.ownerUserId || item.userId;
+									const isSubmitted = item.status?.toLowerCase() === "submitted";
 
 									return (
 										<tr key={item.id} className="hover:bg-brand-light-soft/20 transition-colors">
 											<td className="py-3 px-4 font-mono font-bold">#{item.id}</td>
-											<td className="py-3 px-4 font-bold text-brand-primary-deep">
-												User #{item.userId}
+											<td className="py-3 px-4 font-bold text-brand-dark">
+												<div className="text-12 text-brand-muted font-medium">#{userId}</div>
 											</td>
-											<td className="py-3 px-4 font-extrabold tracking-wide">
+											<td className="py-3 px-4 font-mono font-extrabold tracking-wide text-brand-dark">
 												{idNumber}
 											</td>
-											<td className="py-3 px-4">
-												<span className="px-2 py-0.5 bg-blue-50 text-blue-700 border border-blue-200 text-[10px] font-extrabold rounded uppercase">
-													{item.status || "Submitted"}
-												</span>
+											<td className="py-3 px-4 text-center">
+												{renderKycStatusBadge(item.status)}
 											</td>
 											<td className="py-3 px-4">
 												<div className="flex items-center gap-2">
-													{frontUrl && (
+													{frontUrl ? (
 														<img
 															src={frontUrl}
 															alt="Mặt trước"
-															className="w-10 h-7 object-cover rounded border border-slate-200 cursor-pointer hover:opacity-80 transition-opacity"
+															className="w-11 h-7.5 object-cover rounded border border-brand-border cursor-pointer hover:opacity-80 transition-opacity shadow-2xs"
 															onClick={() => setPreviewKyc(item)}
 														/>
+													) : (
+														<span className="text-[10px] text-slate-300 italic">Trống</span>
 													)}
-													{backUrl && (
+													{backUrl ? (
 														<img
 															src={backUrl}
 															alt="Mặt sau"
-															className="w-10 h-7 object-cover rounded border border-slate-200 cursor-pointer hover:opacity-80 transition-opacity"
+															className="w-11 h-7.5 object-cover rounded border border-brand-border cursor-pointer hover:opacity-80 transition-opacity shadow-2xs"
 															onClick={() => setPreviewKyc(item)}
 														/>
+													) : (
+														<span className="text-[10px] text-slate-300 italic">Trống</span>
 													)}
 												</div>
 											</td>
-											<td className="py-3 px-4 text-center">
-												<div className="flex items-center justify-center gap-1.5">
+											<td className="py-3 px-4 text-right">
+												<div className="flex items-center justify-end gap-1.5">
+													{/* Chi tiết button */}
 													<button
 														onClick={() => setPreviewKyc(item)}
 														title="Xem chi tiết"
-														className="p-1.5 bg-brand-light-soft text-brand-dark hover:bg-brand-border rounded font-bold transition-colors cursor-pointer border-none flex items-center justify-center"
+														className="px-2.5 py-1 text-brand-dark hover:text-brand-primary-deep text-xs font-bold transition-colors cursor-pointer border border-brand-border hover:bg-white rounded flex items-center gap-1 bg-brand-light-soft/50 shadow-2xs"
 													>
-														<Eye className="w-3.5 h-3.5" />
+														<Eye className="w-3.5 h-3.5 text-brand-muted" />
+														<span>Xem</span>
 													</button>
-													<button
-														onClick={() => handleApprove(item.id)}
-														disabled={approveKycMutation.isPending}
-														title="Duyệt hồ sơ"
-														className="p-1.5 bg-green-50 text-green-700 hover:bg-green-100 rounded font-bold transition-colors cursor-pointer border-none flex items-center justify-center"
-													>
-														<CheckCircle className="w-3.5 h-3.5" />
-													</button>
-													<button
-														onClick={() => {
-															setRejectTargetKyc(item);
-															setRejectReason("");
-														}}
-														disabled={rejectKycMutation.isPending}
-														title="Từ chối"
-														className="p-1.5 bg-red-50 text-red-600 hover:bg-red-100 rounded font-bold transition-colors cursor-pointer border-none flex items-center justify-center"
-													>
-														<XCircle className="w-3.5 h-3.5" />
-													</button>
+
+													{/* Actions chỉ hiển thị khi trạng thái là Chờ duyệt (Submitted) */}
+													{isSubmitted && (
+														<>
+															<button
+																onClick={() => handleApprove(item.id)}
+																disabled={approveKycMutation.isPending}
+																title="Duyệt hồ sơ"
+																className="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded text-xs font-bold transition-all cursor-pointer border-none flex items-center gap-1 shadow-xs"
+															>
+																<Check className="w-3.5 h-3.5" />
+																<span>Duyệt</span>
+															</button>
+															<button
+																onClick={() => {
+																	setRejectTargetKyc(item);
+																	setRejectReason("");
+																}}
+																disabled={rejectKycMutation.isPending}
+																title="Từ chối"
+																className="px-2.5 py-1 bg-red-50 text-red-600 hover:bg-red-100 rounded text-xs font-bold transition-all cursor-pointer border border-red-200 flex items-center gap-1"
+															>
+																<X className="w-3.5 h-3.5" />
+																<span>Từ chối</span>
+															</button>
+														</>
+													)}
 												</div>
 											</td>
 										</tr>
@@ -249,70 +319,89 @@ export function AdminKycView() {
 					</table>
 				</div>
 
-				{/* Unified Pagination */}
+				{/* Phân trang */}
 				{totalPages > 1 && (
-					<div className="p-4 border-t border-brand-border/60 bg-white flex justify-center items-center">
+					<div className="p-3 border-t border-brand-border flex justify-end">
 						<Pagination
 							currentPage={page}
 							totalPages={totalPages}
-							onPageChange={setPage}
+							onPageChange={(p) => setPage(p)}
 						/>
 					</div>
 				)}
 			</div>
 
-			{/* Modal Preview Giấy Tờ KYC */}
+			{/* Modal Preview Chi Tiết KYC */}
 			{previewKyc &&
 				createPortal(
-					<div className="fixed inset-0 z-10000 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
-						<div className="bg-white rounded-2xl max-w-2xl w-full p-6 space-y-5 shadow-2xl text-left font-sans animate-in zoom-in-95 duration-200">
-							<div className="flex justify-between items-center pb-3 border-b border-brand-border">
-								<h3 className="text-sm font-black text-brand-dark uppercase tracking-wide flex items-center gap-2">
-									<ShieldAlert className="w-4 h-4 text-brand-primary" />
-									Chi tiết hồ sơ KYC #{previewKyc.id} (User #{previewKyc.userId})
+					<div className="fixed inset-0 z-10000 bg-brand-dark/40 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
+						<div className="bg-white rounded-md max-w-2xl w-full p-6 space-y-4 shadow-2xl text-left font-sans animate-in zoom-in-95 duration-200 relative border border-brand-border">
+							<button
+								onClick={() => setPreviewKyc(null)}
+								className="absolute top-4 right-4 p-1 rounded-md text-brand-muted hover:text-brand-dark hover:bg-brand-light-soft cursor-pointer transition-colors border-none bg-transparent"
+							>
+								<X className="w-5 h-5" />
+							</button>
+
+							<div className="flex items-center gap-2 border-b border-brand-border pb-3">
+								<FileText className="w-5 h-5 text-brand-primary" />
+								<h3 className="text-sm font-black text-brand-dark uppercase tracking-wide">
+									Chi tiết hồ sơ KYC #{previewKyc.id}
 								</h3>
-								<button
-									onClick={() => setPreviewKyc(null)}
-									className="text-brand-muted hover:text-brand-dark font-bold text-base cursor-pointer border-none bg-transparent"
-								>
-									✕
-								</button>
 							</div>
 
-							<div className="grid grid-cols-2 gap-4 text-xs">
+							{/* Thông tin Text */}
+							<div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs bg-brand-light-soft/50 p-4 rounded-md border border-brand-border">
 								<div>
-									<span className="font-bold text-brand-muted uppercase text-[10px] block mb-1">
-										Số CCCD/CMND
+									<span className="text-[11px] text-brand-muted font-bold block">Họ và tên:</span>
+									<span className="font-black text-brand-dark text-sm">
+										{previewKyc.fullName || `User #${previewKyc.ownerUserId || previewKyc.userId}`}
 									</span>
-									<span className="font-extrabold text-brand-dark text-sm">
+								</div>
+								<div>
+									<span className="text-[11px] text-brand-muted font-bold block">Số CCCD / CMND:</span>
+									<span className="font-mono font-black text-brand-primary-deep text-sm">
 										{previewKyc.identityCardNumber || previewKyc.idCardNumber || "—"}
 									</span>
 								</div>
 								<div>
-									<span className="font-bold text-brand-muted uppercase text-[10px] block mb-1">
-										Trạng thái hiện tại
-									</span>
-									<span className="px-2.5 py-0.5 bg-blue-50 text-blue-700 font-extrabold text-[10px] rounded uppercase border border-blue-200 inline-block">
-										{previewKyc.status || "Submitted"}
-									</span>
+									<span className="text-[11px] text-brand-muted font-bold block">Mã User sở hữu:</span>
+									<span className="font-bold text-brand-dark">#{previewKyc.ownerUserId || previewKyc.userId}</span>
 								</div>
+								<div>
+									<span className="text-[11px] text-brand-muted font-bold block">Trạng thái hiện tại:</span>
+									<div className="mt-0.5">{renderKycStatusBadge(previewKyc.status)}</div>
+								</div>
+								{previewKyc.rejectionReason && (
+									<div className="sm:col-span-2 pt-2 border-t border-brand-border/60">
+										<span className="text-[11px] text-red-600 font-bold block">Lý do từ chối trước đó:</span>
+										<p className="text-red-700 font-medium">{previewKyc.rejectionReason}</p>
+									</div>
+								)}
 							</div>
 
 							{/* Photos */}
-							<div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
+							<div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
 								<div className="space-y-1.5">
 									<span className="text-[11px] font-bold text-brand-dark block">
 										Ảnh mặt trước CCCD:
 									</span>
-									<div className="border border-brand-border rounded-xl overflow-hidden bg-gray-50 aspect-video flex items-center justify-center">
+									<div className="border border-brand-border rounded-md overflow-hidden bg-gray-50 aspect-video flex items-center justify-center relative shadow-inner">
 										{previewKyc.identityCardFrontUrl || previewKyc.idCardFrontUrl ? (
-											<img
-												src={previewKyc.identityCardFrontUrl || previewKyc.idCardFrontUrl}
-												alt="Front"
-												className="w-full h-full object-cover"
-											/>
+											<a
+												href={previewKyc.identityCardFrontUrl || previewKyc.idCardFrontUrl}
+												target="_blank"
+												rel="noreferrer"
+												className="w-full h-full block"
+											>
+												<img
+													src={previewKyc.identityCardFrontUrl || previewKyc.idCardFrontUrl}
+													alt="Mặt trước CCCD"
+													className="w-full h-full object-contain hover:scale-105 transition-transform"
+												/>
+											</a>
 										) : (
-											<span className="text-gray-400 text-xs font-bold">Chưa có ảnh</span>
+											<span className="text-gray-400 text-xs font-bold">Chưa có ảnh mặt trước</span>
 										)}
 									</div>
 								</div>
@@ -321,48 +410,60 @@ export function AdminKycView() {
 									<span className="text-[11px] font-bold text-brand-dark block">
 										Ảnh mặt sau CCCD:
 									</span>
-									<div className="border border-brand-border rounded-xl overflow-hidden bg-gray-50 aspect-video flex items-center justify-center">
+									<div className="border border-brand-border rounded-md overflow-hidden bg-gray-50 aspect-video flex items-center justify-center relative shadow-inner">
 										{previewKyc.identityCardBackUrl || previewKyc.idCardBackUrl ? (
-											<img
-												src={previewKyc.identityCardBackUrl || previewKyc.idCardBackUrl}
-												alt="Back"
-												className="w-full h-full object-cover"
-											/>
+											<a
+												href={previewKyc.identityCardBackUrl || previewKyc.idCardBackUrl}
+												target="_blank"
+												rel="noreferrer"
+												className="w-full h-full block"
+											>
+												<img
+													src={previewKyc.identityCardBackUrl || previewKyc.idCardBackUrl}
+													alt="Mặt sau CCCD"
+													className="w-full h-full object-contain hover:scale-105 transition-transform"
+												/>
+											</a>
 										) : (
-											<span className="text-gray-400 text-xs font-bold">Chưa có ảnh</span>
+											<span className="text-gray-400 text-xs font-bold">Chưa có ảnh mặt sau</span>
 										)}
 									</div>
 								</div>
 							</div>
 
-							{/* Actions */}
-							<div className="flex items-center justify-end gap-3 pt-4 border-t border-brand-border">
+							{/* Actions - Chỉ hiển thị nút Duyệt/Từ chối khi đang ở trạng thái Submitted */}
+							<div className="flex items-center justify-end gap-2 pt-4 border-t border-brand-border">
 								<button
 									type="button"
 									onClick={() => setPreviewKyc(null)}
-									className="px-4 py-2 border border-brand-border rounded-xl font-bold text-brand-dark hover:bg-brand-light-soft transition-colors cursor-pointer"
+									className="px-4 py-2 border border-brand-border rounded-md font-bold text-brand-dark hover:bg-brand-light-soft transition-colors cursor-pointer text-xs bg-white"
 								>
 									Đóng
 								</button>
-								<button
-									type="button"
-									onClick={() => {
-										setRejectTargetKyc(previewKyc);
-										setRejectReason("");
-									}}
-									className="px-4 py-2 bg-red-50 text-red-600 hover:bg-red-100 rounded-xl font-bold transition-colors cursor-pointer border-none flex items-center gap-1.5"
-								>
-									<XCircle className="w-4 h-4" />
-									Từ chối hồ sơ
-								</button>
-								<button
-									type="button"
-									onClick={() => handleApprove(previewKyc.id)}
-									className="px-5 py-2 bg-green-600 hover:bg-green-700 text-white font-black rounded-xl transition-colors cursor-pointer border-none flex items-center gap-1.5"
-								>
-									<CheckCircle className="w-4 h-4" />
-									Duyệt hồ sơ ngay
-								</button>
+								{previewKyc.status?.toLowerCase() === "submitted" && (
+									<>
+										<button
+											type="button"
+											onClick={() => {
+												setRejectTargetKyc(previewKyc);
+												setRejectReason("");
+											}}
+											className="px-4 py-2 bg-red-50 text-red-600 hover:bg-red-100 rounded-md font-bold text-xs transition-colors cursor-pointer border border-red-200 flex items-center gap-1.5"
+										>
+											<XCircle className="w-4 h-4" />
+											Từ chối hồ sơ
+										</button>
+										<button
+											type="button"
+											onClick={() => handleApprove(previewKyc.id)}
+											disabled={approveKycMutation.isPending}
+											className="px-4 py-2 bg-brand-primary hover:bg-brand-primary-deep text-white font-bold text-xs rounded-md transition-colors cursor-pointer border-none flex items-center gap-1.5 shadow-xs"
+										>
+											<CheckCircle className="w-4 h-4" />
+											Duyệt hồ sơ ngay
+										</button>
+									</>
+								)}
 							</div>
 						</div>
 					</div>,
@@ -372,8 +473,8 @@ export function AdminKycView() {
 			{/* Modal Nhập Lý Do Từ Chối */}
 			{rejectTargetKyc &&
 				createPortal(
-					<div className="fixed inset-0 z-10000 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
-						<div className="bg-white rounded-2xl max-w-md w-full p-6 space-y-4 shadow-2xl text-left font-sans animate-in zoom-in-95 duration-200">
+					<div className="fixed inset-0 z-10000 bg-brand-dark/40 backdrop-blur-sm flex items-center justify-center p-4">
+						<div className="bg-white rounded-md max-w-md w-full p-6 space-y-4 shadow-2xl text-left font-sans animate-in zoom-in-95 duration-200 border border-brand-border">
 							<div className="flex items-center gap-2 text-red-600">
 								<AlertCircle className="w-5 h-5" />
 								<h3 className="text-sm font-black uppercase tracking-wide">
@@ -394,7 +495,7 @@ export function AdminKycView() {
 									value={rejectReason}
 									onChange={(e) => setRejectReason(e.target.value)}
 									placeholder="Ví dụ: Ảnh chụp CCCD bị mờ, không nhìn rõ số định danh..."
-									className="w-full p-3 border border-brand-border rounded-xl text-xs focus:outline-none focus:border-red-500 font-medium"
+									className="w-full p-3 border border-brand-border rounded-md text-xs focus:outline-none focus:border-red-500 font-medium bg-white"
 								/>
 							</div>
 
@@ -402,7 +503,7 @@ export function AdminKycView() {
 								<button
 									type="button"
 									onClick={() => setRejectTargetKyc(null)}
-									className="px-4 py-2 border border-brand-border rounded-xl font-bold text-brand-dark hover:bg-brand-light-soft transition-colors cursor-pointer"
+									className="px-4 py-2 border border-brand-border rounded-md font-bold text-brand-dark hover:bg-brand-light-soft transition-colors cursor-pointer text-xs bg-white"
 								>
 									Hủy bỏ
 								</button>
@@ -410,7 +511,7 @@ export function AdminKycView() {
 									type="button"
 									onClick={handleConfirmReject}
 									disabled={rejectKycMutation.isPending}
-									className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white font-black rounded-xl transition-colors cursor-pointer border-none flex items-center gap-1.5"
+									className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white font-bold text-xs rounded-md transition-colors cursor-pointer border-none flex items-center gap-1.5 shadow-xs"
 								>
 									{rejectKycMutation.isPending ? "Đang xử lý..." : "Xác nhận từ chối"}
 								</button>

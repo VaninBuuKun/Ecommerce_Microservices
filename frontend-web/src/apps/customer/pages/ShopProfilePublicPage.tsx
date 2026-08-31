@@ -1,105 +1,42 @@
-import { useEffect, useState } from "react";
+import { useState, useMemo } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { MapPin, ShoppingBag, Star, Loader2, ArrowLeft, ChevronRight, Store } from "lucide-react";
-import { toast } from "react-toastify";
-import { FollowShopButton } from "@/domains/seller";
-import { api } from "@/core";
-
-interface ShopDetail {
-  id: number;
-  ownerUserId: number;
-  name: string;
-  description: string;
-  logoUrl: string | null;
-  status: string;
-  pickUpAddressProvince: string | null;
-  pickUpAddressDistrict: string | null;
-  pickUpAddressWard: string | null;
-}
-
-interface Product {
-  id: number;
-  name: string;
-  description: string;
-  price: number;
-  discountPrice: number;
-  thumbnailUrl: string | null;
-  averageRating: number;
-  reviewCount: number;
-  shopId: number;
-}
+import { FollowShopButton, usePublicShopQuery } from "@/domains/seller";
+import { useInfiniteProductsQuery } from "@/domains/catalog";
 
 export default function ShopProfilePublicPage() {
   const { shopId } = useParams<{ shopId: string }>();
   const navigate = useNavigate();
+  const parsedShopId = shopId ? Number(shopId) : undefined;
 
-  const [shop, setShop] = useState<ShopDetail | null>(null);
-  const [products, setProducts] = useState<Product[]>([]);
-  const [nextCursor, setNextCursor] = useState<string | null>(null);
-  const [hasNext, setHasNext] = useState(false);
-  const [loadingShop, setLoadingShop] = useState(true);
   const [selectedCategoryId, setSelectedCategoryId] = useState<number | null>(null);
   const [sortBy, setSortBy] = useState<string>("name");
 
-  useEffect(() => {
-    const fetchShopInfo = async () => {
-      setLoadingShop(true);
-      try {
-        const res = await api.get(`/shop/${shopId}/public`);
-        setShop(res.data);
-      } catch (err: any) {
-        console.error(err);
-        toast.error("Không thể tải thông tin cửa hàng công khai.");
-      } finally {
-        setLoadingShop(false);
-      }
-    };
+  // 1. Query thông tin Public của Shop
+  const { 
+    data: shop, 
+    isLoading: loadingShop, 
+    isError: isShopError 
+  } = usePublicShopQuery(parsedShopId);
 
-    if (shopId) {
-      fetchShopInfo();
-    }
-  }, [shopId]);
+  // 2. Query danh sách sản phẩm của Shop theo phân trang vô hạn
+  const {
+    data: productsData,
+    isLoading: loadingProducts,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+  } = useInfiniteProductsQuery({
+    shopId: parsedShopId,
+    categoryId: selectedCategoryId || undefined,
+    sortBy,
+    limit: 10,
+  });
 
-  useEffect(() => {
-    if (shopId) {
-      fetchProducts(null);
-    }
-  }, [shopId, selectedCategoryId, sortBy]);
-
-  const fetchProducts = async (cursor: string | null = null, append = false) => {
-    setLoadingProducts(true);
-    try {
-      const params: Record<string, any> = {
-        shopId,
-        limit: 10,
-        cursor,
-        sortBy,
-      };
-      if (selectedCategoryId) params.categoryId = selectedCategoryId;
-
-      const res = await api.get("/products", { params });
-      const data = res.data?.value || res.data;
-      if (append) {
-        setProducts(prev => [...prev, ...(data.items || [])]);
-      } else {
-        setProducts(data.items || []);
-      }
-      setNextCursor(data.nextCursor);
-      setHasNext(data.hasNext);
-    } catch (err: any) {
-      console.error(err);
-      toast.error("Không thể tải danh sách sản phẩm.");
-    } finally {
-      setLoadingProducts(false);
-    }
-  };
-
-  const handleLoadMore = () => {
-    if (hasNext && nextCursor) {
-      fetchProducts(nextCursor, true);
-    }
-  };
+  const products = useMemo(() => {
+    return productsData?.pages?.flatMap((page: any) => page?.items || []) || [];
+  }, [productsData]);
 
   if (loadingShop) {
     return (
@@ -110,7 +47,7 @@ export default function ShopProfilePublicPage() {
     );
   }
 
-  if (!shop) {
+  if (isShopError || !shop) {
     return (
       <div className="max-w-md mx-auto text-center py-20 space-y-4 font-sans text-xs">
         <p className="text-sm font-bold text-brand-muted">Không tìm thấy thông tin cửa hàng này.</p>
@@ -277,14 +214,14 @@ export default function ShopProfilePublicPage() {
               ))}
             </div>
 
-            {hasNext && (
+            {hasNextPage && (
               <div className="flex justify-center pt-4">
                 <button
-                  onClick={handleLoadMore}
-                  disabled={loadingProducts}
+                  onClick={() => fetchNextPage()}
+                  disabled={isFetchingNextPage}
                   className="px-6 py-2.5 bg-brand-dark text-white rounded-xl hover:bg-black font-black text-xs transition-all disabled:opacity-50 flex items-center gap-1.5 cursor-pointer shadow-xs"
                 >
-                  {loadingProducts && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+                  {isFetchingNextPage && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
                   Xem thêm sản phẩm
                   <ChevronRight className="w-3.5 h-3.5" />
                 </button>

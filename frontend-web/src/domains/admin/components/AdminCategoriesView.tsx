@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { api } from "@/core";
-import { Loader2, RefreshCw, FolderOpen, Pencil, Trash2, Edit } from "lucide-react";
+import { Loader2, RefreshCw, FolderOpen, Pencil, Trash2, Edit, Plus } from "lucide-react";
 import { UploadImage } from "@/shared";
 import { Pagination } from "@/shared/components/Pagination";
 
@@ -31,14 +31,14 @@ function CategoryTreeItem({
 	return (
 		<div className="space-y-1">
 			<div
-				className="flex items-center justify-between py-2 px-4 hover:bg-brand-light-soft/50 rounded-lg transition-all text-xs font-bold text-brand-dark"
+				className="flex items-center justify-between py-2 px-4 hover:bg-brand-light-soft/50 rounded-md transition-all text-xs font-bold text-brand-dark"
 				style={{ paddingLeft: `${depth * 24 + 16}px` }}
 			>
 				<div className="flex items-center gap-2.5">
 					{hasChildren ? (
 						<button
 							onClick={() => setIsOpen(!isOpen)}
-							className="p-1 hover:bg-brand-border rounded cursor-pointer transition-colors text-brand-muted hover:text-brand-dark border-none bg-transparent"
+							className="p-1 hover:bg-brand-border rounded-md cursor-pointer transition-colors text-brand-muted hover:text-brand-dark border-none bg-transparent"
 						>
 							<span className="text-[10px] block transition-transform duration-200" style={{ transform: isOpen ? 'rotate(90deg)' : 'rotate(0deg)' }}>
 								▶
@@ -53,7 +53,7 @@ function CategoryTreeItem({
 						<img
 							src={node.iconUrl}
 							alt={node.name}
-							className="w-7 h-7 object-cover rounded shrink-0 border border-slate-200"
+							className="w-7 h-7 object-cover rounded-md shrink-0 border border-slate-200"
 						/>
 					) : isRoot ? (
 						<FolderOpen className="w-4 h-4 text-brand-muted shrink-0" />
@@ -71,14 +71,14 @@ function CategoryTreeItem({
 						<button
 							onClick={() => onEdit(node)}
 							title="Chỉnh sửa"
-							className="p-1.5 bg-brand-light-soft text-brand-primary-deep hover:bg-brand-primary/20 rounded font-black transition-colors cursor-pointer border-none flex items-center justify-center"
+							className="p-1.5 bg-brand-light-soft text-brand-primary-deep hover:bg-brand-primary/20 rounded-md font-black transition-colors cursor-pointer border-none flex items-center justify-center"
 						>
 							<Edit className="w-3.5 h-3.5" />
 						</button>
 						<button
 							onClick={() => onDelete(node.id)}
 							title="Xóa danh mục"
-							className="p-1.5 bg-red-50 text-red-600 hover:bg-red-100 rounded font-black transition-colors cursor-pointer border-none flex items-center justify-center"
+							className="p-1.5 bg-red-50 text-red-600 hover:bg-red-100 rounded-md font-black transition-colors cursor-pointer border-none flex items-center justify-center"
 						>
 							<Trash2 className="w-3.5 h-3.5" />
 						</button>
@@ -105,12 +105,10 @@ function CategoryTreeItem({
 
 export function AdminCategoriesView() {
 	const [categories, setCategories] = useState<any[]>([]);
-	const [loading, setLoading] = useState(true);
-
-	// Search & Pagination states
+	const [loading, setLoading] = useState(false);
 	const [searchQuery, setSearchQuery] = useState("");
 	const [page, setPage] = useState(1);
-	const [pageSize] = useState(8);
+	const pageSize = 10;
 
 	// State cho Modals
 	const [isModalOpen, setIsModalOpen] = useState(false);
@@ -127,19 +125,11 @@ export function AdminCategoriesView() {
 		try {
 			setLoading(true);
 			const response = await api.get("/categories");
-			const items = response.data?.value || response.data || [];
-			setCategories(items);
-		} catch (err) {
+			if (response.data) {
+				setCategories(Array.isArray(response.data) ? response.data : response.data.items || []);
+			}
+		} catch (err: any) {
 			console.error("Lỗi khi tải danh mục", err);
-			const mockCategories = [
-				{ id: "1", name: "Thời Trang & Phụ Kiện", description: "Quần áo, túi xách, phụ kiện thời trang", parentId: null, iconUrl: null },
-				{ id: "2", name: "Thời Trang Nam", description: "Áo sơ mi, quần tây, áo phông", parentId: "1", iconUrl: null },
-				{ id: "3", name: "Thời Trang Nữ", description: "Váy, đầm, thời trang nữ cao cấp", parentId: "1", iconUrl: null },
-				{ id: "4", name: "Thiết Bị Điện Tử", description: "Điện thoại, máy tính, phụ kiện công nghệ", parentId: null, iconUrl: null },
-				{ id: "5", name: "Điện Thoại & Phụ Kiện", description: "Smartphone, ốp lưng, sạc dự phòng", parentId: "4", iconUrl: null },
-				{ id: "6", name: "Nhà Cửa & Đời Sống", description: "Đồ gia dụng, trang trí nhà cửa", parentId: null, iconUrl: null },
-			];
-			setCategories(mockCategories);
 		} finally {
 			setLoading(false);
 		}
@@ -292,23 +282,24 @@ export function AdminCategoriesView() {
 								setSearchQuery(e.target.value);
 								setPage(1);
 							}}
-							className="w-full pl-8 pr-3 py-1.5 border border-brand-border rounded-lg text-xs focus:outline-none focus:border-brand-primary font-bold text-brand-dark bg-white"
+							className="w-full pl-8 pr-3 py-1.5 border border-brand-border rounded-md text-xs focus:outline-none focus:border-brand-primary font-bold text-brand-dark bg-white"
 						/>
 						<FolderOpen className="w-3.5 h-3.5 absolute left-2.5 top-2.5 text-brand-muted" />
 					</div>
 					<button
 						onClick={handleOpenCreateModal}
-						className="px-3 py-1.5 bg-brand-primary hover:bg-brand-primary-deep text-brand-dark rounded-lg text-[11px] font-black tracking-wide transition-colors cursor-pointer border-none shrink-0"
+						className="px-3.5 py-1.5 bg-brand-primary hover:bg-brand-primary-deep text-white rounded text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer shadow-xs border-none shrink-0"
 					>
-						+ Thêm danh mục
+						<Plus className="w-3.5 h-3.5" />
+						<span>Thêm danh mục</span>
 					</button>
-					<button onClick={fetchCategories} title="Làm mới" className="p-1.5 text-brand-muted hover:text-brand-dark rounded-lg hover:bg-brand-light-soft transition-colors cursor-pointer border border-brand-border bg-white shrink-0">
+					<button onClick={fetchCategories} title="Làm mới" className="p-1.5 text-brand-muted hover:text-brand-dark rounded-md hover:bg-brand-light-soft transition-colors cursor-pointer border border-brand-border bg-white shrink-0">
 						<RefreshCw className="w-4 h-4" />
 					</button>
 				</div>
 			</div>
 
-			<div className="border border-brand-border rounded-lg bg-white overflow-hidden shadow-[0_1px_3px_rgba(0,0,0,0.02)]">
+			<div className="border border-brand-border rounded-md bg-white overflow-hidden shadow-[0_1px_3px_rgba(0,0,0,0.02)]">
 				<div className="bg-brand-light-soft/50 border-b border-brand-border text-[10px] font-extrabold text-brand-muted uppercase tracking-wider p-3 flex justify-between select-none">
 					<span>Cơ cấu danh mục (Tree view)</span>
 					<div className="flex items-center gap-12 mr-6">
@@ -352,7 +343,7 @@ export function AdminCategoriesView() {
 			{/* MODAL THÊM / SỬA CATEGORY */}
 			{isModalOpen && (
 				<div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-xs p-4 animate-in fade-in duration-200">
-					<div className="bg-white border border-brand-border rounded-xl w-full max-w-md shadow-2xl p-6 text-left space-y-4 animate-in zoom-in-95 duration-200">
+					<div className="bg-white border border-brand-border rounded-md w-full max-w-md shadow-2xl p-6 text-left space-y-4 animate-in zoom-in-95 duration-200">
 						<div className="border-b border-brand-border pb-3">
 							<h3 className="text-xs font-black text-brand-dark uppercase tracking-wide">
 								{modalMode === "create" ? "Thêm danh mục mới" : "Cập nhật danh mục"}
@@ -374,7 +365,7 @@ export function AdminCategoriesView() {
 											setFormDescription("");
 										}
 									}}
-									className="w-full px-3 py-2 border border-brand-border rounded bg-white focus:outline-none focus:border-brand-primary font-bold text-brand-dark"
+									className="w-full px-3 py-2 border border-brand-border rounded-md bg-white focus:outline-none focus:border-brand-primary font-bold text-brand-dark"
 								>
 									<option value="">Không có (Đặt làm Danh mục cha gốc)</option>
 									{rootCategoriesForSelect
@@ -400,7 +391,7 @@ export function AdminCategoriesView() {
 									value={formName}
 									onChange={(e) => setFormName(e.target.value)}
 									placeholder="Ví dụ: Thiết bị điện tử"
-									className="w-full px-3 py-2 border border-brand-border rounded focus:outline-none focus:border-brand-primary font-bold text-brand-dark"
+									className="w-full px-3 py-2 border border-brand-border rounded-md focus:outline-none focus:border-brand-primary font-bold text-brand-dark"
 								/>
 							</div>
 
@@ -414,7 +405,7 @@ export function AdminCategoriesView() {
 										<UploadImage
 											value={formIconUrl}
 											onChange={setFormIconUrl}
-											className="w-24 h-24 rounded-lg"
+											className="w-24 h-24 rounded-md"
 										/>
 									</div>
 
@@ -427,7 +418,7 @@ export function AdminCategoriesView() {
 											onChange={(e) => setFormDescription(e.target.value)}
 											placeholder="Nhập mô tả giới thiệu ngành hàng..."
 											rows={3}
-											className="w-full px-3 py-2 border border-brand-border rounded focus:outline-none focus:border-brand-primary font-bold text-brand-dark"
+											className="w-full px-3 py-2 border border-brand-border rounded-md focus:outline-none focus:border-brand-primary font-bold text-brand-dark"
 										/>
 									</div>
 								</>
@@ -437,13 +428,13 @@ export function AdminCategoriesView() {
 								<button
 									type="button"
 									onClick={() => setIsModalOpen(false)}
-									className="px-4 py-2 bg-brand-light-soft hover:bg-brand-border rounded font-bold text-brand-dark transition-colors cursor-pointer border-none"
+									className="px-4 py-2 bg-brand-light-soft hover:bg-brand-border rounded-md font-bold text-brand-dark transition-colors cursor-pointer border-none"
 								>
 									Hủy bỏ
 								</button>
 								<button
 									type="submit"
-									className="px-4 py-2 bg-brand-primary hover:bg-brand-primary-deep text-brand-dark font-black rounded transition-colors cursor-pointer border-none"
+									className="px-4 py-2 bg-brand-primary hover:bg-brand-primary-deep text-brand-dark font-black rounded-md transition-colors cursor-pointer border-none"
 								>
 									{modalMode === "create" ? "Tạo ngay" : "Lưu thay đổi"}
 								</button>

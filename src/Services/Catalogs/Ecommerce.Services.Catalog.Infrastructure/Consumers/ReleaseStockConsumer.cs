@@ -16,6 +16,7 @@ public class ReleaseStockConsumer(ISender sender) : IConsumer<ReleaseStocksReque
         await sender.Send(new ReleaseStocksCommand(
             command.VariantItems.Select(x => new VariantStockDto()
             {
+                ProductId = x.ProductId,
                 VariantId = x.VariantId,
                 Quantity = x.Quantity
             }).ToList()

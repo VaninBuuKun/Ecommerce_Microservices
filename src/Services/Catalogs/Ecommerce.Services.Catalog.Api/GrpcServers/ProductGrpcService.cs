@@ -94,6 +94,7 @@ public class ProductGrpcService(ISender sender, ILogger<ProductGrpcService> logg
         
         var variantDtos = request.Items.Select(x => new VariantStockDto
         {
+            ProductId = x.ProductId,
             VariantId = x.VariantId,
             Quantity = x.Quantity
         }).ToList();

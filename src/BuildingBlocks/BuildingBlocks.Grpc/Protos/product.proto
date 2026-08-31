@@ -55,6 +55,7 @@ message ReserveStockRequest {
 message RpcReserveStockItemDto {
   int64 variantId = 1;
   int32 quantity = 2;
+  int64 productId = 3;
 }
 
 message ReserveStockResponse {

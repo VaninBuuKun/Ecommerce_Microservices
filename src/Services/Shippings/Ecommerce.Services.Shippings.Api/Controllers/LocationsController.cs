@@ -1,6 +1,7 @@
 using System.Threading.Tasks;
 using Ecommerce.Services.Shippings.Api.Services;
 using Ecommerce.Services.Shippings.Api.Models.Interfaces;
+using Ecommerce.Services.Shippings.Api.Models.Dtos;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Ecommerce.Services.Shippings.Api.Controllers;
@@ -35,6 +36,17 @@ public class LocationsController(ILocationService locationService) : ControllerB
     public async Task<IActionResult> GetWards(long districtId)
     {
         var result = await locationService.GetWardsAsync(districtId);
+        if (result.IsSuccess)
+        {
+            return Ok(result.Value);
+        }
+        return StatusCode(result.GetHttpStatusCode(), result.Message);
+    }
+
+    [HttpPost("resolve")]
+    public async Task<IActionResult> ResolveLocations([FromBody] LocationResolveBatchRequest request)
+    {
+        var result = await locationService.ResolveLocationsAsync(request.WardIds);
         if (result.IsSuccess)
         {
             return Ok(result.Value);

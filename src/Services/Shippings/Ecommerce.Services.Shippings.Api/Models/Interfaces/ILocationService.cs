@@ -10,4 +10,5 @@ public interface ILocationService
     Task<Result<List<ProvinceDto>>> GetProvincesAsync();
     Task<Result<List<DistrictDto>>> GetDistrictsAsync(long provinceId);
     Task<Result<List<WardDto>>> GetWardsAsync(long districtId);
+    Task<Result<List<LocationSummaryDto>>> ResolveLocationsAsync(List<long> wardIds);
 }

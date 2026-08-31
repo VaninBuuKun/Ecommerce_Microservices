@@ -199,6 +199,18 @@ public class Product : AggregateRoot<long>
         }
     }
 
+    public void ReserveStock(int stock)
+    {
+        if (stock <= 0) return;
+        AvailableStock = Math.Max(0, AvailableStock - stock);
+    }
+
+    public void ReleaseStock(int stock)
+    {
+        if (stock <= 0) return;
+        AvailableStock += stock;
+    }
+
     public void SetAttributes(string? attributesJson)
     {
         AttributesJson = attributesJson;

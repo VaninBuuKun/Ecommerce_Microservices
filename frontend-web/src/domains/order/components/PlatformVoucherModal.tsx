@@ -1,3 +1,4 @@
+import { createPortal } from "react-dom";
 import { X, Ticket } from "lucide-react";
 import { useAvailableVouchersQuery } from "../hooks/useOrders";
 import { renderDiscountLabel } from "./VoucherHelpers";
@@ -24,12 +25,12 @@ export function PlatformVoucherModal({
 
 	if (!isOpen) return null;
 
-	return (
-		<div className="fixed inset-0 bg-brand-dark/40 backdrop-blur-sm flex items-center justify-center p-4 z-50 overflow-y-auto">
-			<div className="bg-white border border-brand-border rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4 text-left relative animate-in fade-in zoom-in-95 duration-200 font-sans">
+	return createPortal(
+		<div className="fixed inset-0 bg-brand-dark/40 backdrop-blur-sm flex items-center justify-center p-4 z-[10000] overflow-y-auto">
+			<div className="bg-white border border-brand-border rounded-md max-w-md w-full p-6 shadow-2xl space-y-4 text-left relative animate-in fade-in zoom-in-95 duration-200 font-sans">
 				<button
 					onClick={onClose}
-					className="absolute top-4 right-4 p-1 rounded-full hover:bg-brand-light-soft text-brand-muted hover:text-brand-dark cursor-pointer border-none bg-transparent"
+					className="absolute top-4 right-4 p-1 rounded-md hover:bg-brand-light-soft text-brand-muted hover:text-brand-dark cursor-pointer border-none bg-transparent"
 				>
 					<X className="w-5 h-5" />
 				</button>
@@ -51,12 +52,12 @@ export function PlatformVoucherModal({
 							return (
 								<div
 									key={voucher.id}
-									className={`p-3.5 rounded-xl border flex justify-between items-center gap-2.5 transition-all ${
+									className={`p-3.5 rounded-md border flex justify-between items-center gap-2.5 transition-all ${
 										isCurrent ? "border-brand-primary bg-brand-primary/5" : !isEligible ? "border-slate-200 bg-slate-50 opacity-70" : "border-brand-border bg-white"
 									}`}
 								>
 									<div className="text-left space-y-1">
-										<span className="bg-brand-primary text-brand-dark text-[9px] font-black uppercase px-2 py-0.5 rounded tracking-wide border border-brand-primary/20">
+										<span className="bg-brand-primary text-brand-dark text-[9px] font-black uppercase px-2 py-0.5 rounded-md tracking-wide border border-brand-primary/20">
 											Platform
 										</span>
 										<div className="text-xs font-black text-brand-dark mt-1">{voucher.code}</div>
@@ -75,7 +76,7 @@ export function PlatformVoucherModal({
 									<button
 										onClick={() => onApply(voucher.code)}
 										disabled={isCurrent || !isEligible}
-										className="h-7 px-3 bg-brand-primary hover:bg-brand-primary-deep text-brand-dark font-black text-[10px] rounded-lg transition-colors border-none cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+										className="h-7 px-3 bg-brand-primary hover:bg-brand-primary-deep text-brand-dark font-black text-[10px] rounded-md transition-colors border-none cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
 									>
 										{isCurrent ? "Đang áp dụng" : !isEligible ? "Chưa đủ Đ/K" : "Áp Dụng"}
 									</button>
@@ -90,12 +91,13 @@ export function PlatformVoucherModal({
 				<div className="pt-3 border-t border-brand-border/60">
 					<button
 						onClick={onClose}
-						className="w-full h-9 border border-brand-border hover:bg-brand-light-soft text-brand-dark font-bold text-xs rounded-lg transition-colors cursor-pointer bg-white"
+						className="w-full h-9 border border-brand-border hover:bg-brand-light-soft text-brand-dark font-bold text-xs rounded-md transition-colors cursor-pointer bg-white"
 					>
 						Đóng lại
 					</button>
 				</div>
 			</div>
-		</div>
+		</div>,
+		document.body
 	);
 }

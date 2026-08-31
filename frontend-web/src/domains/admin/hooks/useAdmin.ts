@@ -5,6 +5,7 @@ export const adminQueryKeys = {
   kycs: ["admin", "kycs"] as const,
   withdrawals: ["admin", "withdrawals"] as const,
   vouchers: ["admin", "vouchers"] as const,
+  paymentMethods: ["admin", "paymentMethods"] as const,
 };
 
 export function useAdminKycsQuery(params?: { page?: number; pageSize?: number; status?: string }) {
@@ -104,6 +105,71 @@ export function useDeleteAdminVoucherMutation() {
     mutationFn: (id: number) => adminApi.deleteVoucher(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: adminQueryKeys.vouchers });
+    },
+  });
+}
+
+export function useDeleteVoucherMutation() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: number) => adminApi.deleteVoucher(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: adminQueryKeys.vouchers });
+    },
+  });
+}
+
+export function useAdminPaymentMethodsQuery() {
+  return useQuery({
+    queryKey: adminQueryKeys.paymentMethods,
+    queryFn: () => adminApi.getPaymentMethods(),
+  });
+}
+
+export function useCreatePaymentMethodMutation() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (payload: {
+      title: string;
+      subTitle?: string;
+      isActive: boolean;
+      providerName: string;
+      iconUrl: string;
+    }) => adminApi.createPaymentMethod(payload),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: adminQueryKeys.paymentMethods });
+    },
+  });
+}
+
+export function useUpdatePaymentMethodMutation() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      id,
+      payload,
+    }: {
+      id: number;
+      payload: {
+        title: string;
+        subTitle?: string;
+        isActive: boolean;
+        providerName: string;
+        iconUrl: string;
+      };
+    }) => adminApi.updatePaymentMethod({ id, payload }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: adminQueryKeys.paymentMethods });
+    },
+  });
+}
+
+export function useTogglePaymentMethodMutation() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: number) => adminApi.togglePaymentMethodStatus(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: adminQueryKeys.paymentMethods });
     },
   });
 }

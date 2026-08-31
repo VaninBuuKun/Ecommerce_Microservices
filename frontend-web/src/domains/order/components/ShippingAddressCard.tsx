@@ -41,7 +41,14 @@ export function ShippingAddressCard({
 						)}
 					</div>
 					<div className="text-xs text-brand-dark leading-relaxed font-semibold">
-						{selectedAddress.addressLine}, {getWardName(selectedAddress.wardId)}, {getDistrictName(selectedAddress.districtId)}, {getProvinceName(selectedAddress.provinceId)}
+						{[
+							selectedAddress.addressLine,
+							selectedAddress.wardId ? getWardName(selectedAddress.wardId) : null,
+							selectedAddress.districtId ? getDistrictName(selectedAddress.districtId) : null,
+							selectedAddress.provinceId ? getProvinceName(selectedAddress.provinceId) : null,
+						]
+							.filter(Boolean)
+							.join(", ")}
 					</div>
 				</div>
 			) : (

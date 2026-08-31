@@ -13,3 +13,5 @@ export * from "./components/AdminCategoriesView";
 export * from "./components/AdminShopsView";
 export * from "./components/AdminKycView";
 export * from "./components/AdminBannersView";
+export * from "./components/AdminPaymentMethodsView";
+

@@ -38,6 +38,12 @@ export const shippingApi = {
 		return res.data?.value || res.data || [];
 	},
 
+	resolveLocations: async (wardIds: number[]): Promise<LocationSummary[]> => {
+		if (!wardIds || wardIds.length === 0) return [];
+		const res = await api.post("/locations/resolve", { wardIds });
+		return res.data?.value || res.data || [];
+	},
+
 	calculateShippingFee: async (
 		payload: CalculateShippingFeeRequest,
 	): Promise<CalculateShippingFeeResponse> => {

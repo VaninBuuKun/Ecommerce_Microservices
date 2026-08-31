@@ -24,7 +24,12 @@ public class CheckoutSession
 
 public class CheckoutSessionItem
 {
+    public long ShopId { get; set; }
+    public long ProductId { get; set; }
     public long VariantId { get; set; }
+    public string ProductName { get; set; } = string.Empty;
+    public string VariantName { get; set; } = string.Empty;
+    public string? ThumbnailUrl { get; set; }
     public int Quantity { get; set; }
     public decimal UnitPrice { get; set; }
 }

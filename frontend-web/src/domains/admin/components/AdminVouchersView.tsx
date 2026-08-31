@@ -189,8 +189,7 @@ export function AdminVouchersView() {
 			{/* Standardized Header */}
 			<div className="flex justify-between items-center pb-2.5 border-b border-brand-border">
 				<div>
-					<h2 className="text-sm font-black text-brand-dark uppercase tracking-wide flex items-center gap-1.5">
-						<Ticket className="w-4 h-4 text-brand-primary" />
+					<h2 className="text-sm font-black text-brand-dark uppercase tracking-wide">
 						Quản lý mã giảm giá hệ thống
 					</h2>
 					<p className="text-[10px] text-brand-muted font-bold mt-0.5">
@@ -199,15 +198,15 @@ export function AdminVouchersView() {
 				</div>
 				<button
 					onClick={handleOpenAdd}
-					className="inline-flex items-center gap-1.5 h-8 px-3.5 bg-brand-primary hover:bg-brand-primary-deep text-brand-dark font-black text-xs rounded-xl shadow-xs transition-all cursor-pointer border-none"
+					className="inline-flex items-center gap-1.5 h-8 px-3.5 bg-brand-primary hover:bg-brand-primary-deep text-white font-bold text-xs rounded shadow-xs transition-all cursor-pointer border-none"
 				>
-					<Plus className="w-4 h-4" />
+					<Plus className="w-3.5 h-3.5" />
 					Tạo Voucher Mới
 				</button>
 			</div>
 
 			{/* Filters / Search box */}
-			<div className="bg-white border border-brand-border rounded-xl p-3 flex flex-col md:flex-row gap-3 items-end">
+			<div className="bg-white border border-brand-border rounded-md p-3 flex flex-col md:flex-row gap-3 items-end">
 				<div className="flex-1 w-full space-y-1">
 					<label className="text-[10px] font-bold text-brand-muted uppercase">
 						Tìm theo mã voucher
@@ -221,7 +220,7 @@ export function AdminVouchersView() {
 								setCodeSearch(e.target.value);
 								setPage(1);
 							}}
-							className="w-full h-8 pl-8 pr-3 text-xs bg-brand-light-soft/30 border border-brand-border rounded-lg focus:outline-none focus:border-brand-primary font-semibold"
+							className="w-full h-8 pl-8 pr-3 text-xs bg-brand-light-soft/30 border border-brand-border rounded-md focus:outline-none focus:border-brand-primary font-semibold"
 						/>
 						<Search className="absolute left-2.5 top-2 w-3.5 h-3.5 text-brand-muted" />
 					</div>
@@ -238,7 +237,7 @@ export function AdminVouchersView() {
 							setSelectedDiscountType(val !== "" ? val : undefined);
 							setPage(1);
 						}}
-						className="w-full h-8 px-2.5 text-xs bg-brand-light-soft/30 border border-brand-border rounded-lg focus:outline-none focus:border-brand-primary font-semibold cursor-pointer"
+						className="w-full h-8 px-2.5 text-xs bg-brand-light-soft/30 border border-brand-border rounded-md focus:outline-none focus:border-brand-primary font-semibold cursor-pointer"
 					>
 						<option value="">Tất cả loại</option>
 						<option value="FixedAmount">Giảm tiền mặt (Fixed)</option>
@@ -257,7 +256,7 @@ export function AdminVouchersView() {
 							setSelectedIsActive(val !== "" ? val === "true" : undefined);
 							setPage(1);
 						}}
-						className="w-full h-8 px-2.5 text-xs bg-brand-light-soft/30 border border-brand-border rounded-lg focus:outline-none focus:border-brand-primary font-semibold cursor-pointer"
+						className="w-full h-8 px-2.5 text-xs bg-brand-light-soft/30 border border-brand-border rounded-md focus:outline-none focus:border-brand-primary font-semibold cursor-pointer"
 					>
 						<option value="">Tất cả</option>
 						<option value="true">Đang kích hoạt</option>
@@ -273,7 +272,7 @@ export function AdminVouchersView() {
 					Đang tải danh sách voucher...
 				</div>
 			) : vouchers && vouchers.length > 0 ? (
-				<div className="bg-white border border-brand-border rounded-xl overflow-hidden shadow-xs">
+				<div className="bg-white border border-brand-border rounded-md overflow-hidden shadow-xs">
 					<div className="overflow-x-auto">
 						<table className="w-full text-xs text-brand-dark border-collapse">
 							<thead className="bg-brand-light-soft/40 border-b border-brand-border text-[10px] font-extrabold uppercase text-brand-muted">
@@ -300,17 +299,17 @@ export function AdminVouchersView() {
 											{voucher.name || "—"}
 										</td>
 										<td className="p-3 text-center">
-											<span className="px-2 py-0.5 rounded text-[9px] font-black uppercase tracking-wider bg-purple-100 text-purple-800 border border-purple-200 inline-block">
+											<span className="px-2 py-0.5 rounded-md text-[9px] font-black uppercase tracking-wider bg-purple-100 text-purple-800 border border-purple-200 inline-block">
 												TOÀN SÀN
 											</span>
 										</td>
 										<td className="p-3 text-center">
 											{voucher.discountType === "Percentage" || voucher.discountType === 1 ? (
-												<span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[9px] font-extrabold text-blue-600 bg-blue-50 border border-blue-200">
+												<span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[9px] font-extrabold text-blue-600 bg-blue-50 border border-blue-200">
 													<Percent className="w-3 h-3" /> Phần trăm
 												</span>
 											) : (
-												<span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[9px] font-extrabold text-emerald-600 bg-emerald-50 border border-emerald-200">
+												<span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[9px] font-extrabold text-emerald-600 bg-emerald-50 border border-emerald-200">
 													<DollarSign className="w-3 h-3" /> Cố định
 												</span>
 											)}
@@ -339,7 +338,7 @@ export function AdminVouchersView() {
 										</td>
 										<td className="p-3 text-center">
 											<span
-												className={`inline-block px-2 py-0.5 rounded-full text-[9px] font-extrabold ${voucher.isActive
+												className={`inline-block px-2 py-0.5 rounded-md text-[9px] font-extrabold ${voucher.isActive
 														? "text-emerald-700 bg-emerald-50 border border-emerald-200"
 														: "text-rose-600 bg-rose-50 border border-rose-200"
 													}`}
@@ -383,7 +382,7 @@ export function AdminVouchersView() {
 					</div>
 				</div>
 			) : (
-				<div className="border border-brand-border border-dashed rounded-xl p-12 text-center text-brand-muted space-y-3">
+				<div className="border border-brand-border border-dashed rounded-md p-12 text-center text-brand-muted space-y-3">
 					<Ticket className="w-10 h-10 mx-auto text-brand-muted/60" />
 					<div className="space-y-1">
 						<h3 className="text-xs font-bold text-brand-dark">Không tìm thấy voucher nào</h3>
@@ -395,10 +394,10 @@ export function AdminVouchersView() {
 			{/* Add/Edit Modal */}
 			{showAddEditModal && (
 				<div className="fixed inset-0 bg-brand-dark/40 backdrop-blur-sm flex items-center justify-center p-4 z-50 overflow-y-auto">
-					<div className="bg-white border border-brand-border rounded-2xl max-w-2xl w-full p-6 shadow-2xl space-y-4 text-left relative animate-in fade-in zoom-in-95 duration-200">
+					<div className="bg-white border border-brand-border rounded-md max-w-2xl w-full p-6 shadow-2xl space-y-4 text-left relative animate-in fade-in zoom-in-95 duration-200">
 						<button
 							onClick={() => setShowAddEditModal(false)}
-							className="absolute top-4 right-4 p-1 rounded-full hover:bg-brand-light-soft text-brand-muted hover:text-brand-dark cursor-pointer border-none bg-transparent"
+							className="absolute top-4 right-4 p-1 rounded-md hover:bg-brand-light-soft text-brand-muted hover:text-brand-dark cursor-pointer border-none bg-transparent"
 						>
 							<X className="w-5 h-5" />
 						</button>
@@ -419,7 +418,7 @@ export function AdminVouchersView() {
 									value={formCode}
 									disabled={!!editingVoucher}
 									onChange={(e) => setFormCode(e.target.value)}
-									className="w-full h-9 px-3 bg-brand-light-soft/20 border border-brand-border rounded-lg focus:outline-none focus:border-brand-primary font-bold uppercase disabled:bg-slate-50"
+									className="w-full h-9 px-3 bg-brand-light-soft/20 border border-brand-border rounded-md focus:outline-none focus:border-brand-primary font-bold uppercase disabled:bg-slate-50"
 								/>
 							</div>
 
@@ -432,7 +431,7 @@ export function AdminVouchersView() {
 									placeholder="Ví dụ: Ưu đãi toàn sàn mua sắm bùng nổ"
 									value={formName}
 									onChange={(e) => setFormName(e.target.value)}
-									className="w-full h-9 px-3 bg-brand-light-soft/20 border border-brand-border rounded-lg focus:outline-none focus:border-brand-primary font-semibold"
+									className="w-full h-9 px-3 bg-brand-light-soft/20 border border-brand-border rounded-md focus:outline-none focus:border-brand-primary font-semibold"
 									required
 								/>
 							</div>
@@ -447,7 +446,7 @@ export function AdminVouchersView() {
 												setFormDiscountType("FixedAmount");
 												setFormMaxDiscountAmount("");
 											}}
-											className={`flex-1 text-center font-bold border rounded-lg transition-all cursor-pointer text-[11px] ${formDiscountType === "FixedAmount"
+											className={`flex-1 text-center font-bold border rounded-md transition-all cursor-pointer text-[11px] ${formDiscountType === "FixedAmount"
 													? "bg-brand-primary border-brand-primary text-brand-dark shadow-xs"
 													: "bg-white border-brand-border text-brand-muted hover:bg-slate-50"
 												}`}
@@ -457,7 +456,7 @@ export function AdminVouchersView() {
 										<button
 											type="button"
 											onClick={() => setFormDiscountType("Percentage")}
-											className={`flex-1 text-center font-bold border rounded-lg transition-all cursor-pointer text-[11px] ${formDiscountType === "Percentage"
+											className={`flex-1 text-center font-bold border rounded-md transition-all cursor-pointer text-[11px] ${formDiscountType === "Percentage"
 													? "bg-brand-primary border-brand-primary text-brand-dark shadow-xs"
 													: "bg-white border-brand-border text-brand-muted hover:bg-slate-50"
 												}`}
@@ -480,7 +479,7 @@ export function AdminVouchersView() {
 											const val = e.target.value.replace(/[^0-9]/g, "");
 											setFormDiscountValue(val ? Number(val) : 0);
 										}}
-										className="w-full h-9 px-3 bg-brand-light-soft/20 border border-brand-border rounded-lg focus:outline-none focus:border-brand-primary font-bold"
+										className="w-full h-9 px-3 bg-brand-light-soft/20 border border-brand-border rounded-md focus:outline-none focus:border-brand-primary font-bold"
 										required
 									/>
 								</div>
@@ -498,7 +497,7 @@ export function AdminVouchersView() {
 											const val = e.target.value.replace(/[^0-9]/g, "");
 											setFormMinOrderValue(val ? Number(val) : "");
 										}}
-										className="w-full h-9 px-3 bg-brand-light-soft/20 border border-brand-border rounded-lg focus:outline-none focus:border-brand-primary font-semibold"
+										className="w-full h-9 px-3 bg-brand-light-soft/20 border border-brand-border rounded-md focus:outline-none focus:border-brand-primary font-semibold"
 									/>
 								</div>
 
@@ -514,7 +513,7 @@ export function AdminVouchersView() {
 											const val = e.target.value.replace(/[^0-9]/g, "");
 											setFormMaxDiscountAmount(val ? Number(val) : "");
 										}}
-										className="w-full h-9 px-3 bg-brand-light-soft/20 border border-brand-border rounded-lg focus:outline-none focus:border-brand-primary font-semibold disabled:bg-slate-100 disabled:cursor-not-allowed"
+										className="w-full h-9 px-3 bg-brand-light-soft/20 border border-brand-border rounded-md focus:outline-none focus:border-brand-primary font-semibold disabled:bg-slate-100 disabled:cursor-not-allowed"
 									/>
 								</div>
 							</div>
@@ -531,7 +530,7 @@ export function AdminVouchersView() {
 											onChange={(e) =>
 												setFormStartDate(combineDateTime(e.target.value, getTimePart(formStartDate)))
 											}
-											className="h-9 px-2 bg-brand-light-soft/20 border border-brand-border rounded-lg focus:outline-none focus:border-brand-primary font-semibold text-xs text-brand-dark cursor-pointer"
+											className="h-9 px-2 bg-brand-light-soft/20 border border-brand-border rounded-md focus:outline-none focus:border-brand-primary font-semibold text-xs text-brand-dark cursor-pointer"
 											required
 										/>
 										<input
@@ -540,7 +539,7 @@ export function AdminVouchersView() {
 											onChange={(e) =>
 												setFormStartDate(combineDateTime(getDatePart(formStartDate), e.target.value))
 											}
-											className="h-9 px-2 bg-brand-light-soft/20 border border-brand-border rounded-lg focus:outline-none focus:border-brand-primary font-semibold text-xs text-brand-dark cursor-pointer"
+											className="h-9 px-2 bg-brand-light-soft/20 border border-brand-border rounded-md focus:outline-none focus:border-brand-primary font-semibold text-xs text-brand-dark cursor-pointer"
 											required
 										/>
 									</div>
@@ -557,7 +556,7 @@ export function AdminVouchersView() {
 											onChange={(e) =>
 												setFormEndDate(combineDateTime(e.target.value, getTimePart(formEndDate)))
 											}
-											className="h-9 px-2 bg-brand-light-soft/20 border border-brand-border rounded-lg focus:outline-none focus:border-brand-primary font-semibold text-xs text-brand-dark cursor-pointer"
+											className="h-9 px-2 bg-brand-light-soft/20 border border-brand-border rounded-md focus:outline-none focus:border-brand-primary font-semibold text-xs text-brand-dark cursor-pointer"
 											required
 										/>
 										<input
@@ -566,7 +565,7 @@ export function AdminVouchersView() {
 											onChange={(e) =>
 												setFormEndDate(combineDateTime(getDatePart(formEndDate), e.target.value))
 											}
-											className="h-9 px-2 bg-brand-light-soft/20 border border-brand-border rounded-lg focus:outline-none focus:border-brand-primary font-semibold text-xs text-brand-dark cursor-pointer"
+											className="h-9 px-2 bg-brand-light-soft/20 border border-brand-border rounded-md focus:outline-none focus:border-brand-primary font-semibold text-xs text-brand-dark cursor-pointer"
 											required
 										/>
 									</div>
@@ -585,7 +584,7 @@ export function AdminVouchersView() {
 											const val = e.target.value.replace(/[^0-9]/g, "");
 											setFormUsageLimit(val ? Number(val) : "");
 										}}
-										className="w-full h-9 px-3 bg-brand-light-soft/20 border border-brand-border rounded-lg focus:outline-none focus:border-brand-primary font-semibold"
+										className="w-full h-9 px-3 bg-brand-light-soft/20 border border-brand-border rounded-md focus:outline-none focus:border-brand-primary font-semibold"
 									/>
 								</div>
 
@@ -595,7 +594,7 @@ export function AdminVouchersView() {
 											type="checkbox"
 											checked={formIsActive}
 											onChange={(e) => setFormIsActive(e.target.checked)}
-											className="accent-brand-primary w-4 h-4"
+											className="accent-brand-primary w-4 h-4 rounded-md"
 										/>
 										<span className="text-xs text-brand-dark font-bold">
 											Kích hoạt ngay lập tức
@@ -608,13 +607,13 @@ export function AdminVouchersView() {
 								<button
 									type="button"
 									onClick={() => setShowAddEditModal(false)}
-									className="flex-1 h-9 border border-brand-border hover:bg-brand-light-soft text-brand-dark font-bold text-xs rounded-lg transition-colors cursor-pointer bg-white"
+									className="flex-1 h-9 border border-brand-border hover:bg-brand-light-soft text-brand-dark font-bold text-xs rounded-md transition-colors cursor-pointer bg-white"
 								>
 									Hủy bỏ
 								</button>
 								<button
 									type="submit"
-									className="flex-1 h-9 bg-brand-primary hover:bg-brand-primary-deep text-brand-dark font-black text-xs rounded-lg transition-colors cursor-pointer border-none"
+									className="flex-1 h-9 bg-brand-primary hover:bg-brand-primary-deep text-brand-dark font-black text-xs rounded-md transition-colors cursor-pointer border-none"
 								>
 									{editingVoucher ? "Lưu thay đổi" : "Lưu lại"}
 								</button>

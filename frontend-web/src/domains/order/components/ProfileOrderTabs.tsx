@@ -75,7 +75,7 @@ export function MyOrdersTab({ customerId }: { customerId?: number }) {
 				</div>
 				<button
 					onClick={() => refetch()}
-					className="h-8 px-3 border border-brand-border hover:bg-brand-light-soft text-brand-dark text-xs font-semibold rounded-lg flex items-center gap-1.5 cursor-pointer bg-white"
+					className="h-8 px-3 border border-brand-border hover:bg-brand-light-soft text-brand-dark text-xs font-semibold rounded-md flex items-center gap-1.5 cursor-pointer bg-white"
 				>
 					<RefreshCw className="w-3 h-3" /> Làm mới
 				</button>
@@ -106,7 +106,7 @@ export function MyOrdersTab({ customerId }: { customerId?: number }) {
 			</div>
 
 			{/* Search Order bar */}
-			<div className="relative flex items-center w-full bg-brand-light-soft rounded-xl p-2">
+			<div className="relative flex items-center w-full bg-brand-light-soft rounded-md p-2">
 				<Search className="w-4 h-4 text-brand-muted ml-2 shrink-0" />
 				<input
 					type="text"
@@ -115,7 +115,7 @@ export function MyOrdersTab({ customerId }: { customerId?: number }) {
 					onChange={(e) => setSearchQuery(e.target.value)}
 					className="w-full bg-transparent px-3 text-xs focus:outline-none border-none text-brand-dark h-8 placeholder:text-brand-muted"
 				/>
-				<button className="px-4 py-1.5 bg-white border border-brand-border text-brand-dark hover:bg-brand-light-soft rounded-lg text-xs font-bold shrink-0 shadow-sm transition-all border-none">
+				<button className="px-4 py-1.5 bg-white border border-brand-border text-brand-dark hover:bg-brand-light-soft rounded-md text-xs font-bold shrink-0 shadow-sm transition-all border-none">
 					Tìm đơn hàng
 				</button>
 			</div>
@@ -128,14 +128,14 @@ export function MyOrdersTab({ customerId }: { customerId?: number }) {
 						Đang tải lịch sử mua hàng...
 					</div>
 				) : filteredOrders.length === 0 ? (
-					<div className="text-center py-16 border border-dashed border-brand-border rounded-2xl text-brand-muted font-medium text-xs">
+					<div className="text-center py-16 border border-dashed border-brand-border rounded-md text-brand-muted font-medium text-xs">
 						Chưa có đơn hàng nào trong mục này.
 					</div>
 				) : (
 					filteredOrders.map((order: any) => (
 						<div
 							key={order.id}
-							className="border border-brand-border rounded-2xl overflow-hidden bg-white shadow-xs hover:shadow-md transition-all text-left"
+							className="border border-brand-border rounded-md overflow-hidden bg-white shadow-xs hover:shadow-md transition-all text-left"
 						>
 							{/* Shop header and status */}
 							<div className="flex justify-between items-center bg-brand-light-soft/50 border-b border-brand-border px-4 py-3">
@@ -169,7 +169,7 @@ export function MyOrdersTab({ customerId }: { customerId?: number }) {
 															"https://via.placeholder.com/150"
 														}
 														alt={item.productName}
-														className="w-14 h-14 object-cover rounded-xl border border-brand-border shrink-0"
+														className="w-14 h-14 object-cover rounded-md border border-brand-border shrink-0"
 													/>
 													<div className="flex-1 min-w-0">
 														<h4 className="font-extrabold text-brand-dark text-xs truncate">
@@ -228,7 +228,7 @@ export function MyOrdersTab({ customerId }: { customerId?: number }) {
 								<div className="flex gap-2 w-full sm:w-auto">
 									<button
 										onClick={() => setDetailSubOrderId(order.id)}
-										className="flex-1 sm:flex-none px-4 py-1.5 bg-brand-dark text-white hover:bg-brand-primary hover:text-brand-dark rounded-xl text-xs font-black transition-all cursor-pointer border-none"
+										className="flex-1 sm:flex-none px-3.5 py-1.5 bg-brand-primary hover:bg-brand-primary-deep text-white rounded text-xs font-bold transition-all cursor-pointer border-none shadow-xs"
 									>
 										Xem chi tiết
 									</button>
@@ -271,7 +271,7 @@ export function RefundRequestsTab() {
 				</div>
 				<button
 					onClick={() => refetch()}
-					className="h-8 px-3 border border-brand-border hover:bg-brand-light-soft text-brand-dark text-xs font-semibold rounded-lg flex items-center gap-1.5 cursor-pointer bg-white"
+					className="h-8 px-3 border border-brand-border hover:bg-brand-light-soft text-brand-dark text-xs font-semibold rounded-md flex items-center gap-1.5 cursor-pointer bg-white"
 				>
 					<RefreshCw className="w-3.5 h-3.5" /> Làm mới
 				</button>
@@ -282,7 +282,7 @@ export function RefundRequestsTab() {
 					<Loader2 className="w-5 h-5 animate-spin text-brand-primary" /> Đang tải danh sách khiếu nại...
 				</div>
 			) : refunds.length === 0 ? (
-				<div className="text-center py-16 text-brand-muted font-bold text-xs space-y-2 bg-brand-light-soft/20 rounded-2xl border border-dashed border-brand-border">
+				<div className="text-center py-16 text-brand-muted font-bold text-xs space-y-2 bg-brand-light-soft/20 rounded-md border border-dashed border-brand-border">
 					<ArrowLeftRight className="w-10 h-10 text-brand-muted mx-auto opacity-40" />
 					<p>Bạn chưa gửi yêu cầu hoàn tiền nào.</p>
 				</div>
@@ -291,7 +291,7 @@ export function RefundRequestsTab() {
 					{refunds.map((ref: any) => (
 						<div
 							key={ref.id}
-							className="p-4 border border-brand-border rounded-2xl bg-white space-y-3 shadow-xs hover:border-brand-dark/30 transition-all"
+							className="p-4 border border-brand-border rounded-md bg-white space-y-3 shadow-xs hover:border-brand-dark/30 transition-all"
 						>
 							<div className="flex items-center justify-between border-b border-brand-border pb-2 text-xs">
 								<span className="font-mono font-bold text-brand-dark">
@@ -319,7 +319,7 @@ export function RefundRequestsTab() {
 									<span className="text-brand-muted">Lý do:</span> {ref.reason}
 								</div>
 								{ref.sellerNote && (
-									<div className="bg-brand-light-soft/60 p-2.5 rounded-lg border border-brand-border/60 text-[11px] text-brand-muted italic flex items-center gap-1.5">
+									<div className="bg-brand-light-soft/60 p-2.5 rounded-md border border-brand-border/60 text-[11px] text-brand-muted italic flex items-center gap-1.5">
 										<CornerDownRight className="w-3.5 h-3.5 text-brand-muted shrink-0" />
 										<span>Phản hồi từ shop: {ref.sellerNote}</span>
 									</div>
@@ -338,7 +338,7 @@ export function RefundRequestsTab() {
 									<button
 										onClick={() => handleCancelRefund(ref.id)}
 										disabled={cancelRefundMutation.isPending}
-										className="h-7 px-3 border border-brand-border hover:bg-brand-light-soft text-brand-dark rounded-lg text-[10px] font-bold cursor-pointer bg-white"
+										className="h-7 px-3 border border-brand-border hover:bg-brand-light-soft text-brand-dark rounded-md text-[10px] font-bold cursor-pointer bg-white"
 									>
 										Rút yêu cầu
 									</button>

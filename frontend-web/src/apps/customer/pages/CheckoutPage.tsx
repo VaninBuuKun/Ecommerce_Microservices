@@ -156,7 +156,7 @@ export default function CheckoutPage() {
 	if (selectedItems.length === 0 && !isSuccess) {
 		return (
 			<div className="max-w-md mx-auto text-center py-16 px-6 space-y-6 font-sans">
-				<div className="w-16 h-16 bg-brand-light-soft rounded-full flex items-center justify-center mx-auto text-brand-muted">
+				<div className="w-16 h-16 bg-brand-light-soft rounded-md flex items-center justify-center mx-auto text-brand-muted">
 					<ShoppingCart className="w-8 h-8" />
 				</div>
 				<h3 className="font-bold text-brand-dark text-base">Không có sản phẩm thanh toán</h3>
@@ -165,7 +165,7 @@ export default function CheckoutPage() {
 				</p>
 				<Link
 					to="/cart"
-					className="inline-flex items-center justify-center h-9 px-6 bg-brand-primary hover:bg-brand-primary-deep text-brand-dark font-bold text-xs rounded-lg transition-colors"
+					className="inline-flex items-center justify-center h-9 px-6 bg-brand-primary hover:bg-brand-primary-deep text-brand-dark font-bold text-xs rounded-md transition-colors"
 				>
 					Quay lại giỏ hàng
 				</Link>
@@ -280,7 +280,7 @@ export default function CheckoutPage() {
 	if (isSuccess) {
 		return (
 			<div className="flex flex-col items-center justify-center min-h-[65vh] text-center max-w-md mx-auto px-6 py-12 space-y-6 font-sans">
-				<div className="w-16 h-16 bg-green-50 rounded-full flex items-center justify-center text-green-500 border border-green-200">
+				<div className="w-16 h-16 bg-green-50 rounded-md flex items-center justify-center text-green-500 border border-green-200">
 					<Check className="w-9 h-9" />
 				</div>
 				<div className="space-y-2">
@@ -289,7 +289,7 @@ export default function CheckoutPage() {
 						Cảm ơn bạn đã đặt hàng tại hệ thống. Đơn hàng của bạn đã được tiếp nhận và chuyển cho chủ cửa hàng xử lý.
 					</p>
 					{createdOrderId && (
-						<div className="bg-brand-light-soft py-2 px-3 rounded-lg text-xs font-bold text-brand-dark inline-block border border-brand-border">
+						<div className="bg-brand-light-soft py-2 px-3 rounded-md text-xs font-bold text-brand-dark inline-block border border-brand-border">
 							Mã đơn hàng: {createdOrderId}
 						</div>
 					)}
@@ -297,7 +297,7 @@ export default function CheckoutPage() {
 				<div className="flex gap-3 w-full">
 					<button
 						onClick={() => navigate("/profile?tab=orders")}
-						className="flex-1 inline-flex items-center justify-center h-10 bg-brand-primary hover:bg-brand-primary-deep text-brand-dark font-black text-xs rounded-xl transition-all shadow-sm border-none cursor-pointer"
+						className="flex-1 inline-flex items-center justify-center h-10 bg-brand-primary hover:bg-brand-primary-deep text-brand-dark font-black text-xs rounded-md transition-all shadow-sm border-none cursor-pointer"
 					>
 						Xem đơn hàng của tôi
 					</button>
@@ -307,9 +307,21 @@ export default function CheckoutPage() {
 	}
 
 	// Address text formatter helper
-	const getProvinceName = (id: number) => provinces?.find((p) => p.id === id)?.displayName || `Tỉnh #${id}`;
-	const getDistrictName = (id: number) => districts?.find((d) => d.id === id)?.displayName || `Huyện #${id}`;
-	const getWardName = (id: number) => wards?.find((w) => w.id === id)?.displayName || `Xã #${id}`;
+	const getProvinceName = (id: number) => {
+		if (!id) return "";
+		const item = provinces?.find((p: any) => Number(p.id) === Number(id) || String(p.code) === String(id));
+		return item?.displayName || item?.name || "";
+	};
+	const getDistrictName = (id: number) => {
+		if (!id) return "";
+		const item = districts?.find((d: any) => Number(d.id) === Number(id) || String(d.code) === String(id));
+		return item?.displayName || item?.name || "";
+	};
+	const getWardName = (id: number) => {
+		if (!id) return "";
+		const item = wards?.find((w: any) => Number(w.id) === Number(id) || String(w.code) === String(id));
+		return item?.displayName || item?.name || "";
+	};
 
 	return (
 		<div className="pt-4 pb-10 px-3 sm:px-6 max-w-7xl mx-auto w-full text-left font-sans relative">
@@ -392,11 +404,11 @@ export default function CheckoutPage() {
 
 			{/* 5. MANAGE ADDRESSES MODAL OVERLAY */}
 			{showAddressModal && (
-				<div className="fixed inset-0 bg-brand-dark/40 backdrop-blur-sm flex items-center justify-center p-4 z-50 overflow-y-auto">
-					<div className="bg-white border border-brand-border rounded-2xl max-w-2xl w-full p-6 shadow-2xl space-y-4 text-left relative animate-in fade-in zoom-in-95 duration-200">
+				<div className="fixed inset-0 bg-brand-dark/40 backdrop-blur-sm flex items-center justify-center p-4 z-[10000] overflow-y-auto">
+					<div className="bg-white border border-brand-border rounded-md max-w-2xl w-full p-6 shadow-2xl space-y-4 text-left relative animate-in fade-in zoom-in-95 duration-200">
 						<button
 							onClick={() => setShowAddressModal(false)}
-							className="absolute top-4 right-4 p-1 rounded-full hover:bg-brand-light-soft text-brand-muted hover:text-brand-dark cursor-pointer border-none bg-transparent"
+							className="absolute top-4 right-4 p-1 rounded-md hover:bg-brand-light-soft text-brand-muted hover:text-brand-dark cursor-pointer border-none bg-transparent"
 						>
 							<X className="w-5 h-5" />
 						</button>
@@ -411,7 +423,7 @@ export default function CheckoutPage() {
 								addresses.map((addr) => (
 									<div
 										key={addr.id}
-										className={`p-4 rounded-xl border transition-all flex flex-col sm:flex-row sm:items-start justify-between gap-3 ${selectedAddress?.id === addr.id
+										className={`p-4 rounded-md border transition-all flex flex-col sm:flex-row sm:items-start justify-between gap-3 ${selectedAddress?.id === addr.id
 											? "border-brand-primary bg-brand-primary/5"
 											: "border-brand-border bg-white"
 											}`}
@@ -425,7 +437,7 @@ export default function CheckoutPage() {
 													{addr.phone}
 												</span>
 												{addr.isDefault && (
-													<span className="text-[9px] font-bold text-red-500 bg-red-50 border border-red-200 px-1 py-0.5 rounded">
+													<span className="text-[9px] font-bold text-red-500 bg-red-50 border border-red-200 px-1 py-0.5 rounded-md">
 														Mặc định
 													</span>
 												)}
@@ -439,7 +451,7 @@ export default function CheckoutPage() {
 											<div className="flex gap-2">
 												<button
 													onClick={() => handleSelectAddress(addr)}
-													className="h-7 px-3 bg-brand-primary hover:bg-brand-primary-deep text-brand-dark font-bold text-[10px] rounded-lg transition-colors border-none cursor-pointer flex items-center gap-1"
+													className="h-7 px-3 bg-brand-primary hover:bg-brand-primary-deep text-brand-dark font-bold text-[10px] rounded-md transition-colors border-none cursor-pointer flex items-center gap-1"
 												>
 													<Check className="w-3 h-3" />
 													Chọn
@@ -447,7 +459,7 @@ export default function CheckoutPage() {
 												<button
 													onClick={(e) => handleDeleteAddress(e, addr.id)}
 													disabled={deleteAddressMutation.isPending}
-													className="h-7 w-7 flex items-center justify-center border border-brand-border text-brand-muted hover:text-red-500 hover:bg-red-50 rounded-lg transition-all cursor-pointer bg-white"
+													className="h-7 w-7 flex items-center justify-center border border-brand-border text-brand-muted hover:text-red-500 hover:bg-red-50 rounded-md transition-all cursor-pointer bg-white"
 												>
 													<Trash2 className="w-3.5 h-3.5" />
 												</button>
@@ -474,7 +486,7 @@ export default function CheckoutPage() {
 						<div className="flex gap-3 pt-3 border-t border-brand-border/60">
 							<button
 								onClick={() => setShowAddressModal(false)}
-								className="flex-1 h-9 border border-brand-border hover:bg-brand-light-soft text-brand-dark font-bold text-xs rounded-lg transition-colors cursor-pointer bg-white"
+								className="flex-1 h-9 border border-brand-border hover:bg-brand-light-soft text-brand-dark font-bold text-xs rounded-md transition-colors cursor-pointer bg-white"
 							>
 								Đóng lại
 							</button>
@@ -483,7 +495,7 @@ export default function CheckoutPage() {
 									setShowAddressModal(false);
 									setShowNewAddressModal(true);
 								}}
-								className="flex-1 h-9 bg-brand-primary hover:bg-brand-primary-deep text-brand-dark font-black text-xs rounded-lg transition-colors cursor-pointer border-none flex items-center justify-center gap-1.5"
+								className="flex-1 h-9 bg-brand-primary hover:bg-brand-primary-deep text-brand-dark font-black text-xs rounded-md transition-colors cursor-pointer border-none flex items-center justify-center gap-1.5"
 							>
 								<Plus className="w-3.5 h-3.5" />
 								Thêm Địa Chỉ Mới

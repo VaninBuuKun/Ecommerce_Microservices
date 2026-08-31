@@ -127,7 +127,7 @@ export default function SelectShopPage() {
 		}
 	};
 
-	const kycStatus = kyc?.status;
+	const kycStatus = profile?.kycStatus || kyc?.status;
 
 	return (
 		<div className="min-h-screen bg-brand-light-soft flex flex-col font-sans">
@@ -142,13 +142,15 @@ export default function SelectShopPage() {
 						</div>
 					) : (
 						<>
-							{!kyc && !showKycForm && (
+							{/* 1. Chưa từng KYC */}
+							{(!kycStatus || kycStatus === "None") && !showKycForm && (
 								<KycUnverifiedState
 									onBack={() => navigate("/")}
 									onProceed={() => setShowKycForm(true)}
 								/>
 							)}
 
+							{/* 2. Đã gửi KYC, đang chờ duyệt */}
 							{kycStatus === "Submitted" && !showKycForm && (
 								<KycSubmittedState
 									kyc={kyc}
@@ -160,13 +162,15 @@ export default function SelectShopPage() {
 								/>
 							)}
 
+							{/* 3. Form điền / sửa KYC (Draft, Rejected, hoặc chưa có) */}
 							{showKycForm &&
 								(kycStatus === "Draft" ||
 									kycStatus === "Rejected" ||
+									kycStatus === "None" ||
 									!kycStatus) && (
 									<KycForm
 										kycStatus={kycStatus}
-										rejectReason={kyc?.rejectReason}
+										rejectReason={profile?.rejectionReason || kyc?.rejectReason}
 										identityNumber={identityNumber}
 										setIdentityNumber={setIdentityNumber}
 										identityFront={identityFront}
@@ -180,6 +184,7 @@ export default function SelectShopPage() {
 									/>
 								)}
 
+							{/* 4. Đã Verified nhưng chưa có Shop */}
 							{kycStatus === "Verified" && shops.length === 0 && (
 								<KycVerifiedNoShopState
 									onBack={() => navigate("/")}
@@ -189,6 +194,7 @@ export default function SelectShopPage() {
 								/>
 							)}
 
+							{/* 5. Đã Verified và đã có Shop -> Danh sách chọn Shop */}
 							{kycStatus === "Verified" && shops.length > 0 && (
 								<ShopSelectList
 									shops={shops}

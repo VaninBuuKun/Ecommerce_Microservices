@@ -35,7 +35,7 @@ export default function UserProfilePage() {
 				{/* SIDEBAR */}
 				<div className="w-full md:w-64 shrink-0 space-y-4">
 					{/* Profile summary card */}
-					<div className="flex items-center gap-3 p-4 bg-brand-light-soft border border-brand-border rounded-2xl">
+					<div className="flex items-center gap-3 p-4 bg-brand-light-soft border border-brand-border rounded-md">
 						<div className="relative">
 							<img
 								src={
@@ -57,61 +57,61 @@ export default function UserProfilePage() {
 					</div>
 
 					{/* Navigation menus */}
-					<div className="bg-white border border-brand-border rounded-2xl p-2.5 space-y-1 shadow-sm">
+					<div className="bg-white border border-brand-border rounded-md p-3 space-y-1.5 shadow-sm">
 						<button
 							onClick={() => {
 								setActiveTab("profile");
 								navigate("/profile?tab=profile");
 							}}
-							className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-extrabold transition-all cursor-pointer ${
+							className={`w-full flex items-center gap-2.5 px-3 py-1.5 rounded-md text-xs font-bold transition-colors cursor-pointer ${
 								activeTab === "profile"
-									? "bg-brand-primary text-brand-dark"
-									: "text-brand-muted hover:bg-brand-light-soft hover:text-brand-dark"
+									? "text-brand-primary-deep bg-brand-primary/10"
+									: "text-brand-muted hover:text-brand-dark hover:bg-brand-light-soft"
 							}`}
 						>
-							<User className="w-4 h-4" />
-							Thông tin tài khoản
+							<User className={`w-4 h-4 ${activeTab === "profile" ? "text-brand-primary-deep" : "text-brand-muted"}`} />
+							<span>Thông tin tài khoản</span>
 						</button>
 						<button
 							onClick={() => {
 								setActiveTab("addresses");
 								navigate("/profile?tab=addresses");
 							}}
-							className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-extrabold transition-all cursor-pointer ${
+							className={`w-full flex items-center gap-2.5 px-3 py-1.5 rounded-md text-xs font-bold transition-colors cursor-pointer ${
 								activeTab === "addresses"
-									? "bg-brand-primary text-brand-dark"
-									: "text-brand-muted hover:bg-brand-light-soft hover:text-brand-dark"
+									? "text-brand-primary-deep bg-brand-primary/10"
+									: "text-brand-muted hover:text-brand-dark hover:bg-brand-light-soft"
 							}`}
 						>
-							<MapPin className="w-4 h-4" />
-							Địa chỉ nhận hàng
+							<MapPin className={`w-4 h-4 ${activeTab === "addresses" ? "text-brand-primary-deep" : "text-brand-muted"}`} />
+							<span>Địa chỉ nhận hàng</span>
 						</button>
 						<button
 							onClick={() => {
 								setActiveTab("orders");
 								navigate("/profile?tab=orders");
 							}}
-							className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-extrabold transition-all cursor-pointer ${
+							className={`w-full flex items-center gap-2.5 px-3 py-1.5 rounded-md text-xs font-bold transition-colors cursor-pointer ${
 								activeTab === "orders"
-									? "bg-brand-primary text-brand-dark"
-									: "text-brand-muted hover:bg-brand-light-soft hover:text-brand-dark"
+									? "text-brand-primary-deep bg-brand-primary/10"
+									: "text-brand-muted hover:text-brand-dark hover:bg-brand-light-soft"
 							}`}
 						>
-							<Package className="w-4 h-4" />
-							Đơn hàng của tôi
+							<Package className={`w-4 h-4 ${activeTab === "orders" ? "text-brand-primary-deep" : "text-brand-muted"}`} />
+							<span>Đơn hàng của tôi</span>
 						</button>
 						<button
 							onClick={() => {
 								setActiveTab("wallet");
 								navigate("/profile?tab=wallet");
 							}}
-							className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-extrabold transition-all cursor-pointer ${
+							className={`w-full flex items-center gap-2.5 px-3 py-1.5 rounded-md text-xs font-bold transition-colors cursor-pointer ${
 								activeTab === "wallet"
-									? "bg-brand-primary text-brand-dark"
-									: "text-brand-muted hover:bg-brand-light-soft hover:text-brand-dark"
+									? "text-brand-primary-deep bg-brand-primary/10"
+									: "text-brand-muted hover:text-brand-dark hover:bg-brand-light-soft"
 							}`}
 						>
-							<CreditCard className="w-4 h-4" />
+							<CreditCard className={`w-4 h-4 ${activeTab === "wallet" ? "text-brand-primary-deep" : "text-brand-muted"}`} />
 							<span>Quản lý ví</span>
 						</button>
 						<button
@@ -119,20 +119,20 @@ export default function UserProfilePage() {
 								setActiveTab("refunds");
 								navigate("/profile?tab=refunds");
 							}}
-							className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-extrabold transition-all cursor-pointer ${
+							className={`w-full flex items-center gap-2.5 px-3 py-1.5 rounded-md text-xs font-bold transition-colors cursor-pointer ${
 								activeTab === "refunds"
-									? "bg-brand-primary text-brand-dark"
-									: "text-brand-muted hover:bg-brand-light-soft hover:text-brand-dark"
+									? "text-brand-primary-deep bg-brand-primary/10"
+									: "text-brand-muted hover:text-brand-dark hover:bg-brand-light-soft"
 							}`}
 						>
-							<ArrowLeftRight className="w-4 h-4" />
-							Yêu cầu hoàn tiền
+							<ArrowLeftRight className={`w-4 h-4 ${activeTab === "refunds" ? "text-brand-primary-deep" : "text-brand-muted"}`} />
+							<span>Yêu cầu hoàn tiền</span>
 						</button>
 					</div>
 				</div>
 
 				{/* CONTENT MAIN DISPLAY */}
-				<div className="flex-1 bg-white border border-brand-border rounded-2xl p-6 shadow-sm min-h-[60vh]">
+				<div className="flex-1 bg-white border border-brand-border rounded-md p-6 shadow-sm min-h-[60vh]">
 					{activeTab === "profile" && (
 						<AccountInfoTab user={user} setUser={setUser} />
 					)}

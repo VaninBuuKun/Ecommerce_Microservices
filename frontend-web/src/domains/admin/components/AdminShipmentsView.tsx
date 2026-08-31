@@ -149,8 +149,8 @@ export function AdminShipmentsView() {
 			{/* Header */}
 			<div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 pb-2.5 border-b border-brand-border">
 				<div>
-					<h2 className="text-sm font-black text-brand-dark uppercase tracking-wide flex items-center gap-2">
-						<Truck className="w-4 h-4 text-brand-primary" /> Quản lý vận chuyển & Vận đơn (Shipments)
+					<h2 className="text-sm font-black text-brand-dark uppercase tracking-wide">
+						Quản lý vận chuyển & Vận đơn (Shipments)
 					</h2>
 					<p className="text-[10px] text-brand-muted font-bold mt-0.5">
 						Theo dõi trạng thái giao hàng thực tế và mô phỏng Webhook đối tác vận chuyển GHN
@@ -164,11 +164,11 @@ export function AdminShipmentsView() {
 							placeholder="Mã GHN, người nhận, SĐT..."
 							value={searchQuery}
 							onChange={(e) => setSearchQuery(e.target.value)}
-							className="w-full pl-8 pr-3 py-1.5 border border-brand-border rounded text-xs focus:outline-none focus:border-brand-primary font-bold text-brand-dark"
+							className="w-full pl-8 pr-3 py-1.5 border border-brand-border rounded-md text-xs focus:outline-none focus:border-brand-primary font-bold text-brand-dark"
 						/>
 						<Search className="w-3.5 h-3.5 absolute left-2.5 top-2.5 text-brand-muted" />
 					</form>
-					<button onClick={fetchShipments} className="p-1.5 text-brand-muted hover:text-brand-dark rounded hover:bg-brand-light-soft transition-colors cursor-pointer border-none bg-transparent shrink-0">
+					<button onClick={fetchShipments} className="p-1.5 text-brand-muted hover:text-brand-dark rounded-md hover:bg-brand-light-soft transition-colors cursor-pointer border-none bg-transparent shrink-0">
 						<RefreshCw className="w-4 h-4" />
 					</button>
 				</div>
@@ -176,17 +176,17 @@ export function AdminShipmentsView() {
 
 			{/* Notification banner */}
 			{alertMsg && (
-				<div className={`p-3 rounded-lg text-xs font-bold flex items-center justify-between ${alertMsg.type === "success" ? "bg-emerald-50 text-emerald-800 border border-emerald-200" : "bg-rose-50 text-rose-800 border border-rose-200"}`}>
+				<div className={`p-3 rounded-md text-xs font-bold flex items-center justify-between ${alertMsg.type === "success" ? "bg-emerald-50 text-emerald-800 border border-emerald-200" : "bg-rose-50 text-rose-800 border border-rose-200"}`}>
 					<div className="flex items-center gap-2">
 						{alertMsg.type === "success" ? <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" /> : <AlertCircle className="w-4 h-4 text-rose-600 shrink-0" />}
 						<span>{alertMsg.text}</span>
 					</div>
-					<button onClick={() => setAlertMsg(null)} className="text-xs font-black cursor-pointer px-1.5 py-0.5 hover:bg-black/5 rounded">✕</button>
+					<button onClick={() => setAlertMsg(null)} className="text-xs font-black cursor-pointer px-1.5 py-0.5 hover:bg-black/5 rounded-md">✕</button>
 				</div>
 			)}
 
 			{/* Table Container */}
-			<div className="border border-brand-border rounded-lg bg-white overflow-hidden shadow-[0_1px_3px_rgba(0,0,0,0.02)]">
+			<div className="border border-brand-border rounded-md bg-white overflow-hidden shadow-[0_1px_3px_rgba(0,0,0,0.02)]">
 				{loading ? (
 					<div className="flex justify-center items-center py-16 text-xs text-brand-muted gap-2">
 						<Loader2 className="w-4 h-4 animate-spin text-brand-primary" /> Đang tải danh sách vận đơn...
@@ -211,7 +211,7 @@ export function AdminShipmentsView() {
 									<tr key={item.id} className="hover:bg-brand-light-soft/10 transition-colors">
 										<td className="p-3 font-mono font-black text-brand-dark">
 											{item.waybillCode ? (
-												<span className="bg-orange-50 text-orange-800 border border-orange-200 px-2 py-0.5 rounded text-[11px]">
+												<span className="bg-orange-50 text-orange-800 border border-orange-200 px-2 py-0.5 rounded-md text-[11px]">
 													{item.waybillCode}
 												</span>
 											) : (
@@ -238,7 +238,7 @@ export function AdminShipmentsView() {
 													setSelectedShipment(item);
 													setShowWebhookModal(true);
 												}}
-												className="px-2.5 py-1 bg-brand-dark text-white hover:bg-brand-primary hover:text-brand-dark text-[10px] font-black rounded transition-all cursor-pointer border-none flex items-center gap-1 ml-auto"
+												className="px-2.5 py-1 bg-brand-dark text-white hover:bg-brand-primary hover:text-brand-dark text-[10px] font-black rounded-md transition-all cursor-pointer border-none flex items-center gap-1 ml-auto"
 											>
 												Cập nhật Webhook <ArrowRight className="w-3 h-3" />
 											</button>
@@ -258,14 +258,14 @@ export function AdminShipmentsView() {
 							<button
 								disabled={page <= 1}
 								onClick={() => setPage((p) => p - 1)}
-								className="px-2.5 py-1 bg-white border border-brand-border rounded hover:bg-brand-light-soft disabled:opacity-40 cursor-pointer font-extrabold"
+								className="px-2.5 py-1 bg-white border border-brand-border rounded-md hover:bg-brand-light-soft disabled:opacity-40 cursor-pointer font-extrabold"
 							>
 								&lt; Trước
 							</button>
 							<button
 								disabled={page >= totalPages}
 								onClick={() => setPage((p) => p + 1)}
-								className="px-2.5 py-1 bg-white border border-brand-border rounded hover:bg-brand-light-soft disabled:opacity-40 cursor-pointer font-extrabold"
+								className="px-2.5 py-1 bg-white border border-brand-border rounded-md hover:bg-brand-light-soft disabled:opacity-40 cursor-pointer font-extrabold"
 							>
 								Sau &gt;
 							</button>
@@ -277,7 +277,7 @@ export function AdminShipmentsView() {
 			{/* Modal GHN Webhook Simulation */}
 			{showWebhookModal && selectedShipment && (
 				<div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-xs p-4 animate-in fade-in duration-200">
-					<div className="bg-white border border-brand-border rounded-xl w-full max-w-md p-5 shadow-2xl text-left space-y-4">
+					<div className="bg-white border border-brand-border rounded-md w-full max-w-md p-5 shadow-2xl text-left space-y-4">
 						<div className="border-b border-brand-border pb-3">
 							<h3 className="text-xs font-black text-brand-dark uppercase tracking-wide flex items-center gap-1.5">
 								Mô phỏng Webhook GHN Carrier
@@ -293,7 +293,7 @@ export function AdminShipmentsView() {
 								<select
 									value={selectedWebhookStatus}
 									onChange={(e) => setSelectedWebhookStatus(e.target.value)}
-									className="w-full px-3 py-2 border border-brand-border rounded bg-white font-bold text-brand-dark focus:outline-none focus:border-brand-primary"
+									className="w-full px-3 py-2 border border-brand-border rounded-md bg-white font-bold text-brand-dark focus:outline-none focus:border-brand-primary"
 								>
 									{GHN_STATUS_OPTIONS.map((opt) => (
 										<option key={opt.value} value={opt.value}>
@@ -311,12 +311,12 @@ export function AdminShipmentsView() {
 										onChange={(e) => setCustomReason(e.target.value)}
 										placeholder="Nhập lý do đối tác trả hàng hoặc hủy đơn..."
 										rows={2}
-										className="w-full px-3 py-2 border border-brand-border rounded font-semibold text-brand-dark focus:outline-none focus:border-brand-primary text-xs"
+										className="w-full px-3 py-2 border border-brand-border rounded-md font-semibold text-brand-dark focus:outline-none focus:border-brand-primary text-xs"
 									/>
 								</div>
 							)}
 
-							<div className="bg-brand-light-soft/50 p-2.5 rounded border border-brand-border text-[10px] text-brand-muted font-semibold leading-relaxed">
+							<div className="bg-brand-light-soft/50 p-2.5 rounded-md border border-brand-border text-[10px] text-brand-muted font-semibold leading-relaxed">
 								* Khi gửi Webhook thành công, Shippings Service sẽ tự động cập nhật trạng thái Shipment và phát bắn Event <span className="font-mono text-brand-dark font-bold">SubOrderShippedEvent / SubOrderDeliveredEvent</span> qua RabbitMQ.
 							</div>
 						</div>
@@ -328,7 +328,7 @@ export function AdminShipmentsView() {
 									setShowWebhookModal(false);
 									setCustomReason("");
 								}}
-								className="px-3.5 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg font-bold text-xs cursor-pointer"
+								className="px-3.5 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-md font-bold text-xs cursor-pointer"
 							>
 								Đóng
 							</button>
@@ -336,7 +336,7 @@ export function AdminShipmentsView() {
 								type="button"
 								onClick={handleTriggerWebhook}
 								disabled={submitting}
-								className="px-4 py-1.5 bg-brand-dark hover:bg-brand-primary hover:text-brand-dark text-white rounded-lg font-black text-xs cursor-pointer transition-all disabled:opacity-50 flex items-center gap-1.5"
+								className="px-4 py-1.5 bg-brand-dark hover:bg-brand-primary hover:text-brand-dark text-white rounded-md font-black text-xs cursor-pointer transition-all disabled:opacity-50 flex items-center gap-1.5"
 							>
 								{submitting && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
 								Bắn Webhook GHN

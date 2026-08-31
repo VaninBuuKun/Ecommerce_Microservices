@@ -10,9 +10,10 @@ import {
 	ShieldAlert,
 	Ticket,
 	Wallet,
-	Image as ImageIcon
+	Image as ImageIcon,
+	CreditCard
 } from "lucide-react";
-import { useAuthStore } from "@/domains/auth";
+import { useAuthStore, authApi } from "@/domains/auth";
 
 
 export default function AdminLayout() {
@@ -20,10 +21,9 @@ export default function AdminLayout() {
 	const location = useLocation();
 	const { user } = useAuthStore();
 
-	const handleLogout = () => {
-		// Logic logout
-		localStorage.removeItem("token");
-		window.location.href = "/login";
+	const handleLogout = async () => {
+		await authApi.logout();
+		navigate("/login");
 	};
 
 	const getSidebarLinkClass = (path: string) => {
@@ -129,6 +129,10 @@ export default function AdminLayout() {
 						<Link to="/admin/wallets" className={getSidebarLinkClass("/admin/wallets")}>
 							<Wallet className="w-4 h-4 text-brand-muted" />
 							<span>Quản lý ví</span>
+						</Link>
+						<Link to="/admin/payment-methods" className={getSidebarLinkClass("/admin/payment-methods")}>
+							<CreditCard className="w-4 h-4 text-brand-muted" />
+							<span>Phương thức thanh toán</span>
 						</Link>
 					</nav>
 				</aside>

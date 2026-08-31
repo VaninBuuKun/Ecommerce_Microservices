@@ -9,4 +9,6 @@ public interface IPaymentMethodService
     Task<Result<PaymentMethod>> CreateNewPaymentMethod(CreatePaymentMethodRequest paymentMethod);
     Task<Result<List<PaymentMethod>>> GetPaymentMethods();
     Task<Result<PaymentMethod>> GetPaymentMethodById(long id);
+    Task<Result<PaymentMethod>> UpdatePaymentMethod(long id, UpdatePaymentMethodRequest request);
+    Task<Result<PaymentMethod>> TogglePaymentMethodStatus(long id);
 }

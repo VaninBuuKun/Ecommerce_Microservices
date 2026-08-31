@@ -225,9 +225,9 @@ export default function CouponsView() {
 				</div>
 				<button
 					onClick={handleOpenAdd}
-					className="inline-flex items-center gap-1.5 h-8 px-3.5 bg-brand-primary hover:bg-brand-primary-deep text-brand-dark font-black text-xs rounded-xl shadow-xs transition-all cursor-pointer border-none"
+					className="inline-flex items-center gap-1.5 h-8 px-3.5 bg-brand-primary hover:bg-brand-primary-deep text-white font-bold text-xs rounded shadow-xs transition-all cursor-pointer border-none"
 				>
-					<Plus className="w-4 h-4" />
+					<Plus className="w-3.5 h-3.5" />
 					Tạo Voucher Mới
 				</button>
 			</div>

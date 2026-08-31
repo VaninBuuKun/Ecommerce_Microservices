@@ -126,7 +126,12 @@ public class CalOrderGrandTotalCommandHandler(
                     shopSubTotal += itemSubTotal;
                     checkoutSessionItems.Add(new CheckoutSessionItem
                     {
+                        ShopId = item.ShopId,
+                        ProductId = item.ProductId,
                         VariantId = item.VariantId,
+                        ProductName = item.ProductName,
+                        VariantName = item.VariantName,
+                        ThumbnailUrl = item.ThumbnailUrl,
                         Quantity = item.Quantity,
                         UnitPrice = item.DiscountPrice
                     });

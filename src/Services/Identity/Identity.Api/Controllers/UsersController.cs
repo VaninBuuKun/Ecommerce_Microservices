@@ -227,6 +227,33 @@ public class UsersController(
         return Ok(newAddress);
     }
 
+    [HttpPut("addresses/{id:long}")]
+    public async Task<IActionResult> UpdateAddress(long id, [FromBody] UpdateUserAddressRequest request)
+    {
+        long userId = currentUserService.UserId;
+        if (userId == 0) return Unauthorized();
+
+        var dto = new UpdateAddressDto
+        {
+            Id = id,
+            RecipientName = request.RecipientName,
+            Phone = request.Phone,
+            ProvinceId = request.ProvinceId,
+            DistrictId = request.DistrictId,
+            WardId = request.WardId,
+            AddressLine = request.AddressLine,
+            IsDefault = request.IsDefault
+        };
+
+        var updated = await addressService.UpdateAddressAsync(userId, dto);
+        if (updated == null)
+        {
+            return NotFound("Địa chỉ không tồn tại hoặc không thuộc về người dùng này.");
+        }
+
+        return Ok(updated);
+    }
+
     [HttpDelete("addresses/{id:long}")]
     public async Task<IActionResult> DeleteAddress(long id)
     {
@@ -259,6 +286,17 @@ public class UsersController(
 }
 
 public class CreateUserAddressRequest
+{
+    public string RecipientName { get; set; } = string.Empty;
+    public string Phone { get; set; } = string.Empty;
+    public long ProvinceId { get; set; }
+    public long DistrictId { get; set; }
+    public long WardId { get; set; }
+    public string AddressLine { get; set; } = string.Empty;
+    public bool IsDefault { get; set; }
+}
+
+public class UpdateUserAddressRequest
 {
     public string RecipientName { get; set; } = string.Empty;
     public string Phone { get; set; } = string.Empty;

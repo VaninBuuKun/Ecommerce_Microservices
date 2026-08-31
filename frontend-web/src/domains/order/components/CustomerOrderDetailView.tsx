@@ -140,7 +140,7 @@ export function CustomerOrderDetailView({ subOrderId, onBack }: CustomerOrderDet
 			{/* 3 cards grid layout */}
 			<div className="grid grid-cols-1 md:grid-cols-3 gap-4">
 				{/* 1. ĐỊA CHỈ NGƯỜI NHẬN */}
-				<div className="border border-brand-border rounded-xl p-4 bg-white shadow-sm space-y-2">
+				<div className="border border-brand-border rounded-md p-4 bg-white shadow-sm space-y-2">
 					<h3 className="font-extrabold text-[10px] text-brand-muted uppercase tracking-wider">Địa chỉ người nhận</h3>
 					<div className="space-y-1">
 						<p className="font-black text-brand-dark uppercase text-[11px]">{detail.shippingAddress?.recipientName || detail.user?.fullName || "Khách hàng"}</p>
@@ -152,7 +152,7 @@ export function CustomerOrderDetailView({ subOrderId, onBack }: CustomerOrderDet
 				</div>
 
 				{/* 2. HÌNH THỨC GIAO HÀNG */}
-				<div className="border border-brand-border rounded-xl p-4 bg-white shadow-sm space-y-2">
+				<div className="border border-brand-border rounded-md p-4 bg-white shadow-sm space-y-2">
 					<h3 className="font-extrabold text-[10px] text-brand-muted uppercase tracking-wider">Hình thức giao hàng</h3>
 					<div className="space-y-1">
 						<p className="font-black text-brand-primary-deep text-[11px]">FAST <span className="text-brand-dark font-extrabold">Giao Tiết Kiệm</span></p>
@@ -163,7 +163,7 @@ export function CustomerOrderDetailView({ subOrderId, onBack }: CustomerOrderDet
 				</div>
 
 				{/* 3. HÌNH THỨC THANH TOÁN */}
-				<div className="border border-brand-border rounded-xl p-4 bg-white shadow-sm space-y-2">
+				<div className="border border-brand-border rounded-md p-4 bg-white shadow-sm space-y-2">
 					<h3 className="font-extrabold text-[10px] text-brand-muted uppercase tracking-wider">Hình thức thanh toán</h3>
 					<div className="space-y-1">
 						<p className="font-extrabold text-brand-muted text-[11px]">
@@ -190,11 +190,11 @@ export function CustomerOrderDetailView({ subOrderId, onBack }: CustomerOrderDet
 			</div>
 
 			{/* Products Table */}
-			<div className="border border-brand-border rounded-xl overflow-hidden shadow-sm bg-white">
+			<div className="border border-brand-border rounded-md overflow-hidden shadow-sm bg-white">
 				<table className="w-full border-collapse text-left">
 					<thead>
 						<tr className="bg-brand-light-soft/50 border-b border-brand-border text-[10px] font-extrabold text-brand-muted uppercase tracking-wider">
-							<th className="p-3 w-3/5">Sản phẩm</th>
+							<th className="p-3 w-45/100">Sản phẩm</th>
 							<th className="p-3 text-right">Giá</th>
 							<th className="p-3 text-center">Số lượng</th>
 							<th className="p-3 text-right">Giảm giá</th>
@@ -212,7 +212,7 @@ export function CustomerOrderDetailView({ subOrderId, onBack }: CustomerOrderDet
 											<img
 												src={item.thumbnailUrl || "https://images.unsplash.com/photo-1556821840-3a63f95609a7?auto=format&fit=crop&q=80&w=150"}
 												alt={item.productName}
-												className="w-16 h-16 object-cover rounded-xl border border-brand-border shrink-0"
+												className="w-16 h-16 object-cover rounded-md border border-brand-border shrink-0"
 											/>
 											<div className="space-y-1">
 												<h4 className="font-extrabold text-brand-dark text-xs leading-tight">
@@ -220,12 +220,11 @@ export function CustomerOrderDetailView({ subOrderId, onBack }: CustomerOrderDet
 												</h4>
 												<p className="text-[10px] text-brand-muted font-semibold">Cung cấp bởi Buu Store</p>
 												<span className="inline-block text-[9px] font-black text-brand-primary-deep bg-brand-primary/10 px-1.5 py-0.5 rounded uppercase">
-													30 ngày đổi trả
+													7 ngày đổi trả
 												</span>
 												{item.variantName && (
 													<p className="text-[10px] font-bold text-brand-muted">Phân loại: {item.variantName}</p>
 												)}
-												<p className="text-[10px] text-brand-muted font-bold font-mono">Sku: {String(item.variantId).split("-")[0]}</p>
 												<div className="flex gap-2 pt-1">
 													<button type="button" className="px-2 py-1 bg-white border border-brand-border hover:bg-brand-light-soft text-[10px] font-black text-brand-dark rounded transition-all cursor-pointer">
 														Chat với nhà bán
@@ -306,7 +305,7 @@ export function CustomerOrderDetailView({ subOrderId, onBack }: CustomerOrderDet
 
 			{/* Action Control Panel */}
 			{(canCancel || canCompleteOrRefund) && (
-				<div className="bg-brand-light-soft/20 border border-brand-border rounded-xl p-4 flex flex-col sm:flex-row justify-between items-center gap-3">
+				<div className="bg-brand-light-soft/20 border border-brand-border rounded-md p-4 flex flex-col sm:flex-row justify-between items-center gap-3">
 					<div className="text-left space-y-0.5">
 						<p className="font-extrabold text-brand-dark text-xs">Quản lý trạng thái đơn hàng</p>
 						<p className="text-[10px] text-brand-muted font-bold">Hãy thực hiện thao tác tương ứng với tiến trình đơn hàng của bạn.</p>
@@ -316,7 +315,7 @@ export function CustomerOrderDetailView({ subOrderId, onBack }: CustomerOrderDet
 							<button
 								type="button"
 								onClick={() => { setShowCancelModal(true); setErrorMessage(""); }}
-								className="px-4 py-2 bg-rose-50 border border-rose-200 text-rose-700 font-extrabold rounded-lg hover:bg-rose-100 transition-all text-xs cursor-pointer shadow-sm"
+								className="px-4 py-2 bg-rose-50 border border-rose-200 text-rose-700 font-extrabold rounded-md hover:bg-rose-100 transition-all text-xs cursor-pointer shadow-sm"
 							>
 								Hủy đơn hàng
 							</button>
@@ -326,14 +325,14 @@ export function CustomerOrderDetailView({ subOrderId, onBack }: CustomerOrderDet
 								<button
 									type="button"
 									onClick={() => { setShowRefundModal(true); setErrorMessage(""); }}
-									className="px-4 py-2 bg-amber-50 border border-amber-200 text-amber-700 font-extrabold rounded-lg hover:bg-amber-100 transition-all text-xs cursor-pointer shadow-sm"
+									className="px-4 py-2 bg-amber-50 border border-amber-200 text-amber-700 font-extrabold rounded-md hover:bg-amber-100 transition-all text-xs cursor-pointer shadow-sm"
 								>
 									Yêu cầu trả hàng / Hoàn tiền
 								</button>
 								<button
 									type="button"
 									onClick={() => { setShowCompleteModal(true); setErrorMessage(""); }}
-									className="px-4 py-2 bg-emerald-600 text-white font-extrabold rounded-lg hover:bg-emerald-700 transition-all text-xs cursor-pointer shadow-sm"
+									className="px-4 py-2 bg-emerald-600 text-white font-extrabold rounded-md hover:bg-emerald-700 transition-all text-xs cursor-pointer shadow-sm"
 								>
 									Đã nhận hàng thành công
 								</button>
@@ -346,7 +345,7 @@ export function CustomerOrderDetailView({ subOrderId, onBack }: CustomerOrderDet
 			{/* Modal Hủy Đơn Hàng */}
 			{showCancelModal && (
 				<div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-brand-dark/40 backdrop-blur-xs font-sans">
-					<div className="bg-white rounded-xl max-w-md w-full border border-brand-border p-5 shadow-xl space-y-4">
+					<div className="bg-white rounded-md max-w-md w-full border border-brand-border p-5 shadow-xl space-y-4">
 						<h3 className="font-black text-brand-dark text-sm uppercase">Yêu cầu hủy đơn hàng</h3>
 						<p className="text-brand-muted text-xs leading-normal font-semibold">
 							Lưu ý: Bạn chỉ có thể hủy đơn khi nhà bán hàng chưa giao cho hãng vận chuyển. Vui lòng cung cấp lý do hủy để hệ thống ghi nhận.
@@ -356,14 +355,14 @@ export function CustomerOrderDetailView({ subOrderId, onBack }: CustomerOrderDet
 							onChange={(e) => setReason(e.target.value)}
 							placeholder="Nhập lý do hủy đơn của bạn tại đây..."
 							rows={3}
-							className="w-full border border-brand-border rounded-lg p-2.5 text-xs focus:outline-none focus:ring-1 focus:ring-brand-primary"
+							className="w-full border border-brand-border rounded-md p-2.5 text-xs focus:outline-none focus:ring-1 focus:ring-brand-primary"
 						/>
 						{errorMessage && <p className="text-[10px] font-bold text-red-600">{errorMessage}</p>}
 						<div className="flex justify-end gap-2 pt-2">
 							<button
 								type="button"
 								onClick={() => { setShowCancelModal(false); setReason(""); setErrorMessage(""); }}
-								className="px-3.5 py-1.5 bg-slate-100 text-slate-700 hover:bg-slate-200 rounded-lg font-bold text-xs cursor-pointer"
+								className="px-3.5 py-1.5 bg-slate-100 text-slate-700 hover:bg-slate-200 rounded-md font-bold text-xs cursor-pointer"
 							>
 								Đóng
 							</button>
@@ -371,7 +370,7 @@ export function CustomerOrderDetailView({ subOrderId, onBack }: CustomerOrderDet
 								type="button"
 								onClick={handleCancelOrder}
 								disabled={cancelMutation.isPending}
-								className="px-4 py-1.5 bg-red-600 hover:bg-red-700 text-white rounded-lg font-black text-xs cursor-pointer disabled:opacity-50"
+								className="px-4 py-1.5 bg-red-600 hover:bg-red-700 text-white rounded-md font-black text-xs cursor-pointer disabled:opacity-50"
 							>
 								{cancelMutation.isPending ? "Đang hủy..." : "Xác nhận hủy đơn"}
 							</button>
@@ -383,7 +382,7 @@ export function CustomerOrderDetailView({ subOrderId, onBack }: CustomerOrderDet
 			{/* Modal Xác nhận đã nhận hàng */}
 			{showCompleteModal && (
 				<div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-brand-dark/40 backdrop-blur-xs font-sans">
-					<div className="bg-white rounded-xl max-w-md w-full border border-brand-border p-5 shadow-xl space-y-4">
+					<div className="bg-white rounded-md max-w-md w-full border border-brand-border p-5 shadow-xl space-y-4">
 						<div className="flex gap-2.5 items-start text-amber-600">
 							<AlertTriangle className="w-5 h-5 shrink-0" />
 							<h3 className="font-black text-brand-dark text-sm uppercase">Cảnh báo hoàn tất đơn hàng</h3>
@@ -404,7 +403,7 @@ export function CustomerOrderDetailView({ subOrderId, onBack }: CustomerOrderDet
 							<button
 								type="button"
 								onClick={() => { setShowCompleteModal(false); setErrorMessage(""); }}
-								className="px-3.5 py-1.5 bg-slate-100 text-slate-700 hover:bg-slate-200 rounded-lg font-bold text-xs cursor-pointer"
+								className="px-3.5 py-1.5 bg-slate-100 text-slate-700 hover:bg-slate-200 rounded-md font-bold text-xs cursor-pointer"
 							>
 								Hủy bỏ
 							</button>
@@ -412,7 +411,7 @@ export function CustomerOrderDetailView({ subOrderId, onBack }: CustomerOrderDet
 								type="button"
 								onClick={handleCompleteOrder}
 								disabled={completeMutation.isPending}
-								className="px-4 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-black text-xs cursor-pointer disabled:opacity-50"
+								className="px-4 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-md font-black text-xs cursor-pointer disabled:opacity-50"
 							>
 								{completeMutation.isPending ? "Đang xử lý..." : "Tôi đồng ý, hoàn tất đơn hàng"}
 							</button>
@@ -424,7 +423,7 @@ export function CustomerOrderDetailView({ subOrderId, onBack }: CustomerOrderDet
 			{/* Modal Yêu cầu hoàn tiền / trả hàng */}
 			{showRefundModal && (
 				<div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-brand-dark/40 backdrop-blur-xs font-sans">
-					<div className="bg-white rounded-xl max-w-md w-full border border-brand-border p-5 shadow-xl space-y-4">
+					<div className="bg-white rounded-md max-w-md w-full border border-brand-border p-5 shadow-xl space-y-4">
 						<h3 className="font-black text-brand-dark text-sm uppercase">Yêu cầu hoàn trả hàng & hoàn tiền</h3>
 						<p className="text-brand-muted text-xs leading-normal font-semibold">
 							Chúng tôi hỗ trợ trả hàng hoàn tiền miễn phí trong vòng 7 ngày kể từ ngày nhận hàng. Vui lòng cung cấp lý do chi tiết và bằng chứng (nếu có) để người bán duyệt yêu cầu.
@@ -434,14 +433,14 @@ export function CustomerOrderDetailView({ subOrderId, onBack }: CustomerOrderDet
 							onChange={(e) => setReason(e.target.value)}
 							placeholder="Nhập lý do trả hàng/hoần tiền chi tiết..."
 							rows={3}
-							className="w-full border border-brand-border rounded-lg p-2.5 text-xs focus:outline-none focus:ring-1 focus:ring-brand-primary"
+							className="w-full border border-brand-border rounded-md p-2.5 text-xs focus:outline-none focus:ring-1 focus:ring-brand-primary"
 						/>
 						{errorMessage && <p className="text-[10px] font-bold text-red-600">{errorMessage}</p>}
 						<div className="flex justify-end gap-2 pt-2">
 							<button
 								type="button"
 								onClick={() => { setShowRefundModal(false); setReason(""); setErrorMessage(""); }}
-								className="px-3.5 py-1.5 bg-slate-100 text-slate-700 hover:bg-slate-200 rounded-lg font-bold text-xs cursor-pointer"
+								className="px-3.5 py-1.5 bg-slate-100 text-slate-700 hover:bg-slate-200 rounded-md font-bold text-xs cursor-pointer"
 							>
 								Đóng
 							</button>
@@ -449,7 +448,7 @@ export function CustomerOrderDetailView({ subOrderId, onBack }: CustomerOrderDet
 								type="button"
 								onClick={handleRefundOrder}
 								disabled={refundMutation.isPending}
-								className="px-4 py-1.5 bg-amber-600 hover:bg-amber-700 text-white rounded-lg font-black text-xs cursor-pointer disabled:opacity-50"
+								className="px-4 py-1.5 bg-amber-600 hover:bg-amber-700 text-white rounded-md font-black text-xs cursor-pointer disabled:opacity-50"
 							>
 								{refundMutation.isPending ? "Đang gửi..." : "Gửi yêu cầu hoàn trả"}
 							</button>
@@ -461,7 +460,7 @@ export function CustomerOrderDetailView({ subOrderId, onBack }: CustomerOrderDet
 			{/* Modal Yêu cầu tạo ví */}
 			{showNoWalletModal && (
 				<div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-brand-dark/40 backdrop-blur-xs font-sans">
-					<div className="bg-white rounded-xl max-w-md w-full border border-brand-border p-5 shadow-xl space-y-4">
+					<div className="bg-white rounded-md max-w-md w-full border border-brand-border p-5 shadow-xl space-y-4">
 						<div className="flex gap-2.5 items-start text-rose-600">
 							<AlertTriangle className="w-5 h-5 shrink-0" />
 							<h3 className="font-black text-brand-dark text-sm uppercase">Yêu cầu kích hoạt Ví điện tử</h3>
@@ -478,7 +477,7 @@ export function CustomerOrderDetailView({ subOrderId, onBack }: CustomerOrderDet
 							<button
 								type="button"
 								onClick={() => setShowNoWalletModal(false)}
-								className="px-3.5 py-1.5 bg-slate-100 text-slate-700 hover:bg-slate-200 rounded-lg font-bold text-xs cursor-pointer"
+								className="px-3.5 py-1.5 bg-slate-100 text-slate-700 hover:bg-slate-200 rounded-md font-bold text-xs cursor-pointer"
 							>
 								Hủy bỏ
 							</button>
@@ -488,7 +487,7 @@ export function CustomerOrderDetailView({ subOrderId, onBack }: CustomerOrderDet
 									setShowNoWalletModal(false);
 									navigate("/profile?tab=wallet");
 								}}
-								className="px-4 py-1.5 bg-brand-dark text-white rounded-lg font-black text-xs cursor-pointer hover:bg-brand-primary hover:text-brand-dark transition-all"
+								className="px-4 py-1.5 bg-brand-dark text-white rounded-md font-black text-xs cursor-pointer hover:bg-brand-primary hover:text-brand-dark transition-all"
 							>
 								Kích hoạt ví ngay
 							</button>

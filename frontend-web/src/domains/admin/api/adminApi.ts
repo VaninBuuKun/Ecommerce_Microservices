@@ -59,4 +59,43 @@ export const adminApi = {
     const res = await api.delete(`/vouchers/${id}`);
     return res.data;
   },
+
+  // Payment Methods Admin API
+  getPaymentMethods: async (): Promise<any> => {
+    const res = await api.get("/payments/methods");
+    return res.data?.value || res.data;
+  },
+
+  createPaymentMethod: async (payload: {
+    title: string;
+    subTitle?: string;
+    isActive: boolean;
+    providerName: string;
+    iconUrl: string;
+  }): Promise<any> => {
+    const res = await api.post("/payments/methods", payload);
+    return res.data?.value || res.data;
+  },
+
+  updatePaymentMethod: async ({
+    id,
+    payload,
+  }: {
+    id: number;
+    payload: {
+      title: string;
+      subTitle?: string;
+      isActive: boolean;
+      providerName: string;
+      iconUrl: string;
+    };
+  }): Promise<any> => {
+    const res = await api.put(`/payments/methods/${id}`, payload);
+    return res.data?.value || res.data;
+  },
+
+  togglePaymentMethodStatus: async (id: number): Promise<any> => {
+    const res = await api.put(`/payments/methods/${id}/toggle`);
+    return res.data?.value || res.data;
+  },
 };

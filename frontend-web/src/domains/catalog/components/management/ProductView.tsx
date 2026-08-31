@@ -102,7 +102,7 @@ export function ProductsView() {
 				</div>
 				<button
 					onClick={() => setIsCreateOpen(true)}
-					className="h-8 px-3 bg-brand-primary hover:bg-brand-primary-deep text-brand-dark text-xs font-semibold rounded flex items-center gap-1 cursor-pointer transition-all duration-200"
+					className="px-3.5 py-1.5 bg-brand-primary hover:bg-brand-primary-deep text-white text-xs font-bold rounded flex items-center gap-1.5 cursor-pointer shadow-xs transition-all border-none"
 				>
 					<Plus className="w-3.5 h-3.5" />
 					Thêm sản phẩm mới

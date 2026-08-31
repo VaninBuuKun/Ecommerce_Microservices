@@ -375,7 +375,7 @@ export default function Header() {
 																key={item.productVariantId}
 																onClick={() => {
 																	setShowCartDropdown(false);
-																	navigate(`/product/${item.productId}`);
+																	navigate(`/products/${item.productId}`);
 																}}
 																className="flex items-center gap-3 cursor-pointer hover:bg-slate-50 p-1 rounded transition-colors"
 															>

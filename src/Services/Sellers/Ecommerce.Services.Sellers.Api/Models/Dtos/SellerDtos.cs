@@ -40,6 +40,7 @@ public class SellerProfileDto
 {
     public string KycStatus { get; set; } = string.Empty;
     public string? RejectionReason { get; set; }
+    public SellerKycDto? Kyc { get; set; }
     public List<ShopDto> Shops { get; set; } = [];
 }
 

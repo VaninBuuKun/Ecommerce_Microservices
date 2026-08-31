@@ -1,4 +1,4 @@
-import api from "@/core/api/axiosInstance";
+import { api } from "@/core";
 
 export const sellerApi = {
 	// Shop API
@@ -9,6 +9,11 @@ export const sellerApi = {
 
 	getShopById: async (id: number): Promise<any> => {
 		const res = await api.get(`/shop/${id}`);
+		return res.data;
+	},
+
+	getPublicShopById: async (id: number): Promise<any> => {
+		const res = await api.get(`/shop/${id}/public`);
 		return res.data;
 	},
 

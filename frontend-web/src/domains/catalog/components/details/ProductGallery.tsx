@@ -1,3 +1,4 @@
+import { useMemo, useEffect, useState } from "react";
 import { Play } from "lucide-react";
 import type { Product } from "../../types/catalog.types";
 
@@ -12,22 +13,78 @@ export function ProductGallery({
 	activeMedia,
 	setActiveMedia,
 }: ProductGalleryProps) {
+	// Tập hợp toàn bộ media thành 1 danh sách đồng nhất (tránh duplicate giữa thumbnailUrl và imageUrls)
+	const mediaItems = useMemo(() => {
+		const items: { type: "image" | "video"; url: string; label: string }[] = [];
+		const seenUrls = new Set<string>();
+
+		if (product.thumbnailUrl) {
+			items.push({
+				type: "image",
+				url: product.thumbnailUrl,
+				label: "Ảnh đại diện",
+			});
+			seenUrls.add(product.thumbnailUrl);
+		}
+
+		if (product.imageUrls && Array.isArray(product.imageUrls)) {
+			product.imageUrls.forEach((url, idx) => {
+				if (url && !seenUrls.has(url)) {
+					items.push({
+						type: "image",
+						url,
+						label: `Ảnh ${idx + 1}`,
+					});
+					seenUrls.add(url);
+				}
+			});
+		}
+
+		if (product.videoUrl) {
+			items.push({
+				type: "video",
+				url: product.videoUrl,
+				label: "Video",
+			});
+		}
+
+		return items;
+	}, [product.thumbnailUrl, product.imageUrls, product.videoUrl]);
+
+	const [activeIndex, setActiveIndex] = useState(0);
+
+	// Đồng bộ activeIndex khi activeMedia từ bên ngoài (ví dụ khi chọn màu variant) thay đổi
+	useEffect(() => {
+		if (activeMedia) {
+			const foundIdx = mediaItems.findIndex(
+				(m) => m.type === activeMedia.type && m.url === activeMedia.url
+			);
+			if (foundIdx !== -1) {
+				setActiveIndex(foundIdx);
+			}
+		}
+	}, [activeMedia, mediaItems]);
+
+	const handleSelectMedia = (item: { type: "image" | "video"; url: string }, index: number) => {
+		setActiveIndex(index);
+		setActiveMedia(item);
+	};
+
+	const currentItem = mediaItems[activeIndex] || activeMedia || { type: "image", url: product.thumbnailUrl || "" };
+
 	return (
 		<div className="space-y-3">
 			<div className="aspect-[4/3] max-h-[360px] w-full border border-brand-border bg-brand-light-soft/20 rounded-xl overflow-hidden relative flex items-center justify-center mx-auto">
-				{activeMedia?.type === "video" ? (
+				{currentItem.type === "video" ? (
 					<video
-						src={activeMedia.url}
+						src={currentItem.url}
 						controls
 						className="w-full h-full object-contain"
 						autoPlay
 					/>
 				) : (
 					<img
-						src={
-							activeMedia?.url ||
-							"https://via.placeholder.com/400"
-						}
+						src={currentItem.url || "https://via.placeholder.com/400"}
 						alt={product.name}
 						className="w-full h-full object-contain"
 					/>
@@ -35,67 +92,48 @@ export function ProductGallery({
 			</div>
 
 			<div className="flex gap-2 overflow-x-auto pb-1 hide-scrollbar">
-				{(product.thumbnailUrl) && (
-					<button
-						type="button"
-						onClick={() =>
-							setActiveMedia({
-								type: "image",
-								url: product.thumbnailUrl || "",
-							})
-						}
-						className={`w-14 h-14 shrink-0 rounded-lg border-2 overflow-hidden transition-all bg-white cursor-pointer ${activeMedia?.url ===
-								(product.thumbnailUrl)
-								? "border-brand-primary"
-								: "border-brand-border hover:border-gray-400"
-							}`}
-					>
-						<img
-							src={product.thumbnailUrl}
-							alt="Main Cover"
-							className="w-full h-full object-cover"
-						/>
-					</button>
-				)}
+				{mediaItems.map((item, idx) => {
+					const isCurrentActive = activeIndex === idx;
 
-				{product.imageUrls?.map((url: string, idx: number) => (
-					<button
-						key={idx}
-						type="button"
-						onClick={() => setActiveMedia({ type: "image", url })}
-						className={`w-14 h-14 shrink-0 rounded-lg border-2 overflow-hidden transition-all bg-white cursor-pointer ${activeMedia?.url === url
-								? "border-brand-primary"
-								: "border-brand-border hover:border-gray-400"
-							}`}
-					>
-						<img
-							src={url}
-							alt={`Gallery image ${idx + 1}`}
-							className="w-full h-full object-cover"
-						/>
-					</button>
-				))}
+					if (item.type === "video") {
+						return (
+							<button
+								key={`video-${idx}`}
+								type="button"
+								onClick={() => handleSelectMedia(item, idx)}
+								className={`w-14 h-14 shrink-0 rounded-lg border-2 overflow-hidden transition-all bg-brand-dark-surface/5 flex flex-col items-center justify-center cursor-pointer ${
+									isCurrentActive
+										? "border-brand-primary ring-2 ring-brand-primary/30"
+										: "border-brand-border hover:border-gray-400"
+								}`}
+							>
+								<Play className="w-4 h-4 text-brand-primary fill-brand-primary shrink-0" />
+								<span className="text-[8px] font-bold uppercase mt-0.5 text-brand-muted">
+									Video
+								</span>
+							</button>
+						);
+					}
 
-				{product.videoUrl && (
-					<button
-						type="button"
-						onClick={() =>
-							setActiveMedia({
-								type: "video",
-								url: product.videoUrl!,
-							})
-						}
-						className={`w-14 h-14 shrink-0 rounded-lg border-2 overflow-hidden transition-all bg-brand-dark-surface/5 flex flex-col items-center justify-center cursor-pointer ${activeMedia?.url === product.videoUrl
-								? "border-brand-primary"
-								: "border-brand-border hover:border-gray-400"
+					return (
+						<button
+							key={`img-${idx}`}
+							type="button"
+							onClick={() => handleSelectMedia(item, idx)}
+							className={`w-14 h-14 shrink-0 rounded-lg border-2 overflow-hidden transition-all bg-white cursor-pointer ${
+								isCurrentActive
+									? "border-brand-primary ring-2 ring-brand-primary/30"
+									: "border-brand-border hover:border-gray-400"
 							}`}
-					>
-						<Play className="w-4 h-4 text-brand-primary fill-brand-primary shrink-0" />
-						<span className="text-[8px] font-bold uppercase mt-0.5 text-brand-muted">
-							Video
-						</span>
-					</button>
-				)}
+						>
+							<img
+								src={item.url}
+								alt={item.label}
+								className="w-full h-full object-cover"
+							/>
+						</button>
+					);
+				})}
 			</div>
 		</div>
 	);

@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { createPortal } from "react-dom";
 import { X, MapPin, Loader2 } from "lucide-react";
 import { toast } from "react-toastify";
 import { useCreateAddressMutation, type UserAddress } from "@/domains/order";
@@ -50,7 +51,7 @@ export function NewAddressModal({
 	const handleAddAddress = (e: React.FormEvent) => {
 		e.preventDefault();
 		if (!selectedProvinceId || !selectedDistrictId || !selectedWardId) {
-			toast.error("Vui lòng chọn đầy đủ Tỉnh/Huyện/Xã");
+			toast.error("Vui lòng chọn đầy đủ Tỉnh / Huyện / Xã");
 			return;
 		}
 
@@ -92,12 +93,12 @@ export function NewAddressModal({
 		);
 	};
 
-	return (
-		<div className="fixed inset-0 bg-brand-dark/40 backdrop-blur-sm flex items-center justify-center p-4 z-50 overflow-y-auto">
-			<div className="bg-white border border-brand-border rounded-2xl max-w-lg w-full p-6 shadow-2xl space-y-4 text-left relative animate-in fade-in zoom-in-95 duration-200 font-sans">
+	return createPortal(
+		<div className="fixed inset-0 bg-brand-dark/40 backdrop-blur-sm flex items-center justify-center p-4 z-[10000] overflow-y-auto">
+			<div className="bg-white border border-brand-border rounded-md max-w-2xl w-full p-6 shadow-2xl space-y-4 text-left relative animate-in fade-in zoom-in-95 duration-200 font-sans">
 				<button
 					onClick={onClose}
-					className="absolute top-4 right-4 p-1 rounded-full hover:bg-brand-light-soft text-brand-muted hover:text-brand-dark cursor-pointer border-none bg-transparent"
+					className="absolute top-4 right-4 p-1 rounded-md hover:bg-brand-light-soft text-brand-muted hover:text-brand-dark cursor-pointer border-none bg-transparent"
 				>
 					<X className="w-5 h-5" />
 				</button>
@@ -119,7 +120,7 @@ export function NewAddressModal({
 								placeholder="Ví dụ: Nguyễn Văn A"
 								value={newRecipientName}
 								onChange={(e) => setNewRecipientName(e.target.value)}
-								className="w-full h-9 px-3 text-xs bg-white border border-brand-border rounded-lg focus:outline-none focus:border-brand-primary"
+								className="w-full h-9 px-3 text-xs bg-white border border-brand-border rounded-md focus:outline-none focus:border-brand-primary"
 							/>
 						</div>
 						<div>
@@ -132,15 +133,15 @@ export function NewAddressModal({
 								placeholder="Ví dụ: 0987654321"
 								value={newPhone}
 								onChange={handlePhoneChange}
-								className="w-full h-9 px-3 text-xs bg-white border border-brand-border rounded-lg focus:outline-none focus:border-brand-primary"
+								className="w-full h-9 px-3 text-xs bg-white border border-brand-border rounded-md focus:outline-none focus:border-brand-primary"
 							/>
 						</div>
 					</div>
 
-					{/* Location Selectors */}
+					{/* Location Selectors - Rộng rãi hiển thị full displayName */}
 					<div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
 						<div>
-							<label className="block text-[11px] font-bold text-brand-dark mb-1">
+							<label className="block text-[11px] font-bold text-brand-dark mb-1 truncate">
 								Tỉnh / Thành phố
 							</label>
 							<select
@@ -151,19 +152,19 @@ export function NewAddressModal({
 									setSelectedDistrictId(undefined);
 									setSelectedWardId(undefined);
 								}}
-								className="w-full h-9 px-2 text-xs bg-white border border-brand-border rounded-lg focus:outline-none focus:border-brand-primary cursor-pointer"
+								className="w-full h-9 px-2 text-xs bg-white border border-brand-border rounded-md focus:outline-none focus:border-brand-primary cursor-pointer truncate"
 							>
-								<option value="">-- Chọn Tỉnh --</option>
+								<option value="">-- Chọn Tỉnh / TP --</option>
 								{provinces?.map((p) => (
-									<option key={p.id} value={p.id}>
-										{p.displayName}
+									<option key={p.id} value={p.id} title={p.displayName || p.name}>
+										{p.displayName || p.name}
 									</option>
 								))}
 							</select>
 						</div>
 
 						<div>
-							<label className="block text-[11px] font-bold text-brand-dark mb-1">
+							<label className="block text-[11px] font-bold text-brand-dark mb-1 truncate">
 								Quận / Huyện
 							</label>
 							<select
@@ -174,19 +175,19 @@ export function NewAddressModal({
 									setSelectedDistrictId(Number(e.target.value));
 									setSelectedWardId(undefined);
 								}}
-								className="w-full h-9 px-2 text-xs bg-white border border-brand-border rounded-lg focus:outline-none focus:border-brand-primary cursor-pointer"
+								className="w-full h-9 px-2 text-xs bg-white border border-brand-border rounded-md focus:outline-none focus:border-brand-primary cursor-pointer truncate disabled:bg-gray-50 disabled:cursor-not-allowed"
 							>
-								<option value="">-- Chọn Huyện --</option>
+								<option value="">-- Chọn Quận / Huyện --</option>
 								{districts?.map((d) => (
-									<option key={d.id} value={d.id}>
-										{d.displayName}
+									<option key={d.id} value={d.id} title={d.displayName || d.name}>
+										{d.displayName || d.name}
 									</option>
 								))}
 							</select>
 						</div>
 
 						<div>
-							<label className="block text-[11px] font-bold text-brand-dark mb-1">
+							<label className="block text-[11px] font-bold text-brand-dark mb-1 truncate">
 								Phường / Xã
 							</label>
 							<select
@@ -194,12 +195,12 @@ export function NewAddressModal({
 								disabled={!selectedDistrictId}
 								value={selectedWardId || ""}
 								onChange={(e) => setSelectedWardId(Number(e.target.value))}
-								className="w-full h-9 px-2 text-xs bg-white border border-brand-border rounded-lg focus:outline-none focus:border-brand-primary cursor-pointer"
+								className="w-full h-9 px-2 text-xs bg-white border border-brand-border rounded-md focus:outline-none focus:border-brand-primary cursor-pointer truncate disabled:bg-gray-50 disabled:cursor-not-allowed"
 							>
-								<option value="">-- Chọn Xã --</option>
+								<option value="">-- Chọn Phường / Xã --</option>
 								{wards?.map((w) => (
-									<option key={w.id} value={w.id}>
-										{w.displayName}
+									<option key={w.id} value={w.id} title={w.displayName || w.name}>
+										{w.displayName || w.name}
 									</option>
 								))}
 							</select>
@@ -208,7 +209,7 @@ export function NewAddressModal({
 
 					<div>
 						<label className="block text-[11px] font-bold text-brand-dark mb-1">
-							Số nhà, tên đường
+							Số nhà, tên đường (Địa chỉ cụ thể)
 						</label>
 						<input
 							type="text"
@@ -216,7 +217,7 @@ export function NewAddressModal({
 							placeholder="Ví dụ: 123 Đường Lê Lợi"
 							value={newAddressLine}
 							onChange={(e) => setNewAddressLine(e.target.value)}
-							className="w-full h-9 px-3 text-xs bg-white border border-brand-border rounded-lg focus:outline-none focus:border-brand-primary"
+							className="w-full h-9 px-3 text-xs bg-white border border-brand-border rounded-md focus:outline-none focus:border-brand-primary"
 						/>
 					</div>
 
@@ -225,7 +226,7 @@ export function NewAddressModal({
 							type="checkbox"
 							checked={isDefaultAddress}
 							onChange={(e) => setIsDefaultAddress(e.target.checked)}
-							className="accent-brand-primary w-4 h-4"
+							className="accent-brand-primary w-4 h-4 rounded-md"
 						/>
 						<span className="text-xs text-brand-dark font-semibold">
 							Đặt làm địa chỉ mặc định
@@ -236,14 +237,14 @@ export function NewAddressModal({
 						<button
 							type="button"
 							onClick={onBackToAddressList || onClose}
-							className="flex-1 h-9 border border-brand-border hover:bg-brand-light-soft text-brand-dark font-bold text-xs rounded-lg transition-colors cursor-pointer bg-white"
+							className="flex-1 h-9 border border-brand-border hover:bg-brand-light-soft text-brand-dark font-bold text-xs rounded-md transition-colors cursor-pointer bg-white"
 						>
 							Hủy bỏ
 						</button>
 						<button
 							type="submit"
 							disabled={createAddressMutation.isPending}
-							className="flex-1 h-9 bg-brand-primary hover:bg-brand-primary-deep text-brand-dark font-black text-xs rounded-lg transition-colors cursor-pointer border-none flex items-center justify-center gap-1.5"
+							className="flex-1 h-9 bg-brand-primary hover:bg-brand-primary-deep text-brand-dark font-black text-xs rounded-md transition-colors cursor-pointer border-none flex items-center justify-center gap-1.5"
 						>
 							{createAddressMutation.isPending && (
 								<Loader2 className="w-3.5 h-3.5 animate-spin" />
@@ -253,6 +254,7 @@ export function NewAddressModal({
 					</div>
 				</form>
 			</div>
-		</div>
+		</div>,
+		document.body
 	);
 }

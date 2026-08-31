@@ -7,7 +7,7 @@ export interface SellerKycDto {
   identityCardNumber?: string;
   identityCardFrontUrl?: string;
   identityCardBackUrl?: string;
-  status: "Draft" | "Submitted" | "Verified" | "Approved" | "Rejected";
+  status: "Draft" | "Submitted" | "Verified" | "Rejected";
   rejectionReason?: string;
   rejectReason?: string;
   createdAt?: string;

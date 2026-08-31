@@ -305,7 +305,7 @@ export default function RefundRequestsView() {
 													type: "approve",
 												})
 											}
-											className="h-8 px-3 bg-brand-primary hover:bg-brand-primary-deep text-brand-dark rounded-lg text-xs font-black transition-all cursor-pointer border-none flex items-center justify-center gap-1"
+											className="h-8 px-3.5 bg-brand-primary hover:bg-brand-primary-deep text-white rounded text-xs font-bold transition-all cursor-pointer border-none flex items-center justify-center gap-1.5 shadow-xs"
 										>
 											<Check className="w-3.5 h-3.5" />
 											Chấp nhận

@@ -13,6 +13,12 @@ export const orderApi = {
 		return response.data;
 	},
 
+	// Cập nhật địa chỉ nhận hàng
+	updateAddress: async (id: number, data: any): Promise<any> => {
+		const response = await api.put(`/users/addresses/${id}`, data);
+		return response.data;
+	},
+
 	// Tính toán tiền hàng và phí vận chuyển
 	calculateTotal: async (data: any): Promise<any> => {
 		const response = await api.post("/orders/calculate", data);

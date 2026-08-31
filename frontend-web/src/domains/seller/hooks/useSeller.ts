@@ -6,8 +6,18 @@ export const sellerQueryKeys = {
   myShops: ["shops", "me"] as const,
   profile: ["seller", "profile"] as const,
   shopDetail: (id: number) => ["shops", id] as const,
+  publicShop: (id: number) => ["shops", "public", id] as const,
   vouchers: (params: any) => ["vouchers", params] as const,
 };
+
+export function usePublicShopQuery(shopId?: number) {
+  return useQuery({
+    queryKey: sellerQueryKeys.publicShop(shopId!),
+    queryFn: () => sellerApi.getPublicShopById(shopId!),
+    enabled: !!shopId,
+    staleTime: 1000 * 60 * 5,
+  });
+}
 
 export function useSellerProfileQuery() {
   const accessToken = useAuthStore((state) => state.accessToken);

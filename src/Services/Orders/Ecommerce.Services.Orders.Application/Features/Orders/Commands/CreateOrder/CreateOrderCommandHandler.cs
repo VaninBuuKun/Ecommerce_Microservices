@@ -64,8 +64,12 @@ public class CreateOrderCommandHandler(
         var addressData = addressResult.Value!;
         string fullShippingAddress = addressData.AddressLine;
 
-        // Giữ tồn kho trước khi tạo đơn hàng
-        var reserveItems = selectedItems.Select(item => new ReserveStockItemDto(item.VariantId, item.Quantity)).ToList();
+        // Giữ tồn kho trước khi tạo đơn hàng (Quy tắc: nếu có VariantId thì ProductId = 0; nếu là sản phẩm đơn thì VariantId = 0)
+        var reserveItems = selectedItems.Select(item => new ReserveStockItemDto(
+            ProductId: item.VariantId > 0 ? 0 : item.ProductId,
+            VariantId: item.VariantId > 0 ? item.VariantId : 0,
+            Quantity: item.Quantity
+        )).ToList();
         var reserveResult = await productService.ReserveStockAsync(reserveItems, cancellationToken);
         if (!reserveResult.IsSuccess || (reserveResult.Value != null && !reserveResult.Value.IsValid))
         {
@@ -86,7 +90,7 @@ public class CreateOrderCommandHandler(
 
             foreach (var item in selectedItems)
             {
-                long shopId = 0;
+                long shopId = item.ShopId;
                 if (!shopToSubOrderIdMap.TryGetValue(shopId, out var subOrderId))
                 {
                     subOrderId = snowflakeIdGenerator.NewId();
@@ -94,7 +98,17 @@ public class CreateOrderCommandHandler(
                 }
 
                 long orderItemId = snowflakeIdGenerator.NewId();
-                order.AddOrderItem(subOrderId, shopId, 0, item.VariantId, string.Empty, string.Empty, item.UnitPrice, item.Quantity, null, orderItemId);
+                order.AddOrderItem(
+                    subOrderId,
+                    shopId,
+                    item.ProductId,
+                    item.VariantId,
+                    item.ProductName,
+                    item.VariantName,
+                    item.UnitPrice,
+                    item.Quantity,
+                    item.ThumbnailUrl,
+                    orderItemId);
             }
 
             foreach (var shopShipping in checkoutSession.ShopShippingFees)
@@ -136,10 +150,13 @@ public class CreateOrderCommandHandler(
                 IsOnlinePayment = order.IsOnlinePayment,
                 OrderItems = subOrder.SubOrderItems.Select(item => new OrderItemData
                 {
-                    VariantId = item.VariantId,
+                    ProductId = item.VariantId > 0 ? 0 : item.ProductId,
+                    VariantId = item.VariantId > 0 ? item.VariantId : 0,
                     UnitPrice = item.UnitPrice,
                     Quantity = item.Quantity,
-                    ProductName = string.IsNullOrEmpty(item.VariantName) ? item.ProductName : $"{item.ProductName} - {item.VariantName}"
+                    ProductName = string.IsNullOrEmpty(item.VariantName) || item.VariantName == "No variants found"
+                        ? item.ProductName 
+                        : $"{item.ProductName} - {item.VariantName}"
                 }).ToList()
             }).ToList();
 
@@ -192,6 +209,7 @@ public class CreateOrderCommandHandler(
                 OrderId = orderId,
                 VariantItems = items.Select(x => new VariantStockData
                 {
+                    ProductId = x.ProductId,
                     VariantId = x.VariantId,
                     Quantity = x.Quantity
                 }).ToList()

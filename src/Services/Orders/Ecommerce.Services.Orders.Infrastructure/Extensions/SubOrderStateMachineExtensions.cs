@@ -38,6 +38,7 @@ public static class SubOrderStateMachineExtensions
                     OrderId = context.Saga.OrderId,
                     VariantItems = items?.Select(x => new VariantStockData
                     {
+                        ProductId = x.ProductId,
                         VariantId = x.VariantId,
                         Quantity = x.Quantity
                     }).ToList() ?? new List<VariantStockData>()

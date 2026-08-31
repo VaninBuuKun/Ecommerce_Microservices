@@ -11,6 +11,7 @@ import {
 	AdminWalletsDashboardView,
 	AdminKycView,
 	AdminBannersView,
+	AdminPaymentMethodsView,
 } from "@/domains/admin";
 
 export default function AdminDashboardPage() {
@@ -28,6 +29,7 @@ export default function AdminDashboardPage() {
 			<Route path="kyc" element={<AdminKycView />} />
 			<Route path="vouchers" element={<AdminVouchersView />} />
 			<Route path="wallets" element={<AdminWalletsDashboardView />} />
+			<Route path="payment-methods" element={<AdminPaymentMethodsView />} />
 		</Routes>
 	);
 }

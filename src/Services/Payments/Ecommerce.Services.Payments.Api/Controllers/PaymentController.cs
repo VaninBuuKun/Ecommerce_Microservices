@@ -47,4 +47,30 @@ public class PaymentController(IPaymentMethodService paymentMethodService, IPaym
 
         return StatusCode(result.GetHttpStatusCode(), result.Message);
     }
+
+    [HttpPut("methods/{id:long}")]
+    public async Task<IActionResult> UpdatePaymentMethod(long id, [FromBody] UpdatePaymentMethodRequest request)
+    {
+        var result = await paymentMethodService.UpdatePaymentMethod(id, request);
+
+        if (result.IsSuccess)
+        {
+            return Ok(result.Value);
+        }
+
+        return StatusCode(result.GetHttpStatusCode(), result.Message);
+    }
+
+    [HttpPut("methods/{id:long}/toggle")]
+    public async Task<IActionResult> TogglePaymentMethodStatus(long id)
+    {
+        var result = await paymentMethodService.TogglePaymentMethodStatus(id);
+
+        if (result.IsSuccess)
+        {
+            return Ok(result.Value);
+        }
+
+        return StatusCode(result.GetHttpStatusCode(), result.Message);
+    }
 }

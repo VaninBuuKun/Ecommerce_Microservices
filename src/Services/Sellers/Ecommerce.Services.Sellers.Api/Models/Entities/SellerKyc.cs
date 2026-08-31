@@ -7,7 +7,6 @@ public enum KycStatus
 {
     Draft = 0,
     Submitted = 1,
-    Pending = 1, // Alias for backward compatibility
     Verified = 2,
     Rejected = 3
 }

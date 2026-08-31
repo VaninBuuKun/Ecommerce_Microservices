@@ -356,19 +356,18 @@ export function AdminBannersView() {
 			{/* TOP HEADER BAR */}
 			<div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-brand-border pb-4">
 				<div>
-					<h1 className="text-sm font-black text-brand-dark uppercase tracking-wider flex items-center gap-2">
-						<ImageIcon className="w-4 h-4 text-brand-primary" />
+					<h1 className="text-sm font-black text-brand-dark uppercase tracking-wider">
 						Quản lý Banner Trang chủ
 					</h1>
-					<p className="text-xs text-brand-muted mt-1">
-						Tùy chỉnh các chiến dịch Banner động, phối màu Tailwind Gradient và sắp xếp thứ tự hiển thị.
+					<p className="text-[10px] text-brand-muted font-bold mt-0.5">
+						Tùy chỉnh các chiến dịch Banner động, phối màu Tailwind Gradient và sắp xếp thứ tự hiển thị
 					</p>
 				</div>
 				<div className="flex items-center gap-2">
 					<button
 						onClick={fetchBanners}
 						disabled={isLoading}
-						className="px-3 py-1.5 border border-brand-border bg-white hover:bg-brand-light-soft text-brand-dark rounded text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer"
+						className="px-3 py-1.5 border border-brand-border bg-white hover:bg-brand-light-soft text-brand-dark rounded-md text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer"
 					>
 						<RefreshCw className={`w-3.5 h-3.5 ${isLoading ? "animate-spin" : ""}`} />
 						Làm mới
@@ -499,23 +498,14 @@ export function AdminBannersView() {
 											<td className="py-2.5 px-4 text-center">
 												<button
 													onClick={() => handleStatusClick(b)}
-													className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold border transition-colors cursor-pointer inline-flex items-center gap-1 ${
+													className={`px-2 py-0.5 rounded text-[9px] font-black uppercase border transition-colors cursor-pointer inline-block ${
 														b.isActive
 															? "bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100"
-															: "bg-gray-100 text-gray-600 border-gray-200 hover:bg-gray-200"
+															: "bg-red-50 text-red-700 border border-red-200 hover:bg-red-100"
 													}`}
+													title="Nhấn để đổi trạng thái Hiển thị / Ẩn"
 												>
-													{b.isActive ? (
-														<>
-															<CheckCircle2 className="w-3 h-3 text-emerald-600" />
-															Hiển thị
-														</>
-													) : (
-														<>
-															<XCircle className="w-3 h-3 text-gray-500" />
-															Đã ẩn
-														</>
-													)}
+													{b.isActive ? "Hiển thị" : "Đã ẩn"}
 												</button>
 											</td>
 											<td className="py-2.5 px-4 text-right">

@@ -1,6 +1,7 @@
 using System;
 using Ecommerce.Services.Orders.Contracts.Events;
 using Ecommerce.Services.Orders.Domain.Enums;
+using Ecommerce.Services.Orders.Infrastructure.Extensions;
 using MassTransit;
 using Microsoft.Extensions.Logging;
 
@@ -52,6 +53,7 @@ public class SubOrderStateMachine : MassTransitStateMachine<SubOrderSagaState>
                     context.Saga.TotalAmount = context.Message.TotalAmount;
                     context.Saga.IsOnlinePayment = context.Message.IsOnlinePayment;
                     context.Saga.CreatedDate = DateTime.UtcNow;
+                    context.Saga.ItemsJson = System.Text.Json.JsonSerializer.Serialize(context.Message.OrderItems);
                 })
                 .TransitionTo(AwaitingConfirmation)
         );
@@ -60,6 +62,7 @@ public class SubOrderStateMachine : MassTransitStateMachine<SubOrderSagaState>
             When(SubOrderConfirmed)
                 .TransitionTo(Processing),
             When(SubOrderRejected)
+                .HandleRejectionFlow()
                 .TransitionTo(Cancelled)
         );
 

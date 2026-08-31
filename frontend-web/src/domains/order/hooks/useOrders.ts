@@ -19,6 +19,17 @@ export function useCreateAddressMutation() {
 	});
 }
 
+export function useUpdateAddressMutation() {
+	const queryClient = useQueryClient();
+	return useMutation({
+		mutationFn: ({ id, data }: { id: number; data: any }) =>
+			orderApi.updateAddress(id, data),
+		onSuccess: () => {
+			queryClient.invalidateQueries({ queryKey: ["order", "addresses"] });
+		},
+	});
+}
+
 export function useCalculateTotalMutation() {
 	return useMutation({
 		mutationFn: (data: any) => orderApi.calculateTotal(data),

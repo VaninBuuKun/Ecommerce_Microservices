@@ -67,6 +67,40 @@ public class AddressService(AppDbContext dbContext) : IAddressService
         return newAddress;
     }
 
+    public async Task<UserAddress?> UpdateAddressAsync(long userId, UpdateAddressDto dto)
+    {
+        var target = await dbContext.UserAddresses
+            .FirstOrDefaultAsync(a => a.Id == dto.Id && a.UserId == userId);
+
+        if (target == null)
+        {
+            return null;
+        }
+
+        if (dto.IsDefault && !target.IsDefault)
+        {
+            var defaultAddresses = await dbContext.UserAddresses
+                .Where(a => a.UserId == userId && a.IsDefault)
+                .ToListAsync();
+
+            foreach (var addr in defaultAddresses)
+            {
+                addr.IsDefault = false;
+            }
+            target.IsDefault = true;
+        }
+
+        target.RecipientName = dto.RecipientName;
+        target.Phone = dto.Phone;
+        target.ProvinceId = dto.ProvinceId;
+        target.DistrictId = dto.DistrictId;
+        target.WardId = dto.WardId;
+        target.AddressLine = dto.AddressLine;
+
+        await dbContext.SaveChangesAsync();
+        return target;
+    }
+
     public async Task<bool> DeleteAddressAsync(long userId, long addressId)
     {
         var address = await dbContext.UserAddresses
