@@ -1,7 +1,13 @@
+using System;
+using System.Collections.Generic;
+using System.Text.Json.Serialization;
+using BuildingBlocks.Shared.Converters;
+
 namespace Ecommerce.Services.Orders.Application.Features.Orders.Dtos;
 
 public class CustomerOrderResponse
 {
+    [JsonConverter(typeof(LongToStringJsonConverter))]
     public long Id { get; set; }
     public long CustomerId { get; set; }
     public decimal GrandTotal { get; set; }

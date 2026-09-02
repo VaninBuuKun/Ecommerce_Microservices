@@ -17,7 +17,7 @@ export function useWishlist() {
 	});
 
 	const toggleMutation = useMutation({
-		mutationFn: (productId: number) => wishlistApi.toggleWishlist(productId),
+		mutationFn: (productId: string) => wishlistApi.toggleWishlist(productId),
 		onSuccess: (data) => {
 			queryClient.invalidateQueries({ queryKey: WISHLIST_QUERY_KEY });
 			if (data.isLiked) {
@@ -32,9 +32,9 @@ export function useWishlist() {
 		},
 	});
 
-	const isWishlisted = (productId: number): boolean => {
+	const isWishlisted = (productId: string): boolean => {
 		if (!wishlistQuery.data || !Array.isArray(wishlistQuery.data)) return false;
-		return wishlistQuery.data.some((item: any) => item.id === productId);
+		return wishlistQuery.data.some((item: any) => String(item.id) === String(productId));
 	};
 
 	return {

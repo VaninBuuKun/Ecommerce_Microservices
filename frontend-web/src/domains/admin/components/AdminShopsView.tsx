@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { Loader2, RefreshCw, Search, Filter, Ban, ExternalLink } from "lucide-react";
 import { toast } from "react-toastify";
 import { api } from "../../../core";
+import { Pagination } from "@/shared/components/Pagination";
 
 export function AdminShopsView() {
 	const [shops, setShops] = useState<any[]>([]);
@@ -66,23 +67,6 @@ export function AdminShopsView() {
 	};
 
 	const totalPages = Math.ceil(totalCount / pageSize) || 1;
-
-	// Tạo mảng số trang hiển thị dạng nút số
-	const getPageNumbers = () => {
-		const pages = [];
-		const maxVisible = 5;
-		let start = Math.max(1, page - Math.floor(maxVisible / 2));
-		let end = Math.min(totalPages, start + maxVisible - 1);
-
-		if (end - start + 1 < maxVisible) {
-			start = Math.max(1, end - maxVisible + 1);
-		}
-
-		for (let i = start; i <= end; i++) {
-			pages.push(i);
-		}
-		return pages;
-	};
 
 	return (
 		<div className="space-y-4 text-left font-sans animate-in fade-in duration-200">
@@ -232,42 +216,16 @@ export function AdminShopsView() {
 						</table>
 
 						{/* Numbered Pagination Controls */}
-						<div className="flex items-center justify-between p-3 border-t border-brand-border bg-brand-light-soft/30 text-xs">
-							<span className="text-brand-muted font-bold text-[11px]">
-								Tổng số: <strong className="text-brand-dark">{totalCount}</strong> gian hàng
-							</span>
-							<div className="flex items-center gap-1">
-								<button
-									type="button"
-									disabled={page <= 1}
-									onClick={() => setPage(page - 1)}
-									className="px-2.5 py-1 border border-brand-border bg-white rounded-md disabled:opacity-40 hover:bg-brand-light-soft cursor-pointer font-bold text-[11px] transition-all"
-								>
-									&laquo;
-								</button>
-
-								{getPageNumbers().map((num) => (
-									<button
-										key={num}
-										onClick={() => setPage(num)}
-										className={`w-7 h-7 flex items-center justify-center rounded-md border text-[11px] font-black transition-all cursor-pointer ${page === num
-											? "bg-brand-dark text-white border-brand-dark shadow-xs"
-											: "bg-white border-brand-border text-brand-dark hover:bg-brand-light-soft"
-											}`}
-									>
-										{num}
-									</button>
-								))}
-
-								<button
-									type="button"
-									disabled={page >= totalPages}
-									onClick={() => setPage(page + 1)}
-									className="px-2.5 py-1 border border-brand-border bg-white rounded-md disabled:opacity-40 hover:bg-brand-light-soft cursor-pointer font-bold text-[11px] transition-all"
-								>
-									&raquo;
-								</button>
-							</div>
+						<div className="px-4 py-2 border-t border-brand-border bg-brand-light-soft/20 text-xs">
+							<Pagination
+								currentPage={page}
+								totalPages={totalPages}
+								totalCount={totalCount}
+								pageSize={pageSize}
+								onPageChange={setPage}
+								showQuickJumper
+								showTotal
+							/>
 						</div>
 					</>
 				)}

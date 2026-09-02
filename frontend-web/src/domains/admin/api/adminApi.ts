@@ -38,10 +38,20 @@ export const adminApi = {
     return res.data;
   },
 
-
-  // Vouchers Admin API
-  getVouchers: async (params?: any): Promise<any> => {
-    const res = await api.get("/vouchers", { params });
+  // Vouchers Admin API (Hỗ trợ phân trang offset, lọc scope: Platform / Shop, ShopId, Code,...)
+  getVouchers: async (params?: {
+    page?: number;
+    pageSize?: number;
+    code?: string;
+    discountType?: string;
+    scope?: string;
+    isActive?: boolean;
+    shopId?: number;
+    usageLimit?: boolean;
+    startDate?: string;
+    endDate?: string;
+  }): Promise<any> => {
+    const res = await api.get("/vouchers/admin", { params });
     return res.data?.value || res.data;
   },
 
@@ -58,6 +68,51 @@ export const adminApi = {
   deleteVoucher: async (id: number): Promise<any> => {
     const res = await api.delete(`/vouchers/${id}`);
     return res.data;
+  },
+
+  // Products Admin API
+  getAdminProducts: async (params?: {
+    page?: number;
+    pageSize?: number;
+    searchTerm?: string;
+    categoryId?: number;
+    shopId?: number;
+    status?: string;
+  }): Promise<any> => {
+    const res = await api.get("/products/admin", { params });
+    return res.data?.value || res.data;
+  },
+
+  // Users Admin API
+  getAdminUsers: async (params?: {
+    page?: number;
+    pageSize?: number;
+    search?: string;
+  }): Promise<any> => {
+    const res = await api.get("/users", { params });
+    return res.data?.value || res.data;
+  },
+
+  // Shops Admin API
+  getAdminShops: async (params?: {
+    pageNumber?: number;
+    pageSize?: number;
+    searchTerm?: string;
+    status?: string;
+  }): Promise<any> => {
+    const res = await api.get("/shop/all", { params });
+    return res.data?.value || res.data;
+  },
+
+  // Orders Admin API
+  getAdminOrders: async (params?: {
+    pageNumber?: number;
+    pageSize?: number;
+    status?: string;
+    searchKeyword?: string;
+  }): Promise<any> => {
+    const res = await api.get("/orders/admin/sub-orders", { params });
+    return res.data?.value || res.data;
   },
 
   // Payment Methods Admin API

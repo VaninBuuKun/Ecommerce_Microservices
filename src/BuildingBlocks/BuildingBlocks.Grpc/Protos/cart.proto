@@ -22,7 +22,7 @@ message RpcCartItemDto {
   string variantName = 11;
   string unitPrice = 12;
   int64 shopId = 13;
-  int32 availableStocks = 14;
+  int32 availableStock = 14;
   double weight = 15;
   double length = 16;
   double width = 17;
@@ -34,6 +34,7 @@ message RpcCartItemDto {
 message GetCartByIdResponse {
   int64 customer_id = 1;
   repeated RpcCartItemDto items = 2;
+  string TotalPrice = 3;
 }
 
 message ClearCartRequest {

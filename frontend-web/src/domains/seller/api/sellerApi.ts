@@ -73,12 +73,7 @@ export const sellerApi = {
 	},
 
 	deleteVoucher: async (voucherId: number): Promise<any> => {
-		const res = await api.put(`/vouchers/${voucherId}`, {
-			isActive: false,
-			discountValue: 0,
-			startDate: new Date().toISOString(),
-			endDate: new Date(Date.now() + 86400000).toISOString(),
-		});
-		return res.data;
+		const res = await api.delete(`/vouchers/${voucherId}`);
+		return res.data?.value || res.data;
 	},
 };

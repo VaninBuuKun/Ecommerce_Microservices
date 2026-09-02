@@ -4,9 +4,9 @@ import { Save, Loader2 } from "lucide-react";
 import { toast } from "react-toastify";
 import {
 	useProductByIdQuery,
+	useUpdateMultiVariantsMutation,
 	useUpdateProductMutation,
-	useBulkUpdateVariantsMutation,
-	useUpdateProductSaleMutation,
+	useUpdateSingleVariantMutation,
 } from "../../hooks/useCatalog";
 import {
 	VariantsSection,
@@ -30,16 +30,16 @@ export function EditProductPage() {
 	const navigate = useNavigate();
 
 	const isNew = productId === "new";
-	const numProductId = isNew || !productId ? undefined : Number(productId);
+	const targetProductId = isNew || !productId ? undefined : productId;
 	const {
 		data: loadedProduct,
 		isLoading,
 		isError,
-	} = useProductByIdQuery(numProductId);
+	} = useProductByIdQuery(targetProductId);
 
 	const updateProductMutation = useUpdateProductMutation();
-	const updateProductSaleMutation = useUpdateProductSaleMutation();
-	const bulkUpdateVariantsMutation = useBulkUpdateVariantsMutation();
+	const updateSingleVariantMutation = useUpdateSingleVariantMutation();
+	const updateMultiVariantsMutation = useUpdateMultiVariantsMutation();
 
 	const [activeSection, setActiveSection] = useState<"basic" | "variants">(
 		"basic",
@@ -169,10 +169,6 @@ export function EditProductPage() {
 						price: v.price,
 						discountPrice: v.discountPrice,
 						stock: v.availableStock,
-						weight: v.weight || 0,
-						length: v.length || 0,
-						width: v.width || 0,
-						height: v.height || 0,
 						optionValues,
 					};
 				});
@@ -190,10 +186,6 @@ export function EditProductPage() {
 								price: singleV.price,
 								discountPrice: singleV.discountPrice,
 								stock: singleV.availableStock,
-								weight: singleV.weight || 0,
-								length: singleV.length || 0,
-								width: singleV.width || 0,
-								height: singleV.height || 0,
 								optionValues: [],
 							},
 						]
@@ -348,15 +340,7 @@ export function EditProductPage() {
 
 	const handleUpdateVariantField = (
 		varIndex: number,
-		field:
-			| "sku"
-			| "price"
-			| "discountPrice"
-			| "stock"
-			| "weight"
-			| "length"
-			| "width"
-			| "height",
+		field: "sku" | "price" | "discountPrice" | "stock",
 		val: any,
 	) => {
 		const updatedVariants = [...generatedVariants];
@@ -370,20 +354,12 @@ export function EditProductPage() {
 				: undefined;
 		} else if (field === "stock") {
 			updatedVariants[varIndex].stock = Number(val);
-		} else if (field === "weight") {
-			updatedVariants[varIndex].weight = Number(val);
-		} else if (field === "length") {
-			updatedVariants[varIndex].length = Number(val);
-		} else if (field === "width") {
-			updatedVariants[varIndex].width = Number(val);
-		} else if (field === "height") {
-			updatedVariants[varIndex].height = Number(val);
 		}
 		setGeneratedVariants(updatedVariants);
 	};
 
 	const handleSave = async () => {
-		if (!numProductId) return;
+		if (!targetProductId) return;
 
 		try {
 			if (activeSection === "basic") {
@@ -391,7 +367,7 @@ export function EditProductPage() {
 				const attributesJson = validAttrs.length > 0 ? JSON.stringify(validAttrs) : undefined;
 
 				await updateProductMutation.mutateAsync({
-					id: numProductId,
+					id: targetProductId,
 					payload: {
 						name,
 						description,
@@ -404,8 +380,8 @@ export function EditProductPage() {
 				});
 			} else {
 				if (!enableVariants) {
-					await updateProductSaleMutation.mutateAsync({
-						id: numProductId,
+					await updateSingleVariantMutation.mutateAsync({
+						id: targetProductId,
 						payload: {
 							price: simplePrice,
 							availableStock: simpleStock,
@@ -420,8 +396,8 @@ export function EditProductPage() {
 						},
 					});
 				} else {
-					await bulkUpdateVariantsMutation.mutateAsync({
-						id: numProductId,
+					await updateMultiVariantsMutation.mutateAsync({
+						id: targetProductId,
 						payload: {
 							options: options.map((opt) => ({
 								id: opt.id || null,
@@ -433,28 +409,18 @@ export function EditProductPage() {
 								})),
 							})),
 							variants: generatedVariants.map((gv) => {
-								const optionValuesWithImages =
-									gv.optionValues.map((ov) => {
-										return {
-											optionName: ov.optionName,
-											valueName: ov.valueName,
-										};
-									});
-
 								return {
 									id: gv.id || null,
-									sku: gv.sku || null,
 									price: gv.price,
 									availableStock: gv.stock,
-									optionValues: optionValuesWithImages,
-									weight: gv.weight || 0,
-									length: gv.length || 0,
-									width: gv.width || 0,
-									height: gv.height || 0,
 									discountPrice:
 										gv.discountPrice && gv.discountPrice > 0
 											? gv.discountPrice
 											: null,
+									optionValues: gv.optionValues.map((ov) => ({
+										optionName: ov.optionName,
+										valueName: ov.valueName,
+									})),
 								};
 							}),
 						},
@@ -470,8 +436,8 @@ export function EditProductPage() {
 
 	const isSaving =
 		updateProductMutation.isPending ||
-		updateProductSaleMutation.isPending ||
-		bulkUpdateVariantsMutation.isPending;
+		updateSingleVariantMutation.isPending ||
+		updateMultiVariantsMutation.isPending;
 
 	if (isLoading) {
 		return (

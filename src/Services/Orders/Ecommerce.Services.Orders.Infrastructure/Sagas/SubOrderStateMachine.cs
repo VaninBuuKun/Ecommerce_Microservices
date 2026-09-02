@@ -54,6 +54,10 @@ public class SubOrderStateMachine : MassTransitStateMachine<SubOrderSagaState>
                     context.Saga.IsOnlinePayment = context.Message.IsOnlinePayment;
                     context.Saga.CreatedDate = DateTime.UtcNow;
                     context.Saga.ItemsJson = System.Text.Json.JsonSerializer.Serialize(context.Message.OrderItems);
+                    context.Saga.ShippingAddress = context.Message.ShippingAddress;
+                    context.Saga.RecipientName = context.Message.RecipientName;
+                    context.Saga.RecipientPhone = context.Message.RecipientPhone;
+                    context.Saga.RecipientWardId = context.Message.RecipientWardId;
                 })
                 .TransitionTo(AwaitingConfirmation)
         );
@@ -68,14 +72,24 @@ public class SubOrderStateMachine : MassTransitStateMachine<SubOrderSagaState>
 
         During(Processing,
             When(SubOrderPackageReady)
-                .TransitionTo(Shipping)
+                .HandlePackageReadyFlow()
+                .TransitionTo(Shipping),
+            When(SubOrderRejected)
+                .HandleRejectionFlow()
+                .TransitionTo(Cancelled)
         );
 
         During(Shipping,
+            When(SubOrderPackageReady)
+                .HandlePackageReadyFlow()
+                .TransitionTo(Shipping),
             When(SubOrderShipped)
                 .TransitionTo(Shipping),
             When(SubOrderDelivered)
-                .TransitionTo(Delivered)
+                .TransitionTo(Delivered),
+            When(SubOrderRejected)
+                .HandleRejectionFlow()
+                .TransitionTo(Cancelled)
         );
 
         During(Delivered,

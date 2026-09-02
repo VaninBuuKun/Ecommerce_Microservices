@@ -4,7 +4,7 @@ public record ReservedStockItemDetailDto(
     long ShopId,
     Guid VariantId,
     int Quantity,
-    int AvailableStocks,
+    int AvailableStock,
     string ProductName,
     string VariantName,
     decimal UnitPrice

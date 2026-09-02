@@ -46,7 +46,7 @@ export default function Header() {
 		const timer = setTimeout(async () => {
 			try {
 				setIsSearchingSuggestions(true);
-				const res = await api.get("/catalog/products", {
+				const res = await api.get("/products", {
 					params: { searchTerm: searchQuery.trim(), limit: 5 },
 				});
 				const items = res.data?.value?.items || res.data?.items || [];
@@ -103,11 +103,11 @@ export default function Header() {
 	// Flatten all items from shop groups to preview in dropdown (Lọc chỉ các item hợp lệ)
 	const previewCartItems = cart?.shopGroups?.flatMap((group: any) => group.items || [])
 		.filter((item: any) => item && item.productName && item.shopId > 0) || [];
-	const totalCartItemsCount = previewCartItems.reduce((sum: number, item: any) => sum + (item.quantity || 1), 0);
+	const totalCartItemsCount = previewCartItems.length;
 
 
 	return (
-		<header className="sticky top-0 z-50 w-full h-14 bg-white/80 backdrop-blur-md border-b border-brand-border px-6 flex items-center justify-between shadow-[0_1px_3px_rgba(0,0,0,0.02)] font-sans">
+		<header className="sticky top-0 z-50 w-full h-14 bg-white backdrop-blur-md border-b border-brand-border px-6 flex items-center justify-between shadow-[0_1px_3px_rgba(0,0,0,0.02)] font-sans">
 			{/* KHỐI BÊN TRÁI: Logo + Thanh Search cố định */}
 			<div className="flex items-center gap-40 flex-1 min-w-0 pr-4">
 				{/* Logo */}
@@ -311,7 +311,7 @@ export default function Header() {
 																			{(item.discountPrice > 0 ? item.discountPrice : item.price)?.toLocaleString("vi-VN")}đ
 																		</span>
 																		{item.discountPrice > 0 && item.discountPrice < item.price && (
-																			<span className="text-[9px] text-brand-muted line-through font-mono">
+																			<span className="text-[9px] text-brand-muted line-through">
 																				{item.price?.toLocaleString("vi-VN")}đ
 																			</span>
 																		)}
@@ -393,7 +393,7 @@ export default function Header() {
 																			{(item.discountPrice && item.discountPrice < item.unitPrice ? item.discountPrice : item.unitPrice)?.toLocaleString("vi-VN")}đ
 																		</span>
 																		{item.discountPrice && item.discountPrice < item.unitPrice && (
-																			<span className="text-[9px] text-brand-muted line-through font-mono">
+																			<span className="text-[9px] text-brand-muted line-through">
 																				{item.unitPrice.toLocaleString("vi-VN")}đ
 																			</span>
 																		)}

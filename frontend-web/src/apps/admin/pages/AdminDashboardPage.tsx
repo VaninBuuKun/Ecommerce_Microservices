@@ -22,6 +22,7 @@ export default function AdminDashboardPage() {
 			<Route path="banners" element={<AdminBannersView />} />
 			<Route path="orders" element={<AdminOrdersView />} />
 			<Route path="shipments" element={<AdminShipmentsView />} />
+			<Route path="webhooks" element={<AdminShipmentsView />} />
 			<Route path="refunds" element={<AdminRefundsView />} />
 			<Route path="categories" element={<AdminCategoriesView />} />
 			<Route path="users" element={<AdminUsersView />} />

@@ -39,7 +39,7 @@ public class CartGrpcServer(ICartService cartService, ILogger<CartGrpcServer> lo
                 {
                     response.Items.Add(new RpcCartItemDto
                     {
-                        VariantId = item.ProductVariantId,
+                        VariantId = item.VariantId,
                         Quantity = item.Quantity,
                         IsSelected = item.IsSelected,
                         ProductId = item.ProductId,
@@ -48,8 +48,12 @@ public class CartGrpcServer(ICartService cartService, ILogger<CartGrpcServer> lo
                         UnitPrice = item.UnitPrice.ToString(),
                         DiscountPrice = item.DiscountPrice.ToString(),
                         ShopId = item.ShopId,
-                        AvailableStocks = item.AvailableStocks,
-                        ThumbnailUrl = item.ThumbnailUrl ?? string.Empty
+                        AvailableStock = item.AvailableStock,
+                        ThumbnailUrl = item.ThumbnailUrl ?? string.Empty,
+                        Weight = item.Weight,
+                        Length = item.Length,
+                        Width = item.Width,
+                        Height = item.Height
                     });
                 }
             }

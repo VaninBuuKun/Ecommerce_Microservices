@@ -35,30 +35,42 @@ export interface UpdateProductRequest {
 	attributesJson?: string;
 }
 
-export interface BulkUpdateVariantsRequest {
+export interface UpdateMultiVariantsRequest {
+	options: Array<{
+		id?: number | null;
+		name: string;
+		values: Array<{
+			id?: number | null;
+			value: string;
+			imageUrl?: string | null;
+		}>;
+	}>;
 	variants: Array<{
-		id: number;
-		price?: number;
-		availableStock?: number;
-		sku?: string;
-		weight?: number;
-		length?: number;
-		width?: number;
-		height?: number;
-		discountPrice?: number;
+		id?: number | null;
+		price: number;
+		availableStock: number;
+		discountPrice?: number | null;
+		optionValues: Array<{
+			optionName: string;
+			valueName: string;
+		}>;
 	}>;
 	[key: string]: any;
 }
 
-export interface UpdateProductSaleRequest {
+export type BulkUpdateVariantsRequest = UpdateMultiVariantsRequest;
+
+export interface UpdateSingleVariantRequest {
 	price: number;
-	discountPrice: number | null;
+	availableStock: number;
 	weight: number;
-	height: number;
 	length: number;
 	width: number;
-	availableStock: number;
+	height: number;
+	discountPrice?: number | null;
 }
+
+export type UpdateProductSaleRequest = UpdateSingleVariantRequest;
 
 export const productApi = {
 	getProducts: async (params?: GetProductsParams): Promise<{ items: Product[]; totalCount: number; nextCursor?: string; hasNext?: boolean }> => {
@@ -96,50 +108,63 @@ export const productApi = {
 		return response.data;
 	},
 
-	getProductById: async (id: number): Promise<Product> => {
-		const { USE_MOCK_DATA, MOCK_PRODUCTS } = await import("./catalogMockData");
-		if (USE_MOCK_DATA) {
-			const found = MOCK_PRODUCTS.find((p) => p.id === Number(id));
-			if (found) return found;
-		}
+	getProductById: async (id: string): Promise<Product> => {
 		const response = await api.get(`/products/${id}`);
 		return response.data?.value || response.data;
 	},
 
-	updateProductAttributes: async (id: number, attributesJson: string): Promise<any> => {
+	updateProductAttributes: async (id: string, attributesJson: string): Promise<any> => {
 		const response = await api.put(`/products/${id}/attributes`, { attributesJson });
 		return response.data;
 	},
 
 	updateProduct: async (
-		id: number,
+		id: string,
 		payload: UpdateProductRequest,
 	): Promise<any> => {
 		const response = await api.put(`/products/${id}`, payload);
 		return response.data;
 	},
 
-	bulkUpdateVariants: async (
-		id: number,
-		payload: BulkUpdateVariantsRequest,
+	updateSingleVariant: async (
+		id: string,
+		payload: UpdateSingleVariantRequest,
 	): Promise<any> => {
-		const response = await api.put(`/products/${id}/variants`, payload);
+		const response = await api.put(`/products/${id}/single-variant`, payload);
 		return response.data;
 	},
 
-	deleteProduct: async (id: number): Promise<void> => {
+	updateMultiVariants: async (
+		id: string,
+		payload: UpdateMultiVariantsRequest,
+	): Promise<any> => {
+		const response = await api.put(`/products/${id}/multi-variants`, payload);
+		return response.data;
+	},
+
+	// Aliases
+	updateProductSale: async (
+		id: string,
+		payload: UpdateSingleVariantRequest,
+	): Promise<any> => {
+		const response = await api.put(`/products/${id}/single-variant`, payload);
+		return response.data;
+	},
+
+	bulkUpdateVariants: async (
+		id: string,
+		payload: UpdateMultiVariantsRequest,
+	): Promise<any> => {
+		const response = await api.put(`/products/${id}/multi-variants`, payload);
+		return response.data;
+	},
+
+	deleteProduct: async (id: string): Promise<void> => {
 		await api.delete(`/products/${id}`);
 	},
 
-	toggleProductStatus: async (id: number): Promise<any> => {
+	toggleProductStatus: async (id: string): Promise<any> => {
 		const response = await api.put(`/products/${id}/toggle-status`);
 		return response.data;
-	},
-
-	updateProductSale: async (
-		id: number,
-		payload: UpdateProductSaleRequest,
-	): Promise<void> => {
-		await api.put(`/products/${id}/sale`, payload);
 	},
 };

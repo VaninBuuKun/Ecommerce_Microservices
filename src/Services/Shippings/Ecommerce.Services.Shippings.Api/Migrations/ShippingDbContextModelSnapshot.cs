@@ -125,8 +125,8 @@ namespace Ecommerce.Services.Shippings.Api.Migrations
                     b.Property<double>("Length")
                         .HasColumnType("double precision");
 
-                    b.Property<Guid>("OrderId")
-                        .HasColumnType("uuid");
+                    b.Property<long>("OrderId")
+                        .HasColumnType("bigint");
 
                     b.Property<string>("RecipientAddress")
                         .IsRequired()
@@ -156,8 +156,8 @@ namespace Ecommerce.Services.Shippings.Api.Migrations
                     b.Property<int>("Status")
                         .HasColumnType("integer");
 
-                    b.Property<Guid>("SubOrderId")
-                        .HasColumnType("uuid");
+                    b.Property<long>("SubOrderId")
+                        .HasColumnType("bigint");
 
                     b.Property<string>("TrackingLogs")
                         .HasColumnType("text");

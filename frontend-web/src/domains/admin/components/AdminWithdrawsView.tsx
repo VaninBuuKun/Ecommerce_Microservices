@@ -3,6 +3,7 @@ import { X, Check, Loader2, RefreshCw, AlertTriangle, ExternalLink } from "lucid
 import { toast } from "react-toastify";
 import api from "@/core/api/axiosInstance";
 import { UploadImage } from "@/shared";
+import { Pagination } from "@/shared/components/Pagination";
 
 export function AdminWithdrawsView() {
 	const [withdraws, setWithdraws] = useState<any[]>([]);
@@ -186,87 +187,69 @@ export function AdminWithdrawsView() {
 				) : withdraws.length === 0 ? (
 					<div className="text-center py-16 text-brand-muted font-bold text-xs">Không có yêu cầu rút tiền nào tương ứng.</div>
 				) : (
-					<table className="w-full text-xs text-left border-collapse">
-						<thead>
-							<tr className="bg-brand-light-soft/50 border-b border-brand-border text-[10px] font-extrabold text-brand-muted uppercase tracking-wider select-none">
-								<th className="p-3 w-[15%]">Mã yêu cầu</th>
-								<th className="p-3 w-[22%]">Thành viên rút</th>
-								<th className="p-3 w-[15%] text-right">Số tiền</th>
-								<th className="p-3 w-[23%]">Tài khoản ngân hàng</th>
-								<th className="p-3 text-center w-[12%]">Trạng thái</th>
-								<th className="p-3 text-center w-[13%]">Thao tác</th>
-							</tr>
-						</thead>
-						<tbody className="divide-y divide-brand-border">
-							{withdraws.map((w: any) => (
-								<tr key={w.id} className="hover:bg-brand-light-soft/10 transition-colors">
-									<td className="p-3 font-mono font-bold text-brand-muted">#{w.id}</td>
-									<td className="p-3">
-										<button 
-											onClick={() => openUserTab(w.userId)}
-											className="font-black text-brand-dark hover:text-brand-primary-deep text-left underline flex items-center gap-1 cursor-pointer bg-transparent border-none p-0"
-										>
-											{w.fullName} <ExternalLink className="w-3 h-3 text-brand-muted" />
-										</button>
-										<p className="text-[9px] text-brand-muted font-bold mt-0.5">User ID: {w.userId}</p>
-									</td>
-									<td className="p-3 text-right font-black text-brand-dark">{Number(w.amount).toLocaleString("vi-VN")}đ</td>
-									<td className="p-3">
-										<p className="font-extrabold text-brand-dark uppercase">{w.bankName}</p>
-										<p className="text-[9.5px] text-brand-muted font-medium mt-0.5">
-											{w.bankAccountNumber} • <span className="uppercase font-bold text-brand-dark">{w.bankAccountHolder}</span>
-										</p>
-									</td>
-									<td className="p-3 text-center">{getStatusBadge(w.status)}</td>
-									<td className="p-3 text-center">
-										<button 
-											onClick={() => handleReviewWithdraw(w)}
-											className="px-2.5 py-1 bg-brand-light-soft text-brand-dark hover:bg-brand-primary hover:text-brand-dark rounded-lg text-[9px] font-black transition-all cursor-pointer border-none"
-										>
-											Xem chi tiết
-										</button>
-									</td>
-								</tr>
-							))}
-						</tbody>
-					</table>
+					<div>
+						<div className="overflow-x-auto">
+							<table className="w-full text-xs text-left border-collapse">
+								<thead>
+									<tr className="bg-brand-light-soft/50 border-b border-brand-border text-[10px] font-extrabold text-brand-muted uppercase tracking-wider select-none">
+										<th className="py-2.5 px-3.5 w-[15%]">Mã yêu cầu</th>
+										<th className="py-2.5 px-3.5 w-[22%]">Thành viên rút</th>
+										<th className="py-2.5 px-3.5 w-[15%] text-right">Số tiền</th>
+										<th className="py-2.5 px-3.5 w-[23%]">Tài khoản ngân hàng</th>
+										<th className="py-2.5 px-3.5 text-center w-[12%]">Trạng thái</th>
+										<th className="py-2.5 px-3.5 text-center w-[13%]">Thao tác</th>
+									</tr>
+								</thead>
+								<tbody className="divide-y divide-brand-border/60">
+									{withdraws.map((w: any) => (
+										<tr key={w.id} className="hover:bg-brand-light-soft/20 transition-colors">
+											<td className="py-2.5 px-3.5 font-mono font-bold text-brand-muted">#{w.id}</td>
+											<td className="py-2.5 px-3.5">
+												<button 
+													onClick={() => openUserTab(w.userId)}
+													className="font-black text-brand-dark hover:text-brand-primary-deep text-left underline flex items-center gap-1 cursor-pointer bg-transparent border-none p-0"
+												>
+													{w.fullName} <ExternalLink className="w-3 h-3 text-brand-muted" />
+												</button>
+												<p className="text-[9px] text-brand-muted font-bold mt-0.5">User ID: {w.userId}</p>
+											</td>
+											<td className="py-2.5 px-3.5 text-right font-black text-brand-dark">{Number(w.amount).toLocaleString("vi-VN")}đ</td>
+											<td className="py-2.5 px-3.5">
+												<p className="font-extrabold text-brand-dark uppercase">{w.bankName}</p>
+												<p className="text-[9.5px] text-brand-muted font-medium mt-0.5">
+													{w.bankAccountNumber} • <span className="uppercase font-bold text-brand-dark">{w.bankAccountHolder}</span>
+												</p>
+											</td>
+											<td className="py-2.5 px-3.5 text-center">{getStatusBadge(w.status)}</td>
+											<td className="py-2.5 px-3.5 text-center">
+												<button 
+													onClick={() => handleReviewWithdraw(w)}
+													className="px-2.5 py-1 bg-white border border-brand-border hover:bg-brand-light-soft text-brand-dark rounded text-[10px] font-bold transition-all cursor-pointer shadow-2xs"
+												>
+													Xem chi tiết
+												</button>
+											</td>
+										</tr>
+									))}
+								</tbody>
+							</table>
+						</div>
+
+						{/* Unified Pagination Footer */}
+						<div className="px-4 py-2 border-t border-brand-border bg-brand-light-soft/20 text-xs">
+							<Pagination
+								currentPage={page}
+								totalPages={Math.ceil(totalCount / pageSize) || 1}
+								totalCount={totalCount}
+								pageSize={pageSize}
+								onPageChange={setPage}
+								showQuickJumper
+								showTotal
+							/>
+						</div>
+					</div>
 				)}
 			</div>
-
-			{totalCount > pageSize && (
-				<div className="flex justify-between items-center pt-2">
-					<span className="text-[10px] text-brand-muted font-bold">
-						Hiển thị {withdraws.length} / {totalCount} yêu cầu rút
-					</span>
-					<div className="flex items-center gap-1.5 text-xs font-black">
-						<button
-							disabled={page === 1}
-							onClick={() => setPage(p => p - 1)}
-							className="px-2.5 py-1 bg-white border border-brand-border rounded-lg hover:bg-brand-light-soft disabled:opacity-40 transition-all cursor-pointer"
-						>
-							Trước
-						</button>
-						{Array.from({ length: Math.ceil(totalCount / pageSize) }).map((_, idx) => (
-							<button
-								key={idx}
-								onClick={() => setPage(idx + 1)}
-								className={`w-7 h-7 rounded-lg transition-all cursor-pointer border-none ${
-									page === idx + 1 ? "bg-brand-dark text-white font-mono" : "bg-transparent text-brand-muted hover:bg-brand-light-soft"
-								}`}
-							>
-								{idx + 1}
-							</button>
-						))}
-						<button
-							disabled={page >= Math.ceil(totalCount / pageSize)}
-							onClick={() => setPage(p => p + 1)}
-							className="px-2.5 py-1 bg-white border border-brand-border rounded-lg hover:bg-brand-light-soft disabled:opacity-40 transition-all cursor-pointer"
-						>
-							Sau
-						</button>
-					</div>
-				</div>
-			)}
 
 			{isDetailOpen && selectedItem && (
 				<div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-xs p-4 animate-in fade-in duration-200">

@@ -1,6 +1,7 @@
 export * from "./api/orderApi";
 export * from "./hooks/useOrders";
 export * from "./types/order.types";
+export * from "./types/voucher.schema";
 export * from "./components/OrderItemsList";
 export * from "./components/PaymentMethodSelector";
 export * from "./components/CheckoutSummary";

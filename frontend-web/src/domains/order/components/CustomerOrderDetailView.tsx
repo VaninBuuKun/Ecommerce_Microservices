@@ -1,27 +1,66 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
-import { Loader2, AlertTriangle } from "lucide-react";
+import {
+	Loader2,
+	AlertTriangle,
+	Truck,
+	Check,
+	X,
+	Package,
+	Calendar,
+	User,
+	MapPin,
+	ShieldCheck,
+	Clock
+} from "lucide-react";
 import {
 	useSubOrderDetailQuery,
 	useCancelCustomerSubOrderMutation,
 	useCompleteSubOrderMutation,
 	useCreateRefundMutation,
+	useConfirmSubOrderMutation,
+	useRejectSubOrderMutation,
 	getOrderStatusBadge,
+	getPaymentStatusLabel,
 } from "@/domains/order";
+import { useResolveLocationsQuery, useShipmentBySubOrderQuery } from "@/domains/shipping";
+import { PackageReadyModal } from "./sellerOrder/PackageReadyModal";
+import { CancelOrderModal } from "./sellerOrder/CancelOrderModal";
+import { usePackageReadySubOrderMutation } from "../hooks/useOrders";
+import { toast } from "react-toastify";
 
 interface CustomerOrderDetailViewProps {
-	subOrderId: number;
+	subOrderId: string;
 	onBack: () => void;
+	isSeller?: boolean;
+	isAdmin?: boolean;
+	onStatusUpdated?: () => void;
 }
 
-export function CustomerOrderDetailView({ subOrderId, onBack }: CustomerOrderDetailViewProps) {
+export function CustomerOrderDetailView({
+	subOrderId,
+	onBack,
+	isSeller = false,
+	isAdmin = false,
+	onStatusUpdated,
+}: CustomerOrderDetailViewProps) {
 	const navigate = useNavigate();
-	const { data: detail, isLoading } = useSubOrderDetailQuery(subOrderId, false);
 
+	// 1. ALL HOOKS CALLED AT TOP LEVEL UNCONDITIONALLY (Strict Rules of Hooks)
+	const { data: detail, isLoading, refetch } = useSubOrderDetailQuery(subOrderId, isSeller);
+	const { data: shipment, isLoading: isShipmentLoading } = useShipmentBySubOrderQuery(subOrderId);
+
+	// Customer mutations
 	const cancelMutation = useCancelCustomerSubOrderMutation();
 	const completeMutation = useCompleteSubOrderMutation();
 	const refundMutation = useCreateRefundMutation();
 
+	// Seller mutations
+	const confirmSubOrderMutation = useConfirmSubOrderMutation();
+	const rejectSubOrderMutation = useRejectSubOrderMutation();
+	const packageReadyMutation = usePackageReadySubOrderMutation();
+
+	// Local State
 	const [showCancelModal, setShowCancelModal] = useState(false);
 	const [showCompleteModal, setShowCompleteModal] = useState(false);
 	const [showRefundModal, setShowRefundModal] = useState(false);
@@ -29,6 +68,69 @@ export function CustomerOrderDetailView({ subOrderId, onBack }: CustomerOrderDet
 	const [reason, setReason] = useState("");
 	const [errorMessage, setErrorMessage] = useState("");
 
+	// Seller Action Modals state
+	const [showSellerRejectModal, setShowSellerRejectModal] = useState(false);
+	const [showPackageModal, setShowPackageModal] = useState(false);
+	const [pkgWeight, setPkgWeight] = useState(500);
+	const [pkgLength, setPkgLength] = useState(10);
+	const [pkgWidth, setPkgWidth] = useState(10);
+	const [pkgHeight, setPkgHeight] = useState(10);
+
+	// Ward resolution
+	const wardId = Number(detail?.shippingAddress?.wardId || 0);
+	const { data: resolvedLocations } = useResolveLocationsQuery(wardId > 0 ? [wardId] : []);
+	const locationInfo = resolvedLocations && resolvedLocations.length > 0 ? resolvedLocations[0] : null;
+
+	const fullAddressDisplay = useMemo(() => {
+		const baseLine = detail?.shippingAddress?.addressLine || "";
+		if (locationInfo) {
+			return `${baseLine ? `${baseLine}, ` : ""}${locationInfo.wardName}, ${locationInfo.districtName}, ${locationInfo.provinceName}`;
+		}
+		return baseLine || "N/A";
+	}, [detail?.shippingAddress, locationInfo]);
+
+	// Auto compute pre-filled package metrics from items snapshot
+	const totalSnapshotWeight = useMemo(() => {
+		if (!detail?.orderItems) return 500;
+		const sum = detail.orderItems.reduce((acc: number, item: any) => {
+			const itemW = item.weightInGrams > 0 ? item.weightInGrams : 500;
+			return acc + itemW * (item.quantity || 1);
+		}, 0);
+		return sum > 0 ? sum : 500;
+	}, [detail?.orderItems]);
+
+	const maxSnapshotLength = useMemo(() => {
+		if (!detail?.orderItems) return 20;
+		const maxL = detail.orderItems.reduce((max: number, item: any) => Math.max(max, item.length || 0), 0);
+		return maxL > 0 ? maxL : 20;
+	}, [detail?.orderItems]);
+
+	const maxSnapshotWidth = useMemo(() => {
+		if (!detail?.orderItems) return 15;
+		const maxW = detail.orderItems.reduce((max: number, item: any) => Math.max(max, item.width || 0), 0);
+		return maxW > 0 ? maxW : 15;
+	}, [detail?.orderItems]);
+
+	const totalSnapshotHeight = useMemo(() => {
+		if (!detail?.orderItems) return 10;
+		const sumH = detail.orderItems.reduce((acc: number, item: any) => {
+			const itemH = item.height > 0 ? item.height : 5;
+			return acc + itemH * (item.quantity || 1);
+		}, 0);
+		return sumH > 0 ? sumH : 10;
+	}, [detail?.orderItems]);
+
+	const handleOpenPackagingModal = () => {
+		setPkgWeight(totalSnapshotWeight);
+		setPkgLength(maxSnapshotLength);
+		setWidth(maxSnapshotWidth);
+		setPkgHeight(totalSnapshotHeight);
+		setShowPackageModal(true);
+	};
+
+	const setWidth = (w: number) => setPkgWidth(w);
+
+	// 2. CONDITIONAL RENDERING AFTER ALL HOOKS
 	if (isLoading) {
 		return (
 			<div className="flex flex-col items-center justify-center py-20 text-brand-muted text-xs gap-3">
@@ -46,7 +148,7 @@ export function CustomerOrderDetailView({ subOrderId, onBack }: CustomerOrderDet
 					onClick={onBack}
 					className="text-xs text-brand-primary hover:underline font-extrabold cursor-pointer"
 				>
-					&lt;&lt; Quay lại đơn hàng của tôi
+					&lt;&lt; {isSeller ? "Quay lại danh sách đơn hàng Shop" : "Quay lại đơn hàng của tôi"}
 				</button>
 			</div>
 		);
@@ -60,6 +162,9 @@ export function CustomerOrderDetailView({ subOrderId, onBack }: CustomerOrderDet
 		  new Date(detail.createdDate).toLocaleDateString("vi-VN")
 		: "N/A";
 
+	const isCod = !detail.isOnlinePayment || detail.paymentDto?.providerName?.toLowerCase() === "cod";
+
+	// Customer Handlers
 	const handleCancelOrder = () => {
 		if (!reason.trim()) {
 			setErrorMessage("Vui lòng nhập lý do hủy đơn hàng.");
@@ -72,9 +177,12 @@ export function CustomerOrderDetailView({ subOrderId, onBack }: CustomerOrderDet
 					setShowCancelModal(false);
 					setReason("");
 					setErrorMessage("");
+					toast.success("Đã gửi yêu cầu hủy đơn hàng!");
+					refetch();
+					onStatusUpdated?.();
 				},
 				onError: (err: any) => {
-					setErrorMessage(err?.response?.data?.message || "Đã xảy ra lỗi khi hủy đơn.");
+					setErrorMessage(err?.response?.data?.message || err?.response?.data || "Đã xảy ra lỗi khi hủy đơn.");
 				},
 			}
 		);
@@ -85,9 +193,12 @@ export function CustomerOrderDetailView({ subOrderId, onBack }: CustomerOrderDet
 			onSuccess: () => {
 				setShowCompleteModal(false);
 				setErrorMessage("");
+				toast.success("Xác nhận đã nhận hàng thành công!");
+				refetch();
+				onStatusUpdated?.();
 			},
 			onError: (err: any) => {
-				setErrorMessage(err?.response?.data?.message || "Đã xảy ra lỗi khi hoàn tất đơn.");
+				setErrorMessage(err?.response?.data?.message || err?.response?.data || "Đã xảy ra lỗi khi hoàn tất đơn.");
 			},
 		});
 	};
@@ -104,6 +215,9 @@ export function CustomerOrderDetailView({ subOrderId, onBack }: CustomerOrderDet
 					setShowRefundModal(false);
 					setReason("");
 					setErrorMessage("");
+					toast.success("Đã gửi yêu cầu trả hàng / hoàn tiền thành công!");
+					refetch();
+					onStatusUpdated?.();
 				},
 				onError: (err: any) => {
 					const errorMsg =
@@ -119,9 +233,99 @@ export function CustomerOrderDetailView({ subOrderId, onBack }: CustomerOrderDet
 		);
 	};
 
-	// Kiểm tra điều kiện hiển thị nút Action
-	const canCancel = ["AwaitingPayment", "AwaitingConfirmation", "Processing"].includes(detail.status);
-	const canCompleteOrRefund = ["Delivered", "Shipping"].includes(detail.status);
+	// Seller Handlers
+	const handleSellerConfirm = async () => {
+		try {
+			await confirmSubOrderMutation.mutateAsync(detail.id);
+			toast.success("Xác nhận đơn hàng thành công!");
+			refetch();
+			onStatusUpdated?.();
+		} catch (err: any) {
+			toast.error(err?.response?.data?.message || err?.response?.data || "Lỗi khi xác nhận đơn");
+		}
+	};
+
+	const handleSellerRejectSubmit = async (rejectReason: string) => {
+		try {
+			await rejectSubOrderMutation.mutateAsync({
+				subOrderId: detail.id,
+				reason: rejectReason,
+			});
+			toast.success("Đã từ chối / hủy đơn hàng thành công.");
+			setShowSellerRejectModal(false);
+			refetch();
+			onStatusUpdated?.();
+		} catch (err: any) {
+			toast.error(err?.response?.data?.message || err?.response?.data || "Lỗi khi từ chối đơn hàng");
+		}
+	};
+
+	const handleSellerPackageReady = async () => {
+		try {
+			await packageReadyMutation.mutateAsync({
+				subOrderId: detail.id,
+				dimensions: {
+					weight: pkgWeight,
+					length: pkgLength,
+					width: pkgWidth,
+					height: pkgHeight,
+				},
+			});
+			toast.success("Đóng gói thành công! Đơn hàng đã sẵn sàng bàn giao cho đơn vị vận chuyển.");
+			setShowPackageModal(false);
+			refetch();
+			onStatusUpdated?.();
+		} catch (err: any) {
+			toast.error(err?.response?.data?.message || err?.response?.data || "Lỗi khi cập nhật trạng thái đóng gói");
+		}
+	};
+
+	// Actions Availability Checks
+	const canCustomerCancel = !isSeller && !isAdmin && ["AwaitingPayment", "AwaitingConfirmation", "Processing"].includes(detail.status);
+	const canCustomerCompleteOrRefund = !isSeller && !isAdmin && ["Delivered", "Shipping"].includes(detail.status);
+
+	const canSellerConfirmOrReject = isSeller && !isAdmin && detail.status === "AwaitingConfirmation";
+	const canSellerPackage = isSeller && !isAdmin && detail.status === "Processing";
+
+	// Render trạng thái thanh toán chính xác theo COD / Online Payment
+	const renderPaymentStatus = () => {
+		if (detail.status === "Cancelled" || detail.status === "Rejected") {
+			return (
+				<p className="text-[10px] font-bold text-red-500 leading-snug">
+					Đơn hàng đã bị hủy.
+				</p>
+			);
+		}
+
+		if (isCod) {
+			if (["Delivered", "Completed"].includes(detail.status)) {
+				return (
+					<p className="text-[10px] font-bold text-emerald-600 leading-snug">
+						Thanh toán thành công khi nhận hàng.
+					</p>
+				);
+			}
+			return (
+				<p className="text-[10px] font-bold text-amber-600 leading-snug">
+					Chưa thanh toán.
+				</p>
+			);
+		}
+
+		if (detail.status === "AwaitingPayment") {
+			return (
+				<p className="text-[10px] font-bold text-amber-600 leading-snug">
+					Chưa hoàn tất thanh toán. Vui lòng thanh toán lại hoặc chọn phương thức thanh toán khác.
+				</p>
+			);
+		}
+
+		return (
+			<p className="text-[10px] font-bold text-emerald-600 leading-snug">
+				Thanh toán trực tuyến thành công.
+			</p>
+		);
+	};
 
 	return (
 		<div className="space-y-6 text-left text-xs font-sans text-brand-dark animate-in fade-in duration-200">
@@ -132,7 +336,8 @@ export function CustomerOrderDetailView({ subOrderId, onBack }: CustomerOrderDet
 						Chi tiết đơn hàng #{String(detail.id).split("-")[0]} - <span>{getOrderStatusBadge(detail.status)}</span>
 					</h2>
 				</div>
-				<span className="text-[11px] text-brand-muted font-bold">
+				<span className="text-[11px] text-brand-muted font-bold flex items-center gap-1">
+					<Calendar className="w-3.5 h-3.5 text-brand-muted" />
 					Ngày đặt hàng: {orderTimeStr}
 				</span>
 			</div>
@@ -141,55 +346,104 @@ export function CustomerOrderDetailView({ subOrderId, onBack }: CustomerOrderDet
 			<div className="grid grid-cols-1 md:grid-cols-3 gap-4">
 				{/* 1. ĐỊA CHỈ NGƯỜI NHẬN */}
 				<div className="border border-brand-border rounded-md p-4 bg-white shadow-sm space-y-2">
-					<h3 className="font-extrabold text-[10px] text-brand-muted uppercase tracking-wider">Địa chỉ người nhận</h3>
+					<h3 className="font-extrabold text-[10px] text-brand-muted uppercase tracking-wider flex items-center gap-1">
+						<User className="w-3 h-3" />
+						Thông tin người nhận
+					</h3>
 					<div className="space-y-1">
-						<p className="font-black text-brand-dark uppercase text-[11px]">{detail.shippingAddress?.recipientName || detail.user?.fullName || "Khách hàng"}</p>
-						<p className="text-brand-muted font-bold leading-relaxed text-[11px]">
-							{detail.shippingAddress?.addressLine || "N/A"}
+						<p className="font-black text-brand-dark uppercase text-[11px]">
+							{detail.shippingAddress?.recipientName || detail.user?.fullName || "Khách hàng"}
 						</p>
-						<p className="text-brand-muted font-bold text-[11px]">Điện thoại: {detail.shippingAddress?.phone || "N/A"}</p>
+						<p className="text-brand-muted font-bold leading-relaxed text-[11px]">
+							{fullAddressDisplay}
+						</p>
+						<p className="text-brand-muted font-bold text-[11px]">
+							Điện thoại: {detail.shippingAddress?.phone || "N/A"}
+						</p>
+						{isSeller && detail.user?.email && (
+							<p className="text-[10px] text-brand-muted font-medium">
+								Email: {detail.user.email}
+							</p>
+						)}
 					</div>
 				</div>
 
-				{/* 2. HÌNH THỨC GIAO HÀNG */}
+				{/* 2. HÌNH THỨC GIAO HÀNG & VẬN ĐƠN */}
 				<div className="border border-brand-border rounded-md p-4 bg-white shadow-sm space-y-2">
-					<h3 className="font-extrabold text-[10px] text-brand-muted uppercase tracking-wider">Hình thức giao hàng</h3>
+					<h3 className="font-extrabold text-[10px] text-brand-muted uppercase tracking-wider flex items-center gap-1">
+						<Truck className="w-3 h-3" />
+						Hình thức giao hàng
+					</h3>
 					<div className="space-y-1">
-						<p className="font-black text-brand-primary-deep text-[11px]">FAST <span className="text-brand-dark font-extrabold">Giao Tiết Kiệm</span></p>
+						<p className="font-black text-brand-primary-deep text-[11px]">
+							FAST <span className="text-brand-dark font-extrabold">{shipment?.carrierName || "Giao hàng nhanh"}</span>
+						</p>
 						<p className="text-brand-muted font-bold text-[11px]">
 							Phí vận chuyển: {Number(detail.shippingFee).toLocaleString("vi-VN")}đ
 						</p>
+						{shipment?.waybillCode && (
+							<div className="pt-1">
+								<span className="text-[10px] text-brand-muted font-bold">Mã vận đơn: </span>
+								<span className="font-mono text-[11px] font-black text-brand-primary bg-brand-primary/10 px-1.5 py-0.5 rounded">
+									{shipment.waybillCode}
+								</span>
+							</div>
+						)}
 					</div>
 				</div>
 
 				{/* 3. HÌNH THỨC THANH TOÁN */}
 				<div className="border border-brand-border rounded-md p-4 bg-white shadow-sm space-y-2">
-					<h3 className="font-extrabold text-[10px] text-brand-muted uppercase tracking-wider">Hình thức thanh toán</h3>
+					<h3 className="font-extrabold text-[10px] text-brand-muted uppercase tracking-wider flex items-center gap-1">
+						<ShieldCheck className="w-3 h-3" />
+						Hình thức thanh toán
+					</h3>
 					<div className="space-y-1">
 						<p className="font-extrabold text-brand-muted text-[11px]">
 							{detail.paymentDto?.title || (detail.isOnlinePayment ? "Thanh toán bằng ví MoMo" : "Thanh toán khi nhận hàng (COD)")}
 						</p>
-						{/* Payment state warning notice */}
-						{detail.status === "AwaitingPayment" && (
-							<p className="text-[10px] font-bold text-amber-600 leading-snug">
-								Chưa hoàn tất thanh toán. Vui lòng thanh toán lại hoặc chọn phương thức thanh toán khác
-							</p>
-						)}
-						{detail.status === "Cancelled" && (
-							<p className="text-[10px] font-bold text-red-500 leading-snug">
-								Thanh toán thất bại. Đơn hàng đã bị hủy.
-							</p>
-						)}
-						{detail.status !== "AwaitingPayment" && detail.status !== "Cancelled" && (
-							<p className="text-[10px] font-bold text-emerald-600 leading-snug">
-								Thanh toán thành công.
-							</p>
-						)}
+						{renderPaymentStatus()}
 					</div>
 				</div>
 			</div>
 
-			{/* Products Table */}
+			{/* LỊCH SỬ HÀNH TRÌNH VẬN CHUYỂN (SHIPMENT TRACKING LOGS) */}
+			{shipment && (
+				<div className="border border-brand-border rounded-md p-4 bg-white shadow-sm space-y-3">
+					<h3 className="font-extrabold text-xs text-brand-dark uppercase tracking-wider flex items-center gap-1.5">
+						<Truck className="w-4 h-4 text-brand-primary" />
+						Hành trình vận chuyển đơn hàng
+						{shipment.waybillCode && (
+							<span className="font-mono text-[10px] font-black text-brand-muted lowercase">
+								(mã vận đơn: {shipment.waybillCode})
+							</span>
+						)}
+					</h3>
+
+					<div className="space-y-2 pt-1 border-t border-brand-border/60">
+						<div className="flex items-start gap-2.5 text-xs font-semibold">
+							<div className="w-2 h-2 rounded-full bg-emerald-500 mt-1.5 shrink-0" />
+							<div className="space-y-0.5">
+								<p className="text-brand-dark font-extrabold">
+									Trạng thái kiện hàng: {shipment.status || "Đang xử lý"}
+								</p>
+								<p className="text-[11px] text-brand-muted font-normal">
+									{shipment.trackingLogs || `Vận đơn đã được tạo thành công bởi hãng vận chuyển ${shipment.carrierName || "GHN"}.`}
+								</p>
+							</div>
+						</div>
+
+						{shipment.expectedDeliveryDate && (
+							<div className="flex items-center gap-1.5 text-[11px] text-brand-muted font-bold pl-4.5">
+								<Clock className="w-3.5 h-3.5 text-brand-muted" />
+								<span>Dự kiến giao hàng: {new Date(shipment.expectedDeliveryDate).toLocaleDateString("vi-VN")}</span>
+							</div>
+						)}
+					</div>
+				</div>
+			)}
+
+			{/* Products Table (With Dimensions Snapshot) */}
 			<div className="border border-brand-border rounded-md overflow-hidden shadow-sm bg-white">
 				<table className="w-full border-collapse text-left">
 					<thead>
@@ -218,21 +472,30 @@ export function CustomerOrderDetailView({ subOrderId, onBack }: CustomerOrderDet
 												<h4 className="font-extrabold text-brand-dark text-xs leading-tight">
 													{item.productName}
 												</h4>
-												<p className="text-[10px] text-brand-muted font-semibold">Cung cấp bởi Buu Store</p>
 												<span className="inline-block text-[9px] font-black text-brand-primary-deep bg-brand-primary/10 px-1.5 py-0.5 rounded uppercase">
 													7 ngày đổi trả
 												</span>
 												{item.variantName && (
 													<p className="text-[10px] font-bold text-brand-muted">Phân loại: {item.variantName}</p>
 												)}
-												<div className="flex gap-2 pt-1">
-													<button type="button" className="px-2 py-1 bg-white border border-brand-border hover:bg-brand-light-soft text-[10px] font-black text-brand-dark rounded transition-all cursor-pointer">
-														Chat với nhà bán
-													</button>
-													<button type="button" className="px-2 py-1 bg-white border border-brand-border hover:bg-brand-light-soft text-[10px] font-black text-brand-dark rounded transition-all cursor-pointer">
-														Mua lại
-													</button>
-												</div>
+												
+												{/* Snapshot physical dimensions
+												{(item.weightInGrams > 0 || item.length > 0) && (
+													<p className="text-[10px] font-bold text-purple-700 bg-purple-50 inline-block px-1.5 py-0.5 rounded">
+														Quy cách: {item.weightInGrams || 500}g • {item.length || 0}x{item.width || 0}x{item.height || 0}cm
+													</p>
+												)} */}
+
+												{!isSeller && (
+													<div className="flex gap-2 pt-1">
+														<button type="button" className="px-2 py-1 bg-white border border-brand-border hover:bg-brand-light-soft text-[10px] font-black text-brand-dark rounded transition-all cursor-pointer">
+															Chat với nhà bán
+														</button>
+														<button type="button" className="px-2 py-1 bg-white border border-brand-border hover:bg-brand-light-soft text-[10px] font-black text-brand-dark rounded transition-all cursor-pointer">
+															Mua lại
+														</button>
+													</div>
+												)}
 											</div>
 										</div>
 									</td>
@@ -303,15 +566,23 @@ export function CustomerOrderDetailView({ subOrderId, onBack }: CustomerOrderDet
 				</div>
 			</div>
 
-			{/* Action Control Panel */}
-			{(canCancel || canCompleteOrRefund) && (
+			{/* Action Control Panel for Customer OR Seller */}
+			{(canCustomerCancel || canCustomerCompleteOrRefund || canSellerConfirmOrReject || canSellerPackage) && (
 				<div className="bg-brand-light-soft/20 border border-brand-border rounded-md p-4 flex flex-col sm:flex-row justify-between items-center gap-3">
 					<div className="text-left space-y-0.5">
-						<p className="font-extrabold text-brand-dark text-xs">Quản lý trạng thái đơn hàng</p>
-						<p className="text-[10px] text-brand-muted font-bold">Hãy thực hiện thao tác tương ứng với tiến trình đơn hàng của bạn.</p>
+						<p className="font-extrabold text-brand-dark text-xs">
+							{isSeller ? "Thao tác xử lý đơn hàng của Shop" : "Quản lý trạng thái đơn hàng"}
+						</p>
+						<p className="text-[10px] text-brand-muted font-bold">
+							{isSeller
+								? "Hãy xác nhận hoặc đóng gói hàng khi đã chuẩn bị xong kiện hàng."
+								: "Hãy thực hiện thao tác tương ứng với tiến trình đơn hàng của bạn."}
+						</p>
 					</div>
+
 					<div className="flex flex-wrap gap-2.5">
-						{canCancel && (
+						{/* Customer Actions */}
+						{canCustomerCancel && (
 							<button
 								type="button"
 								onClick={() => { setShowCancelModal(true); setErrorMessage(""); }}
@@ -320,7 +591,7 @@ export function CustomerOrderDetailView({ subOrderId, onBack }: CustomerOrderDet
 								Hủy đơn hàng
 							</button>
 						)}
-						{canCompleteOrRefund && (
+						{canCustomerCompleteOrRefund && (
 							<>
 								<button
 									type="button"
@@ -338,11 +609,55 @@ export function CustomerOrderDetailView({ subOrderId, onBack }: CustomerOrderDet
 								</button>
 							</>
 						)}
+
+						{/* Seller Actions */}
+						{canSellerConfirmOrReject && (
+							<>
+								<button
+									type="button"
+									onClick={() => setShowSellerRejectModal(true)}
+									className="px-4 py-2 bg-rose-50 border border-rose-200 text-rose-700 font-extrabold rounded-md hover:bg-rose-100 transition-all text-xs cursor-pointer shadow-sm flex items-center gap-1.5"
+								>
+									<X className="w-3.5 h-3.5" />
+									Từ chối đơn hàng
+								</button>
+								<button
+									type="button"
+									onClick={handleSellerConfirm}
+									disabled={confirmSubOrderMutation.isPending}
+									className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold rounded-md transition-all text-xs cursor-pointer shadow-sm flex items-center gap-1.5 disabled:opacity-50"
+								>
+									{confirmSubOrderMutation.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Check className="w-3.5 h-3.5" />}
+									Xác nhận đơn hàng
+								</button>
+							</>
+						)}
+
+						{canSellerPackage && (
+							<>
+								<button
+									type="button"
+									onClick={() => setShowSellerRejectModal(true)}
+									className="px-4 py-2 bg-rose-50 border border-rose-200 text-rose-700 font-extrabold rounded-md hover:bg-rose-100 transition-all text-xs cursor-pointer shadow-sm flex items-center gap-1.5"
+								>
+									<X className="w-3.5 h-3.5" />
+									Hủy đơn hàng
+								</button>
+								<button
+									type="button"
+									onClick={handleOpenPackagingModal}
+									className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white font-extrabold rounded-md transition-all text-xs cursor-pointer shadow-sm flex items-center gap-1.5"
+								>
+									<Package className="w-3.5 h-3.5" />
+									Đóng gói xong & Chuẩn bị bàn giao
+								</button>
+							</>
+						)}
 					</div>
 				</div>
 			)}
 
-			{/* Modal Hủy Đơn Hàng */}
+			{/* Modal Hủy Đơn Hàng (Customer) */}
 			{showCancelModal && (
 				<div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-brand-dark/40 backdrop-blur-xs font-sans">
 					<div className="bg-white rounded-md max-w-md w-full border border-brand-border p-5 shadow-xl space-y-4">
@@ -379,7 +694,7 @@ export function CustomerOrderDetailView({ subOrderId, onBack }: CustomerOrderDet
 				</div>
 			)}
 
-			{/* Modal Xác nhận đã nhận hàng */}
+			{/* Modal Xác nhận đã nhận hàng (Customer) */}
 			{showCompleteModal && (
 				<div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-brand-dark/40 backdrop-blur-xs font-sans">
 					<div className="bg-white rounded-md max-w-md w-full border border-brand-border p-5 shadow-xl space-y-4">
@@ -420,7 +735,7 @@ export function CustomerOrderDetailView({ subOrderId, onBack }: CustomerOrderDet
 				</div>
 			)}
 
-			{/* Modal Yêu cầu hoàn tiền / trả hàng */}
+			{/* Modal Yêu cầu hoàn tiền / trả hàng (Customer) */}
 			{showRefundModal && (
 				<div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-brand-dark/40 backdrop-blur-xs font-sans">
 					<div className="bg-white rounded-md max-w-md w-full border border-brand-border p-5 shadow-xl space-y-4">
@@ -431,7 +746,7 @@ export function CustomerOrderDetailView({ subOrderId, onBack }: CustomerOrderDet
 						<textarea
 							value={reason}
 							onChange={(e) => setReason(e.target.value)}
-							placeholder="Nhập lý do trả hàng/hoần tiền chi tiết..."
+							placeholder="Nhập lý do trả hàng/hoàn tiền chi tiết..."
 							rows={3}
 							className="w-full border border-brand-border rounded-md p-2.5 text-xs focus:outline-none focus:ring-1 focus:ring-brand-primary"
 						/>
@@ -457,7 +772,7 @@ export function CustomerOrderDetailView({ subOrderId, onBack }: CustomerOrderDet
 				</div>
 			)}
 
-			{/* Modal Yêu cầu tạo ví */}
+			{/* Modal Yêu cầu tạo ví (Customer) */}
 			{showNoWalletModal && (
 				<div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-brand-dark/40 backdrop-blur-xs font-sans">
 					<div className="bg-white rounded-md max-w-md w-full border border-brand-border p-5 shadow-xl space-y-4">
@@ -496,6 +811,30 @@ export function CustomerOrderDetailView({ subOrderId, onBack }: CustomerOrderDet
 				</div>
 			)}
 
+			{/* Modal Từ chối đơn hàng (Seller) */}
+			<CancelOrderModal
+				isOpen={showSellerRejectModal}
+				onClose={() => setShowSellerRejectModal(false)}
+				onSubmit={handleSellerRejectSubmit}
+				isPending={rejectSubOrderMutation.isPending}
+			/>
+
+			{/* Modal Đóng gói kiện hàng với kích thước snapshot (Seller) */}
+			<PackageReadyModal
+				isOpen={showPackageModal}
+				onClose={() => setShowPackageModal(false)}
+				onSubmit={handleSellerPackageReady}
+				weight={pkgWeight}
+				setWeight={setPkgWeight}
+				length={pkgLength}
+				setLength={setPkgLength}
+				width={pkgWidth}
+				setWidth={setPkgWidth}
+				height={pkgHeight}
+				setHeight={setPkgHeight}
+				isPending={packageReadyMutation.isPending}
+			/>
+
 			{/* Bottom back link */}
 			<div className="pt-4 border-t border-brand-border">
 				<button
@@ -503,7 +842,7 @@ export function CustomerOrderDetailView({ subOrderId, onBack }: CustomerOrderDet
 					onClick={onBack}
 					className="text-xs font-black text-brand-primary-deep hover:text-brand-primary transition-all cursor-pointer flex items-center gap-1"
 				>
-					&lt;&lt; Quay lại đơn hàng của tôi
+					&lt;&lt; {isAdmin ? "Quay lại danh sách đơn hàng toàn sàn" : isSeller ? "Quay lại danh sách đơn hàng Shop" : "Quay lại đơn hàng của tôi"}
 				</button>
 			</div>
 		</div>

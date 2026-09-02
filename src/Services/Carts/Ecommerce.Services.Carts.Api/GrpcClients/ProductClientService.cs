@@ -34,13 +34,19 @@ public class ProductClientService(ILogger<ProductClientService> logger, ProductG
         }
     }
 
-    public async Task<Result<List<ProductDto>>> GetProductVariantListAsync(List<long> variantIds, List<long> productIds)
+    public async Task<Result<List<ProductDto>>> GetProductVariantListAsync(List<long> variantIds, List<long>? productIds = null)
     {
         try
         {
             var request = new GetVariantsByIdsRequest();
-            request.VariantIds.AddRange(variantIds);
-            request.ProductIds.AddRange(productIds);
+            if (variantIds != null && variantIds.Count > 0)
+            {
+                request.VariantIds.AddRange(variantIds);
+            }
+            if (productIds != null && productIds.Count > 0)
+            {
+                request.ProductIds.AddRange(productIds);
+            }
 
             var variants = await grpcClient.GetVariantsByIdsAsync(request);
             

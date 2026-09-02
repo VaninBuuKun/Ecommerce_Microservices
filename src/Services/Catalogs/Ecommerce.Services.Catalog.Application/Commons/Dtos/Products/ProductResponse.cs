@@ -1,11 +1,14 @@
 using System;
 using System.Collections.Generic;
+using System.Text.Json.Serialization;
+using BuildingBlocks.Shared.Converters;
 using Ecommerce.Services.Catalog.Domain;
 
 namespace Ecommerce.Services.Catalog.Application.Commons.Dtos.Products;
 
 public class ProductResponse
 {
+    [JsonConverter(typeof(LongToStringJsonConverter))]
     public long Id { get; set; }
     public string Name { get; set; } = null!;
     public string Description { get; set; } = null!;
@@ -16,6 +19,10 @@ public class ProductResponse
     public decimal Price { get; set; }
     public decimal PriceDisplay { get; set; }
     public decimal DiscountPrice { get; set; }
+    public decimal MinPrice { get; set; }
+    public decimal MaxPrice { get; set; }
+    public decimal MinDiscountPrice { get; set; }
+    public decimal MaxDiscountPrice { get; set; }
     public int AvailableStock { get; set; }
     public int Sold { get; set; }
     public string? AttributesJson { get; set; }
@@ -40,9 +47,9 @@ public class ProductResponse
     public List<ProductVariantDto> Variants { get; set; } = new();
 }
 
-
 public class ProductOptionDto
 {
+    [JsonConverter(typeof(LongToStringJsonConverter))]
     public long Id { get; set; }
     public string Name { get; set; } = null!;
     public int SortOrder { get; set; }
@@ -51,6 +58,7 @@ public class ProductOptionDto
 
 public class ProductOptionValueDto
 {
+    [JsonConverter(typeof(LongToStringJsonConverter))]
     public long Id { get; set; }
     public string Value { get; set; } = null!;
     public string? ImageUrl { get; set; }
@@ -59,21 +67,19 @@ public class ProductOptionValueDto
 
 public class ProductVariantDto
 {
+    [JsonConverter(typeof(LongToStringJsonConverter))]
     public long Id { get; set; }
     public string? Sku { get; set; }
     public decimal Price { get; set; }
     public decimal? DiscountPrice { get; set; }
     public int AvailableStock { get; set; }
-    public int ReservedStocks { get; set; }
-    public double Weight { get; set; }
-    public double Length { get; set; }
-    public double Width { get; set; }
-    public double Height { get; set; }
+    public int ReservedStock { get; set; }
     public string VariantName { get; set; } = string.Empty;
     public List<ProductVariantOptionDto> VariantOptions { get; set; } = new();
 }
 
 public class ProductVariantOptionDto
 {
+    [JsonConverter(typeof(LongToStringJsonConverter))]
     public long OptionValueId { get; set; }
 }

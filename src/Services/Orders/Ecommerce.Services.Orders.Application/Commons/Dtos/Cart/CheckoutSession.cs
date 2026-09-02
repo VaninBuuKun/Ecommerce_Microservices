@@ -16,7 +16,9 @@ public class CheckoutSession
     public decimal PlatformDiscount { get; set; }
     public Dictionary<long, decimal> ShopDiscounts { get; set; } = new();
     public string? PlatformVoucherCode { get; set; }
+    public long? PlatformVoucherId { get; set; }
     public Dictionary<long, string> ShopVoucherCodes { get; set; } = new();
+    public Dictionary<long, long> ShopVoucherIds { get; set; } = new();
     public decimal GrandTotal { get; set; }
     public DateTime CreatedAt { get; set; }
     public DateTime ExpiresAt { get; set; }
@@ -32,4 +34,8 @@ public class CheckoutSessionItem
     public string? ThumbnailUrl { get; set; }
     public int Quantity { get; set; }
     public decimal UnitPrice { get; set; }
+    public double Weight { get; set; }
+    public double Length { get; set; }
+    public double Width { get; set; }
+    public double Height { get; set; }
 }

@@ -14,7 +14,8 @@ interface Product {
 	thumbnailUrl?: string;
 	averageRating: number;
 	reviewCount: number;
-	soldQuantity: number;
+	sold?: number;
+	soldQuantity?: number;
 	shopId: number;
 	categoryName?: string;
 }
@@ -53,6 +54,25 @@ export function ExploreProductsPage() {
 				: "name";
 
 	const limit = 12;
+
+	const renderStars = (rating: number = 5) => {
+		const score = rating > 0 ? rating : 5;
+		const rounded = Math.round(score);
+		return (
+			<div className="flex items-center gap-0.5">
+				{[1, 2, 3, 4, 5].map((s) => (
+					<Star
+						key={s}
+						className={`w-2.5 h-2.5 ${
+							s <= rounded
+								? "fill-amber-400 text-amber-400 stroke-amber-400"
+								: "fill-gray-200 text-gray-200 stroke-gray-200"
+						}`}
+					/>
+				))}
+			</div>
+		);
+	};
 
 	// Hàm lấy danh sách danh mục con an toàn (hỗ trợ cả mảng phẳng và mảng cây)
 	const getSubCategories = (parentCat: any) => {
@@ -468,26 +488,34 @@ export function ExploreProductsPage() {
 													</h3>
 												</div>
 
-												<div className="space-y-1.5 border-t border-brand-border/40 pt-1.5">
-													<div className="flex items-center gap-1 text-[10px] text-amber-500 font-bold">
-														<Star className="w-3.5 h-3.5 fill-amber-400 stroke-amber-400" />
-														<span>{p.averageRating ? p.averageRating.toFixed(1) : "5.0"}</span>
+												<div className="space-y-1">
+													<div className="flex items-center gap-1">
+														{renderStars(p.averageRating)}
 														<span className="text-brand-muted text-[9px] font-normal">
 															({p.reviewCount || 0})
 														</span>
 													</div>
+												</div>
 
-													{/* Price Block */}
-													<div className="pt-0.5 space-y-0.5">
-														<div className="flex items-center gap-1.5">
-															<span className="font-extrabold text-red-600 text-sm leading-none">
-																{activePrice.toLocaleString("vi-VN")}đ
-															</span>
-														</div>
-														{hasDiscount && (
-															<div className="text-[11px] text-gray-400 font-normal line-through leading-tight">
+												{/* Divider & Price / Sold Section */}
+												<div className="border-t border-brand-border/40 pt-1.5 space-y-0.5">
+													<div className="flex items-baseline justify-between gap-1">
+														<span className="font-extrabold text-red-600 text-sm leading-none">
+															{activePrice.toLocaleString("vi-VN")}đ
+														</span>
+														<span className="text-[10px] text-brand-muted font-medium whitespace-nowrap">
+															Đã bán {p.sold || p.soldQuantity || 0}
+														</span>
+													</div>
+
+													{/* Strikethrough original price with fixed height container to ensure uniform card alignment */}
+													<div className="h-4 flex items-center">
+														{hasDiscount ? (
+															<span className="text-[11px] text-gray-400 font-normal line-through leading-tight">
 																{p.price.toLocaleString("vi-VN")}đ
-															</div>
+															</span>
+														) : (
+															<span className="invisible text-[11px] leading-tight select-none">0đ</span>
 														)}
 													</div>
 
@@ -495,8 +523,9 @@ export function ExploreProductsPage() {
 														type="button"
 														onClick={(e) => {
 															e.stopPropagation();
+															const defaultVarId = p.variants?.[0]?.id || 0;
 															addItemToCartMutation.mutate(
-																{ productId: p.id, variantId: 0, quantity: 1 },
+																{ productId: p.id, variantId: defaultVarId, productVariantId: defaultVarId, quantity: 1 },
 																{ 
 																	onSuccess: () => toast.success("Đã thêm vào giỏ hàng!"),
 																	onError: (err: any) => {
@@ -506,7 +535,7 @@ export function ExploreProductsPage() {
 																}
 															);
 														}}
-														className="w-full mt-2 py-1.5 bg-brand-light-soft hover:bg-brand-primary text-brand-dark rounded-md text-[11px] font-bold transition-colors flex items-center justify-center gap-1 cursor-pointer border border-brand-border/60"
+														className="w-full mt-1.5 py-1.5 bg-brand-light-soft hover:bg-brand-primary text-brand-dark rounded-md text-[11px] font-bold transition-colors flex items-center justify-center gap-1 cursor-pointer border border-brand-border/60"
 													>
 														<ShoppingBag className="w-3.5 h-3.5" />
 														<span>Thêm vào giỏ</span>

@@ -4,6 +4,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using BuildingBlocks.Shared.Commons;
 using BuildingBlocks.Shared.Enums;
+using BuildingBlocks.Shared.InfrastructureInterfaces.IdGenerator;
 using BuildingBlocks.Shared.InfrastructureInterfaces.Persistence.EFCore;
 using Ecommerce.Services.Catalog.Application.Commons.Interfaces;
 using Ecommerce.Services.Catalog.Application.Commons.Repositories;

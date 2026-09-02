@@ -1,9 +1,12 @@
-﻿using BuildingBlocks.Shared.InfrastructureInterfaces.Caching;
+using BuildingBlocks.Shared.InfrastructureInterfaces.Caching;
+using BuildingBlocks.Shared.Converters;
+using System;
+using System.Text.Json;
+using System.Threading;
+using System.Threading.Tasks;
+using StackExchange.Redis;
 
 namespace BuildingBlocks.Caching;
-
-using System.Text.Json;
-using StackExchange.Redis;
 
 public class RedisCacheService : ICacheService
 {
@@ -11,7 +14,13 @@ public class RedisCacheService : ICacheService
 
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
-        PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+        PropertyNameCaseInsensitive = true,
+        Converters =
+        {
+            new LongToStringJsonConverter(),
+            new NullableLongToStringJsonConverter()
+        }
     };
 
     public RedisCacheService(IConnectionMultiplexer redis)
@@ -27,9 +36,18 @@ public class RedisCacheService : ICacheService
         if (value.IsNullOrEmpty)
             return default;
 
-        return JsonSerializer.Deserialize<T>(
-            value!,
-            JsonOptions);
+        try
+        {
+            return JsonSerializer.Deserialize<T>(
+                value!,
+                JsonOptions);
+        }
+        catch (JsonException)
+        {
+            // If stale/corrupted cache data cannot be deserialized, auto-evict and return default
+            await _database.KeyDeleteAsync(key);
+            return default;
+        }
     }
 
     public async Task SetAsync<T>(

@@ -28,7 +28,7 @@ export interface CalculateOrderTotalRequest {
 }
 
 export interface CheckoutItemDto {
-	variantId: number;
+	variantId: string;
 	productName: string;
 	variantName: string;
 	unitPrice: number;
@@ -58,7 +58,7 @@ export interface CreateOrderCommand {
 }
 
 export interface CustomerOrderResponse {
-	id: number;
+	id: string;
 	customerId: number;
 	grandTotal: number;
 	shippingAddress: string;

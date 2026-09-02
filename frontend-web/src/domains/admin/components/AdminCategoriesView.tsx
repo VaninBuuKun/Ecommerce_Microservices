@@ -328,16 +328,18 @@ export function AdminCategoriesView() {
 					</div>
 				)}
 
-				{/* UNIFIED SHADCN PAGINATION COMPONENT */}
-				{totalPages > 1 && (
-					<div className="p-4 border-t border-brand-border/60 bg-white flex justify-center items-center">
-						<Pagination
-							currentPage={page}
-							totalPages={totalPages}
-							onPageChange={setPage}
-						/>
-					</div>
-				)}
+				{/* UNIFIED PAGINATION COMPONENT */}
+				<div className="px-4 py-2 border-t border-brand-border bg-brand-light-soft/20 text-xs">
+					<Pagination
+						currentPage={page}
+						totalPages={totalPages}
+						totalCount={totalItems}
+						pageSize={pageSize}
+						onPageChange={setPage}
+						showQuickJumper
+						showTotal
+					/>
+				</div>
 			</div>
 
 			{/* MODAL THÊM / SỬA CATEGORY */}

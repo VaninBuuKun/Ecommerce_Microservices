@@ -1,11 +1,18 @@
+using System.Text.Json.Serialization;
+using BuildingBlocks.Shared.Converters;
+
 namespace Ecommerce.Services.Catalog.Application.Features.Products.Dtos;
 
 public class VariantDto
 {
+    [JsonConverter(typeof(LongToStringJsonConverter))]
     public long ProductId { get; set; }
+
+    [JsonConverter(typeof(LongToStringJsonConverter))]
     public long Id { get; set; }
+
     public string ProductName { get; set; } = string.Empty;
-    public int AvailableStocks { get; set; }
+    public int AvailableStock { get; set; }
     public decimal Price { get; set; }
     public decimal DiscountPrice { get; set; }
     public string VariantName { get; set; } = string.Empty;

@@ -73,25 +73,25 @@ export const orderApi = {
 	},
 
 	// Xác nhận đơn hàng con
-	confirmSubOrder: async (subOrderId: number): Promise<void> => {
+	confirmSubOrder: async (subOrderId: string): Promise<void> => {
 		await api.put(`/orders/suborder/${subOrderId}/confirm`);
 	},
 
 	// Từ chối/hủy đơn hàng con
-	rejectSubOrder: async (subOrderId: number, reason: string): Promise<void> => {
+	rejectSubOrder: async (subOrderId: string, reason: string): Promise<void> => {
 		await api.put(`/orders/suborder/${subOrderId}/reject?reason=${encodeURIComponent(reason)}`);
 	},
 
 	// Báo đóng gói xong
 	packageReadySubOrder: async (
-		subOrderId: number,
+		subOrderId: string,
 		dimensions: { weight: number; length: number; width: number; height: number },
 	): Promise<void> => {
 		await api.put(`/orders/suborder/${subOrderId}/package-ready`, dimensions);
 	},
 
 	// Lấy chi tiết đơn hàng con
-	getSubOrderDetail: async (subOrderId: number, isSeller = true): Promise<any> => {
+	getSubOrderDetail: async (subOrderId: string, isSeller = true): Promise<any> => {
 		const response = await api.get(`/orders/suborder/${subOrderId}/detail?isSeller=${isSeller}`);
 		return response.data?.value || response.data;
 	},
@@ -119,17 +119,17 @@ export const orderApi = {
 	},
 
 	// Khách hàng hủy đơn hàng con
-	cancelCustomerSubOrder: async (subOrderId: number, reason: string): Promise<void> => {
+	cancelCustomerSubOrder: async (subOrderId: string, reason: string): Promise<void> => {
 		await api.put(`/orders/suborder/${subOrderId}/cancel?reason=${encodeURIComponent(reason)}`);
 	},
 
 	// Khách hàng xác nhận đã nhận hàng
-	completeSubOrder: async (subOrderId: number): Promise<void> => {
+	completeSubOrder: async (subOrderId: string): Promise<void> => {
 		await api.put(`/orders/suborder/${subOrderId}/complete`);
 	},
 
 	// Khách hàng yêu cầu hoàn tiền
-	createRefund: async (subOrderId: number, reason: string): Promise<any> => {
+	createRefund: async (subOrderId: string, reason: string): Promise<any> => {
 		const response = await api.post("/refunds", { subOrderId, reason });
 		return response.data;
 	},

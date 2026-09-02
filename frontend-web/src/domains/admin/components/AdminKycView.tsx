@@ -320,15 +320,17 @@ export function AdminKycView() {
 				</div>
 
 				{/* Phân trang */}
-				{totalPages > 1 && (
-					<div className="p-3 border-t border-brand-border flex justify-end">
-						<Pagination
-							currentPage={page}
-							totalPages={totalPages}
-							onPageChange={(p) => setPage(p)}
-						/>
-					</div>
-				)}
+				<div className="px-4 py-2 border-t border-brand-border bg-brand-light-soft/20 text-xs">
+					<Pagination
+						currentPage={page}
+						totalPages={totalPages}
+						totalCount={totalCount}
+						pageSize={pageSize}
+						onPageChange={(p) => setPage(p)}
+						showQuickJumper
+						showTotal
+					/>
+				</div>
 			</div>
 
 			{/* Modal Preview Chi Tiết KYC */}

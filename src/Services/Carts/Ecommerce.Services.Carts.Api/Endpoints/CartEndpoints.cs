@@ -10,15 +10,13 @@ using Serilog;
 
 namespace Ecommerce.Services.Carts.Api.Endpoints;
 
-public record LocalUpdateSelectStateRequest(bool IsSelected);
-
 public static class CartEndpoints
 {
     public static IEndpointRouteBuilder AddCartEndpoints(this IEndpointRouteBuilder endpoints)
     {
         var group = endpoints.MapGroup("api/carts").RequireAuthorization()
                              .WithTags("CartEndpoints")
-                             .WithSummary("Đây là bộ API quản lý giỏ hàng")
+                             .WithSummary("Bộ API quản lý giỏ hàng")
                              .WithOpenApi();
         
         // GET /api/carts
@@ -31,18 +29,18 @@ public static class CartEndpoints
             .WithName("AddItem")
             .WithSummary("Thêm sản phẩm vào giỏ");
   
-        // PUT /api/carts/items/{productId:long}
-        group.MapPut("/items/{productId:long}", UpdateQuantity)
+        // PUT /api/carts/items/quantity
+        group.MapPut("/items/quantity", UpdateQuantity)
             .WithName("UpdateQuantity")
             .WithSummary("Cập nhật số lượng sản phẩm");
 
-        // PUT /api/carts/items/{variantId:long}/select
-        group.MapPut("/items/{variantId:long}/select", UpdateSelectState)
+        // PUT /api/carts/items/select
+        group.MapPut("/items/select", UpdateSelectState)
             .WithName("UpdateSelectState")
-            .WithSummary("Cập nhật trạng thái chọn mua sản phẩm");
-        
-        // DELETE /api/carts/items/{productId:long}
-        group.MapDelete("/items/{productId:long}", RemoveItem)
+            .WithSummary("Cập nhật trạng thái chọn mua");
+
+        // DELETE /api/carts/items
+        group.MapDelete("/items", RemoveItem)
             .WithName("RemoveItem")
             .WithSummary("Xóa sản phẩm khỏi giỏ");
         
@@ -66,19 +64,20 @@ public static class CartEndpoints
     // 2. THÊM SẢN PHẨM VÀO GIỎ
     private static async Task<IResult> AddItem([FromBody] CartItemRequest cartItem, ICartService cartService, ICurrentUserService userService)
     {
-        var req = new AddItemToCartRequest(cartItem.ProductId, cartItem.VariantId, cartItem.Quantity, true);
+        var req = new AddItemToCartRequest(cartItem.VariantId, cartItem.Quantity, cartItem.IsSelected);
         var result = await cartService.AddItemToCartAsync(userService.UserId, req);
         
-        Log.Information("User {UserId} added product {VariantId} with quantity {Quantity} to cart", userService.UserId, cartItem.VariantId, cartItem.Quantity);
+        Log.Information("User {UserId} added variant to cart: VariantId={VariantId}, Quantity={Quantity}", 
+            userService.UserId, cartItem.VariantId, cartItem.Quantity);
         return result.IsSuccess
             ? Results.Json(result.Value, statusCode: result.GetHttpStatusCode())
             : Results.Json(new { message = result.Message }, statusCode: result.GetHttpStatusCode());
     }
     
     // 3. CẬP NHẬT SỐ LƯỢNG SẢN PHẨM
-    private static async Task<IResult> UpdateQuantity(long productId, [FromBody] CartItemRequest cartItem, ICartService cartService, ICurrentUserService userService)
+    private static async Task<IResult> UpdateQuantity([FromBody] UpdateCartItemQuantityRequest request, ICartService cartService, ICurrentUserService userService)
     {
-        var req = new UpdateQuantityRequest(productId, cartItem.VariantId, cartItem.Quantity);
+        var req = new UpdateQuantityRequest(request.VariantId, request.Quantity);
         var result = await cartService.UpdateQuantityAsync(userService.UserId, req);
         
         return result.IsSuccess
@@ -86,34 +85,33 @@ public static class CartEndpoints
             : Results.Json(new { message = result.Message }, statusCode: result.GetHttpStatusCode());
     }
 
-    // 3.5. CẬP NHẬT TRẠNG THÁI CHỌN SẢN PHẨM
-    private static async Task<IResult> UpdateSelectState(long variantId, [FromBody] LocalUpdateSelectStateRequest request, ICartService cartService, ICurrentUserService userService)
+    // 4. CẬP NHẬT TRẠNG THÁI CHỌN SẢN PHẨM
+    private static async Task<IResult> UpdateSelectState([FromBody] UpdateCartItemSelectRequest request, ICartService cartService, ICurrentUserService userService)
     {
-        var req = new CartSelectStateRequest(0, variantId, request.IsSelected);
+        var req = new CartSelectStateRequest(request.VariantId, request.IsSelected);
         var result = await cartService.UpdateSelectStateAsync(userService.UserId, req);
         
         return result.IsSuccess
             ? Results.Json(result.Value, statusCode: result.GetHttpStatusCode())
             : Results.Json(new { message = result.Message }, statusCode: result.GetHttpStatusCode());
     }
-    
-    // 4. XÓA SẢN PHẨM KHỎI GIỎ
-    private static async Task<IResult> RemoveItem(long productId, [FromQuery] long? variantId, ICartService cartService, ICurrentUserService userService)
+
+    // 5. XÓA SẢN PHẨM KHỎI GIỎ
+    private static async Task<IResult> RemoveItem([FromQuery] long variantId, ICartService cartService, ICurrentUserService userService)
     {
-        var result = await cartService.RemoveItemFromCartAsync(userService.UserId, productId, variantId ?? 0);
+        var result = await cartService.RemoveItemFromCartAsync(userService.UserId, variantId);
         
         return result.IsSuccess
             ? Results.Json(result.Value, statusCode: result.GetHttpStatusCode())
             : Results.Json(new { message = result.Message }, statusCode: result.GetHttpStatusCode());
     }
-    
-    // 5. XÓA TOÀN BỘ GIỎ HÀNG
+
+    // 6. XÓA TOÀN BỘ GIỎ HÀNG
     private static async Task<IResult> ClearCart(ICartService cartService, ICurrentUserService userService)
     {
         var result = await cartService.ClearCartAsync(userService.UserId);
-        
         return result.IsSuccess
-            ? Results.Ok()
+            ? Results.Json(new { message = "Đã xóa toàn bộ giỏ hàng" }, statusCode: result.GetHttpStatusCode())
             : Results.Json(new { message = result.Message }, statusCode: result.GetHttpStatusCode());
     }
 }

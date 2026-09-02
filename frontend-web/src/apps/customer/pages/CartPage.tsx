@@ -29,6 +29,7 @@ import {
     PlatformVoucherModal,
     useAvailableVouchersQuery,
 } from "@/domains/order";
+import { ConfirmModal } from "@/shared/components";
 import { Link, useNavigate } from "react-router-dom";
 
 export default function CartPage() {
@@ -40,12 +41,14 @@ export default function CartPage() {
     const updateSelectStateMutation = useUpdateSelectStateMutation();
     const clearCartMutation = useClearCartMutation();
 
-    const [localQuantities, setLocalQuantities] = useState<Record<number, number>>({});
-    const debounceTimers = useRef<Record<number, ReturnType<typeof setTimeout>>>({});
+    const [localQuantities, setLocalQuantities] = useState<Record<string, number>>({});
+    const debounceTimers = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
 
     // Voucher Modals state on CartPage
     const [activeShopVoucherModal, setActiveShopVoucherModal] = useState<number | null>(null);
     const [showPlatformVoucherModal, setShowPlatformVoucherModal] = useState(false);
+    const [showClearCartModal, setShowClearCartModal] = useState(false);
+    const [itemToDelete, setItemToDelete] = useState<string | null>(null);
 
     // Selected Vouchers
     const [shopVouchers, setShopVouchers] = useState<Record<number, string>>({});
@@ -60,8 +63,9 @@ export default function CartPage() {
             setLocalQuantities((prev) => {
                 const next = { ...prev };
                 items.forEach((item: any) => {
-                    if (debounceTimers.current[item.productVariantId] === undefined) {
-                        next[item.productVariantId] = item.quantity;
+                    const key = String(item.variantId || item.productVariantId);
+                    if (debounceTimers.current[key] === undefined) {
+                        next[key] = item.quantity;
                     }
                 });
                 return next;
@@ -110,10 +114,10 @@ export default function CartPage() {
     const selectedItems = allItems.filter((item: any) => item.isSelected);
     const allSelected = allItems.length > 0 && allItems.every((item: any) => item.isSelected);
 
-    // Tính toán tài chính cơ bản
+    // Tính toán tài chính cơ bản: Dùng item.quantity từ Server data (chỉ cập nhật giá khi API đã thành công)
     const { totalOriginal, subTotal } = selectedItems.reduce(
         (acc: { totalOriginal: number; subTotal: number }, item: any) => {
-            const qty = localQuantities[item.productVariantId] ?? item.quantity;
+            const qty = item.quantity;
             const original = item.unitPrice * qty;
             const activePrice =
                 item.discountPrice && item.discountPrice > 0 && item.discountPrice < item.unitPrice
@@ -146,8 +150,10 @@ export default function CartPage() {
 
     const grandTotal = Math.max(0, subTotal - platformDiscountAmount);
 
-    const handleQuantityChange = (productVariantId: number, currentQty: number, change: number, maxStock: number) => {
-        const targetQty = (localQuantities[productVariantId] ?? currentQty) + change;
+    const handleQuantityChange = (item: any, currentQty: number, change: number, maxStock: number) => {
+        const itemKey = String(item.variantId || item.productVariantId);
+        const prevQty = localQuantities[itemKey] !== undefined ? localQuantities[itemKey] : currentQty;
+        const targetQty = prevQty + change;
 
         if (targetQty > maxStock) {
             toast.warning(`Chỉ còn tối đa ${maxStock} sản phẩm trong kho!`);
@@ -155,49 +161,81 @@ export default function CartPage() {
         }
 
         if (targetQty < 1) {
-            if (window.confirm("Bạn có muốn xóa sản phẩm này khỏi giỏ hàng?")) {
-                removeItemMutation.mutate(productVariantId);
-                setLocalQuantities((prev) => {
-                    const next = { ...prev };
-                    delete next[productVariantId];
-                    return next;
-                });
-            }
+            setItemToDelete(itemKey);
             return;
         }
 
+        // Cập nhật giao diện lập tức không cần chờ API
         setLocalQuantities((prev) => ({
             ...prev,
-            [productVariantId]: targetQty,
+            [itemKey]: targetQty,
         }));
 
-        if (debounceTimers.current[productVariantId]) {
-            clearTimeout(debounceTimers.current[productVariantId]);
+        if (debounceTimers.current[itemKey]) {
+            clearTimeout(debounceTimers.current[itemKey]);
         }
 
-        debounceTimers.current[productVariantId] = setTimeout(() => {
-            updateQuantityMutation.mutate({ productId: productVariantId, quantity: targetQty });
-            delete debounceTimers.current[productVariantId];
-        }, 300);
+        debounceTimers.current[itemKey] = setTimeout(() => {
+            updateQuantityMutation.mutate({ 
+                variantId: itemKey,
+                quantity: targetQty 
+            });
+            delete debounceTimers.current[itemKey];
+        }, 350);
     };
 
-    const handleToggleSelect = (variantId: number, currentSelected: boolean) => {
-        updateSelectStateMutation.mutate({ variantId, isSelected: !currentSelected });
+    const handleToggleSelect = (item: any, currentSelected: boolean) => {
+        const itemKey = String(item.variantId || item.productVariantId);
+        updateSelectStateMutation.mutate({ 
+            variantId: itemKey,
+            isSelected: !currentSelected 
+        });
     };
 
     const handleToggleAll = () => {
         const targetState = !allSelected;
         allItems.forEach((item: any) => {
             if (item.isSelected !== targetState) {
-                updateSelectStateMutation.mutate({ variantId: item.productVariantId, isSelected: targetState });
+                const itemKey = String(item.variantId || item.productVariantId);
+                updateSelectStateMutation.mutate({ 
+                    variantId: itemKey,
+                    isSelected: targetState 
+                });
             }
         });
     };
 
     const handleClearCart = () => {
-        if (window.confirm("Bạn có chắc chắn muốn xóa toàn bộ giỏ hàng?")) {
-            clearCartMutation.mutate();
-        }
+        setShowClearCartModal(true);
+    };
+
+    const handleConfirmClearCart = () => {
+        clearCartMutation.mutate(undefined, {
+            onSuccess: () => {
+                setShowClearCartModal(false);
+                setLocalQuantities({});
+            },
+            onSettled: () => {
+                setShowClearCartModal(false);
+            }
+        });
+    };
+
+    const handleConfirmDeleteItem = () => {
+        if (!itemToDelete) return;
+        removeItemMutation.mutate(itemToDelete, {
+            onSuccess: () => {
+                setLocalQuantities((prev) => {
+                    const next = { ...prev };
+                    delete next[itemToDelete];
+                    return next;
+                });
+                setItemToDelete(null);
+            },
+            onSettled: () => {
+                setItemToDelete(null);
+            }
+        });
     };
 
     const handleApplyShopVoucher = (shopId: number, code: string) => {
@@ -306,7 +344,7 @@ export default function CartPage() {
                                 const appliedVoucherCode = shopVouchers[group.shopId];
 
                                 const groupSubTotal = groupSelectedItems.reduce((sum: number, item: any) => {
-                                    const qty = localQuantities[item.productVariantId] ?? item.quantity;
+                                    const qty = item.quantity;
                                     const activePrice = item.discountPrice && item.discountPrice > 0 && item.discountPrice < item.unitPrice
                                         ? item.discountPrice
                                         : item.unitPrice;
@@ -348,12 +386,13 @@ export default function CartPage() {
                                                     item.discountPrice < item.unitPrice
                                                         ? item.discountPrice
                                                         : item.unitPrice;
-                                                const currentQty = localQuantities[item.productVariantId] ?? item.quantity;
-                                                const itemTotal = activePrice * currentQty;
+                                                const itemKey = String(item.variantId || item.productVariantId || item.productId);
+                                                const currentQty = localQuantities[itemKey] !== undefined ? localQuantities[itemKey] : item.quantity;
+                                                const itemTotal = activePrice * item.quantity;
 
                                                 return (
                                                     <div
-                                                        key={item.productVariantId}
+                                                        key={itemKey}
                                                         className={`p-3 sm:p-3.5 transition-colors ${
                                                             item.isSelected ? "bg-brand-primary/5 hover:bg-brand-primary/10" : "hover:bg-gray-50/30"
                                                         }`}
@@ -362,12 +401,7 @@ export default function CartPage() {
                                                             {/* Checkbox + Product Info (6 cols) */}
                                                             <div className="sm:col-span-6 flex gap-2.5 items-center">
                                                                 <button
-                                                                    onClick={() =>
-                                                                        handleToggleSelect(
-                                                                            item.productVariantId,
-                                                                            item.isSelected
-                                                                        )
-                                                                    }
+                                                                    onClick={() => handleToggleSelect(item, item.isSelected)}
                                                                     aria-label="Chọn sản phẩm"
                                                                     className="border-none bg-transparent cursor-pointer p-0 flex-shrink-0"
                                                                 >
@@ -397,7 +431,7 @@ export default function CartPage() {
                                                                     )}
                                                                     <div className="min-w-0 space-y-0.5">
                                                                         <h4
-                                                                            className="font-extrabold text-brand-dark text-xs truncate group-hover:text-brand-primary transition-colors"
+                                                                            className="font-extrabold text-brand-dark text-xs line-clamp-2 leading-snug group-hover:text-brand-primary transition-colors"
                                                                             title={item.productName}
                                                                         >
                                                                             {item.productName}
@@ -433,10 +467,10 @@ export default function CartPage() {
                                                                     <button
                                                                         onClick={() =>
                                                                             handleQuantityChange(
-                                                                                item.productVariantId,
-                                                                                item.quantity,
+                                                                                item,
+                                                                                currentQty,
                                                                                 -1,
-                                                                                item.availableStocks
+                                                                                item.availableStock ?? (item as any).availableStocks
                                                                             )
                                                                         }
                                                                         aria-label="Giảm số lượng"
@@ -450,15 +484,15 @@ export default function CartPage() {
                                                                     <button
                                                                         onClick={() =>
                                                                             handleQuantityChange(
-                                                                                item.productVariantId,
-                                                                                item.quantity,
+                                                                                item,
+                                                                                currentQty,
                                                                                 1,
-                                                                                item.availableStocks
+                                                                                item.availableStock ?? (item as any).availableStocks
                                                                             )
                                                                         }
                                                                         aria-label="Tăng số lượng"
                                                                         className="w-6 h-full flex items-center justify-center border-none bg-transparent hover:bg-gray-100 cursor-pointer text-brand-muted transition-colors active:bg-gray-200 disabled:opacity-30"
-                                                                        disabled={currentQty >= item.availableStocks}
+                                                                        disabled={currentQty >= (item.availableStock ?? (item as any).availableStocks ?? 9999)}
                                                                     >
                                                                         <Plus className="w-2.5 h-2.5" />
                                                                     </button>
@@ -473,7 +507,7 @@ export default function CartPage() {
                                                                 </span>
                                                                 <button
                                                                     onClick={() =>
-                                                                        removeItemMutation.mutate(item.productVariantId)
+                                                                        setItemToDelete(String(item.variantId || item.productVariantId))
                                                                     }
                                                                     className="p-1 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-md bg-transparent border-none cursor-pointer transition-all ml-1"
                                                                     title="Xóa sản phẩm"
@@ -655,13 +689,37 @@ export default function CartPage() {
                         return (shopGroup.items || [])
                             .filter((i: any) => i.isSelected)
                             .reduce((sum: number, i: any) => {
-                                const qty = localQuantities[i.productVariantId] ?? i.quantity;
+                                const qty = i.quantity;
                                 const activePrice = i.discountPrice && i.discountPrice > 0 && i.discountPrice < i.unitPrice ? i.discountPrice : i.unitPrice;
                                 return sum + activePrice * qty;
                             }, 0);
                     })()}
                 />
             )}
+
+            {/* CLEAR CART CONFIRM MODAL */}
+            <ConfirmModal
+                isOpen={showClearCartModal}
+                title="Xóa toàn bộ giỏ hàng"
+                message="Bạn có chắc chắn muốn xóa tất cả sản phẩm ra khỏi giỏ hàng không? Hành động này không thể hoàn tác."
+                confirmText="Xóa tất cả"
+                cancelText="Hủy"
+                isConfirming={clearCartMutation.isPending}
+                onConfirm={handleConfirmClearCart}
+                onCancel={() => setShowClearCartModal(false)}
+            />
+
+            {/* DELETE SINGLE ITEM CONFIRM MODAL */}
+            <ConfirmModal
+                isOpen={itemToDelete !== null}
+                title="Xóa sản phẩm khỏi giỏ hàng"
+                message="Bạn có chắc chắn muốn bỏ sản phẩm này ra khỏi giỏ hàng không?"
+                confirmText="Xóa sản phẩm"
+                cancelText="Giữ lại"
+                isConfirming={removeItemMutation.isPending}
+                onConfirm={handleConfirmDeleteItem}
+                onCancel={() => setItemToDelete(null)}
+            />
         </div>
     );
 }

@@ -7,7 +7,7 @@ public class VariantStockInfo
     public long ShopId { get; set; }
     public long VariantId { get; set; }
     public int Quantity { get; set; }
-    public int AvailableStocks { get; set; }
+    public int AvailableStock { get; set; }
     public string ProductName { get; set; } = string.Empty;
     public string VariantName { get; set; } = string.Empty;
     public decimal UnitPrice { get; set; }

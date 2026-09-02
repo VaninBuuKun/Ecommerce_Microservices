@@ -38,7 +38,7 @@ public class ProductGrpcService(ISender sender, ILogger<ProductGrpcService> logg
         {
             VariantId = variant.Id,
             ProductId = variant.ProductId != 0 ? variant.ProductId : variant.Id,
-            AvailableStocks = variant.AvailableStocks,
+            AvailableStock = variant.AvailableStock,
             ShopId = variant.ShopId
         };
 
@@ -71,7 +71,7 @@ public class ProductGrpcService(ISender sender, ILogger<ProductGrpcService> logg
                 DiscountPrice = variantDto.DiscountPrice.ToGrpcString(),
                 ProductName = variantDto.ProductName ?? string.Empty,
                 ProductId = variantDto.ProductId,
-                AvailableStocks = variantDto.AvailableStocks,
+                AvailableStock = variantDto.AvailableStock,
                 VariantId = variantDto.Id,
                 VariantName = variantDto.VariantName ?? string.Empty,
                 ShopId = variantDto.ShopId,

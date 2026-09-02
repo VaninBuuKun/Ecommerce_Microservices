@@ -1,34 +1,30 @@
 export interface ProductOptionValue {
-	id: number;
+	id: string;
 	value: string;
 	imageUrl?: string;
 	sortOrder?: number;
 }
 
 export interface ProductOption {
-	id: number;
+	id: string;
 	name: string;
 	sortOrder?: number;
 	values: ProductOptionValue[];
 }
 
 export interface ProductVariant {
-	id: number;
+	id: string;
 	sku?: string;
 	price: number;
 	discountPrice?: number;
 	availableStock?: number;
-	weight?: number;
-	length?: number;
-	width?: number;
-	height?: number;
 	variantName?: string;
 	thumbnailUrl?: string;
-	variantOptions?: { optionValueId: number }[];
+	variantOptions?: { optionValueId: string }[];
 }
 
 export interface Product {
-	id: number;
+	id: string;
 	shopId: number;
 	shopName?: string;
 	shopAddress?: string;
@@ -41,6 +37,10 @@ export interface Product {
 	description?: string;
 	price: number;
 	discountPrice?: number;
+	minPrice?: number;
+	maxPrice?: number;
+	minDiscountPrice?: number;
+	maxDiscountPrice?: number;
 	availableStock: number;
 	weight?: number;
 	length?: number;
@@ -71,7 +71,7 @@ export interface Category {
 
 export interface ProductReview {
 	id: number;
-	productId: number;
+	productId: string;
 	userId: number;
 	userName: string;
 	userAvatarUrl?: string;
@@ -98,4 +98,3 @@ export type ProductDto = Product;
 export type ProductVariantDto = ProductVariant;
 export type ProductOptionDto = ProductOption;
 export type ProductOptionValueDto = ProductOptionValue;
-export type CategoryDto = Category;

@@ -8,13 +8,9 @@ public class ProductVariant : EntityTrackingBase<long>
 {
     public long ProductId { get; private set; }
     public decimal Price { get; private set; }
-    public int AvailableStocks { get; private set; }
-    public int ReservedStocks { get; private set; }
+    public int AvailableStock { get; private set; }
+    public int ReservedStock { get; private set; }
     public bool IsDeleted { get; private set; }
-    public double? Weight { get; private set; }
-    public double? Length { get; private set; }
-    public double? Width { get; private set; }
-    public double? Height { get; private set; }
     public decimal DiscountPrice { get; private set; }
 
     private readonly List<ProductVariantOption> _variantOptions = new();
@@ -23,14 +19,14 @@ public class ProductVariant : EntityTrackingBase<long>
 
     private ProductVariant() { }
 
-    internal ProductVariant(long productId, decimal price, int availableStocks, string? thumbnailUrl = null, decimal? discountPrice = null)
+    internal ProductVariant(long productId, decimal price, int availableStock, decimal? discountPrice = null)
     {
-        Check(new ProductStocksCannotBeNegativeRule(availableStocks));
+        Check(new ProductStocksCannotBeNegativeRule(availableStock));
 
         ProductId = productId;
         Price = price;
-        AvailableStocks = availableStocks;
-        ReservedStocks = 0;
+        AvailableStock = availableStock;
+        ReservedStock = 0;
         IsDeleted = false;
         DiscountPrice = discountPrice ?? Price;
     }
@@ -41,35 +37,31 @@ public class ProductVariant : EntityTrackingBase<long>
         Price = newPrice;
     }
 
-    public void UpdateDetails(decimal price, int availableStocks, double weight, double length, double width, double height, decimal? discountPrice = null)
+    public void UpdateDetails(decimal price, int availableStock, decimal? discountPrice = null)
     {
         Price = price;
-        AvailableStocks = availableStocks;
-        Weight = weight;
-        Length = length;
-        Width = width;
-        Height = height;
+        AvailableStock = availableStock;
         DiscountPrice = discountPrice ?? Price;
     }
 
     public void ReserveStock(int stock)
     {
         Check(new ProductStocksCannotBeNegativeRule(stock));
-        ReservedStocks += stock;
-        AvailableStocks -= stock;
+        ReservedStock += stock;
+        AvailableStock -= stock;
     }
     
     public void ReleaseStock(int stock)
     {
         Check(new ProductStocksCannotBeNegativeRule(stock));
-        ReservedStocks -= stock;
-        AvailableStocks += stock;
+        ReservedStock -= stock;
+        AvailableStock += stock;
     }
 
     public void CommitStock(int stock)
     {
         Check(new ProductStocksCannotBeNegativeRule(stock));
-        ReservedStocks = Math.Max(0, ReservedStocks - stock);
+        ReservedStock = Math.Max(0, ReservedStock - stock);
     }
 
     public void AddOption(ProductVariantOption option)
@@ -79,7 +71,7 @@ public class ProductVariant : EntityTrackingBase<long>
     
     public void SoftDelete()
     {
-        Check(new ProductVariantCannotHaveReservedStockRule(ReservedStocks));
+        Check(new ProductVariantCannotHaveReservedStockRule(ReservedStock));
         IsDeleted = true;
     }
 
@@ -101,7 +93,7 @@ public class ProductVariant : EntityTrackingBase<long>
 
         if (names.Count == 0)
         {
-            return "No variants found";
+            return string.Empty;
         }
         return string.Join(", ", names);
     }

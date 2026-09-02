@@ -6,8 +6,8 @@ using System.Threading.Tasks;
 using BuildingBlocks.Shared.Commons;
 using BuildingBlocks.Shared.Enums;
 using BuildingBlocks.Shared.InfrastructureInterfaces.Caching;
-using Ecommerce.Services.Carts.Api.Models.Dtos;
 using Ecommerce.Services.Carts.Api.Models.Constansts;
+using Ecommerce.Services.Carts.Api.Models.Dtos;
 using Ecommerce.Services.Carts.Api.Models.Entities;
 using Ecommerce.Services.Carts.Api.Models.Interfaces;
 using Microsoft.Extensions.Logging;
@@ -48,15 +48,12 @@ public class CartService(
             }
 
             var variantIds = cart.Items
-                .Where(i => i.ProductVariantId.HasValue && i.ProductVariantId.Value != 0)
-                .Select(i => i.ProductVariantId!.Value)
-                .ToList();
-            var productIds = cart.Items
-                .Where(i => i.ProductId != 0)
-                .Select(i => i.ProductId)
+                .Where(i => i.VariantId > 0)
+                .Select(i => i.VariantId)
+                .Distinct()
                 .ToList();
 
-            var listProductResult = await productService.GetProductVariantListAsync(variantIds, productIds);
+            var listProductResult = await productService.GetProductVariantListAsync(variantIds);
             
             if (!listProductResult.IsSuccess)
             {
@@ -64,12 +61,9 @@ public class CartService(
             }
 
             var listProductDto = listProductResult.Value ?? new List<ProductDto>();
-            var productDist = new Dictionary<long, ProductDto>();
-            foreach (var p in listProductDto)
-            {
-                if (p.VariantId != 0) productDist[p.VariantId] = p;
-                if (p.ProductId != 0) productDist[p.ProductId] = p;
-            }
+            var productDist = listProductDto
+                .Where(p => p.VariantId != 0)
+                .ToDictionary(p => p.VariantId, p => p);
             
             var validItems = new List<CartItem>();
             var validItemResponses = new List<CartItemResponse>();
@@ -77,25 +71,14 @@ public class CartService(
 
             foreach (var cartItem in cart.Items)
             {
-                var lookupKey = (cartItem.ProductVariantId.HasValue && cartItem.ProductVariantId.Value != 0 && productDist.ContainsKey(cartItem.ProductVariantId.Value)) 
-                    ? cartItem.ProductVariantId.Value 
-                    : cartItem.ProductId;
-
-                if (productDist.TryGetValue(lookupKey, out var productInfo))
+                if (productDist.TryGetValue(cartItem.VariantId, out var productInfo))
                 {
-                    int availableStock = (int)productInfo.AvailableStocks;
+                    int availableStock = productInfo.AvailableStock;
 
-                    // Yêu cầu: Nếu số lượng hiện tại vượt quá tồn kho khả dụng thì gán về bằng số lượng tồn kho hiện tại
+                    // Nếu số lượng hiện tại vượt quá tồn kho khả dụng thì gán về bằng tồn kho hiện tại
                     if (availableStock > 0 && cartItem.Quantity > availableStock)
                     {
                         cartItem.Quantity = availableStock;
-                        hasModifiedCart = true;
-                    }
-
-                    // Đồng bộ lại ProductId và ProductVariantId chính xác từ Catalog
-                    if (productInfo.ProductId != 0 && cartItem.ProductId != productInfo.ProductId)
-                    {
-                        cartItem.ProductId = productInfo.ProductId;
                         hasModifiedCart = true;
                     }
 
@@ -103,29 +86,33 @@ public class CartService(
 
                     validItemResponses.Add(new CartItemResponse
                     {
-                        ProductId = productInfo.ProductId != 0 ? productInfo.ProductId : cartItem.ProductId,
-                        ProductVariantId = cartItem.ProductVariantId ?? productInfo.VariantId,
+                        ProductId = productInfo.ProductId,
+                        VariantId = cartItem.VariantId,
                         Quantity = cartItem.Quantity,
                         IsSelected = cartItem.IsSelected,
                         ProductName = productInfo.ProductName,
                         VariantName = productInfo.VariantName,
                         UnitPrice = productInfo.UnitPrice,
                         DiscountPrice = productInfo.DiscountPrice,
-                        AvailableStocks = availableStock,
+                        AvailableStock = availableStock,
                         ShopId = productInfo.ShopId,
-                        ThumbnailUrl = productInfo.ThumbnailUrl
+                        ThumbnailUrl = productInfo.ThumbnailUrl,
+                        Weight = productInfo.Weight,
+                        Length = productInfo.Length,
+                        Width = productInfo.Width,
+                        Height = productInfo.Height
                     });
                 }
                 else
                 {
-                    // Sản phẩm đã bị xóa hoặc không còn tồn tại trong DB Catalog -> Tự động loại bỏ khỏi Redis
+                    // Biến thể không còn tồn tại -> Tự động dọn dẹp khỏi Redis
                     hasModifiedCart = true;
-                    logger.LogInformation("Tự động dọn dẹp sản phẩm không tồn tại khỏi giỏ hàng user {CustomerId}: VariantId={VariantId}, ProductId={ProductId}",
-                        customerId, cartItem.ProductVariantId, cartItem.ProductId);
+                    logger.LogInformation("Tự động dọn dẹp biến thể không tồn tại khỏi giỏ hàng user {CustomerId}: VariantId={VariantId}",
+                        customerId, cartItem.VariantId);
                 }
             }
 
-            // Cập nhật lại Redis Cache nếu có dọn dẹp hoặc điều chỉnh số lượng tồn kho
+            // Cập nhật lại Redis Cache nếu có dọn dẹp hoặc điều chỉnh số lượng
             if (hasModifiedCart)
             {
                 cart.Items = validItems;
@@ -175,19 +162,20 @@ public class CartService(
             return Result<CartResponse>.Failure("Số lượng sản phẩm phải lớn hơn 0", EErrorCode.ValidationErrors);
         }
 
-        // Gọi gRPC sang Catalog để xác thực sản phẩm & kiểm tra tồn kho trước khi lưu
-        long lookupId = request.ProductVariantId > 0 
-            ? request.ProductVariantId 
-            : request.ProductId;
+        if (request.VariantId <= 0)
+        {
+            return Result<CartResponse>.Failure("Vui lòng chọn phân loại sản phẩm hợp lệ.", EErrorCode.ValidationErrors);
+        }
 
-        var productResult = await productService.GetProductVariantAsync(lookupId);
+        // Gọi gRPC sang Catalog để xác thực biến thể & kiểm tra tồn kho trước khi lưu
+        var productResult = await productService.GetProductVariantAsync(request.VariantId);
         if (!productResult.IsSuccess || productResult.Value == null)
         {
-            return Result<CartResponse>.Failure(productResult.Message ?? "Không tìm thấy sản phẩm hoặc biến thể này trong hệ thống.", EErrorCode.NotFound);
+            return Result<CartResponse>.Failure(productResult.Message ?? "Không tìm thấy biến thể sản phẩm này trong hệ thống.", EErrorCode.NotFound);
         }
 
         var productInfo = productResult.Value;
-        int availableStock = (int)productInfo.AvailableStocks;
+        int availableStock = productInfo.AvailableStock;
 
         if (availableStock <= 0)
         {
@@ -197,25 +185,12 @@ public class CartService(
         var cart = await cacheService.GetAsync<Cart>(CartCacheKey.GetCartCacheKey(customerId), cancellationToken) 
                    ?? new Cart(customerId);
 
-        long actualProductId = productInfo.ProductId != 0 ? productInfo.ProductId : request.ProductId;
-        long actualVariantId = productInfo.VariantId != 0 ? productInfo.VariantId : request.ProductVariantId;
-
-        var existingItem = cart.Items.FirstOrDefault(i => 
-            (actualVariantId != 0 && i.ProductVariantId.HasValue && i.ProductVariantId.Value == actualVariantId) ||
-            (actualVariantId == 0 && i.ProductId == actualProductId));
+        var existingItem = cart.Items.FirstOrDefault(i => i.VariantId == request.VariantId);
 
         if (existingItem != null)
         {
             int newQuantity = existingItem.Quantity + request.Quantity;
-            if (newQuantity > availableStock)
-            {
-                // Nếu vượt quá tồn kho thì giới hạn lại bằng tồn kho khả dụng
-                existingItem.Quantity = availableStock;
-            }
-            else
-            {
-                existingItem.Quantity = newQuantity;
-            }
+            existingItem.Quantity = newQuantity > availableStock ? availableStock : newQuantity;
             existingItem.IsSelected = request.IsSelected;
         }
         else
@@ -223,8 +198,7 @@ public class CartService(
             int initQuantity = request.Quantity > availableStock ? availableStock : request.Quantity;
             cart.Items.Add(new CartItem 
             { 
-                ProductId = actualProductId, 
-                ProductVariantId = actualVariantId != 0 ? actualVariantId : null, 
+                VariantId = request.VariantId, 
                 Quantity = initQuantity, 
                 IsSelected = request.IsSelected 
             });
@@ -239,9 +213,7 @@ public class CartService(
         var cart = await cacheService.GetAsync<Cart>(CartCacheKey.GetCartCacheKey(customerId), cancellationToken);
         if (cart == null) return Result<CartResponse>.Failure("Không tìm thấy giỏ hàng", EErrorCode.NotFound);
 
-        var item = cart.Items.FirstOrDefault(i => 
-            (request.ProductVariantId != 0 && i.ProductVariantId.HasValue && i.ProductVariantId.Value == request.ProductVariantId) ||
-            (request.ProductVariantId == 0 && i.ProductId == request.ProductId));
+        var item = cart.Items.FirstOrDefault(i => i.VariantId == request.VariantId);
 
         if (item == null) return Result<CartResponse>.Failure("Sản phẩm không có trong giỏ hàng", EErrorCode.NotFound);
 
@@ -252,14 +224,10 @@ public class CartService(
         else
         {
             // Kiểm tra tồn kho khả dụng qua gRPC
-            long lookupId = item.ProductVariantId.HasValue && item.ProductVariantId.Value != 0 
-                ? item.ProductVariantId.Value 
-                : item.ProductId;
-
-            var productResult = await productService.GetProductVariantAsync(lookupId);
+            var productResult = await productService.GetProductVariantAsync(item.VariantId);
             if (productResult.IsSuccess && productResult.Value != null)
             {
-                int availableStock = (int)productResult.Value.AvailableStocks;
+                int availableStock = productResult.Value.AvailableStock;
                 item.Quantity = request.Quantity > availableStock && availableStock > 0 ? availableStock : request.Quantity;
             }
             else
@@ -277,9 +245,7 @@ public class CartService(
         var cart = await cacheService.GetAsync<Cart>(CartCacheKey.GetCartCacheKey(customerId), cancellationToken);
         if (cart == null) return Result<CartResponse>.Failure("Không tìm thấy giỏ hàng", EErrorCode.NotFound);
 
-        var item = cart.Items.FirstOrDefault(i => 
-            (request.ProductVariantId != 0 && i.ProductVariantId.HasValue && i.ProductVariantId.Value == request.ProductVariantId) ||
-            (request.ProductVariantId == 0 && i.ProductId == request.ProductId));
+        var item = cart.Items.FirstOrDefault(i => i.VariantId == request.VariantId);
 
         if (item == null) return Result<CartResponse>.Failure("Sản phẩm không có trong giỏ hàng", EErrorCode.NotFound);
 
@@ -288,14 +254,12 @@ public class CartService(
         return await GetCartAsync(customerId, cancellationToken);
     }
 
-    public async Task<Result<CartResponse>> RemoveItemFromCartAsync(long customerId, long productId, long productVariantId, CancellationToken cancellationToken = default)
+    public async Task<Result<CartResponse>> RemoveItemFromCartAsync(long customerId, long variantId, CancellationToken cancellationToken = default)
     {
         var cart = await cacheService.GetAsync<Cart>(CartCacheKey.GetCartCacheKey(customerId), cancellationToken);
         if (cart == null) return Result<CartResponse>.Failure("Không tìm thấy giỏ hàng", EErrorCode.NotFound);
 
-        var item = cart.Items.FirstOrDefault(i => 
-            (productVariantId != 0 && i.ProductVariantId.HasValue && i.ProductVariantId.Value == productVariantId) ||
-            (productVariantId == 0 && i.ProductId == productId));
+        var item = cart.Items.FirstOrDefault(i => i.VariantId == variantId);
 
         if (item != null)
         {
@@ -313,7 +277,7 @@ public class CartService(
 
         if (variantIds != null && variantIds.Count > 0)
         {
-            cart.Items.RemoveAll(i => i.ProductVariantId.HasValue && variantIds.Contains(i.ProductVariantId.Value));
+            cart.Items.RemoveAll(i => variantIds.Contains(i.VariantId));
             await cacheService.SetAsync(CartCacheKey.GetCartCacheKey(customerId), cart, TimeSpan.FromDays(7), cancellationToken);
         }
         else

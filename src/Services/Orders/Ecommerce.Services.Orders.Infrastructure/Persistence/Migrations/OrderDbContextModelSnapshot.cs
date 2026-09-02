@@ -349,8 +349,14 @@ namespace Ecommerce.Services.Orders.Infrastructure.Persistence.Migrations
                     b.Property<DateTimeOffset>("CreatedDate")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<double>("Height")
+                        .HasColumnType("double precision");
+
                     b.Property<DateTimeOffset?>("LastModifiedDate")
                         .HasColumnType("timestamp with time zone");
+
+                    b.Property<double>("Length")
+                        .HasColumnType("double precision");
 
                     b.Property<long>("ProductId")
                         .HasColumnType("bigint");
@@ -379,11 +385,17 @@ namespace Ecommerce.Services.Orders.Infrastructure.Persistence.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
+                    b.Property<double>("WeightInGrams")
+                        .HasColumnType("double precision");
+
+                    b.Property<double>("Width")
+                        .HasColumnType("double precision");
+
                     b.HasKey("Id");
 
                     b.HasIndex("SubOrderId");
 
-                    b.ToTable("OrderItems");
+                    b.ToTable("SubOrderItems", (string)null);
                 });
 
             modelBuilder.Entity("Ecommerce.Services.Orders.Domain.Voucher", b =>

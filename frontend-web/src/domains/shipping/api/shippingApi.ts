@@ -1,5 +1,5 @@
 import { api } from "@/core";
-import type { Province, District, Ward } from "../types/shipping.types";
+import type { Province, District, Ward, LocationSummary } from "../types/shipping.types";
 
 export interface CalculateShippingFeeRequest {
 	fromDistrictId: number;
@@ -48,6 +48,11 @@ export const shippingApi = {
 		payload: CalculateShippingFeeRequest,
 	): Promise<CalculateShippingFeeResponse> => {
 		const res = await api.post("/shipping/calculate", payload);
+		return res.data?.value || res.data;
+	},
+
+	getShipmentBySubOrderId: async (subOrderId: string): Promise<any> => {
+		const res = await api.get(`/shipments/sub-order/${subOrderId}`);
 		return res.data?.value || res.data;
 	},
 };

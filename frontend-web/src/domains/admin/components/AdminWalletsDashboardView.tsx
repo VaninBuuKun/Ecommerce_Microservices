@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { AdminWithdrawsView } from "./AdminWithdrawsView";
 import { Loader2, History, DollarSign, Wallet, ArrowDownRight, ArrowUpRight } from "lucide-react";
 import api from "@/core/api/axiosInstance";
+import { Pagination } from "@/shared/components/Pagination";
 
 export function AdminWalletsDashboardView() {
 	const [activeTab, setActiveTab] = useState<"withdraws" | "transactions">("withdraws");
@@ -149,84 +150,67 @@ export function AdminWalletsDashboardView() {
 					<div className="border border-brand-border rounded-md bg-white overflow-hidden shadow-[0_1px_3px_rgba(0,0,0,0.02)]">
 						{txLoading ? (
 							<div className="flex justify-center items-center py-16 text-xs text-brand-muted gap-2">
-								<Loader2 className="w-4 h-4 animate-spin text-brand-primary" />
+								<Loader2 className="w-5 h-5 animate-spin text-brand-primary" />
 								Đang tải danh sách giao dịch...
 							</div>
 						) : transactions.length === 0 ? (
 							<div className="text-center py-16 text-brand-muted font-bold text-xs">Chưa có giao dịch phát sinh nào.</div>
 						) : (
-							<table className="w-full text-xs text-left border-collapse">
-								<thead>
-									<tr className="bg-brand-light-soft/50 border-b border-brand-border text-[10px] font-extrabold text-brand-muted uppercase tracking-wider select-none">
-										<th className="p-3 w-[15%]">Mã giao dịch</th>
-										<th className="p-3 w-[16%]">Thời gian</th>
-										<th className="p-3 w-[15%]">Ví thành viên</th>
-										<th className="p-3 text-center w-[10%]">Phân loại</th>
-										<th className="p-3 text-center w-[14%]">Lý do</th>
-										<th className="p-3 w-[20%]">Chi tiết biến động</th>
-										<th className="p-3 text-right w-[10%]">Số tiền</th>
-									</tr>
-								</thead>
-								<tbody className="divide-y divide-brand-border">
-									{transactions.map((tx: any) => {
-										const isDebit = tx.type === "Debit" || tx.type === "1" || tx.type === 1;
-										return (
-											<tr key={tx.id} className="hover:bg-brand-light-soft/10 transition-colors">
-												<td className="p-3 font-mono font-bold text-brand-muted">#{tx.id}</td>
-												<td className="p-3 text-brand-muted font-semibold">{formatTime(tx.createdDate)}</td>
-												<td className="p-3 font-mono font-extrabold text-brand-dark">#{tx.walletId}</td>
-												<td className="p-3 text-center">{getTypeBadge(tx.type)}</td>
-												<td className="p-3 text-center text-[10px]">{getReasonBadge(tx.reason)}</td>
-												<td className="p-3 text-brand-dark font-medium">{tx.description}</td>
-												<td className={`p-3 text-right font-black flex items-center justify-end gap-0.5 ${isDebit ? "text-rose-600" : "text-emerald-600"}`}>
-													{isDebit ? (
-														<ArrowDownRight className="w-3.5 h-3.5 shrink-0" />
-													) : (
-														<ArrowUpRight className="w-3.5 h-3.5 shrink-0" />
-													)}
-													{isDebit ? "-" : "+"}{Number(tx.amount).toLocaleString("vi-VN")}đ
-												</td>
+							<div>
+								<div className="overflow-x-auto">
+									<table className="w-full text-xs text-left border-collapse">
+										<thead>
+											<tr className="bg-brand-light-soft/50 border-b border-brand-border text-[10px] font-extrabold text-brand-muted uppercase tracking-wider select-none">
+												<th className="py-2.5 px-3.5 w-[15%]">Mã giao dịch</th>
+												<th className="py-2.5 px-3.5 w-[16%]">Thời gian</th>
+												<th className="py-2.5 px-3.5 w-[15%]">Ví thành viên</th>
+												<th className="py-2.5 px-3.5 text-center w-[10%]">Phân loại</th>
+												<th className="py-2.5 px-3.5 text-center w-[14%]">Lý do</th>
+												<th className="py-2.5 px-3.5 w-[20%]">Chi tiết biến động</th>
+												<th className="py-2.5 px-3.5 text-right w-[10%]">Số tiền</th>
 											</tr>
-										);
-									})}
-								</tbody>
-							</table>
+										</thead>
+										<tbody className="divide-y divide-brand-border/60">
+											{transactions.map((tx: any) => {
+												const isDebit = tx.type === "Debit" || tx.type === "1" || tx.type === 1;
+												return (
+													<tr key={tx.id} className="hover:bg-brand-light-soft/20 transition-colors">
+														<td className="py-2.5 px-3.5 font-mono font-bold text-brand-muted">#{tx.id}</td>
+														<td className="py-2.5 px-3.5 text-brand-muted font-semibold">{formatTime(tx.createdDate)}</td>
+														<td className="py-2.5 px-3.5 font-mono font-extrabold text-brand-dark">#{tx.walletId}</td>
+														<td className="py-2.5 px-3.5 text-center">{getTypeBadge(tx.type)}</td>
+														<td className="py-2.5 px-3.5 text-center text-[10px]">{getReasonBadge(tx.reason)}</td>
+														<td className="py-2.5 px-3.5 text-brand-dark font-medium">{tx.description}</td>
+														<td className={`py-2.5 px-3.5 text-right font-black flex items-center justify-end gap-0.5 ${isDebit ? "text-rose-600" : "text-emerald-600"}`}>
+															{isDebit ? (
+																<ArrowDownRight className="w-3.5 h-3.5 shrink-0" />
+															) : (
+																<ArrowUpRight className="w-3.5 h-3.5 shrink-0" />
+															)}
+															{isDebit ? "-" : "+"}{Number(tx.amount).toLocaleString("vi-VN")}đ
+														</td>
+													</tr>
+												);
+											})}
+										</tbody>
+									</table>
+								</div>
+
+								{/* Unified Pagination Footer */}
+								<div className="px-4 py-2 border-t border-brand-border bg-brand-light-soft/20 text-xs">
+									<Pagination
+										currentPage={page}
+										totalPages={Math.ceil(totalCount / pageSize) || 1}
+										totalCount={totalCount}
+										pageSize={pageSize}
+										onPageChange={setPage}
+										showQuickJumper
+										showTotal
+									/>
+								</div>
+							</div>
 						)}
 					</div>
-
-					{totalCount > pageSize && (
-						<div className="flex justify-between items-center pt-2">
-							<span className="text-[10px] text-brand-muted font-bold">
-								Hiển thị {transactions.length} / {totalCount} giao dịch
-							</span>
-							<div className="flex items-center gap-1.5 text-xs font-black">
-								<button
-									disabled={page === 1}
-									onClick={() => setPage(p => p - 1)}
-									className="px-2.5 py-1 bg-white border border-brand-border rounded-md hover:bg-brand-light-soft disabled:opacity-40 transition-all cursor-pointer"
-								>
-									Trước
-								</button>
-								{Array.from({ length: Math.ceil(totalCount / pageSize) }).map((_, idx) => (
-									<button
-										key={idx}
-										onClick={() => setPage(idx + 1)}
-										className={`w-7 h-7 rounded-md transition-all cursor-pointer border-none ${page === idx + 1 ? "bg-brand-dark text-white font-mono" : "bg-transparent text-brand-muted hover:bg-brand-light-soft"
-											}`}
-									>
-										{idx + 1}
-									</button>
-								))}
-								<button
-									disabled={page >= Math.ceil(totalCount / pageSize)}
-									onClick={() => setPage(p => p + 1)}
-									className="px-2.5 py-1 bg-white border border-brand-border rounded-md hover:bg-brand-light-soft disabled:opacity-40 transition-all cursor-pointer"
-								>
-									Sau
-								</button>
-							</div>
-						</div>
-					)}
 				</div>
 			)}
 		</div>

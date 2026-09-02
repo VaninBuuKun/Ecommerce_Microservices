@@ -8,7 +8,7 @@ using Ecommerce.Services.Orders.Domain.Enums;
 using MapsterMapper;
 using Microsoft.Extensions.Logging;
 
-namespace Ecommerce.Services.Orders.Application.Features.Vouchers.Queries.GetPlatformVoucher;
+namespace Ecommerce.Services.Orders.Application.Features.Vouchers.Queries.GetAvailableVouchers;
 
 public class GetAvailableVouchersQueryHandler(
     IEfUnitOfWork unitOfWork,

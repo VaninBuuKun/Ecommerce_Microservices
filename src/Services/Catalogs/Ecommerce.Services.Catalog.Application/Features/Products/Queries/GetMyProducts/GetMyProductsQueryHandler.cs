@@ -55,7 +55,7 @@ public class GetMyProductsQueryHandler(IEfUnitOfWork unitOfWork, ISellerService 
                         ThumbnailUrl = product.ThumbnailUrl,
                         Price = product.Price,
                         DiscountPrice = product.DiscountPrice,
-                        AvailableStock = variant.AvailableStocks,
+                        AvailableStock = variant.AvailableStock,
                         Status = product.Status == ProductStatus.Active ? "Active" : "Inactive",
                     });
                 }
@@ -69,7 +69,7 @@ public class GetMyProductsQueryHandler(IEfUnitOfWork unitOfWork, ISellerService 
                         ThumbnailUrl = product.ThumbnailUrl,
                         Price = product.Price,
                         DiscountPrice = product.DiscountPrice,
-                        AvailableStock = product.Variants.Sum(v => v.AvailableStocks),
+                        AvailableStock = product.Variants.Sum(v => v.AvailableStock),
                         Status = product.Status == ProductStatus.Active ? "Active" : "Inactive",
                         Variants = product.Variants
                             .OrderBy(v => v.VariantOptions
@@ -85,7 +85,7 @@ public class GetMyProductsQueryHandler(IEfUnitOfWork unitOfWork, ISellerService 
                             {
                                 VariantName = v.GetVariantName(),
                                 Price = v.Price,
-                                AvailableStock = v.AvailableStocks,
+                                AvailableStock = v.AvailableStock,
                                 ThumbnailUrl = v.VariantOptions
                                     .OrderBy(vo => vo.OptionValue.Option.SortOrder)
                                     .Select(vo => vo.OptionValue.ImageUrl)

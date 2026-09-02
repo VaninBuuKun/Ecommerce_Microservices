@@ -19,6 +19,8 @@ import {
 	Settings,
 	Package,
 	Plus,
+	Menu,
+	X,
 } from "lucide-react";
 import { useSellerStore, useSellerProfileQuery, ChatFloatingWidget } from "@/domains/seller";
 
@@ -33,6 +35,7 @@ export default function SellerLayout() {
 	const shops = profile?.shops ?? [];
 
 	const [showShopDropdown, setShowShopDropdown] = useState(false);
+	const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 	const isEditProductPage = location.pathname.includes("/products/edit");
 	const [showNotificationDropdown, setShowNotificationDropdown] =
 		useState(false);
@@ -214,8 +217,17 @@ export default function SellerLayout() {
 	return (
 		<div className="min-h-screen bg-brand-light-soft flex flex-col font-sans">
 			{/* HEADER NGƯỜI BÁN */}
-			<header className="sticky top-0 z-50 w-full h-14 bg-white border-b border-brand-border px-6 flex items-center justify-between shadow-[0_1px_3px_rgba(0,0,0,0.02)]">
-				<div className="flex items-center gap-4">
+			<header className="sticky top-0 z-50 w-full h-14 bg-white border-b border-brand-border px-4 sm:px-6 flex items-center justify-between shadow-[0_1px_3px_rgba(0,0,0,0.02)]">
+				<div className="flex items-center gap-3 sm:gap-4 min-w-0">
+					{!isEditProductPage && (
+						<button
+							onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+							className="p-1.5 rounded-md hover:bg-brand-light-soft text-brand-dark lg:hidden border-none bg-transparent cursor-pointer"
+							aria-label="Toggle Seller Navigation Menu"
+						>
+							{isMobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+						</button>
+					)}
 					<Link to="/" className="flex items-center h-8 shrink-0">
 						<img
 							src="/ecommerce-icon.png"
@@ -227,18 +239,20 @@ export default function SellerLayout() {
 							}}
 						/>
 					</Link>
-					<div className="h-4 w-px bg-brand-border" />
-					<Breadcrumb items={getBreadcrumbItems()} />
+					<div className="h-4 w-px bg-brand-border hidden sm:block" />
+					<div className="hidden sm:block truncate">
+						<Breadcrumb items={getBreadcrumbItems()} />
+					</div>
 				</div>
 
-				<div className="flex items-center gap-3">
+				<div className="flex items-center gap-2 sm:gap-3">
 					{/* Notifications */}
 					<div
 						className="relative flex items-center"
 						onMouseEnter={() => setShowNotificationDropdown(true)}
 						onMouseLeave={() => setShowNotificationDropdown(false)}
 					>
-						<button className="relative w-8 h-8 text-brand-dark hover:bg-brand-primary/10 rounded transition-colors flex items-center justify-center cursor-pointer">
+						<button className="relative w-8 h-8 text-brand-dark hover:bg-brand-primary/10 rounded transition-colors flex items-center justify-center cursor-pointer border-none bg-transparent">
 							<Bell className="w-4.5 h-4.5" />
 							<span className="absolute top-0 right-0 bg-red-500 text-white font-black text-[9px] w-4 h-4 rounded-full flex items-center justify-center">
 								3
@@ -284,7 +298,7 @@ export default function SellerLayout() {
 						onMouseEnter={() => setShowShopDropdown(true)}
 						onMouseLeave={() => setShowShopDropdown(false)}
 					>
-						<button className="flex items-center gap-2.5 px-3 py-1.5 rounded-lg hover:bg-brand-light-soft transition-colors cursor-pointer text-left">
+						<button className="flex items-center gap-2 sm:gap-2.5 px-2 sm:px-3 py-1.5 rounded-lg hover:bg-brand-light-soft transition-colors cursor-pointer text-left border-none bg-transparent">
 							<img
 								src={resolvedShop.logoUrl}
 								alt={resolvedShop.name}
@@ -294,7 +308,7 @@ export default function SellerLayout() {
 										"https://cdn-icons-png.flaticon.com/512/3081/3081986.png";
 								}}
 							/>
-							<span className="text-xs font-bold text-brand-dark max-w-30 truncate">
+							<span className="text-xs font-bold text-brand-dark max-w-24 sm:max-w-30 truncate">
 								{resolvedShop.name}
 							</span>
 							<ChevronDown className="w-3.5 h-3.5 text-brand-muted shrink-0" />
@@ -310,7 +324,6 @@ export default function SellerLayout() {
 									<div className="space-y-0.5 max-h-48 overflow-y-auto mb-1">
 										{shops.map((shop: any) => (
 											<button
-
 												key={shop.id}
 												onClick={() =>
 													handleSwitchShop(shop)
@@ -335,13 +348,12 @@ export default function SellerLayout() {
 										))}
 									</div>
 
-									<div className="border-t border-brand-border pt-1.5">
+									<div className="border-t border-brand-border pt-1">
 										<button
-											onClick={() => {
-												setShowShopDropdown(false);
-												navigate("/seller/register");
-											}}
-											className="w-full flex items-center justify-center gap-1.5 py-1.5 rounded text-xs font-bold text-brand-primary-deep hover:bg-brand-primary/10 transition-colors cursor-pointer"
+											onClick={() =>
+												navigate("/seller/onboarding")
+											}
+											className="w-full flex items-center gap-2 px-2.5 py-1.5 rounded text-xs text-brand-primary-deep font-bold hover:bg-brand-light-soft cursor-pointer transition-colors"
 										>
 											<Plus className="w-3.5 h-3.5" />
 											Tạo shop mới
@@ -355,10 +367,20 @@ export default function SellerLayout() {
 			</header>
 
 			{/* CONTAINER BODY CHỨA SIDEBAR & CONTENT */}
-			<div className="flex-1 flex overflow-hidden">
+			<div className="flex-1 flex overflow-hidden relative">
+				{/* MOBILE DRAWER BACKDROP */}
+				{!isEditProductPage && isMobileMenuOpen && (
+					<div 
+						className="fixed inset-0 bg-brand-dark/40 backdrop-blur-xs z-40 lg:hidden"
+						onClick={() => setIsMobileMenuOpen(false)}
+					/>
+				)}
+
 				{/* SIDEBAR NGƯỜI BÁN */}
 				{!isEditProductPage && (
-					<aside className="w-64 bg-white border-r border-brand-border flex flex-col shrink-0 overflow-y-auto p-4 select-none">
+					<aside className={`fixed lg:static top-14 bottom-0 left-0 z-40 w-64 bg-white border-r border-brand-border flex flex-col shrink-0 overflow-y-auto p-4 select-none transition-transform duration-200 ease-in-out ${
+						isMobileMenuOpen ? "translate-x-0 shadow-2xl" : "-translate-x-full lg:translate-x-0"
+					}`}>
 						<nav className="space-y-1.5">
 							{/* Quản lý sản phẩm */}
 							<div>
@@ -654,8 +676,8 @@ export default function SellerLayout() {
 				)}
 
 				{/* NỘI DUNG CHÍNH */}
-				<main className="flex-1 overflow-y-auto p-3 flex flex-col">
-					<div className="flex-1 bg-white border border-brand-border rounded-xs shadow-[0_1px_3px_rgba(0,0,0,0.02)] p-6">
+				<main className="flex-1 overflow-y-auto p-2 sm:p-4 md:p-5 flex flex-col w-full min-w-0">
+					<div className="flex-1 bg-white border border-brand-border rounded-sm shadow-[0_1px_3px_rgba(0,0,0,0.02)] p-3 sm:p-5 md:p-6 w-full min-w-0">
 						<Outlet />
 					</div>
 				</main>

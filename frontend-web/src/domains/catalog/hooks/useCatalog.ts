@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient, useInfiniteQuery } from "@tanstack/react-query";
-import { productApi, type CreateProductRequest, type UpdateProductRequest, type UpdateProductSaleRequest, type BulkUpdateVariantsRequest, type GetProductsParams, type GetMyProductsParams } from "../api/productApi";
+import { productApi, type CreateProductRequest, type UpdateProductRequest, type UpdateProductSaleRequest, type BulkUpdateVariantsRequest, type GetProductsParams, type GetMyProductsParams, type UpdateSingleVariantRequest, type UpdateMultiVariantsRequest } from "../api/productApi";
 import { categoryApi } from "../api/categoryApi";
 import { reviewApi, type AddProductReviewRequest, type GetProductReviewsParams } from "../api/reviewApi";
 import {
@@ -10,11 +10,11 @@ import {
 
 export const catalogQueryKeys = {
 	products: ["catalog", "products"] as const,
-	productById: (id?: number) => ["catalog", "products", id] as const,
+	productById: (id?: string) => ["catalog", "products", id] as const,
 	myProducts: (params?: GetMyProductsParams) => ["catalog", "myProducts", params] as const,
 	categories: ["catalog", "categories"] as const,
-	reviews: (productId: number) => ["catalog", "reviews", productId] as const,
-	reviewSummary: (productId: number) => ["catalog", "reviewSummary", productId] as const,
+	reviews: (productId: string) => ["catalog", "reviews", productId] as const,
+	reviewSummary: (productId: string) => ["catalog", "reviewSummary", productId] as const,
 };
 
 export function useProductsQuery(params?: GetProductsParams) {
@@ -45,7 +45,7 @@ export function useMyProductsQuery(params?: GetMyProductsParams) {
 	});
 }
 
-export function useProductByIdQuery(id?: number) {
+export function useProductByIdQuery(id?: string) {
 	return useQuery({
 		queryKey: catalogQueryKeys.productById(id),
 		queryFn: () => (id ? productApi.getProductById(id) : null),
@@ -74,7 +74,7 @@ export function useCreateProductMutation() {
 export function useUpdateProductMutation() {
 	const queryClient = useQueryClient();
 	return useMutation({
-		mutationFn: ({ id, payload }: { id: number; payload: UpdateProductRequest }) =>
+		mutationFn: ({ id, payload }: { id: string; payload: UpdateProductRequest }) =>
 			productApi.updateProduct(id, payload),
 		onSuccess: (_, variables) => {
 			queryClient.invalidateQueries({ queryKey: catalogQueryKeys.productById(variables.id) });
@@ -83,32 +83,36 @@ export function useUpdateProductMutation() {
 	});
 }
 
-export function useUpdateProductSaleMutation() {
+export function useUpdateSingleVariantMutation() {
 	const queryClient = useQueryClient();
 	return useMutation({
-		mutationFn: ({ id, payload }: { id: number; payload: UpdateProductSaleRequest }) =>
-			productApi.updateProductSale(id, payload),
+		mutationFn: ({ id, payload }: { id: string; payload: UpdateSingleVariantRequest }) =>
+			productApi.updateSingleVariant(id, payload),
 		onSuccess: (_, variables) => {
 			queryClient.invalidateQueries({ queryKey: catalogQueryKeys.productById(variables.id) });
 		},
 	});
 }
 
-export function useBulkUpdateVariantsMutation() {
+export const useUpdateProductSaleMutation = useUpdateSingleVariantMutation;
+
+export function useUpdateMultiVariantsMutation() {
 	const queryClient = useQueryClient();
 	return useMutation({
-		mutationFn: ({ id, payload }: { id: number; payload: BulkUpdateVariantsRequest | any }) =>
-			productApi.bulkUpdateVariants(id, payload),
+		mutationFn: ({ id, payload }: { id: string; payload: UpdateMultiVariantsRequest }) =>
+			productApi.updateMultiVariants(id, payload),
 		onSuccess: (_, variables) => {
 			queryClient.invalidateQueries({ queryKey: catalogQueryKeys.productById(variables.id) });
 		},
 	});
 }
+
+export const useBulkUpdateVariantsMutation = useUpdateMultiVariantsMutation;
 
 export function useDeleteProductMutation() {
 	const queryClient = useQueryClient();
 	return useMutation({
-		mutationFn: (id: number) => productApi.deleteProduct(id),
+		mutationFn: (id: string) => productApi.deleteProduct(id),
 		onSuccess: () => {
 			queryClient.invalidateQueries({ queryKey: catalogQueryKeys.products });
 			queryClient.invalidateQueries({ queryKey: ["catalog"] });
@@ -119,7 +123,7 @@ export function useDeleteProductMutation() {
 export function useToggleProductStatusMutation() {
 	const queryClient = useQueryClient();
 	return useMutation({
-		mutationFn: (id: number) => productApi.toggleProductStatus(id),
+		mutationFn: (id: string) => productApi.toggleProductStatus(id),
 		onSuccess: () => {
 			queryClient.invalidateQueries({ queryKey: catalogQueryKeys.products });
 			queryClient.invalidateQueries({ queryKey: ["catalog"] });
@@ -127,18 +131,18 @@ export function useToggleProductStatusMutation() {
 	});
 }
 
-export function useProductReviewsQuery(productId: number, params?: GetProductReviewsParams) {
+export function useProductReviewsQuery(productId: string, params?: GetProductReviewsParams) {
 	return useQuery({
 		queryKey: [...catalogQueryKeys.reviews(productId), params],
-		queryFn: () => reviewApi.getProductReviews(productId, params),
+		queryFn: () => reviewApi.getProductReviews(Number(productId) || (productId as any), params),
 		enabled: !!productId,
 	});
 }
 
-export function useProductReviewsSummaryQuery(productId: number) {
+export function useProductReviewsSummaryQuery(productId: string) {
 	return useQuery({
 		queryKey: catalogQueryKeys.reviewSummary(productId),
-		queryFn: () => reviewApi.getProductReviewsSummary(productId),
+		queryFn: () => reviewApi.getProductReviewsSummary(Number(productId) || (productId as any)),
 		enabled: !!productId,
 	});
 }
@@ -149,8 +153,8 @@ export function useAddProductReviewMutation() {
 		mutationFn: (data: AddProductReviewRequest) => reviewApi.addProductReview(data),
 		onSuccess: (_, variables) => {
 			if (variables?.productId) {
-				queryClient.invalidateQueries({ queryKey: catalogQueryKeys.reviews(variables.productId) });
-				queryClient.invalidateQueries({ queryKey: catalogQueryKeys.reviewSummary(variables.productId) });
+				queryClient.invalidateQueries({ queryKey: catalogQueryKeys.reviews(String(variables.productId)) });
+				queryClient.invalidateQueries({ queryKey: catalogQueryKeys.reviewSummary(String(variables.productId)) });
 			}
 		},
 	});

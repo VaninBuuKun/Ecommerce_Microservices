@@ -69,7 +69,25 @@ public class UpdateVoucherCommandHandler(
             if (req.MaxDiscountAmount.HasValue)
                 voucher.MaxDiscountAmount = req.MaxDiscountAmount.Value;
             
-            voucher.DiscountType = req.DiscountType; // DiscountType không nullable, luôn patch
+            voucher.DiscountType = req.DiscountType;
+
+            // Admin có quyền đổi Scope hoặc ShopId
+            if (command.IsAdmin)
+            {
+                if (req.Scope.HasValue)
+                {
+                    voucher.Scope = req.Scope.Value;
+                    if (voucher.Scope == VoucherScope.Platform)
+                    {
+                        voucher.ShopId = null;
+                    }
+                }
+                if (req.ShopId.HasValue)
+                {
+                    voucher.ShopId = req.ShopId.Value;
+                    voucher.Scope = VoucherScope.Shop;
+                }
+            }
 
             // Validate date nếu có thay đổi
             var effectiveStart = req.StartDate ?? voucher.StartDate;

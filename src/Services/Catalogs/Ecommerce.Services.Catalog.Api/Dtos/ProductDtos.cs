@@ -1,5 +1,5 @@
 using System.Collections.Generic;
-using Ecommerce.Services.Catalog.Application.Features.Products.Commands.BulkUpdateVariants;
+using Ecommerce.Services.Catalog.Application.Features.Products.Commands.UpdateMultiVariants;
 
 namespace Ecommerce.Services.Catalog.Api.Dtos;
 
@@ -17,17 +17,17 @@ public record UpdateProductRequest(
     string? AttributesJson
 );
 
-public record UpdateProductSaleRequest(
+public record UpdateSingleVariantRequest(
     decimal Price,
     int AvailableStock,
     double Weight,
     double Length,
     double Width,
     double Height,
-    decimal DiscountPrice
+    decimal? DiscountPrice
 );
 
-public record BulkUpdateVariantsRequest(
-    List<BulkUpdateOptionDto> Options,
-    List<BulkUpdateVariantDto> Variants
+public record UpdateMultiVariantsRequest(
+    List<MultiUpdateOptionDto> Options,
+    List<MultiUpdateVariantDto> Variants
 );

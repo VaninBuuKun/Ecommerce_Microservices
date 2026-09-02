@@ -65,6 +65,7 @@ public static class DependencyInjection
         services.AddScoped<IEfUnitOfWork, EfUnitOfWork<ProductDbContext>>();
         services.AddScoped<IVariantRepository, VariantRepository>();
         services.AddScoped<IProductRepository, ProductRepository>();
+        services.AddScoped<CatalogDataSeeder>();
 
         return services;
     }

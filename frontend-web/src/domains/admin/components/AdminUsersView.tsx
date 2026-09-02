@@ -4,6 +4,7 @@ import { api } from "@/core";
 
 import { Loader2, RefreshCw, Search, Shield, Lock, Unlock, CheckCircle, AlertCircle, UserPlus, Plus, Trash2, Edit3, KeyRound } from "lucide-react";
 import { ConfirmModal } from "@/shared";
+import { Pagination } from "@/shared/components/Pagination";
 
 export interface UserItem {
 	id: number;
@@ -464,27 +465,17 @@ export function AdminUsersView() {
 					)}
 
 					{/* Pagination Footer */}
-					{totalPages > 1 && (
-						<div className="flex items-center justify-between p-3 border-t border-brand-border text-xs text-brand-muted font-bold">
-							<span>Hiển thị trang {page} / {totalPages} (Tổng {totalCount} thành viên)</span>
-							<div className="flex items-center gap-1">
-								<button
-									disabled={page <= 1}
-									onClick={() => setPage((p) => p - 1)}
-									className="px-2.5 py-1 bg-white border border-brand-border rounded-md hover:bg-brand-light-soft disabled:opacity-40 cursor-pointer font-extrabold"
-								>
-									&lt; Trước
-								</button>
-								<button
-									disabled={page >= totalPages}
-									onClick={() => setPage((p) => p + 1)}
-									className="px-2.5 py-1 bg-white border border-brand-border rounded-md hover:bg-brand-light-soft disabled:opacity-40 cursor-pointer font-extrabold"
-								>
-									Sau &gt;
-								</button>
-							</div>
-						</div>
-					)}
+					<div className="px-4 py-2 border-t border-brand-border bg-brand-light-soft/20 text-xs">
+						<Pagination
+							currentPage={page}
+							totalPages={totalPages}
+							totalCount={totalCount}
+							pageSize={pageSize}
+							onPageChange={setPage}
+							showQuickJumper
+							showTotal
+						/>
+					</div>
 				</div>
 			)}
 

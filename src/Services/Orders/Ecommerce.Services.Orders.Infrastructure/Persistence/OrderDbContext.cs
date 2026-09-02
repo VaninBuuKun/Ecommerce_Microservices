@@ -12,7 +12,7 @@ public class OrderDbContext(DbContextOptions<OrderDbContext> options, IInMemoryB
     public DbSet<SubOrderSagaState> SubOrderSagaStates { get; set; }
     public DbSet<Order> Orders { get; set; }
     public DbSet<SubOrder> SubOrders { get; set; }
-    public DbSet<SubOrderItem> OrderItems { get; set; }
+    public DbSet<SubOrderItem> SubOrderItems { get; set; }
     public DbSet<ShippingAddress> ShippingAddresses { get; set; }
     public DbSet<RefundRequest> RefundRequests { get; set; }
     public DbSet<RefundRequestItem> RefundRequestItems { get; set; }
@@ -76,6 +76,7 @@ public class OrderDbContext(DbContextOptions<OrderDbContext> options, IInMemoryB
 
         modelBuilder.Entity<SubOrderItem>(entity =>
         {
+            entity.ToTable("SubOrderItems");
             entity.HasKey(i => i.Id);
             entity.Property(i => i.Id).ValueGeneratedNever();
             entity.Property(i => i.ProductName).IsRequired().HasMaxLength(255);

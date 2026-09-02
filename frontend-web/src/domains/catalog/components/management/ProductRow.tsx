@@ -15,10 +15,10 @@ import type { Product } from "../../types/catalog.types";
 interface ProductRowProps {
 	product: Product;
 	isExpanded: boolean;
-	onToggleExpand: (id: number) => void;
-	onEdit: (id: number) => void;
-	onDelete: (id: number) => void;
-	onToggleStatus?: (id: number, currentStatus: string) => void;
+	onToggleExpand: (id: string) => void;
+	onEdit: (id: string) => void;
+	onDelete: (id: string) => void;
+	onToggleStatus?: (id: string, currentStatus: string) => void;
 	isDeleting?: boolean;
 	isUpdatingStatus?: boolean;
 }

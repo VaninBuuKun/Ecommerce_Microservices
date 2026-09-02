@@ -39,7 +39,7 @@ export default function ProductDetailPage() {
 	} | null>(null);
 
 	const [selectedOptions, setSelectedOptions] = useState<
-		Record<number, number>
+		Record<string, string>
 	>({});
 	const [selectedVariant, setSelectedVariant] = useState<any>(null);
 	const [quantity, setQuantity] = useState(1);
@@ -49,7 +49,6 @@ export default function ProductDetailPage() {
 	const coverImageUrl = useMemo(() => {
 		if (!product) return "";
 		return (
-			product.thumbnailUrl ||
 			product.thumbnailUrl ||
 			(product.imageUrls && product.imageUrls[0]) ||
 			""
@@ -85,16 +84,16 @@ export default function ProductDetailPage() {
 			return variant.variantOptions?.every((vo: any) => {
 				const valObj = product.options
 					?.flatMap((o: any) => o.values)
-					.find((v: any) => v.id === vo.optionValueId);
+					.find((v: any) => String(v.id) === String(vo.optionValueId));
 
 				if (!valObj) return false;
 
 				const parentOpt = product.options?.find((o: any) =>
-					o.values.some((v: any) => v.id === valObj.id),
+					o.values.some((v: any) => String(v.id) === String(valObj.id)),
 				);
 
 				return parentOpt
-					? selectedOptions[parentOpt.id] === valObj.id
+					? selectedOptions[String(parentOpt.id)] === String(valObj.id)
 					: false;
 			});
 		});
@@ -193,8 +192,8 @@ export default function ProductDetailPage() {
 
 	// Handle Option Click with Toggle (Deselect) & Tier-1 Image update
 	const handleOptionSelect = (
-		optionId: number,
-		valueId: number,
+		optionId: string,
+		valueId: string,
 		tierIndex: number,
 	) => {
 		if (!product) return;
@@ -212,10 +211,10 @@ export default function ProductDetailPage() {
 				setActiveMedia({ type: "image", url: coverImageUrl });
 			} else if (tierIndex === 0 && updated[optionId]) {
 				const parentOption = product.options?.find(
-					(o: any) => o.id === optionId,
+					(o: any) => String(o.id) === String(optionId),
 				);
 				const chosenVal = parentOption?.values?.find(
-					(v: any) => v.id === valueId,
+					(v: any) => String(v.id) === String(valueId),
 				);
 				if (chosenVal?.imageUrl) {
 					setActiveMedia({ type: "image", url: chosenVal.imageUrl });
@@ -228,7 +227,8 @@ export default function ProductDetailPage() {
 
 	const handleAddToCart = () => {
 		if (!product) return;
-		if (product.options?.length > 0 && !selectedVariant) {
+		const hasOptions = Boolean(product.options && product.options.length > 0);
+		if (hasOptions && !selectedVariant) {
 			toast.warning("Vui lòng chọn đầy đủ Phân loại sản phẩm!");
 			return;
 		}
@@ -236,11 +236,17 @@ export default function ProductDetailPage() {
 			toast.warning(`Không thể mua quá số lượng tồn kho khả dụng (${currentStock})!`);
 			return;
 		}
-		const variantId = selectedVariant?.id || (product.variants && product.variants[0]?.id) || 0;
+		const activeVariant = hasOptions ? selectedVariant : (product.variants?.[0] || null);
+		const variantId = activeVariant ? String(activeVariant.id) : "";
+
+		if (!variantId) {
+			toast.warning("Vui lòng chọn phân loại sản phẩm hợp lệ!");
+			return;
+		}
+
 		addItemToCartMutation.mutate(
 			{
-				productId: product.id,
-				variantId: Number(variantId),
+				variantId,
 				quantity,
 			},
 			{
@@ -257,7 +263,8 @@ export default function ProductDetailPage() {
 
 	const handleBuyNow = () => {
 		if (!product) return;
-		if (product.options?.length > 0 && !selectedVariant) {
+		const hasOptions = Boolean(product.options && product.options.length > 0);
+		if (hasOptions && !selectedVariant) {
 			toast.warning("Vui lòng chọn đầy đủ Phân loại sản phẩm!");
 			return;
 		}
@@ -265,11 +272,17 @@ export default function ProductDetailPage() {
 			toast.warning(`Không thể mua quá số lượng tồn kho khả dụng (${currentStock})!`);
 			return;
 		}
-		const variantId = selectedVariant?.id || (product.variants && product.variants[0]?.id) || 0;
+		const activeVariant = hasOptions ? selectedVariant : (product.variants?.[0] || null);
+		const variantId = activeVariant ? String(activeVariant.id) : "";
+
+		if (!variantId) {
+			toast.warning("Vui lòng chọn phân loại sản phẩm hợp lệ!");
+			return;
+		}
+
 		addItemToCartMutation.mutate(
 			{
-				productId: product.id,
-				variantId: Number(variantId),
+				variantId,
 				quantity,
 			},
 			{

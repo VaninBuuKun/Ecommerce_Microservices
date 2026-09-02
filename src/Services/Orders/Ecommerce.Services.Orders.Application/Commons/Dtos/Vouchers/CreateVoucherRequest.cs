@@ -16,7 +16,10 @@ public class CreateVoucherRequest
     public decimal MinOrderValue { get; set; }
     [Range(1, 1000000)]
     public long MaxUsageCount { get; set; }
+    public long MaxUsagePerUser { get; set; } = 1;
+    public VoucherScope? Scope { get; set; }
     public long? ShopId { get; set; }
+    public bool IsActive { get; set; } = true;
     public DateTimeOffset StartDate { get; set; }
     public DateTimeOffset EndDate { get; set; }
 }

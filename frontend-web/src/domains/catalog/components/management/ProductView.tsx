@@ -13,6 +13,7 @@ import { CreateProductModal } from "./CreateProductModal";
 import { ProductTable } from "./ProductTable";
 import { ProductSearchBar } from "./ProductSearchBar";
 import { ConfirmModal } from "@/shared";
+import { Pagination } from "@/shared/components/Pagination";
 
 export function ProductsView() {
 	const navigate = useNavigate();
@@ -36,7 +37,7 @@ export function ProductsView() {
 	const [isCreateOpen, setIsCreateOpen] = useState(false);
 	const [confirmModal, setConfirmModal] = useState<{
 		isOpen: boolean;
-		productId: number;
+		productId: string;
 		currentStatus: string;
 	} | null>(null);
 
@@ -50,7 +51,7 @@ export function ProductsView() {
 	});
 
 	const deleteProductMutation = useDeleteProductMutation();
-	const [updatingStatusId, setUpdatingStatusId] = useState<number | null>(null);
+	const [updatingStatusId, setUpdatingStatusId] = useState<string | null>(null);
 
 	const toggleStatusMutation = useToggleProductStatusMutation();
 
@@ -59,13 +60,13 @@ export function ProductsView() {
 		setPage(1);
 	};
 
-	const handleEditProduct = (productId: number) => {
+	const handleEditProduct = (productId: string) => {
 		navigate(
 			`/seller/${numericShopId || "default"}/dashboard/products/edit/${productId}`,
 		);
 	};
 
-	const handleDeleteProduct = (productId: number) => {
+	const handleDeleteProduct = (productId: string) => {
 		if (window.confirm("Bạn có chắc chắn muốn xóa sản phẩm này?")) {
 			deleteProductMutation.mutate(productId, {
 				onSuccess: () => {
@@ -80,7 +81,7 @@ export function ProductsView() {
 		}
 	};
 
-	const handleToggleStatus = (productId: number, currentStatus: string) => {
+	const handleToggleStatus = (productId: string, currentStatus: string) => {
 		setConfirmModal({
 			isOpen: true,
 			productId,
@@ -140,28 +141,15 @@ export function ProductsView() {
 					/>
 
 					{data.length > 0 && (
-						<div className="flex items-center justify-between p-3 border border-brand-border bg-brand-light-soft/30 rounded-xl text-xs bg-white">
-							<span className="text-brand-muted font-medium">
-								Trang {page}
-							</span>
-							<div className="flex gap-2">
-								<button
-									type="button"
-									disabled={page === 1}
-									onClick={() => setPage(page - 1)}
-									className="px-3 py-1 border border-brand-border bg-white rounded-lg disabled:opacity-50 hover:bg-gray-50 cursor-pointer font-bold transition-all"
-								>
-									Trước
-								</button>
-								<button
-									type="button"
-									disabled={data.length < pageSize}
-									onClick={() => setPage(page + 1)}
-									className="px-3 py-1 border border-brand-border bg-white rounded-lg disabled:opacity-50 hover:bg-gray-50 cursor-pointer font-bold transition-all"
-								>
-									Sau
-								</button>
-							</div>
+						<div className="px-4 py-2 border border-brand-border bg-white rounded-md">
+							<Pagination
+								currentPage={page}
+								totalPages={data.length < pageSize ? page : page + 1}
+								totalCount={undefined}
+								pageSize={pageSize}
+								onPageChange={setPage}
+								showQuickJumper
+							/>
 						</div>
 					)}
 				</div>

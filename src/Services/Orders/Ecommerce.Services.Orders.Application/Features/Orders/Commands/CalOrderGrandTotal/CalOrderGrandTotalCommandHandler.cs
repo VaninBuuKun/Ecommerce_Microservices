@@ -133,7 +133,11 @@ public class CalOrderGrandTotalCommandHandler(
                         VariantName = item.VariantName,
                         ThumbnailUrl = item.ThumbnailUrl,
                         Quantity = item.Quantity,
-                        UnitPrice = item.DiscountPrice
+                        UnitPrice = item.DiscountPrice,
+                        Weight = item.Weight,
+                        Length = item.Length,
+                        Width = item.Width,
+                        Height = item.Height
                     });
                 }
                 shopSubTotals[shopId] = shopSubTotal;
@@ -182,6 +186,8 @@ public class CalOrderGrandTotalCommandHandler(
             decimal platformDiscount = validationData.PlatformDiscount;
             var shopDiscounts = validationData.ShopDiscounts;
             var appliedShopVouchers = validationData.ShopVouchers.ToDictionary(kvp => kvp.Key, kvp => kvp.Value.Code);
+            var appliedShopVoucherIds = validationData.ShopVouchers.ToDictionary(kvp => kvp.Key, kvp => kvp.Value.Id);
+            long? appliedPlatformVoucherId = validationData.PlatformVoucher?.Id;
 
             decimal totalDiscount = platformDiscount + shopDiscounts.Values.Sum();
             var grandTotal = Math.Max(0, subTotal + totalShippingFee - totalDiscount);
@@ -201,7 +207,9 @@ public class CalOrderGrandTotalCommandHandler(
                 PlatformDiscount = platformDiscount,
                 ShopDiscounts = shopDiscounts,
                 PlatformVoucherCode = command.PlatformVoucherCode,
+                PlatformVoucherId = appliedPlatformVoucherId,
                 ShopVoucherCodes = appliedShopVouchers,
+                ShopVoucherIds = appliedShopVoucherIds,
                 GrandTotal = grandTotal,
                 CreatedAt = DateTime.UtcNow,
                 ExpiresAt = DateTime.UtcNow.AddMinutes(15)

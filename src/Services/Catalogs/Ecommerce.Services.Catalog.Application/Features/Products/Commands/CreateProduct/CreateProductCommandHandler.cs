@@ -2,6 +2,7 @@ using BuildingBlocks.Application.InMemoryBus;
 using BuildingBlocks.Auth;
 using BuildingBlocks.Shared.Commons;
 using BuildingBlocks.Shared.Enums;
+using BuildingBlocks.Shared.InfrastructureInterfaces.IdGenerator;
 using BuildingBlocks.Shared.InfrastructureInterfaces.Persistence.EFCore;
 using Ecommerce.Services.Catalog.Application.Commons.Dtos.Products;
 using Ecommerce.Services.Catalog.Application.Commons.Interfaces;
@@ -11,17 +12,16 @@ using Microsoft.Extensions.Logging;
 
 namespace Ecommerce.Services.Catalog.Application.Features.Products.Commands.CreateProduct;
 
-
-
 public class CreateProductCommandHandler(
     IEfUnitOfWork unitOfWork,
     ICurrentUserService currentUserService,
     ISellerService sellerService,
-    ILogger<CreateProductCommandHandler> logger, IMapper mapper)
+    ISnowflakeIdGenerator snowflakeIdGenerator,
+    ILogger<CreateProductCommandHandler> logger, 
+    IMapper mapper)
     : CommandHandler<CreateProductCommand, ProductResponse>
 {
     private readonly IGenericEfRepository<Product, long> _productRepository = unitOfWork.Repository<Product, long>();
-    private readonly IGenericEfRepository<ProductVariant, long> _variantRepository = unitOfWork.Repository<ProductVariant, long>();
 
     protected override async Task<Result<ProductResponse>> HandleCommandAsync(CreateProductCommand command, CancellationToken cancellationToken)
     {
@@ -46,7 +46,13 @@ public class CreateProductCommandHandler(
                 command.Name,
                 command.Description,
                 command.thumbnailUrl
-            );
+            )
+            {
+                Id = snowflakeIdGenerator.NewId()
+            };
+
+            // Khởi tạo Default Variant với Snowflake ID
+            product.EnsureDefaultVariant(snowflakeIdGenerator.NewId(), 0, 0);
 
             _productRepository.Add(product);
             await unitOfWork.SaveChangesAsync(cancellationToken);

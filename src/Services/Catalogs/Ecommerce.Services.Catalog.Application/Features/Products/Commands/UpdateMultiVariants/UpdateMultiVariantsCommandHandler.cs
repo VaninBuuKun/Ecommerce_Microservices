@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using BuildingBlocks.Application.InMemoryBus;
 using BuildingBlocks.Shared.Commons;
 using BuildingBlocks.Shared.Enums;
+using BuildingBlocks.Shared.InfrastructureInterfaces.IdGenerator;
 using BuildingBlocks.Shared.InfrastructureInterfaces.Persistence.EFCore;
 using Ecommerce.Services.Catalog.Application.Commons.Dtos.Products;
 using Ecommerce.Services.Catalog.Domain.Products;
@@ -13,128 +14,119 @@ using Ecommerce.Services.Catalog.Domain.Products.Specifications;
 using MapsterMapper;
 using Microsoft.Extensions.Logging;
 
-namespace Ecommerce.Services.Catalog.Application.Features.Products.Commands.BulkUpdateVariants;
+namespace Ecommerce.Services.Catalog.Application.Features.Products.Commands.UpdateMultiVariants;
 
-public class BulkUpdateVariantsCommandHandler(
+public class UpdateMultiVariantsCommandHandler(
     IEfUnitOfWork unitOfWork,
-    ILogger<BulkUpdateVariantsCommandHandler> logger,
-    IMapper mapper
-) : CommandHandler<BulkUpdateVariantsCommand, ProductResponse>
+    ILogger<UpdateMultiVariantsCommandHandler> logger,
+    IMapper mapper,
+    ISnowflakeIdGenerator snowflakeIdGenerator
+) : CommandHandler<UpdateMultiVariantsCommand, ProductResponse>
 {
     private readonly IGenericEfRepository<Product, long> _productRepository = unitOfWork.Repository<Product, long>();
-    private readonly IGenericEfRepository<ProductOption, long> _productOptionRepository = unitOfWork.Repository<ProductOption, long>();
-    private readonly IGenericEfRepository<ProductOptionValue, long> _productOptionValueRepository = unitOfWork.Repository<ProductOptionValue, long>();
+    private readonly IGenericEfRepository<ProductOption, long> _optionRepository = unitOfWork.Repository<ProductOption, long>();
+    private readonly IGenericEfRepository<ProductOptionValue, long> _optionValueRepository = unitOfWork.Repository<ProductOptionValue, long>();
     private readonly IGenericEfRepository<ProductVariant, long> _variantRepository = unitOfWork.Repository<ProductVariant, long>();
 
-    protected override async Task<Result<ProductResponse>> HandleCommandAsync(
-        BulkUpdateVariantsCommand command,
-        CancellationToken cancellationToken)
+    protected override async Task<Result<ProductResponse>> HandleCommandAsync(UpdateMultiVariantsCommand command, CancellationToken cancellationToken)
     {
         try
         {
             var spec = new ProductWithVariantsAndOptionsSpec(command.ProductId);
             var product = await _productRepository.FirstOrDefaultAsync(spec, cancellationToken);
 
-            if (product is null)
+            if (product == null)
             {
-                return Result<ProductResponse>.Failure("Product Not Found", EErrorCode.NotFound);
+                return Result<ProductResponse>.Failure("Không tìm thấy sản phẩm trong hệ thống.", EErrorCode.NotFound);
             }
-            
-            bool isOptionStructureChanged = HasOptionStructureChanged(product.Options, command.Options);
 
-            // -------------------------------------------------------------
-            // STEP 1: UPSERT OPTIONS & OPTION VALUES
-            // -------------------------------------------------------------
+            // 1. Nếu trước đó là Single-variant -> Soft delete Default Variant đơn cũ
+            var defaultSingleVariant = product.Variants.FirstOrDefault(v => !v.IsDeleted && !v.VariantOptions.Any());
+            if (defaultSingleVariant != null)
+            {
+                defaultSingleVariant.SoftDelete();
+                _variantRepository.Update(defaultSingleVariant);
+            }
+
+            var existingOptions = product.Options.Where(o => !o.IsDeleted).ToList();
+            bool isStructureChanged = HasOptionStructureChanged(existingOptions, command.Options);
+
             var activeOptions = product.Options.Where(o => !o.IsDeleted).ToList();
+            var incomingOptionIds = command.Options.Where(o => o.Id.HasValue).Select(o => o.Id!.Value).ToHashSet();
 
-            var incomingOptionIds = command.Options
-                .Where(o => o.Id.HasValue)
-                .Select(o => o.Id!.Value);
-            
-            var optionsToDelete = activeOptions.Where(o => !incomingOptionIds.Contains(o.Id)).ToList();
-            foreach (var opt in optionsToDelete)
+            foreach (var opt in activeOptions)
             {
-                opt.SoftDelete();
-                _productOptionRepository.Update(opt);
+                if (!incomingOptionIds.Contains(opt.Id))
+                {
+                    opt.SoftDelete();
+                    _optionRepository.Update(opt);
+                }
             }
+
+            var optionValueNameToIdMap = new Dictionary<(string OptionName, string ValueName), long>();
 
             for (int i = 0; i < command.Options.Count; i++)
             {
                 var optReq = command.Options[i];
-                
-                var existingOpt = optReq.Id.HasValue 
-                    ? activeOptions.FirstOrDefault(o => o.Id == optReq.Id.Value) 
-                    : null;
+                ProductOption currentOpt;
 
-                ProductOption optionEntity;
-
-                if (existingOpt != null)
+                if (optReq.Id.HasValue && activeOptions.FirstOrDefault(o => o.Id == optReq.Id.Value) is { } existingOpt)
                 {
-                    existingOpt.Update(optReq.Name, i);
-                    _productOptionRepository.Update(existingOpt);
-                    optionEntity = existingOpt;
+                    currentOpt = existingOpt;
+                    currentOpt.Update(optReq.Name, i);
+                    _optionRepository.Update(currentOpt);
                 }
                 else
                 {
-                    optionEntity = product.AddOption(optReq.Name, i);
-                    _productOptionRepository.Add(optionEntity);
+                    currentOpt = product.AddOption(optReq.Name, i);
+                    currentOpt.Id = snowflakeIdGenerator.NewId();
+                    _optionRepository.Add(currentOpt);
                 }
 
-                var activeValues = optionEntity.Values.Where(v => !v.IsDeleted).ToList();
-                var processedValueIds = new HashSet<long>();
+                var existingValues = currentOpt.Values.Where(v => !v.IsDeleted).ToList();
+                var incomingValueIds = optReq.Values.Where(v => v.Id.HasValue).Select(v => v.Id!.Value).ToHashSet();
+
+                foreach (var val in existingValues)
+                {
+                    if (!incomingValueIds.Contains(val.Id))
+                    {
+                        val.SoftDelete();
+                        _optionValueRepository.Update(val);
+                    }
+                }
 
                 for (int j = 0; j < optReq.Values.Count; j++)
                 {
                     var valReq = optReq.Values[j];
+                    ProductOptionValue currentVal;
 
-                    var existingVal = valReq.Id.HasValue 
-                        ? activeValues.FirstOrDefault(v => v.Id == valReq.Id.Value) 
-                        : null;
-
-                    if (existingVal != null)
+                    if (valReq.Id.HasValue && existingValues.FirstOrDefault(v => v.Id == valReq.Id.Value) is { } existingVal)
                     {
-                        existingVal.Update(valReq.Value, j, valReq.ImageUrl);
-                        _productOptionValueRepository.Update(existingVal);
-                        processedValueIds.Add(existingVal.Id);
+                        currentVal = existingVal;
+                        currentVal.Update(valReq.Value, j, valReq.ImageUrl);
+                        _optionValueRepository.Update(currentVal);
                     }
                     else
                     {
-                        var valueEntity = new ProductOptionValue(optionEntity.Id, valReq.Value, j, valReq.ImageUrl);
-                        optionEntity.AddValue(valueEntity);
-                        _productOptionValueRepository.Add(valueEntity);
+                        currentVal = new ProductOptionValue(currentOpt.Id, valReq.Value, j, valReq.ImageUrl)
+                        {
+                            Id = snowflakeIdGenerator.NewId()
+                        };
+                        currentOpt.AddValue(currentVal);
+                        _optionValueRepository.Add(currentVal);
                     }
-                }
 
-                var valuesToDelete = activeValues.Where(v => !processedValueIds.Contains(v.Id));
-                foreach (var val in valuesToDelete)
-                {
-                    val.SoftDelete();
-                    _productOptionValueRepository.Update(val);
+                    var key = GetMapKey(optReq.Name, valReq.Value);
+                    optionValueNameToIdMap[key] = currentVal.Id;
                 }
             }
 
-            // SaveChanges Phase 1: Đảm bảo PostgreSQL sinh ID thật (long > 0) cho tất cả Option & OptionValue mới
+            // SaveChanges Phase 1: Lưu Options và Values để có đầy đủ Id
             await unitOfWork.SaveChangesAsync(cancellationToken);
 
-            // -------------------------------------------------------------
-            // STEP 2: BUILD OPTION VALUE MAP FROM DB WITH REAL LONG IDs
-            // -------------------------------------------------------------
-            var optionValueNameToIdMap = new Dictionary<(string OptionName, string ValueName), long>();
-            foreach (var opt in product.Options.Where(o => !o.IsDeleted))
-            {
-                foreach (var val in opt.Values.Where(v => !v.IsDeleted))
-                {
-                    var key = GetMapKey(opt.Name, val.Value);
-                    optionValueNameToIdMap[key] = val.Id;
-                }
-            }
-
-            // -------------------------------------------------------------
-            // STEP 3: UPSERT VARIANTS & LINK VARIANT OPTIONS
-            // -------------------------------------------------------------
             var activeVariants = product.Variants.Where(v => !v.IsDeleted).ToList();
 
-            if (isOptionStructureChanged)
+            if (isStructureChanged)
             {
                 foreach (var oldVariant in activeVariants)
                 {
@@ -147,16 +139,12 @@ public class BulkUpdateVariantsCommandHandler(
                     var createdVariant = product.AddVariant(
                         varReq.Price,
                         varReq.AvailableStock,
-                        null,
                         varReq.DiscountPrice
                     );
+                    createdVariant.Id = snowflakeIdGenerator.NewId();
                     createdVariant.UpdateDetails(
                         varReq.Price,
                         varReq.AvailableStock,
-                        varReq.Weight,
-                        varReq.Length,
-                        varReq.Width,
-                        varReq.Height,
                         varReq.DiscountPrice);
 
                     _variantRepository.Add(createdVariant);
@@ -184,10 +172,6 @@ public class BulkUpdateVariantsCommandHandler(
                         existingVariant.UpdateDetails(
                             varReq.Price,
                             varReq.AvailableStock,
-                            varReq.Weight,
-                            varReq.Length,
-                            varReq.Width,
-                            varReq.Height,
                             varReq.DiscountPrice);
 
                         _variantRepository.Update(existingVariant);
@@ -198,23 +182,16 @@ public class BulkUpdateVariantsCommandHandler(
                         var createdVariant = product.AddVariant(
                             varReq.Price,
                             varReq.AvailableStock,
-                            null,
                             varReq.DiscountPrice
                         );
+                        createdVariant.Id = snowflakeIdGenerator.NewId();
                         createdVariant.UpdateDetails(
                             varReq.Price,
                             varReq.AvailableStock,
-                            varReq.Weight,
-                            varReq.Length,
-                            varReq.Width,
-                            varReq.Height,
                             varReq.DiscountPrice);
 
                         _variantRepository.Add(createdVariant);
-                        if (createdVariant.Id > 0)
-                        {
-                            processedVariantIds.Add(createdVariant.Id);
-                        }
+                        processedVariantIds.Add(createdVariant.Id);
 
                         foreach (var ovReq in varReq.OptionValues)
                         {
@@ -236,7 +213,7 @@ public class BulkUpdateVariantsCommandHandler(
                 }
             }
             
-            product.RecalculateCachedPricesAndStock();
+            product.RecalculateCachedPrices();
             _productRepository.Update(product);
 
             // SaveChanges Phase 2: Lưu hoàn tất Variants và ProductVariantOptions
@@ -247,14 +224,14 @@ public class BulkUpdateVariantsCommandHandler(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error bulk updating variants for product {ProductId}", command.ProductId);
-            return Result<ProductResponse>.Failure(ex.Message, EErrorCode.InternalServerError);
+            logger.LogError(ex, "Lỗi khi cập nhật danh sách biến thể cho sản phẩm {ProductId}", command.ProductId);
+            return Result<ProductResponse>.Failure($"Lỗi khi cập nhật biến thể sản phẩm: {ex.Message}", EErrorCode.InternalServerError);
         }
     }
 
     private static bool HasOptionStructureChanged(
         IReadOnlyCollection<ProductOption> existingOptions,
-        List<BulkUpdateOptionDto> incomingOptions)
+        List<MultiUpdateOptionDto> incomingOptions)
     {
         var activeOptions = existingOptions.Where(o => !o.IsDeleted).ToList();
 

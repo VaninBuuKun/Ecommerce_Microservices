@@ -35,11 +35,10 @@ public class SubOrderCompletedConsumer(
                 ? await variantRepo.GetAllAsync(v => variantIds.Contains(v.Id))
                 : new List<ProductVariant>();
 
-            var productIdsFromVariants = variants.Select(v => v.ProductId).ToList();
-            var directProductIds = @event.Items.Select(i => i.VariantId).ToList();
-
-            var allProductIds = productIdsFromVariants.Concat(directProductIds).Distinct().ToList();
-            var products = await productRepo.GetAllAsync(p => allProductIds.Contains(p.Id));
+            var allProductIds = variants.Select(v => v.ProductId).Distinct().ToList();
+            var products = allProductIds.Any()
+                ? await productRepo.GetAllAsync(p => allProductIds.Contains(p.Id))
+                : new List<Product>();
 
             foreach (var item in @event.Items)
             {
@@ -48,13 +47,14 @@ public class SubOrderCompletedConsumer(
                 {
                     variant.CommitStock(item.Quantity);
                     variantRepo.Update(variant);
-                }
 
-                var product = products.FirstOrDefault(p => p.Id == (variant != null ? variant.ProductId : item.VariantId));
-                if (product != null)
-                {
-                    product.IncreaseSold(item.Quantity);
-                    productRepo.Update(product);
+                    var product = products.FirstOrDefault(p => p.Id == variant.ProductId);
+                    if (product != null)
+                    {
+                        product.IncreaseSold(item.Quantity);
+                        product.RecalculateCachedPrices();
+                        productRepo.Update(product);
+                    }
                 }
             }
 

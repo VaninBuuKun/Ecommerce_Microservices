@@ -17,7 +17,7 @@ message GetVariantByIdRequest {
 
 message GetVariantByIdResponse {
   int64 variantId = 1;
-  int32 availableStocks = 2;
+  int32 availableStock = 2;
   int64 shopId = 3;
   int64 productId = 4;
 }
@@ -38,7 +38,7 @@ message RpcVariantDto {
   string productName = 3;
   string variantName = 4;
   string unitPrice = 5;
-  int32 availableStocks = 6;
+  int32 availableStock = 6;
   int64 shopId = 7;
   double weight = 8;
   double length = 9;

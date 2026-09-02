@@ -27,6 +27,9 @@ public class UpdateVoucherRequest
     [Range(1, 1_000_000)]
     public long? MaxUsagePerUser { get; set; }
 
+    public VoucherScope? Scope { get; set; }
+    public long? ShopId { get; set; }
+
     public DateTimeOffset? StartDate { get; set; }
 
     public DateTimeOffset? EndDate { get; set; }

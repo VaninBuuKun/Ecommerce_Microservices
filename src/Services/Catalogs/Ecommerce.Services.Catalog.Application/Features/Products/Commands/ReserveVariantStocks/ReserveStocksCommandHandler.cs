@@ -27,7 +27,7 @@ public class ReserveStocksCommandHandler(IEfUnitOfWork unitOfWork, IVariantRepos
         try
         {
             var variantItems = request.VariantStockDtos.Where(x => x.VariantId > 0).ToList();
-            var productItems = request.VariantStockDtos.Where(x => x.ProductId > 0 && x.VariantId <= 0).ToList();
+            var productFallbackItems = request.VariantStockDtos.Where(x => x.VariantId <= 0 && x.ProductId > 0).ToList();
 
             var variantIds = variantItems.Select(x => x.VariantId).Distinct().ToList();
             var variants = variantIds.Any()
@@ -35,12 +35,13 @@ public class ReserveStocksCommandHandler(IEfUnitOfWork unitOfWork, IVariantRepos
                 : new List<ProductVariant>();
             var variantsDict = variants.ToDictionary(x => x.Id, x => x);
 
+            // Xử lý fallback cho các trường hợp chỉ gửi ProductId (tìm default variant)
             var productRepo = unitOfWork.Repository<Product, long>();
-            var productIds = productItems.Select(x => x.ProductId).Distinct().ToList();
-            var products = productIds.Any()
-                ? await productRepo.GetAllAsync(p => productIds.Contains(p.Id), cancellationToken: cancellationToken)
+            var fallbackProductIds = productFallbackItems.Select(x => x.ProductId).Distinct().ToList();
+            var fallbackProducts = fallbackProductIds.Any()
+                ? await productRepo.GetAllAsync(p => fallbackProductIds.Contains(p.Id), cancellationToken: cancellationToken, includes: [p => p.Variants])
                 : new List<Product>();
-            var productsDict = products.ToDictionary(p => p.Id, p => p);
+            var fallbackProductsDict = fallbackProducts.ToDictionary(p => p.Id, p => p);
 
             var response = new ReserveVariantResponse();
 
@@ -58,39 +59,49 @@ public class ReserveStocksCommandHandler(IEfUnitOfWork unitOfWork, IVariantRepos
                     ShopId = variant.Product?.ShopId ?? 0,
                     VariantId = variant.Id,
                     Quantity = item.Quantity,
-                    AvailableStocks = variant.AvailableStocks,
+                    AvailableStock = variant.AvailableStock,
                     ProductName = variant.Product?.Name ?? string.Empty,
                     VariantName = variant.GetVariantName() ?? string.Empty,
-                    UnitPrice = variant.Price
+                    UnitPrice = variant.DiscountPrice > 0 ? variant.DiscountPrice : variant.Price
                 });
 
-                if (item.Quantity > variant.AvailableStocks)
+                if (item.Quantity > variant.AvailableStock)
                 {
                     response.IsSuccess = false;
                 }
             }
 
-            // 2. Kiểm tra tồn kho cho các Sản phẩm đơn
-            foreach (var item in productItems)
+            // 2. Kiểm tra tồn kho cho fallback items
+            var resolvedFallbackVariants = new List<(ProductVariant Variant, int Quantity)>();
+            foreach (var item in productFallbackItems)
             {
-                if (!productsDict.TryGetValue(item.ProductId, out var product))
+                if (!fallbackProductsDict.TryGetValue(item.ProductId, out var product))
                 {
                     await unitOfWork.RollbackAsync(cancellationToken);
                     return Result<ReserveVariantResponse>.Failure($"Không tìm thấy sản phẩm #{item.ProductId} trong hệ thống.", EErrorCode.NotFound);
                 }
 
+                var defaultVariant = product.Variants.FirstOrDefault(v => !v.IsDeleted);
+                if (defaultVariant == null)
+                {
+                    await unitOfWork.RollbackAsync(cancellationToken);
+                    return Result<ReserveVariantResponse>.Failure($"Sản phẩm #{item.ProductId} chưa được cấu hình biến thể bán hàng.", EErrorCode.NotFound);
+                }
+
+                resolvedFallbackVariants.Add((defaultVariant, item.Quantity));
+
                 response.VariantStocks.Add(new VariantStockInfo
                 {
                     ShopId = product.ShopId,
-                    VariantId = 0,
+                    VariantId = defaultVariant.Id,
                     Quantity = item.Quantity,
-                    AvailableStocks = product.AvailableStock,
+                    AvailableStock = defaultVariant.AvailableStock,
                     ProductName = product.Name,
-                    VariantName = string.Empty,
-                    UnitPrice = product.DiscountPrice > 0 ? product.DiscountPrice : product.Price
+                    VariantName = defaultVariant.GetVariantName() ?? string.Empty,
+                    UnitPrice = defaultVariant.DiscountPrice > 0 ? defaultVariant.DiscountPrice : defaultVariant.Price
                 });
 
-                if (item.Quantity > product.AvailableStock)
+                if (item.Quantity > defaultVariant.AvailableStock)
                 {
                     response.IsSuccess = false;
                 }
@@ -101,14 +112,21 @@ public class ReserveStocksCommandHandler(IEfUnitOfWork unitOfWork, IVariantRepos
             {
                 foreach (var item in variantItems)
                 {
-                    variantsDict[item.VariantId].ReserveStock(item.Quantity);
+                    var v = variantsDict[item.VariantId];
+                    v.ReserveStock(item.Quantity);
+                    if (v.Product != null)
+                    {
+                        v.Product.RecalculateCachedPrices();
+                    }
                 }
 
-                foreach (var item in productItems)
+                foreach (var (defaultVariant, qty) in resolvedFallbackVariants)
                 {
-                    var product = productsDict[item.ProductId];
-                    product.ReserveStock(item.Quantity);
-                    productRepo.Update(product);
+                    defaultVariant.ReserveStock(qty);
+                    if (defaultVariant.Product != null)
+                    {
+                        defaultVariant.Product.RecalculateCachedPrices();
+                    }
                 }
 
                 await unitOfWork.SaveChangesAsync(cancellationToken);

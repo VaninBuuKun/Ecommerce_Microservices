@@ -9,7 +9,7 @@ export interface GetProductReviewsParams {
 }
 
 export interface AddProductReviewRequest {
-	productId: number;
+	productId: string;
 	rating: number;
 	comment?: string;
 	mediaList?: string[];
@@ -18,7 +18,7 @@ export interface AddProductReviewRequest {
 
 export const reviewApi = {
 	getProductReviews: async (
-		productId: number,
+		productId: string,
 		params?: GetProductReviewsParams,
 	): Promise<ProductReview[] | any> => {
 		const res = await api.get(`/products/${productId}/reviews`, { params });
@@ -26,7 +26,7 @@ export const reviewApi = {
 	},
 
 	getProductReviewsSummary: async (
-		productId: number,
+		productId: string,
 	): Promise<ProductReviewSummary | null> => {
 		const res = await api
 			.get(`/products/${productId}/reviews/summary`)

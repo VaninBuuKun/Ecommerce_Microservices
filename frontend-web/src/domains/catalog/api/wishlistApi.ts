@@ -1,8 +1,7 @@
 import { api } from "@/core";
 
-
 export const wishlistApi = {
-	toggleWishlist: async (productId: number): Promise<{ isLiked: boolean }> => {
+	toggleWishlist: async (productId: string): Promise<{ isLiked: boolean }> => {
 		const response = await api.post(`/wishlists/toggle/${productId}`);
 		return response.data;
 	},

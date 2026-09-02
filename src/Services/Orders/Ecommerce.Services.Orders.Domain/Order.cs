@@ -52,7 +52,21 @@ public sealed class Order : AggregateRoot<long>, IDateTracking
     {
     }
 
-    public void AddOrderItem(long subOrderId, long shopId, long productId, long variantId, string productName, string variantName, decimal unitPrice, int quantity, string? thumbnailUrl = null, long? subOrderItemId = null)
+    public void AddOrderItem(
+        long subOrderId,
+        long shopId,
+        long productId,
+        long variantId,
+        string productName,
+        string variantName,
+        decimal unitPrice,
+        int quantity,
+        string? thumbnailUrl = null,
+        long? subOrderItemId = null,
+        double weightInGrams = 0,
+        double length = 0,
+        double width = 0,
+        double height = 0)
     {
         var existingShopSubOrder = SubOrderItems.FirstOrDefault(x => x.ShopId == shopId);
 
@@ -62,7 +76,7 @@ public sealed class Order : AggregateRoot<long>, IDateTracking
             SubOrderItems.Add(existingShopSubOrder);
         }
 
-        var item = new SubOrderItem(variantId, productName, variantName, unitPrice, quantity, thumbnailUrl);
+        var item = new SubOrderItem(variantId, productName, variantName, unitPrice, quantity, thumbnailUrl, weightInGrams, length, width, height);
         if (subOrderItemId.HasValue && subOrderItemId.Value > 0)
         {
             item.Id = subOrderItemId.Value;
@@ -72,11 +86,6 @@ public sealed class Order : AggregateRoot<long>, IDateTracking
         existingShopSubOrder.AddOrderItem(item);
 
         CalculateTotals();
-    }
-
-    public void AddOrderItem(long shopId, long productId, long variantId, string productName, string variantName, decimal unitPrice, int quantity, string? thumbnailUrl = null)
-    {
-        AddOrderItem(0, shopId, productId, variantId, productName, variantName, unitPrice, quantity, thumbnailUrl);
     }
 
     public void SetShippingFee(long shopId, long shippingFee)

@@ -16,6 +16,7 @@ import {
 	Sliders,
 } from "lucide-react";
 import { toast } from "react-toastify";
+import { Pagination } from "@/shared/components/Pagination";
 
 interface PaymentMethodItem {
 	id: number;
@@ -32,6 +33,10 @@ export function AdminPaymentMethodsView() {
 	const { data: methods, isLoading, refetch, isFetching } = useAdminPaymentMethodsQuery();
 	const createMutation = useCreatePaymentMethodMutation();
 	const updateMutation = useUpdatePaymentMethodMutation();
+
+	// Pagination State
+	const [page, setPage] = useState(1);
+	const pageSize = 10;
 
 	// Modal State
 	const [isModalOpen, setIsModalOpen] = useState(false);
@@ -63,7 +68,6 @@ export function AdminPaymentMethodsView() {
 		setIsActive(item.isActive);
 		setIsModalOpen(true);
 	};
-
 
 	const handleSubmit = (e: React.FormEvent) => {
 		e.preventDefault();
@@ -110,6 +114,10 @@ export function AdminPaymentMethodsView() {
 		? methods
 		: methods?.items || [];
 
+	const totalCount = paymentList.length;
+	const totalPages = Math.ceil(totalCount / pageSize) || 1;
+	const paginatedList = paymentList.slice((page - 1) * pageSize, page * pageSize);
+
 	return (
 		<div className="space-y-6 text-left font-sans animate-in fade-in duration-200">
 			{/* HEADER */}
@@ -127,7 +135,7 @@ export function AdminPaymentMethodsView() {
 					<button
 						onClick={() => refetch()}
 						disabled={isFetching}
-						className="h-9 px-3 bg-white border border-brand-border hover:bg-brand-light-soft text-brand-dark rounded-md text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 shadow-xs"
+						className="h-8 px-3 bg-white border border-brand-border hover:bg-brand-light-soft text-brand-dark rounded-md text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 shadow-2xs"
 					>
 						<RefreshCw className={`w-3.5 h-3.5 ${isFetching ? "animate-spin" : ""}`} />
 						Làm mới
@@ -135,9 +143,9 @@ export function AdminPaymentMethodsView() {
 
 					<button
 						onClick={handleOpenCreate}
-						className="h-9 px-4 bg-brand-primary hover:bg-brand-primary-deep text-brand-dark rounded-md text-xs font-black transition-all cursor-pointer flex items-center gap-1.5 shadow-xs border-none"
+						className="h-8 px-3.5 bg-brand-primary hover:bg-brand-primary-deep text-white rounded text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 shadow-xs border-none"
 					>
-						<Plus className="w-4 h-4" />
+						<Plus className="w-3.5 h-3.5" />
 						Thêm phương thức mới
 					</button>
 				</div>
@@ -156,84 +164,99 @@ export function AdminPaymentMethodsView() {
 						<p className="text-xs font-bold">Chưa có phương thức thanh toán nào được cấu hình.</p>
 						<button
 							onClick={handleOpenCreate}
-							className="mt-2 text-xs font-bold text-brand-dark bg-brand-primary px-3 py-1.5 rounded-md hover:bg-brand-primary-deep cursor-pointer border-none"
+							className="mt-2 text-xs font-bold text-white bg-brand-primary px-3.5 py-1.5 rounded hover:bg-brand-primary-deep cursor-pointer border-none shadow-xs"
 						>
 							Tạo phương thức đầu tiên
 						</button>
 					</div>
 				) : (
-					<div className="overflow-x-auto">
-						<table className="w-full text-left text-xs">
-							<thead>
-								<tr className="bg-brand-light-soft/30 border-b border-brand-border text-[11px] font-black text-brand-muted uppercase tracking-wider">
-									<th className="py-3 px-4">Icon & Tên hiển thị</th>
-									<th className="py-3 px-4">Provider Code</th>
-									<th className="py-3 px-4">Mô tả phụ</th>
-									<th className="py-3 px-4 text-center">Trạng thái</th>
-									<th className="py-3 px-4 text-right">Thao tác</th>
-								</tr>
-							</thead>
-							<tbody className="divide-y divide-brand-border/60">
-								{paymentList.map((item) => (
-									<tr key={item.id} className="hover:bg-gray-50/50 transition-colors">
-										<td className="py-3.5 px-4">
-											<div className="flex items-center gap-3">
-												<div className="w-9 h-9 rounded-md bg-brand-light-soft border border-brand-border flex items-center justify-center p-1 overflow-hidden shrink-0 shadow-xs">
-													{item.iconUrl ? (
-														<img
-															src={item.iconUrl}
-															alt={item.title}
-															className="w-full h-full object-contain"
-															onError={(e) => {
-																(e.currentTarget as HTMLElement).style.display = "none";
-															}}
-														/>
-													) : (
-														<CreditCard className="w-4 h-4 text-brand-muted" />
-													)}
-												</div>
-												<div>
-													<div className="font-extrabold text-brand-dark text-xs">{item.title}</div>
-													<div className="text-[10px] text-brand-muted font-medium">ID: #{item.id}</div>
-												</div>
-											</div>
-										</td>
-
-										<td className="py-3.5 px-4">
-											<span className="font-mono text-[11px] font-bold bg-brand-light-soft text-brand-dark px-2 py-0.5 rounded-md border border-brand-border">
-												{item.providerName}
-											</span>
-										</td>
-
-										<td className="py-3.5 px-4 text-brand-muted font-medium max-w-xs truncate">
-											{item.subTitle || "—"}
-										</td>
-
-										<td className="p-3 text-center">
-											<span
-												className={`px-2 py-0.5 rounded text-[9px] font-black uppercase inline-block ${
-													item.isActive
-														? "bg-emerald-50 text-emerald-700 border border-emerald-200"
-														: "bg-red-50 text-red-700 border border-red-200"
-												}`}
-											>
-												{item.isActive ? "Hoạt động" : "Tạm dừng"}
-											</span>
-										</td>
-
-										<td className="p-3 text-right">
-											<button
-												onClick={() => handleOpenEdit(item)}
-												className="px-2.5 py-1 bg-white border border-brand-border hover:bg-brand-light-soft text-brand-dark rounded text-[10px] font-black transition-all cursor-pointer inline-flex items-center gap-1 shadow-xs"
-											>
-												<Pencil className="w-3 h-3 text-brand-muted" />
-												Chỉnh sửa
-											</button>
-										</td>
+					<div>
+						<div className="overflow-x-auto">
+							<table className="w-full text-left text-xs border-collapse">
+								<thead>
+									<tr className="bg-brand-light-soft/50 border-b border-brand-border text-[10px] font-extrabold text-brand-muted uppercase tracking-wider select-none">
+										<th className="py-2.5 px-4">Icon & Tên hiển thị</th>
+										<th className="py-2.5 px-4">Provider Code</th>
+										<th className="py-2.5 px-4">Mô tả phụ</th>
+										<th className="py-2.5 px-4 text-center">Trạng thái</th>
+										<th className="py-2.5 px-4 text-right">Thao tác</th>
 									</tr>
-								))}
-							</tbody>
-						</table>
+								</thead>
+								<tbody className="divide-y divide-brand-border/60">
+									{paginatedList.map((item) => (
+										<tr key={item.id} className="hover:bg-brand-light-soft/20 transition-colors">
+											<td className="py-2.5 px-4">
+												<div className="flex items-center gap-3">
+													<div className="w-8 h-8 rounded-md bg-brand-light-soft border border-brand-border flex items-center justify-center p-1 overflow-hidden shrink-0 shadow-2xs">
+														{item.iconUrl ? (
+															<img
+																src={item.iconUrl}
+																alt={item.title}
+																className="w-full h-full object-contain"
+																onError={(e) => {
+																	(e.currentTarget as HTMLElement).style.display = "none";
+																}}
+															/>
+														) : (
+															<CreditCard className="w-4 h-4 text-brand-muted" />
+														)}
+													</div>
+													<div>
+														<div className="font-bold text-brand-dark text-xs">{item.title}</div>
+														<div className="text-[10px] text-brand-muted font-medium">ID: #{item.id}</div>
+													</div>
+												</div>
+											</td>
+
+											<td className="py-2.5 px-4">
+												<span className="font-mono text-[11px] font-bold bg-brand-light-soft text-brand-dark px-2 py-0.5 rounded border border-brand-border">
+													{item.providerName}
+												</span>
+											</td>
+
+											<td className="py-2.5 px-4 text-brand-muted font-medium max-w-xs truncate">
+												{item.subTitle || "—"}
+											</td>
+
+											<td className="py-2.5 px-4 text-center">
+												<span
+													className={`px-2 py-0.5 rounded text-[9px] font-black uppercase inline-block ${
+														item.isActive
+															? "bg-emerald-50 text-emerald-700 border border-emerald-200"
+															: "bg-red-50 text-red-700 border border-red-200"
+													}`}
+												>
+													{item.isActive ? "Hoạt động" : "Tạm dừng"}
+												</span>
+											</td>
+
+											<td className="py-2.5 px-4 text-right">
+												<button
+													onClick={() => handleOpenEdit(item)}
+													className="px-2.5 py-1 bg-white border border-brand-border hover:bg-brand-light-soft text-brand-dark rounded text-[10px] font-bold transition-all cursor-pointer inline-flex items-center gap-1 shadow-2xs"
+												>
+													<Pencil className="w-3 h-3 text-brand-muted" />
+													Chỉnh sửa
+												</button>
+											</td>
+										</tr>
+									))}
+								</tbody>
+							</table>
+						</div>
+
+						{/* Unified Pagination Footer */}
+						<div className="px-4 py-2 border-t border-brand-border bg-brand-light-soft/20 text-xs">
+							<Pagination
+								currentPage={page}
+								totalPages={totalPages}
+								totalCount={totalCount}
+								pageSize={pageSize}
+								onPageChange={setPage}
+								showQuickJumper
+								showTotal
+							/>
+						</div>
 					</div>
 				)}
 			</div>

@@ -5,6 +5,10 @@ export const adminQueryKeys = {
   kycs: ["admin", "kycs"] as const,
   withdrawals: ["admin", "withdrawals"] as const,
   vouchers: ["admin", "vouchers"] as const,
+  products: ["admin", "products"] as const,
+  users: ["admin", "users"] as const,
+  shops: ["admin", "shops"] as const,
+  orders: ["admin", "orders"] as const,
   paymentMethods: ["admin", "paymentMethods"] as const,
 };
 
@@ -116,6 +120,55 @@ export function useDeleteVoucherMutation() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: adminQueryKeys.vouchers });
     },
+  });
+}
+
+export function useAdminProductsQuery(params?: {
+  page?: number;
+  pageSize?: number;
+  searchTerm?: string;
+  categoryId?: number;
+  shopId?: number;
+  status?: string;
+}) {
+  return useQuery({
+    queryKey: [...adminQueryKeys.products, params],
+    queryFn: () => adminApi.getAdminProducts(params),
+  });
+}
+
+export function useAdminUsersQuery(params?: {
+  page?: number;
+  pageSize?: number;
+  search?: string;
+}) {
+  return useQuery({
+    queryKey: [...adminQueryKeys.users, params],
+    queryFn: () => adminApi.getAdminUsers(params),
+  });
+}
+
+export function useAdminShopsQuery(params?: {
+  pageNumber?: number;
+  pageSize?: number;
+  searchTerm?: string;
+  status?: string;
+}) {
+  return useQuery({
+    queryKey: [...adminQueryKeys.shops, params],
+    queryFn: () => adminApi.getAdminShops(params),
+  });
+}
+
+export function useAdminOrdersQuery(params?: {
+  pageNumber?: number;
+  pageSize?: number;
+  status?: string;
+  searchKeyword?: string;
+}) {
+  return useQuery({
+    queryKey: [...adminQueryKeys.orders, params],
+    queryFn: () => adminApi.getAdminOrders(params),
   });
 }
 

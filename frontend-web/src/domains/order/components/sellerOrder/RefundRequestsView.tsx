@@ -22,7 +22,7 @@ import { toast } from "react-toastify";
 
 interface RefundRequest {
 	id: number;
-	subOrderId: number;
+	subOrderId: string;
 	customerId: number;
 	shopId: number;
 	refundAmount: number;
@@ -35,7 +35,7 @@ interface RefundRequest {
 const MOCK_REFUND_DATA: RefundRequest[] = [
 	{
 		id: 1,
-		subOrderId: 101,
+		subOrderId: "101",
 		customerId: 6,
 		shopId: 1,
 		refundAmount: 250000,
@@ -45,7 +45,7 @@ const MOCK_REFUND_DATA: RefundRequest[] = [
 	},
 	{
 		id: 2,
-		subOrderId: 102,
+		subOrderId: "102",
 		customerId: 12,
 		shopId: 1,
 		refundAmount: 590000,
@@ -69,7 +69,7 @@ export default function RefundRequestsView() {
 	const rejectMutation = useRejectRefundMutation();
 
 	// Modal and action states
-	const [activeSubOrderId, setActiveSubOrderId] = useState<number | null>(
+	const [activeSubOrderId, setActiveSubOrderId] = useState<string | null>(
 		null,
 	);
 	const [actionRequest, setActionRequest] = useState<{

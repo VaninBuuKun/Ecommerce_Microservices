@@ -78,6 +78,8 @@ export function useAvailableVouchersQuery(shopId?: number | null, enabled = true
 		queryKey: ["vouchers", "available", shopId],
 		queryFn: () => orderApi.getAvailableVouchers(shopId),
 		enabled,
+		staleTime: 1000 * 60 * 5, // 5 minutes cache to prevent spamming on click
+		gcTime: 1000 * 60 * 10,
 	});
 }
 
@@ -97,7 +99,7 @@ export function useShopSubOrdersQuery(
 export function useConfirmSubOrderMutation() {
 	const queryClient = useQueryClient();
 	return useMutation({
-		mutationFn: (subOrderId: number) => orderApi.confirmSubOrder(subOrderId),
+		mutationFn: (subOrderId: string) => orderApi.confirmSubOrder(subOrderId),
 		onSuccess: () => {
 			queryClient.invalidateQueries({ queryKey: ["shopSubOrders"] });
 		},
@@ -107,7 +109,7 @@ export function useConfirmSubOrderMutation() {
 export function useRejectSubOrderMutation() {
 	const queryClient = useQueryClient();
 	return useMutation({
-		mutationFn: ({ subOrderId, reason }: { subOrderId: number; reason: string }) =>
+		mutationFn: ({ subOrderId, reason }: { subOrderId: string; reason: string }) =>
 			orderApi.rejectSubOrder(subOrderId, reason),
 		onSuccess: () => {
 			queryClient.invalidateQueries({ queryKey: ["shopSubOrders"] });
@@ -122,7 +124,7 @@ export function usePackageReadySubOrderMutation() {
 			subOrderId,
 			dimensions,
 		}: {
-			subOrderId: number;
+			subOrderId: string;
 			dimensions: { weight: number; length: number; width: number; height: number };
 		}) => orderApi.packageReadySubOrder(subOrderId, dimensions),
 		onSuccess: () => {
@@ -131,10 +133,10 @@ export function usePackageReadySubOrderMutation() {
 	});
 }
 
-export function useSubOrderDetailQuery(subOrderId?: number, isSeller = true) {
+export function useSubOrderDetailQuery(subOrderId: string, isSeller = true) {
 	return useQuery({
 		queryKey: ["subOrderDetail", subOrderId, isSeller],
-		queryFn: () => orderApi.getSubOrderDetail(subOrderId!, isSeller),
+		queryFn: () => orderApi.getSubOrderDetail(subOrderId, isSeller),
 		enabled: Boolean(subOrderId),
 	});
 }
@@ -180,7 +182,7 @@ export function useRejectRefundMutation() {
 export function useCancelCustomerSubOrderMutation() {
 	const queryClient = useQueryClient();
 	return useMutation({
-		mutationFn: ({ subOrderId, reason }: { subOrderId: number; reason: string }) =>
+		mutationFn: ({ subOrderId, reason }: { subOrderId: string; reason: string }) =>
 			orderApi.cancelCustomerSubOrder(subOrderId, reason),
 		onSuccess: (_, variables) => {
 			queryClient.invalidateQueries({ queryKey: ["subOrderDetail", variables.subOrderId, false] });
@@ -192,7 +194,7 @@ export function useCancelCustomerSubOrderMutation() {
 export function useCompleteSubOrderMutation() {
 	const queryClient = useQueryClient();
 	return useMutation({
-		mutationFn: (subOrderId: number) => orderApi.completeSubOrder(subOrderId),
+		mutationFn: (subOrderId: string) => orderApi.completeSubOrder(subOrderId),
 		onSuccess: (_, subOrderId) => {
 			queryClient.invalidateQueries({ queryKey: ["subOrderDetail", subOrderId, false] });
 			queryClient.invalidateQueries({ queryKey: ["customerOrders"] });
@@ -203,7 +205,7 @@ export function useCompleteSubOrderMutation() {
 export function useCreateRefundMutation() {
 	const queryClient = useQueryClient();
 	return useMutation({
-		mutationFn: ({ subOrderId, reason }: { subOrderId: number; reason: string }) =>
+		mutationFn: ({ subOrderId, reason }: { subOrderId: string; reason: string }) =>
 			orderApi.createRefund(subOrderId, reason),
 		onSuccess: (_, variables) => {
 			queryClient.invalidateQueries({ queryKey: ["subOrderDetail", variables.subOrderId, false] });

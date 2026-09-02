@@ -34,7 +34,7 @@ public class RemoveCartItemsConsumer(ICacheService cacheService, ILogger<RemoveC
             }
 
             // Xóa các sản phẩm được chỉ định
-            int removedCount = cart.Items.RemoveAll(x => variantIds.Contains(x.ProductVariantId ?? x.ProductId));
+            int removedCount = cart.Items.RemoveAll(x => variantIds.Contains(x.VariantId));
 
             await cacheService.SetAsync(key, cart, CartExpiry, context.CancellationToken);
 

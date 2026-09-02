@@ -25,7 +25,7 @@ export function MyOrdersTab({ customerId }: { customerId?: number }) {
 
 	const [orderTab, setOrderTab] = useState("All");
 	const [searchQuery, setSearchQuery] = useState("");
-	const [detailSubOrderId, setDetailSubOrderId] = useState<number | null>(null);
+	const [detailSubOrderId, setDetailSubOrderId] = useState<string | null>(null);
 	const [showAllItems, setShowAllItems] = useState<Record<string, boolean>>({});
 
 	const matchesTab = (order: any, tab: string) => {

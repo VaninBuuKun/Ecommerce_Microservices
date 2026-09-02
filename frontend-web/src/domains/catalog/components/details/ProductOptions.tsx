@@ -4,10 +4,10 @@ import type { ProductOption, ProductVariant } from "../../types/catalog.types";
 interface ProductOptionsProps {
 	options: ProductOption[];
 	variants?: ProductVariant[];
-	selectedOptions: Record<number, number>;
+	selectedOptions: Record<string, string>;
 	onOptionSelect: (
-		optionId: number,
-		valueId: number,
+		optionId: string,
+		valueId: string,
 		tierIndex: number,
 	) => void;
 }
@@ -45,7 +45,7 @@ export function ProductOptions({
 						<div className="flex flex-wrap gap-2.5 flex-1">
 							{option.values?.map((val: any) => {
 								const isSelected =
-									selectedOptions[option.id] === val.id;
+									selectedOptions[String(option.id)] === String(val.id);
 
 								const matchingVariants = variants
 									? variants.filter((v: any) =>
@@ -58,8 +58,8 @@ export function ProductOptions({
 														)
 														.find(
 															(ov: any) =>
-																ov.id ===
-																vo.optionValueId,
+																String(ov.id) ===
+																String(vo.optionValueId),
 														);
 													return (
 														valObj?.value?.toLowerCase() ===
@@ -83,8 +83,8 @@ export function ProductOptions({
 										onClick={() => {
 											if (isOutOfStock) return;
 											onOptionSelect(
-												option.id,
-												val.id,
+												String(option.id),
+												String(val.id),
 												tierIndex,
 											);
 										}}

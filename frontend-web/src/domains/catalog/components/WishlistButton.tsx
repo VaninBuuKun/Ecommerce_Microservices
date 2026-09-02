@@ -4,7 +4,7 @@ import { Heart } from "lucide-react";
 import { useWishlist } from "../hooks/useWishlist";
 
 interface WishlistButtonProps {
-	productId: number;
+	productId: string;
 	className?: string;
 	size?: number;
 	showLabel?: boolean;

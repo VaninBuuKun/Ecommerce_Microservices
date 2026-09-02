@@ -11,7 +11,7 @@ import api from "@/core/api/axiosInstance";
 import axios from "axios";
 
 interface ProductReviewsSectionProps {
-  productId: number;
+  productId: string;
 }
 
 export function ProductReviewsSection({ productId }: ProductReviewsSectionProps) {

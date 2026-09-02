@@ -34,6 +34,10 @@ try
     {
         app.MapOpenApi();
         app.MapScalarApiReference();
+
+        using var scope = app.Services.CreateScope();
+        var seeder = scope.ServiceProvider.GetRequiredService<Ecommerce.Services.Catalog.Infrastructure.Persistence.CatalogDataSeeder>();
+        await seeder.SeedAsync();
     }
     else
     {

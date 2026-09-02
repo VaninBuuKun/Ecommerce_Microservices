@@ -4,11 +4,11 @@ import type { Product } from "../../types/catalog.types";
 
 interface ProductTableProps {
 	products: Product[];
-	onEdit: (id: number) => void;
-	onDelete: (id: number) => void;
-	onToggleStatus?: (id: number, currentStatus: string) => void;
+	onEdit: (id: string) => void;
+	onDelete: (id: string) => void;
+	onToggleStatus?: (id: string, currentStatus: string) => void;
 	isDeleting?: boolean;
-	updatingStatusId?: number | null;
+	updatingStatusId?: string | null;
 }
 
 export function ProductTable({
@@ -19,11 +19,11 @@ export function ProductTable({
 	isDeleting,
 	updatingStatusId,
 }: ProductTableProps) {
-	const [expandedProductIds, setExpandedProductIds] = useState<Set<number>>(
+	const [expandedProductIds, setExpandedProductIds] = useState<Set<string>>(
 		new Set(),
 	);
 
-	const toggleExpand = (id: number) => {
+	const toggleExpand = (id: string) => {
 		setExpandedProductIds((prev) => {
 			const next = new Set(prev);
 			if (next.has(id)) {

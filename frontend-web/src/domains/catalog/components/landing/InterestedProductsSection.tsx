@@ -23,22 +23,21 @@ export function InterestedProductsSection() {
 		(interestedSlide + 1) * SLIDE_ITEMS_PER_PAGE,
 	);
 
-	const renderPriceBlock = (price: number, discountPrice?: number) => {
-		const hasDiscount = discountPrice && discountPrice > 0 && discountPrice < price;
-		const activePrice = hasDiscount ? discountPrice : price;
-
+	const renderStars = (rating: number = 5) => {
+		const score = rating > 0 ? rating : 5;
+		const rounded = Math.round(score);
 		return (
-			<div className="pt-1 space-y-0.5">
-				<div className="flex items-center gap-1.5">
-					<span className="font-extrabold text-red-600 text-sm leading-none">
-						{activePrice.toLocaleString("vi-VN")}đ
-					</span>
-				</div>
-				{hasDiscount && (
-					<div className="text-[11px] text-gray-400 font-normal line-through leading-tight">
-						{price.toLocaleString("vi-VN")}đ
-					</div>
-				)}
+			<div className="flex items-center gap-0.5">
+				{[1, 2, 3, 4, 5].map((s) => (
+					<Star
+						key={s}
+						className={`w-2.5 h-2.5 ${
+							s <= rounded
+								? "fill-amber-400 text-amber-400 stroke-amber-400"
+								: "fill-gray-200 text-gray-200 stroke-gray-200"
+						}`}
+					/>
+				))}
 			</div>
 		);
 	};
@@ -81,6 +80,9 @@ export function InterestedProductsSection() {
 						{currentInterested.map((p: any) => {
 							const hasDiscount = p.discountPrice && p.discountPrice > 0 && p.discountPrice < p.price;
 							const discountPercent = hasDiscount ? Math.round(((p.price - p.discountPrice) / p.price) * 100) : 0;
+							const activePrice = hasDiscount ? p.discountPrice : p.price;
+							const soldCount = p.sold || p.soldQuantity || 0;
+
 							return (
 								<motion.div
 									whileHover={{ y: -3 }}
@@ -106,18 +108,41 @@ export function InterestedProductsSection() {
 									</div>
 
 									<div className="p-2.5 space-y-1.5 flex-1 flex flex-col justify-between">
-										<h3 className="font-bold text-brand-dark text-xs group-hover:text-brand-primary-deep transition-colors line-clamp-2 leading-snug min-h-[32px]">
-											{p.name}
-										</h3>
-										<div className="space-y-1 border-t border-brand-border/40 pt-1.5">
-											<div className="flex items-center gap-1 text-[10px] text-amber-500 font-bold">
-												<Star className="w-3.5 h-3.5 fill-amber-400 stroke-amber-400" />
-												<span>{p.averageRating ? p.averageRating.toFixed(1) : "5.0"}</span>
+										<div className="space-y-1">
+											<h3 className="font-bold text-brand-dark text-xs group-hover:text-brand-primary-deep transition-colors line-clamp-2 leading-snug min-h-[32px]">
+												{p.name}
+											</h3>
+
+											{/* Rating Stars under Name */}
+											<div className="flex items-center gap-1">
+												{renderStars(p.averageRating)}
 												<span className="text-brand-muted text-[9px] font-normal">
 													({p.reviewCount || 0})
 												</span>
 											</div>
-											{renderPriceBlock(p.price, p.discountPrice)}
+										</div>
+
+										{/* Divider & Price / Sold Section */}
+										<div className="border-t border-brand-border/40 pt-1.5 space-y-0.5">
+											<div className="flex items-baseline justify-between gap-1">
+												<span className="font-extrabold text-red-600 text-sm leading-none">
+													{activePrice.toLocaleString("vi-VN")}đ
+												</span>
+												<span className="text-[10px] text-brand-muted font-medium whitespace-nowrap">
+													Đã bán {soldCount}
+												</span>
+											</div>
+
+											{/* Strikethrough original price with fixed height container to ensure uniform card alignment */}
+											<div className="h-4 flex items-center">
+												{hasDiscount ? (
+													<span className="text-[11px] text-gray-400 font-normal line-through leading-tight">
+														{p.price.toLocaleString("vi-VN")}đ
+													</span>
+												) : (
+													<span className="invisible text-[11px] leading-tight select-none">0đ</span>
+												)}
+											</div>
 										</div>
 									</div>
 								</motion.div>
