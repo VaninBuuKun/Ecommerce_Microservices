@@ -13,6 +13,9 @@ import WishlistPage from "@/apps/customer/pages/WishlistPage";
 import UserProfilePage from "@/apps/customer/pages/UserProfilePage";
 import UserProfilePublicPage from "@/apps/customer/pages/UserProfilePublicPage";
 import ShopProfilePublicPage from "@/apps/customer/pages/ShopProfilePublicPage";
+import ChatPage from "@/apps/customer/pages/ChatPage";
+import ExploreProductsPage from "@/apps/customer/pages/ExploreProductsPage";
+import OrderDetailPage from "@/apps/customer/pages/OrderDetailPage";
 
 // Seller Apps Pages
 import SelectShopPage from "@/apps/seller/pages/SelectShopPage";
@@ -25,6 +28,8 @@ import AdminDashboardPage from "@/apps/admin/pages/AdminDashboardPage";
 // Auth Apps Pages
 import LoginPage from "@/apps/auth/pages/LoginPage";
 import RegisterPage from "@/apps/auth/pages/RegisterPage";
+import ForgotPasswordPage from "@/apps/auth/pages/ForgotPasswordPage";
+import ResetPasswordPage from "@/apps/auth/pages/ResetPasswordPage";
 
 export default function AppRoutes() {
 	return (
@@ -35,10 +40,14 @@ export default function AppRoutes() {
 				<Route path="cart" element={<CartPage />} />
 				<Route path="checkout" element={<CheckoutPage />} />
 				<Route path="products/:id" element={<ProductDetailPage />} />
+				<Route path="products" element={<ExploreProductsPage />} />
+				<Route path="explore" element={<ExploreProductsPage />} />
 				<Route path="wishlist" element={<WishlistPage />} />
+				<Route path="chat" element={<ChatPage />} />
 
 				<Route path="profile" element={<UserProfilePage />} />
 				<Route path="orders" element={<UserProfilePage />} />
+				<Route path="orders/:subOrderId" element={<OrderDetailPage />} />
 				<Route path="users/:userId" element={<UserProfilePublicPage />} />
 				<Route path="shops/:shopId" element={<ShopProfilePublicPage />} />
 				<Route
@@ -91,6 +100,8 @@ export default function AppRoutes() {
 			{/* Các trang Login & Register standalone (Không có Header / Footer) */}
 			<Route path="/login" element={<LoginPage />} />
 			<Route path="/register" element={<RegisterPage />} />
+			<Route path="/forgot-password" element={<ForgotPasswordPage />} />
+			<Route path="/reset-password" element={<ResetPasswordPage />} />
 		</Routes>
 	);
 }

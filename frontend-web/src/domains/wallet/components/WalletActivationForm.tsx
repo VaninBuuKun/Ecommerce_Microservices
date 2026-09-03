@@ -136,7 +136,7 @@ export function WalletActivationForm({
 				<button
 					type="submit"
 					disabled={pending}
-					className="w-full h-10 bg-brand-dark hover:bg-brand-primary hover:text-brand-dark text-white rounded-xl text-xs font-black transition-all cursor-pointer flex items-center justify-center gap-1.5 shadow-sm"
+					className="w-full h-9 bg-brand-primary hover:bg-brand-primary-deep text-white rounded text-xs font-bold transition-all cursor-pointer flex items-center justify-center gap-1.5 shadow-xs border-none"
 				>
 					{pending ? (
 						<>

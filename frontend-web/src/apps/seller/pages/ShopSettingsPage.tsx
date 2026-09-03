@@ -56,9 +56,9 @@ type ShopSettingsFormValues = z.infer<typeof shopSettingsSchema>;
 export function ShopSettingsPage() {
 	const { shopId } = useParams<{ shopId?: string }>();
 	const { activeShop } = useSellerStore();
-	const currentShopId = shopId || activeShop?.id?.toString();
+	const currentShopId = shopId ? Number(shopId) : activeShop?.id ? Number(activeShop.id) : undefined;
 	const { data: shopDetail, isLoading: isShopLoading } = useShopDetailQuery(
-		currentShopId || "",
+		currentShopId,
 	);
 	const { data: profile, isLoading: isProfileLoading } =
 		useSellerProfileQuery();
@@ -82,6 +82,8 @@ export function ShopSettingsPage() {
 		formState: { errors },
 	} = useForm<ShopSettingsFormValues>({
 		resolver: zodResolver(shopSettingsSchema),
+		mode: "onSubmit",
+		reValidateMode: "onSubmit",
 		defaultValues: {
 			name: "",
 			description: "",
@@ -366,9 +368,9 @@ export function ShopSettingsPage() {
 											{...register("provinceId", {
 												onChange: (e) => {
 													const val = e.target.value ? Number(e.target.value) : undefined;
-													setValue("provinceId", val as any, { shouldValidate: true });
-													setValue("districtId", undefined as any, { shouldValidate: true });
-													setValue("wardId", undefined as any, { shouldValidate: true });
+													setValue("provinceId", val as any);
+													setValue("districtId", undefined as any);
+													setValue("wardId", undefined as any);
 												},
 											})}
 											className={`w-full h-8 px-2 border rounded-lg text-xs bg-white focus:outline-none ${
@@ -402,8 +404,8 @@ export function ShopSettingsPage() {
 											{...register("districtId", {
 												onChange: (e) => {
 													const val = e.target.value ? Number(e.target.value) : undefined;
-													setValue("districtId", val as any, { shouldValidate: true });
-													setValue("wardId", undefined as any, { shouldValidate: true });
+													setValue("districtId", val as any);
+													setValue("wardId", undefined as any);
 												},
 											})}
 											disabled={!selectedProvinceId}
@@ -620,7 +622,7 @@ export function ShopSettingsPage() {
 						<button
 							type="submit"
 							disabled={isSaving}
-							className="h-8 px-4 bg-brand-primary hover:bg-brand-primary-deep text-brand-dark rounded-lg font-bold flex items-center gap-1.5 cursor-pointer disabled:opacity-65 transition-all shadow-[0_1px_3px_rgba(0,0,0,0.05)] border-none"
+							className="px-4 py-1.5 bg-brand-primary hover:bg-brand-primary-deep text-white rounded text-xs font-bold flex items-center gap-1.5 cursor-pointer disabled:opacity-65 transition-all shadow-xs border-none"
 						>
 							{isSaving ? (
 								<Loader2 className="w-3.5 h-3.5 animate-spin" />

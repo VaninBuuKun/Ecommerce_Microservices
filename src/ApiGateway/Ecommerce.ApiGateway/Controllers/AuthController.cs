@@ -13,7 +13,13 @@ public class AuthController(IHttpClientFactory httpClientFactory) : ControllerBa
     [HttpPost("login")]
     public async Task<IActionResult> Login([FromBody] LoginRequest request)
     {
-        var client =  httpClientFactory.CreateClient(HttpClientConstansts.IdentityClientName);
+        var client = httpClientFactory.CreateClient(HttpClientConstansts.IdentityClientName);
+
+        var userAgent = Request.Headers["User-Agent"].ToString();
+        var clientIp = Request.Headers["X-Forwarded-For"].FirstOrDefault() 
+                       ?? HttpContext.Connection.RemoteIpAddress?.ToString() 
+                       ?? "127.0.0.1";
+        var acceptLanguage = Request.Headers["Accept-Language"].ToString();
 
         var body = new Dictionary<string, string>()
         {
@@ -26,7 +32,20 @@ public class AuthController(IHttpClientFactory httpClientFactory) : ControllerBa
         
         var encodedContext = new FormUrlEncodedContent(body);
         
-        var respone = await client.PostAsync("/connect/token", encodedContext);
+        var httpRequest = new HttpRequestMessage(HttpMethod.Post, "/connect/token")
+        {
+            Content = encodedContext
+        };
+
+        if (!string.IsNullOrWhiteSpace(userAgent))
+            httpRequest.Headers.TryAddWithoutValidation("User-Agent", userAgent);
+
+        httpRequest.Headers.TryAddWithoutValidation("X-Forwarded-For", clientIp);
+
+        if (!string.IsNullOrWhiteSpace(acceptLanguage))
+            httpRequest.Headers.TryAddWithoutValidation("Accept-Language", acceptLanguage);
+
+        var respone = await client.SendAsync(httpRequest);
 
         if (!respone.IsSuccessStatusCode)
         {
@@ -53,8 +72,8 @@ public class AuthController(IHttpClientFactory httpClientFactory) : ControllerBa
             return BadRequest("Thông tin tài khoản và mật khẩu không chính xác!");
         }
         var tokenResponse = await respone.Content.ReadFromJsonAsync<TokenResponse>();
-        
-        Response.Cookies.Append("refresh_token", tokenResponse.RefreshToken ,new CookieOptions
+
+        Response.Cookies.Append("refresh_token", tokenResponse!.RefreshToken ,new CookieOptions
         {
             HttpOnly = true,
             Secure = false,
@@ -158,4 +177,4 @@ public async Task<IActionResult> Refresh()
         return NoContent();
     }
 }
-
+

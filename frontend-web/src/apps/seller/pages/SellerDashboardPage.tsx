@@ -8,8 +8,9 @@ import { Routes, Route, Link, useParams } from "react-router-dom";
 import { useSellerStore, useSellerProfileQuery } from "@/domains/seller";
 import { EditProductPage, ProductsView } from "@/domains/catalog";
 import { ShopSettingsPage } from "./ShopSettingsPage";
-import { OrdersView, RefundRequestsView, CouponsView } from "@/domains/order";
-
+import RevenueView from "../components/RevenueView";
+import SellerChatView from "../components/SellerChatView";
+import { CouponsView, OrdersView, RefundRequestsView } from "@/domains/order";
 
 // View: Tổng quan Dashboard
 function Overview() {
@@ -112,6 +113,12 @@ function Overview() {
 						>
 							Quản lý đơn hàng
 						</Link>
+						<Link
+							to="/chat"
+							className="p-3 border border-brand-border hover:border-brand-primary rounded-lg text-center text-xs font-bold text-brand-dark hover:bg-brand-primary/5 transition-colors col-span-2"
+						>
+							💬 Trung tâm Trò chuyện Khách hàng
+						</Link>
 					</div>
 				</div>
 
@@ -170,6 +177,7 @@ export default function SellerDashboardPage() {
 				}
 			/>
 			<Route path="orders" element={<OrdersView />} />
+			<Route path="chat" element={<SellerChatView />} />
 			<Route
 				path="refunds"
 				element={<RefundRequestsView />}
@@ -198,19 +206,19 @@ export default function SellerDashboardPage() {
 			/>
 			<Route
 				path="balance"
-				element={<PlaceholderView title="Số dư Ví Người Bán" />}
+				element={<RevenueView />}
 			/>
 			<Route
 				path="transactions"
-				element={<PlaceholderView title="Lịch sử giao dịch Ví" />}
+				element={<RevenueView />}
 			/>
 			<Route
 				path="withdrawals"
-				element={<PlaceholderView title="Yêu cầu rút tiền Ví" />}
+				element={<RevenueView />}
 			/>
 			<Route
 				path="revenue"
-				element={<PlaceholderView title="Báo cáo Doanh thu" />}
+				element={<RevenueView />}
 			/>
 			<Route
 				path="top-products"

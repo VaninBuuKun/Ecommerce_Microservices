@@ -22,6 +22,74 @@ namespace Ecommerce.Services.Catalog.Infrastructure.Migrations
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
+            modelBuilder.Entity("Ecommerce.Services.Catalog.Domain.Banner", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+
+                    b.Property<string>("Badge")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<string>("ButtonText")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasDefaultValue("Mua ngay");
+
+                    b.Property<DateTimeOffset>("CreatedDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("DisplayOrder")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(0);
+
+                    b.Property<string>("ImageUrl")
+                        .IsRequired()
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<bool>("IsActive")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true);
+
+                    b.Property<DateTimeOffset?>("LastModifiedDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Subtitle")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<string>("TargetUrl")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)")
+                        .HasDefaultValue("/products");
+
+                    b.Property<string>("ThemeGradient")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)")
+                        .HasDefaultValue("bg-gradient-to-r from-blue-600 via-indigo-600 to-blue-700");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("Banners");
+                });
+
             modelBuilder.Entity("Ecommerce.Services.Catalog.Domain.Category", b =>
                 {
                     b.Property<long>("Id")
@@ -104,21 +172,19 @@ namespace Ecommerce.Services.Catalog.Infrastructure.Migrations
             modelBuilder.Entity("Ecommerce.Services.Catalog.Domain.Products.Product", b =>
                 {
                     b.Property<long>("Id")
-                        .ValueGeneratedOnAdd()
                         .HasColumnType("bigint");
 
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
-
-                    b.Property<int>("AvailableStock")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer")
-                        .HasDefaultValue(0);
+                    b.Property<string>("AttributesJson")
+                        .HasColumnType("text");
 
                     b.Property<double>("AverageRating")
                         .HasColumnType("double precision");
 
                     b.Property<long?>("CategoryId")
                         .HasColumnType("bigint");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("Description")
                         .IsRequired()
@@ -161,6 +227,11 @@ namespace Ecommerce.Services.Catalog.Infrastructure.Migrations
                     b.Property<long>("ShopId")
                         .HasColumnType("bigint");
 
+                    b.Property<int>("Sold")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(0);
+
                     b.Property<string>("Status")
                         .IsRequired()
                         .HasMaxLength(20)
@@ -169,6 +240,9 @@ namespace Ecommerce.Services.Catalog.Infrastructure.Migrations
                     b.Property<string>("ThumbnailUrl")
                         .HasMaxLength(1000)
                         .HasColumnType("character varying(1000)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("VideoUrl")
                         .HasMaxLength(1000)
@@ -194,10 +268,7 @@ namespace Ecommerce.Services.Catalog.Infrastructure.Migrations
             modelBuilder.Entity("Ecommerce.Services.Catalog.Domain.Products.ProductOption", b =>
                 {
                     b.Property<long>("Id")
-                        .ValueGeneratedOnAdd()
                         .HasColumnType("bigint");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
 
                     b.Property<DateTimeOffset>("CreatedDate")
                         .HasColumnType("timestamp with time zone");
@@ -229,10 +300,7 @@ namespace Ecommerce.Services.Catalog.Infrastructure.Migrations
             modelBuilder.Entity("Ecommerce.Services.Catalog.Domain.Products.ProductOptionValue", b =>
                 {
                     b.Property<long>("Id")
-                        .ValueGeneratedOnAdd()
                         .HasColumnType("bigint");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
 
                     b.Property<DateTimeOffset>("CreatedDate")
                         .HasColumnType("timestamp with time zone");
@@ -268,12 +336,9 @@ namespace Ecommerce.Services.Catalog.Infrastructure.Migrations
             modelBuilder.Entity("Ecommerce.Services.Catalog.Domain.Products.ProductVariant", b =>
                 {
                     b.Property<long>("Id")
-                        .ValueGeneratedOnAdd()
                         .HasColumnType("bigint");
 
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
-
-                    b.Property<int>("AvailableStocks")
+                    b.Property<int>("AvailableStock")
                         .HasColumnType("integer");
 
                     b.Property<DateTimeOffset>("CreatedDate")
@@ -282,17 +347,11 @@ namespace Ecommerce.Services.Catalog.Infrastructure.Migrations
                     b.Property<decimal>("DiscountPrice")
                         .HasColumnType("numeric");
 
-                    b.Property<double?>("Height")
-                        .HasColumnType("double precision");
-
                     b.Property<bool>("IsDeleted")
                         .HasColumnType("boolean");
 
                     b.Property<DateTimeOffset?>("LastModifiedDate")
                         .HasColumnType("timestamp with time zone");
-
-                    b.Property<double?>("Length")
-                        .HasColumnType("double precision");
 
                     b.Property<decimal>("Price")
                         .HasColumnType("decimal(18,2)");
@@ -300,14 +359,8 @@ namespace Ecommerce.Services.Catalog.Infrastructure.Migrations
                     b.Property<long>("ProductId")
                         .HasColumnType("bigint");
 
-                    b.Property<int>("ReservedStocks")
+                    b.Property<int>("ReservedStock")
                         .HasColumnType("integer");
-
-                    b.Property<double?>("Weight")
-                        .HasColumnType("double precision");
-
-                    b.Property<double?>("Width")
-                        .HasColumnType("double precision");
 
                     b.HasKey("Id");
 
@@ -334,10 +387,7 @@ namespace Ecommerce.Services.Catalog.Infrastructure.Migrations
             modelBuilder.Entity("Ecommerce.Services.Catalog.Domain.Products.Wishlist", b =>
                 {
                     b.Property<long>("Id")
-                        .ValueGeneratedOnAdd()
                         .HasColumnType("bigint");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
 
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone");

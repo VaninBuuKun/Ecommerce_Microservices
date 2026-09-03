@@ -1,11 +1,13 @@
 using System.Reflection;
 using BuildingBlocks.Application;
+using BuildingBlocks.Caching;
 using BuildingBlocks.Logging;
 
 using Ecommerce.Services.Identity.Api.Configurations;
 using Ecommerce.Services.Identity.Api.Models.Entities;
 using Ecommerce.Services.Identity.Api.Persistances;
 using Ecommerce.Services.Identity.Api.Services;
+using Ecommerce.Services.Identity.Api.Models.Interfaces;
 using Identity.Extensions;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
@@ -23,6 +25,8 @@ try
 
     builder.Services.AddGrpc();
     builder.Services.AddScoped<IAddressService, AddressService>();
+    builder.Services.AddScoped<IUserService, UserService>();
+    builder.Services.AddScoped<IRoleService, RoleService>();
 
     builder.Services.ConfigureApplicationCookie(options =>
     {
@@ -31,6 +35,7 @@ try
     });
 
     builder.Services.AddBuildingBlocksApplication(Assembly.GetExecutingAssembly());
+    builder.Services.AddCustomCaching(builder.Configuration.GetConnectionString("Redis") ?? "localhost:6379");
 
     builder.Services.AddEndpointsApiExplorer();
     builder.Services.AddInfrastructureConfiguration(builder.Configuration);

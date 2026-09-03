@@ -3,8 +3,10 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using BuildingBlocks.Shared.Commons;
+using BuildingBlocks.Shared.Enums;
 using Ecommerce.Services.Notifications.Api.Controllers;
 using Ecommerce.Services.Notifications.Api.Persistances;
+using Ecommerce.Services.Notifications.Api.Models.Interfaces;
 using Microsoft.EntityFrameworkCore;
 
 namespace Ecommerce.Services.Notifications.Api.Services;
@@ -60,7 +62,9 @@ public class ChatService(NotificationDbContext dbContext) : IChatService
                     DisplayName = buyerInfo != null
                         ? $"{buyerInfo.FirstName} {buyerInfo.LastName}".Trim()
                         : $"Khách hàng {room.BuyerUserId}",
-                    DisplayAvatar = buyerInfo?.AvatarUrl ?? string.Empty
+                    DisplayAvatar = buyerInfo?.AvatarUrl ?? string.Empty,
+                    ThemeColor = room.ThemeColor,
+                    BackgroundColor = room.BackgroundColor
                 });
             }
         }
@@ -101,11 +105,28 @@ public class ChatService(NotificationDbContext dbContext) : IChatService
                     LastMessage = room.LastMessage,
                     LastActiveAt = room.LastActiveAt,
                     DisplayName = displayName,
-                    DisplayAvatar = string.Empty
+                    DisplayAvatar = string.Empty,
+                    ThemeColor = room.ThemeColor,
+                    BackgroundColor = room.BackgroundColor
                 });
             }
         }
 
         return Result<List<ConversationDto>>.Success(result);
+    }
+
+    public async Task<Result<bool>> UpdateRoomThemeAsync(Guid roomId, long currentUserId, string? themeColor, string? backgroundColor)
+    {
+        var room = await dbContext.ChatRooms.FirstOrDefaultAsync(r => r.Id == roomId);
+        if (room == null)
+        {
+            return Result<bool>.Failure("Không tìm thấy phòng chat.", EErrorCode.NotFound);
+        }
+
+        room.ThemeColor = themeColor;
+        room.BackgroundColor = backgroundColor;
+        await dbContext.SaveChangesAsync();
+
+        return Result<bool>.Success(true);
     }
 }

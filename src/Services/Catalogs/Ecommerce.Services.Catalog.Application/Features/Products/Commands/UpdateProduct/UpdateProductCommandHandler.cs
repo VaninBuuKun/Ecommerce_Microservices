@@ -3,6 +3,7 @@ using BuildingBlocks.Shared.Commons;
 using BuildingBlocks.Shared.Enums;
 using BuildingBlocks.Shared.InfrastructureInterfaces.Persistence.EFCore;
 using Ecommerce.Services.Catalog.Application.Commons.Dtos.Products;
+using Ecommerce.Services.Catalog.Domain;
 using Ecommerce.Services.Catalog.Domain.Products;
 using Ecommerce.Services.Catalog.Domain.Products.Specifications;
 using MapsterMapper;
@@ -17,6 +18,7 @@ public class UpdateProductCommandHandler(
 ) : CommandHandler<UpdateProductCommand, ProductResponse>
 {
     private readonly IGenericEfRepository<Product, long> _productRepository = unitOfWork.Repository<Product, long>();
+    private readonly IGenericEfRepository<Category, long> _categoryRepository = unitOfWork.Repository<Category, long>();
 
     protected override async Task<Result<ProductResponse>> HandleCommandAsync(UpdateProductCommand command, CancellationToken cancellationToken)
     {
@@ -30,6 +32,21 @@ public class UpdateProductCommandHandler(
                 return Result<ProductResponse>.Failure("Product Not Found", EErrorCode.NotFound);
             }
 
+            // Kiểm tra CategoryId: Bắt buộc phải tồn tại và phải là SubCategory (ParentId != null)
+            if (command.CategoryId.HasValue && command.CategoryId.Value > 0)
+            {
+                var category = await _categoryRepository.GetByIdAsync(command.CategoryId.Value, cancellationToken);
+                if (category == null)
+                {
+                    return Result<ProductResponse>.ValidationFailure($"Danh mục sản phẩm không tồn tại (Id: {command.CategoryId}).");
+                }
+
+                if (category.ParentId == null)
+                {
+                    return Result<ProductResponse>.ValidationFailure("Danh mục sản phẩm được chọn phải là Danh mục con (SubCategory).");
+                }
+            }
+
             // Update basic info: name, description, images, category
             existsProduct.UpdateDetails(
                 command.Name, 
@@ -40,6 +57,7 @@ public class UpdateProductCommandHandler(
             );
 
             existsProduct.SetCategory(command.CategoryId);
+            existsProduct.SetAttributes(command.AttributesJson);
 
             _productRepository.Update(existsProduct);
             await unitOfWork.SaveChangesAsync(cancellationToken);

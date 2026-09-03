@@ -21,7 +21,7 @@ import {
 import { toast } from "react-toastify";
 
 interface RefundRequest {
-	id: string;
+	id: number;
 	subOrderId: string;
 	customerId: number;
 	shopId: number;
@@ -32,38 +32,13 @@ interface RefundRequest {
 	createdDate: string;
 }
 
-const MOCK_REFUND_DATA: RefundRequest[] = [
-	{
-		id: "b28766bf-4638-4e89-bdc7-87383bbcc57a",
-		subOrderId: "87383bbc-c57a-4c28-9ebd-6bbfe6db68aa",
-		customerId: 6,
-		shopId: 1,
-		refundAmount: 250000,
-		reason: "Sản phẩm bị lỗi đường may, rách chỉ góc túi bên trái",
-		status: "Pending",
-		createdDate: new Date(Date.now() - 3600000 * 3).toISOString(),
-	},
-	{
-		id: "f9d3b846-17b2-4d22-97bb-e2b25b68266d",
-		subOrderId: "e2b25b68-266d-472b-8a8b-3e5f29d3b846",
-		customerId: 12,
-		shopId: 1,
-		refundAmount: 590000,
-		reason: "Giao sai màu sắc (tôi đặt màu Đen nhưng nhận màu Emerald)",
-		status: "Approved",
-		sellerNote:
-			"Đã xác nhận lỗi đóng gói từ phía nhân viên. Hoàn tiền cho khách.",
-		createdDate: new Date(Date.now() - 3600000 * 24).toISOString(),
-	},
-];
-
 export default function RefundRequestsView() {
 	const { shopId } = useParams<{ shopId?: string }>();
 	const {
 		data: serverData,
 		isLoading,
 		refetch,
-	} = useShopRefundsQuery(shopId);
+	} = useShopRefundsQuery(shopId ? Number(shopId) : undefined);
 
 	const approveMutation = useApproveRefundMutation();
 	const rejectMutation = useRejectRefundMutation();
@@ -73,16 +48,13 @@ export default function RefundRequestsView() {
 		null,
 	);
 	const [actionRequest, setActionRequest] = useState<{
-		id: string;
+		id: number;
 		type: "approve" | "reject";
 	} | null>(null);
 	const [sellerNote, setSellerNote] = useState("");
 
 	// Determine data source
-	const hasServerData = serverData && serverData.length > 0;
-	const refundRequests: RefundRequest[] = hasServerData
-		? serverData
-		: MOCK_REFUND_DATA;
+	const refundRequests: RefundRequest[] = serverData || [];
 
 	const handleActionSubmit = (e: React.FormEvent) => {
 		e.preventDefault();
@@ -154,11 +126,6 @@ export default function RefundRequestsView() {
 						hàng.
 					</p>
 				</div>
-				{!hasServerData && (
-					<span className="text-[10px] font-bold bg-amber-50 border border-amber-200 text-amber-600 px-2 py-1 rounded-lg">
-						Chế độ: Demo Mock Data
-					</span>
-				)}
 			</div>
 
 			{refundRequests.length === 0 ? (
@@ -305,7 +272,7 @@ export default function RefundRequestsView() {
 													type: "approve",
 												})
 											}
-											className="h-8 px-3 bg-brand-primary hover:bg-brand-primary-deep text-brand-dark rounded-lg text-xs font-black transition-all cursor-pointer border-none flex items-center justify-center gap-1"
+											className="h-8 px-3.5 bg-brand-primary hover:bg-brand-primary-deep text-white rounded text-xs font-bold transition-all cursor-pointer border-none flex items-center justify-center gap-1.5 shadow-xs"
 										>
 											<Check className="w-3.5 h-3.5" />
 											Chấp nhận

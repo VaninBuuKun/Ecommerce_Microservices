@@ -4,6 +4,7 @@ import { api } from "@/core";
 
 import { Loader2, RefreshCw, Search, Shield, Lock, Unlock, CheckCircle, AlertCircle, UserPlus, Plus, Trash2, Edit3, KeyRound } from "lucide-react";
 import { ConfirmModal } from "@/shared";
+import { Pagination } from "@/shared/components/Pagination";
 
 export interface UserItem {
 	id: number;
@@ -274,12 +275,12 @@ export function AdminUsersView() {
 			case "Admin":
 				return <span className="px-2 py-0.5 rounded text-[9px] font-black uppercase bg-purple-100 text-purple-800 border border-purple-200">Admin</span>;
 			case "Manager":
-				return <span className="px-2 py-0.5 rounded text-[9px] font-black uppercase bg-indigo-100 text-indigo-800 border border-indigo-200">Manager</span>;
+				return <span className="px-2 py-0.5 rounded-md text-[9px] font-black uppercase bg-indigo-100 text-indigo-800 border border-indigo-200">Manager</span>;
 			case "Staff":
-				return <span className="px-2 py-0.5 rounded text-[9px] font-black uppercase bg-amber-100 text-amber-800 border border-amber-200">Staff</span>;
+				return <span className="px-2 py-0.5 rounded-md text-[9px] font-black uppercase bg-amber-100 text-amber-800 border border-amber-200">Staff</span>;
 			case "User":
 			default:
-				return <span className="px-2 py-0.5 rounded text-[9px] font-black uppercase bg-emerald-100 text-emerald-800 border border-emerald-200">User</span>;
+				return <span className="px-2 py-0.5 rounded-md text-[9px] font-black uppercase bg-emerald-100 text-emerald-800 border border-emerald-200">User</span>;
 		}
 	};
 
@@ -297,13 +298,13 @@ export function AdminUsersView() {
 				<div className="flex items-center gap-2">
 					<button
 						onClick={() => setActiveTab("users")}
-						className={`px-3 py-1.5 rounded-lg text-xs font-black transition-all cursor-pointer ${activeTab === "users" ? "bg-brand-dark text-white shadow-xs" : "bg-brand-light-soft text-brand-muted hover:text-brand-dark"}`}
+						className={`px-3 py-1.5 rounded-md text-xs font-black transition-all cursor-pointer ${activeTab === "users" ? "bg-brand-dark text-white shadow-xs" : "bg-brand-light-soft text-brand-muted hover:text-brand-dark"}`}
 					>
 						Người dùng
 					</button>
 					<button
 						onClick={() => setActiveTab("roles")}
-						className={`px-3 py-1.5 rounded-lg text-xs font-black transition-all cursor-pointer ${activeTab === "roles" ? "bg-brand-dark text-white shadow-xs" : "bg-brand-light-soft text-brand-muted hover:text-brand-dark"}`}
+						className={`px-3 py-1.5 rounded-md text-xs font-black transition-all cursor-pointer ${activeTab === "roles" ? "bg-brand-dark text-white shadow-xs" : "bg-brand-light-soft text-brand-muted hover:text-brand-dark"}`}
 					>
 						Quản lý Roles
 					</button>
@@ -320,7 +321,7 @@ export function AdminUsersView() {
 								placeholder="Tìm kiếm email, họ tên..."
 								value={searchQuery}
 								onChange={(e) => setSearchQuery(e.target.value)}
-								className="w-full pl-8 pr-3 py-1.5 border border-brand-border rounded-lg text-xs focus:outline-none focus:border-brand-primary font-bold text-brand-dark bg-white"
+								className="w-full pl-8 pr-3 py-1.5 border border-brand-border rounded-md text-xs focus:outline-none focus:border-brand-primary font-bold text-brand-dark bg-white"
 							/>
 							<Search className="w-3.5 h-3.5 absolute left-2.5 top-2.5 text-brand-muted" />
 						</form>
@@ -329,7 +330,7 @@ export function AdminUsersView() {
 						<button
 							type="button"
 							onClick={() => setShowCreateUserModal(true)}
-							className="px-3 py-1.5 bg-brand-primary hover:bg-brand-primary-deep text-brand-dark font-extrabold text-xs rounded-lg flex items-center gap-1.5 shrink-0 shadow-xs transition-all cursor-pointer border border-brand-primary-deep/20"
+							className="px-3.5 py-1.5 bg-brand-primary hover:bg-brand-primary-deep text-white font-bold text-xs rounded flex items-center gap-1.5 shrink-0 shadow-xs transition-all cursor-pointer border-none"
 						>
 							<UserPlus className="w-3.5 h-3.5" /> Tạo tài khoản
 						</button>
@@ -337,7 +338,7 @@ export function AdminUsersView() {
 						<button
 							onClick={fetchUsers}
 							title="Làm mới"
-							className="p-1.5 text-brand-muted hover:text-brand-dark rounded-lg hover:bg-brand-light-soft transition-colors cursor-pointer border border-brand-border bg-white shrink-0"
+							className="p-1.5 text-brand-muted hover:text-brand-dark rounded-md hover:bg-brand-light-soft transition-colors cursor-pointer border border-brand-border bg-white shrink-0"
 						>
 							<RefreshCw className="w-4 h-4" />
 						</button>
@@ -355,7 +356,7 @@ export function AdminUsersView() {
 							setRoleNameInput("");
 							setShowRoleEditModal(true);
 						}}
-						className="px-3 py-1.5 bg-brand-dark text-white font-extrabold text-xs rounded-lg flex items-center gap-1.5 shrink-0 shadow-xs hover:bg-brand-primary hover:text-brand-dark transition-all cursor-pointer"
+						className="px-3 py-1.5 bg-brand-dark text-white font-extrabold text-xs rounded-md flex items-center gap-1.5 shrink-0 shadow-xs hover:bg-brand-primary hover:text-brand-dark transition-all cursor-pointer"
 					>
 						<Plus className="w-3.5 h-3.5" /> Thêm vai trò mới
 					</button>
@@ -364,18 +365,18 @@ export function AdminUsersView() {
 
 			{/* Alert notification */}
 			{alertMsg && (
-				<div className={`p-3 rounded-lg text-xs font-bold flex items-center justify-between ${alertMsg.type === "success" ? "bg-emerald-50 text-emerald-800 border border-emerald-200" : "bg-rose-50 text-rose-800 border border-rose-200"}`}>
+				<div className={`p-3 rounded-md text-xs font-bold flex items-center justify-between ${alertMsg.type === "success" ? "bg-emerald-50 text-emerald-800 border border-emerald-200" : "bg-rose-50 text-rose-800 border border-rose-200"}`}>
 					<div className="flex items-center gap-2">
 						{alertMsg.type === "success" ? <CheckCircle className="w-4 h-4 text-emerald-600 shrink-0" /> : <AlertCircle className="w-4 h-4 text-rose-600 shrink-0" />}
 						<span>{alertMsg.text}</span>
 					</div>
-					<button onClick={() => setAlertMsg(null)} className="text-xs font-black cursor-pointer px-1.5 py-0.5 hover:bg-black/5 rounded">✕</button>
+					<button onClick={() => setAlertMsg(null)} className="text-xs font-black cursor-pointer px-1.5 py-0.5 hover:bg-black/5 rounded-md">✕</button>
 				</div>
 			)}
 
 			{/* TAB 1: USERS LIST TABLE */}
 			{activeTab === "users" && (
-				<div className="border border-brand-border rounded-lg bg-white overflow-hidden shadow-[0_1px_3px_rgba(0,0,0,0.02)]">
+				<div className="border border-brand-border rounded-md bg-white overflow-hidden shadow-[0_1px_3px_rgba(0,0,0,0.02)]">
 					{loading ? (
 						<div className="flex justify-center items-center py-16 text-xs text-brand-muted gap-2">
 							<Loader2 className="w-4 h-4 animate-spin text-brand-primary" /> Đang tải danh sách thành viên...
@@ -404,7 +405,7 @@ export function AdminUsersView() {
 														<img
 															src={u.avatarUrl || `https://api.dicebear.com/7.x/bottts/svg?seed=${u.email}`}
 															alt={displayName}
-															className="w-8 h-8 rounded-full border border-brand-border object-cover bg-brand-light-soft"
+															className="w-8 h-8 rounded-md border border-brand-border object-cover bg-brand-light-soft"
 														/>
 														<div>
 															<p className="font-extrabold text-brand-dark text-xs">{displayName}</p>
@@ -426,9 +427,9 @@ export function AdminUsersView() {
 												</td>
 												<td className="p-3 text-center">
 													{u.isActive === false || u.isLockedOut ? (
-														<span className="px-2 py-0.5 bg-red-50 text-red-700 border border-red-200 rounded text-[9px] font-extrabold uppercase">Đã khóa</span>
+														<span className="px-2 py-0.5 bg-red-50 text-red-700 border border-red-200 rounded-md text-[9px] font-extrabold uppercase">Đã khóa</span>
 													) : (
-														<span className="px-2 py-0.5 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded text-[9px] font-extrabold uppercase">Hoạt động</span>
+														<span className="px-2 py-0.5 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-md text-[9px] font-extrabold uppercase">Hoạt động</span>
 													)}
 												</td>
 												<td className="p-3 text-right">
@@ -441,7 +442,7 @@ export function AdminUsersView() {
 																setShowAssignRoleModal(true);
 															}}
 															title="Gán vai trò"
-															className="px-2 py-1 bg-brand-light-soft hover:bg-brand-primary/10 text-brand-dark text-[10px] font-extrabold rounded flex items-center gap-1 transition-colors cursor-pointer border border-brand-border"
+															className="px-2 py-1 bg-brand-light-soft hover:bg-brand-primary/10 text-brand-dark text-[10px] font-extrabold rounded-md flex items-center gap-1 transition-colors cursor-pointer border border-brand-border"
 														>
 															<Shield className="w-3 h-3 text-brand-primary" /> Role
 														</button>
@@ -449,7 +450,7 @@ export function AdminUsersView() {
 															type="button"
 															onClick={() => handleToggleLock(u)}
 															title={u.isActive === false || u.isLockedOut ? "Mở khóa tài khoản" : "Khóa tài khoản"}
-															className={`p-1.5 rounded transition-colors cursor-pointer border ${u.isActive === false || u.isLockedOut ? "bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border-emerald-200" : "bg-rose-50 hover:bg-rose-100 text-rose-700 border-rose-200"}`}
+															className={`p-1.5 rounded-md transition-colors cursor-pointer border ${u.isActive === false || u.isLockedOut ? "bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border-emerald-200" : "bg-rose-50 hover:bg-rose-100 text-rose-700 border-rose-200"}`}
 														>
 															{u.isActive === false || u.isLockedOut ? <Unlock className="w-3.5 h-3.5" /> : <Lock className="w-3.5 h-3.5" />}
 														</button>
@@ -464,33 +465,23 @@ export function AdminUsersView() {
 					)}
 
 					{/* Pagination Footer */}
-					{totalPages > 1 && (
-						<div className="flex items-center justify-between p-3 border-t border-brand-border text-xs text-brand-muted font-bold">
-							<span>Hiển thị trang {page} / {totalPages} (Tổng {totalCount} thành viên)</span>
-							<div className="flex items-center gap-1">
-								<button
-									disabled={page <= 1}
-									onClick={() => setPage((p) => p - 1)}
-									className="px-2.5 py-1 bg-white border border-brand-border rounded hover:bg-brand-light-soft disabled:opacity-40 cursor-pointer font-extrabold"
-								>
-									&lt; Trước
-								</button>
-								<button
-									disabled={page >= totalPages}
-									onClick={() => setPage((p) => p + 1)}
-									className="px-2.5 py-1 bg-white border border-brand-border rounded hover:bg-brand-light-soft disabled:opacity-40 cursor-pointer font-extrabold"
-								>
-									Sau &gt;
-								</button>
-							</div>
-						</div>
-					)}
+					<div className="px-4 py-2 border-t border-brand-border bg-brand-light-soft/20 text-xs">
+						<Pagination
+							currentPage={page}
+							totalPages={totalPages}
+							totalCount={totalCount}
+							pageSize={pageSize}
+							onPageChange={setPage}
+							showQuickJumper
+							showTotal
+						/>
+					</div>
 				</div>
 			)}
 
 			{/* TAB 2: ROLES MANAGEMENT TABLE */}
 			{activeTab === "roles" && (
-				<div className="border border-brand-border rounded-lg bg-white overflow-hidden shadow-[0_1px_3px_rgba(0,0,0,0.02)]">
+				<div className="border border-brand-border rounded-md bg-white overflow-hidden shadow-[0_1px_3px_rgba(0,0,0,0.02)]">
 					{rolesLoading ? (
 						<div className="flex justify-center items-center py-16 text-xs text-brand-muted gap-2">
 							<Loader2 className="w-4 h-4 animate-spin text-brand-primary" /> Đang tải danh sách vai trò...
@@ -523,7 +514,7 @@ export function AdminUsersView() {
 															setRoleNameInput(r.name);
 															setShowRoleEditModal(true);
 														}}
-														className="p-1.5 text-brand-muted hover:text-brand-dark hover:bg-brand-light-soft rounded cursor-pointer transition-colors border border-brand-border bg-white"
+														className="p-1.5 text-brand-muted hover:text-brand-dark hover:bg-brand-light-soft rounded-md cursor-pointer transition-colors border border-brand-border bg-white"
 														title="Sửa tên vai trò"
 													>
 														<Edit3 className="w-3.5 h-3.5" />
@@ -532,7 +523,7 @@ export function AdminUsersView() {
 														type="button"
 														disabled={r.name === "Admin" || r.name === "User"}
 														onClick={() => handleDeleteRole(r)}
-														className="p-1.5 text-rose-600 hover:bg-rose-50 rounded cursor-pointer transition-colors border border-rose-200 bg-white disabled:opacity-30 disabled:cursor-not-allowed"
+														className="p-1.5 text-rose-600 hover:bg-rose-50 rounded-md cursor-pointer transition-colors border border-rose-200 bg-white disabled:opacity-30 disabled:cursor-not-allowed"
 														title="Xóa vai trò"
 													>
 														<Trash2 className="w-3.5 h-3.5" />
@@ -551,7 +542,7 @@ export function AdminUsersView() {
 			{/* MODAL 1: Tạo tài khoản người dùng cơ bản */}
 			{showCreateUserModal && (
 				<div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-xs p-4 animate-in fade-in duration-200">
-					<div className="bg-white border border-brand-border rounded-xl w-full max-w-md p-5 shadow-2xl text-left space-y-4">
+					<div className="bg-white border border-brand-border rounded-md w-full max-w-md p-5 shadow-2xl text-left space-y-4">
 						<div className="border-b border-brand-border pb-2.5 flex items-center justify-between">
 							<div>
 								<h3 className="text-xs font-black text-brand-dark uppercase tracking-wide flex items-center gap-1.5">
@@ -571,7 +562,7 @@ export function AdminUsersView() {
 									placeholder="nhanvien@system.com"
 									value={newEmail}
 									onChange={(e) => setNewEmail(e.target.value)}
-									className="w-full px-3 py-1.5 border border-brand-border rounded bg-white font-bold text-brand-dark focus:outline-none focus:border-brand-primary"
+									className="w-full px-3 py-1.5 border border-brand-border rounded-md bg-white font-bold text-brand-dark focus:outline-none focus:border-brand-primary"
 								/>
 							</div>
 
@@ -584,7 +575,7 @@ export function AdminUsersView() {
 										placeholder="Mật khẩu tối thiểu 6 ký tự"
 										value={newPassword}
 										onChange={(e) => setNewPassword(e.target.value)}
-										className="w-full px-3 py-1.5 border border-brand-border rounded bg-white font-bold text-brand-dark focus:outline-none focus:border-brand-primary"
+										className="w-full px-3 py-1.5 border border-brand-border rounded-md bg-white font-bold text-brand-dark focus:outline-none focus:border-brand-primary"
 									/>
 									<KeyRound className="w-3.5 h-3.5 absolute right-2.5 top-2.5 text-brand-muted" />
 								</div>
@@ -598,7 +589,7 @@ export function AdminUsersView() {
 										placeholder="Nguyễn"
 										value={newLastName}
 										onChange={(e) => setNewLastName(e.target.value)}
-										className="w-full px-3 py-1.5 border border-brand-border rounded bg-white font-bold text-brand-dark focus:outline-none focus:border-brand-primary"
+										className="w-full px-3 py-1.5 border border-brand-border rounded-md bg-white font-bold text-brand-dark focus:outline-none focus:border-brand-primary"
 									/>
 								</div>
 								<div>
@@ -608,7 +599,7 @@ export function AdminUsersView() {
 										placeholder="Văn A"
 										value={newFirstName}
 										onChange={(e) => setNewFirstName(e.target.value)}
-										className="w-full px-3 py-1.5 border border-brand-border rounded bg-white font-bold text-brand-dark focus:outline-none focus:border-brand-primary"
+										className="w-full px-3 py-1.5 border border-brand-border rounded-md bg-white font-bold text-brand-dark focus:outline-none focus:border-brand-primary"
 									/>
 								</div>
 							</div>
@@ -618,7 +609,7 @@ export function AdminUsersView() {
 								<select
 									value={newRole}
 									onChange={(e) => setNewRole(e.target.value)}
-									className="w-full px-3 py-1.5 border border-brand-border rounded bg-white font-bold text-brand-dark focus:outline-none focus:border-brand-primary cursor-pointer"
+									className="w-full px-3 py-1.5 border border-brand-border rounded-md bg-white font-bold text-brand-dark focus:outline-none focus:border-brand-primary cursor-pointer"
 								>
 									<option value="User">User (Người dùng hệ thống)</option>
 									<option value="Staff">Staff (Nhân viên)</option>
@@ -631,14 +622,14 @@ export function AdminUsersView() {
 								<button
 									type="button"
 									onClick={() => setShowCreateUserModal(false)}
-									className="px-3.5 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg font-bold text-xs cursor-pointer"
+									className="px-3.5 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-md font-bold text-xs cursor-pointer"
 								>
 									Hủy bỏ
 								</button>
 								<button
 									type="submit"
 									disabled={actionLoading}
-									className="px-4 py-1.5 bg-brand-dark hover:bg-brand-primary hover:text-brand-dark text-white rounded-lg font-black text-xs cursor-pointer transition-all disabled:opacity-50 flex items-center gap-1.5"
+									className="px-4 py-1.5 bg-brand-dark hover:bg-brand-primary hover:text-brand-dark text-white rounded-md font-black text-xs cursor-pointer transition-all disabled:opacity-50 flex items-center gap-1.5"
 								>
 									{actionLoading && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
 									Tạo tài khoản
@@ -652,7 +643,7 @@ export function AdminUsersView() {
 			{/* MODAL 2: Gán vai trò (Assign Role Modal) */}
 			{showAssignRoleModal && selectedUser && (
 				<div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-xs p-4 animate-in fade-in duration-200">
-					<div className="bg-white border border-brand-border rounded-xl w-full max-w-sm p-5 shadow-2xl text-left space-y-4">
+					<div className="bg-white border border-brand-border rounded-md w-full max-w-sm p-5 shadow-2xl text-left space-y-4">
 						<div className="border-b border-brand-border pb-2.5">
 							<h3 className="text-xs font-black text-brand-dark uppercase tracking-wide">Phân quyền vai trò tài khoản</h3>
 							<p className="text-[10px] text-brand-muted font-bold mt-0.5">{selectedUser.email}</p>
@@ -663,7 +654,7 @@ export function AdminUsersView() {
 							<select
 								value={selectedRole}
 								onChange={(e) => setSelectedRole(e.target.value)}
-								className="w-full px-3 py-2 border border-brand-border rounded bg-white font-bold text-brand-dark focus:outline-none focus:border-brand-primary cursor-pointer"
+								className="w-full px-3 py-2 border border-brand-border rounded-md bg-white font-bold text-brand-dark focus:outline-none focus:border-brand-primary cursor-pointer"
 							>
 								<option value="User">User (Khách hàng / Thành viên)</option>
 								<option value="Staff">Staff (Nhân viên vận hành)</option>
@@ -676,7 +667,7 @@ export function AdminUsersView() {
 							<button
 								type="button"
 								onClick={() => setShowAssignRoleModal(false)}
-								className="px-3.5 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg font-bold text-xs cursor-pointer"
+								className="px-3.5 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-md font-bold text-xs cursor-pointer"
 							>
 								Hủy bỏ
 							</button>
@@ -684,7 +675,7 @@ export function AdminUsersView() {
 								type="button"
 								onClick={handleAssignRole}
 								disabled={actionLoading}
-								className="px-4 py-1.5 bg-brand-dark hover:bg-brand-primary hover:text-brand-dark text-white rounded-lg font-black text-xs cursor-pointer transition-all disabled:opacity-50 flex items-center gap-1.5"
+								className="px-4 py-1.5 bg-brand-dark hover:bg-brand-primary hover:text-brand-dark text-white rounded-md font-black text-xs cursor-pointer transition-all disabled:opacity-50 flex items-center gap-1.5"
 							>
 								{actionLoading && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
 								Cập nhật vai trò
@@ -697,7 +688,7 @@ export function AdminUsersView() {
 			{/* MODAL 3: Thêm / Sửa Role Modal */}
 			{showRoleEditModal && (
 				<div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-xs p-4 animate-in fade-in duration-200">
-					<div className="bg-white border border-brand-border rounded-xl w-full max-w-sm p-5 shadow-2xl text-left space-y-4">
+					<div className="bg-white border border-brand-border rounded-md w-full max-w-sm p-5 shadow-2xl text-left space-y-4">
 						<div className="border-b border-brand-border pb-2.5">
 							<h3 className="text-xs font-black text-brand-dark uppercase tracking-wide">
 								{editingRole ? "Sửa tên vai trò" : "Tạo vai trò mới"}
@@ -713,7 +704,7 @@ export function AdminUsersView() {
 									placeholder="VD: Moderator, Supervisor..."
 									value={roleNameInput}
 									onChange={(e) => setRoleNameInput(e.target.value)}
-									className="w-full px-3 py-1.5 border border-brand-border rounded bg-white font-bold text-brand-dark focus:outline-none focus:border-brand-primary"
+									className="w-full px-3 py-1.5 border border-brand-border rounded-md bg-white font-bold text-brand-dark focus:outline-none focus:border-brand-primary"
 								/>
 							</div>
 
@@ -721,14 +712,14 @@ export function AdminUsersView() {
 								<button
 									type="button"
 									onClick={() => setShowRoleEditModal(false)}
-									className="px-3.5 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg font-bold text-xs cursor-pointer"
+									className="px-3.5 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-md font-bold text-xs cursor-pointer"
 								>
 									Hủy bỏ
 								</button>
 								<button
 									type="submit"
 									disabled={actionLoading}
-									className="px-4 py-1.5 bg-brand-dark hover:bg-brand-primary hover:text-brand-dark text-white rounded-lg font-black text-xs cursor-pointer transition-all disabled:opacity-50 flex items-center gap-1.5"
+									className="px-4 py-1.5 bg-brand-dark hover:bg-brand-primary hover:text-brand-dark text-white rounded-md font-black text-xs cursor-pointer transition-all disabled:opacity-50 flex items-center gap-1.5"
 								>
 									{actionLoading && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
 									Lưu vai trò

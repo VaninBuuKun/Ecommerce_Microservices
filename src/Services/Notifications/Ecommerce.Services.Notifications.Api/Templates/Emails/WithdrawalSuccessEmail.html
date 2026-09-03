@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="vi">
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+
+<body
+    style="margin: 0; padding: 0; background-color: #fafafa; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #171717;">
+    <table role="presentation" width="100%" border="0" cellspacing="0" cellpadding="0"
+        style="background-color: #fafafa; padding: 32px 12px;">
+        <tr>
+            <td align="center">
+                <table role="presentation" width="100%" border="0" cellspacing="0" cellpadding="0"
+                    style="max-width: 520px; background-color: #ffffff; border: 1px solid #e5e5e5; border-radius: 6px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
+
+                    <!-- Header -->
+                    <tr>
+                        <td
+                            style="background-color: #ffffff; padding: 24px 28px 20px 28px; border-bottom: 1px solid #f0f0f0;">
+                            <table role="presentation" width="100%" border="0" cellspacing="0" cellpadding="0">
+                                <tr>
+                                    <td>
+                                        <span
+                                            style="color: #10b981; font-size: 20px; font-weight: 800; letter-spacing: -0.5px;">⚡
+                                            BuuStore</span>
+                                    </td>
+                                    <td align="right">
+                                        <span
+                                            style="color: #10b981; font-size: 11px; font-weight: 700; text-transform: uppercase; background-color: #ecfdf5; border: 1px solid #a7f3d0; padding: 3px 8px; border-radius: 4px;">Rút
+                                            tiền thành công</span>
+                                    </td>
+                                </tr>
+                            </table>
+                        </td>
+                    </tr>
+
+                    <!-- Main Content -->
+                    <tr>
+                        <td style="padding: 28px;">
+                            <h1
+                                style="color: #171717; font-size: 18px; font-weight: 700; margin: 0 0 10px 0; letter-spacing: -0.3px;">
+                                Chuyển Tiền Rút Về Tài Khoản Thành Công 💸
+                            </h1>
+
+                            <p style="color: #525252; font-size: 14px; line-height: 1.6; margin: 0 0 20px 0;">
+                                Chào <strong>{{FullName}}</strong>, yêu cầu rút tiền từ Ví người bán của bạn đã được
+                                Admin xử lý và chuyển khoản thành công.
+                            </p>
+
+                            <!-- Số tiền nổi bật -->
+                            <div
+                                style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px; padding: 18px; text-align: center; margin-bottom: 20px;">
+                                <div
+                                    style="color: #64748b; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">
+                                    Số tiền đã giải ngân
+                                </div>
+                                <div style="font-size: 28px; font-weight: 800; color: #0f172a; margin-top: 4px;">
+                                    {{FormattedAmount}} VND
+                                </div>
+                            </div>
+
+                            <!-- Bảng thông tin thụ hưởng -->
+                            <table role="presentation" width="100%" border="0" cellspacing="0" cellpadding="0"
+                                style="background-color: #fafafa; border: 1px solid #f0f0f0; border-radius: 6px; margin-bottom: 20px;">
+                                <tr>
+                                    <td style="padding: 16px 20px;">
+                                        <table role="presentation" width="100%" border="0" cellspacing="0"
+                                            cellpadding="0">
+                                            <tr>
+                                                <td style="color: #737373; font-size: 13px; padding: 4px 0;">Ngân hàng
+                                                    thụ hưởng:</td>
+                                                <td align="right"
+                                                    style="color: #171717; font-size: 13px; font-weight: 700; padding: 4px 0;">
+                                                    {{BankName}}</td>
+                                            </tr>
+                                            <tr>
+                                                <td style="color: #737373; font-size: 13px; padding: 4px 0;">Số tài
+                                                    khoản:</td>
+                                                <td align="right"
+                                                    style="color: #171717; font-size: 13px; font-weight: 700; font-family: monospace; padding: 4px 0;">
+                                                    {{BankAccountNumber}}</td>
+                                            </tr>
+                                            <tr>
+                                                <td style="color: #737373; font-size: 13px; padding: 4px 0;">Chủ tài
+                                                    khoản:</td>
+                                                <td align="right"
+                                                    style="color: #171717; font-size: 13px; font-weight: 700; padding: 4px 0;">
+                                                    {{BankAccountHolder}}</td>
+                                            </tr>
+                                            <tr>
+                                                <td style="color: #737373; font-size: 13px; padding: 4px 0;">Thời gian
+                                                    hoàn tất:</td>
+                                                <td align="right"
+                                                    style="color: #171717; font-size: 13px; font-weight: 600; padding: 4px 0;">
+                                                    {{CompletedAt}}</td>
+                                            </tr>
+                                            {{AdminNoteRow}}
+                                        </table>
+                                    </td>
+                                </tr>
+                            </table>
+
+                            <!-- Chứng từ chuyển khoản (Proof Image) -->
+                            {{ProofImageSection}}
+
+                            <p style="color: #737373; font-size: 12px; line-height: 1.5; margin: 20px 0 0 0;">
+                                Vui lòng kiểm tra số dư tại ngân hàng thụ hưởng. Nếu sau 24h chưa nhận được tiền, bạn có
+                                thể liên hệ bộ phận hỗ trợ của BuuStore để được trợ giúp.
+                            </p>
+                        </td>
+                    </tr>
+
+                </table>
+            </td>
+        </tr>
+    </table>
+</body>
+
+</html>

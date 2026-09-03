@@ -34,7 +34,7 @@ export function useWishlist() {
 
 	const isWishlisted = (productId: string): boolean => {
 		if (!wishlistQuery.data || !Array.isArray(wishlistQuery.data)) return false;
-		return wishlistQuery.data.some((item: any) => item.id === productId);
+		return wishlistQuery.data.some((item: any) => String(item.id) === String(productId));
 	};
 
 	return {

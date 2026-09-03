@@ -19,13 +19,24 @@ public class SellerRevenueConsumer(
     public async Task Consume(ConsumeContext<SubOrderCompletedEvent> context)
     {
         var @event = context.Message;
-        var netRevenue = @event.TotalAmount - @event.PlatformDiscount; // Sàn tự bỏ ra phần PlatformDiscount, không ảnh hưởng seller
-        logger.LogInformation("Processing SubOrderCompletedEvent. ShopId: {ShopId}, GrandTotal: {Total}, PlatformDiscount: {Discount}, NetRevenue: {Net}, SubOrderId: {SubOrderId}",
-            @event.ShopId, @event.TotalAmount, @event.PlatformDiscount, netRevenue, @event.SubOrderId);
+        // PlatformDiscount là khoản giảm giá do Sàn tài trợ cho người mua (Platform Voucher),
+        // người bán (Seller) vẫn được hưởng đầy đủ giá trị đơn hàng (TotalAmount) và không bị khấu trừ khoản này.
+        var grossRevenue = @event.TotalAmount;
 
         try
         {
-            // 1. Gọi gRPC sang Seller Service để lấy OwnerUserId của ShopId
+            // 1. Lấy tỷ lệ hoa hồng sàn hiện tại
+            var configRepo = unitOfWork.Repository<PlatformCommissionConfig, long>();
+            var commissionConfig = await configRepo.FirstOrDefaultAsync(c => true);
+            var commissionRate = commissionConfig?.RatePercentage ?? 5.0m;
+
+            var commissionAmount = Math.Round(grossRevenue * (commissionRate / 100m), 2);
+            var netRevenue = grossRevenue - commissionAmount;
+
+            logger.LogInformation("Processing SubOrderCompletedEvent. ShopId: {ShopId}, Gross: {Gross}, Rate: {Rate}%, Commission: {Commission}, Net: {Net}, SubOrderId: {SubOrderId}",
+                @event.ShopId, grossRevenue, commissionRate, commissionAmount, netRevenue, @event.SubOrderId);
+
+            // 2. Gọi gRPC sang Seller Service để lấy OwnerUserId của ShopId
             var shopInfo = await sellerGrpcClient.GetShopShippingInfoAsync(new GetShopShippingInfoRequest
             {
                 ShopId = @event.ShopId
@@ -40,8 +51,9 @@ public class SellerRevenueConsumer(
             var ownerUserId = shopInfo.OwnerUserId;
             var walletRepo = unitOfWork.Repository<Wallet, long>();
             var transactionRepo = unitOfWork.Repository<WalletTransaction, Guid>();
+            var revenueRecordRepo = unitOfWork.Repository<RevenueRecord, long>();
 
-            // 2. Tìm ví của chủ shop
+            // 3. Tìm ví của chủ shop
             var wallet = await walletRepo.FirstOrDefaultAsync(w => w.UserId == ownerUserId);
             if (wallet == null)
             {
@@ -55,11 +67,24 @@ public class SellerRevenueConsumer(
                 walletRepo.Add(wallet);
             }
 
-            // 3. Cộng doanh thu thực tế vào ví (đã trừ PlatformDiscount do sàn tự bỏ ra)
+            // 4. Cộng doanh thu thực tế (đã trừ hoa hồng sàn) vào ví
             wallet.Balance += netRevenue;
             walletRepo.Update(wallet);
 
-            // 4. Tạo giao dịch biến động số dư
+            // 5. Tạo bản ghi RevenueRecord đối soát
+            var revenueRecord = new RevenueRecord
+            {
+                SubOrderId = @event.SubOrderId,
+                ShopId = @event.ShopId,
+                GrossAmount = grossRevenue,
+                PlatformDiscountAmount = @event.PlatformDiscount,
+                CommissionRatePercentage = commissionRate,
+                CommissionAmount = commissionAmount,
+                NetAmount = netRevenue
+            };
+            revenueRecordRepo.Add(revenueRecord);
+
+            // 6. Tạo giao dịch biến động số dư
             var transaction = new WalletTransaction
             {
                 WalletId = wallet.Id,
@@ -68,13 +93,13 @@ public class SellerRevenueConsumer(
                 Reason = TransactionReason.SellerRevenue,
                 BalanceAfter = wallet.Balance,
                 ReferenceId = @event.SubOrderId.ToString(),
-                Description = $"Cộng doanh thu đơn hàng {@event.SubOrderId} hoàn tất. (Tổng: {@event.TotalAmount:N0}đ - Sàn trợ giá: {@event.PlatformDiscount:N0}đ)"
+                Description = $"Cộng doanh thu đơn hàng {@event.SubOrderId} hoàn tất. (Doanh thu: {grossRevenue:N0}đ - Hoa hồng sàn {commissionRate}%: {commissionAmount:N0}đ = Thực nhận: {netRevenue:N0}đ)"
             };
             transactionRepo.Add(transaction);
 
             await unitOfWork.SaveChangesAsync();
-            logger.LogInformation("Successfully credited net revenue of {NetRevenue} (gross: {Total}, platform discount: {Discount}) to Seller {OwnerUserId} for SubOrder {SubOrderId}",
-                netRevenue, @event.TotalAmount, @event.PlatformDiscount, ownerUserId, @event.SubOrderId);
+            logger.LogInformation("Successfully credited net revenue of {NetRevenue} (Gross: {Gross}, Commission: {Commission}) to Seller {OwnerUserId} for SubOrder {SubOrderId}",
+                netRevenue, grossRevenue, commissionAmount, ownerUserId, @event.SubOrderId);
         }
         catch (Exception ex)
         {

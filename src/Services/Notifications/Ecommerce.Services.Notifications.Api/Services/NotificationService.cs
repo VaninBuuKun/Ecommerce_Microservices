@@ -1,9 +1,12 @@
 using Ecommerce.Services.Notifications.Api.Hubs;
 using Ecommerce.Services.Notifications.Api.Models;
+using Ecommerce.Services.Notifications.Api.Models.Entities;
 using Ecommerce.Services.Notifications.Api.Persistances;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+
+using Ecommerce.Services.Notifications.Api.Models.Interfaces;
 
 namespace Ecommerce.Services.Notifications.Api.Services;
 
@@ -46,15 +49,30 @@ public class NotificationService(
 
     public async Task<List<Notification>> GetByUserIdAsync(long userId, int page = 1, int pageSize = 20, CancellationToken cancellationToken = default)
     {
+        // Chỉ lấy thông báo trong vòng 15 ngày gần nhất
+        var fifteenDaysAgo = DateTimeOffset.UtcNow.AddDays(-15);
+
         return await dbContext.Notifications
-            .Where(n => n.UserId == userId)
+            .Where(n => n.UserId == userId && n.CreatedAt >= fifteenDaysAgo)
             .OrderByDescending(n => n.CreatedAt)
             .Skip((page - 1) * pageSize)
             .Take(pageSize)
             .ToListAsync(cancellationToken);
     }
 
+    public async Task<Notification?> GetByIdAsync(Guid id, long userId, CancellationToken cancellationToken = default)
+    {
+        var notification = await dbContext.Notifications
+            .FirstOrDefaultAsync(n => n.Id == id && n.UserId == userId, cancellationToken);
 
+        if (notification != null && !notification.IsRead)
+        {
+            notification.IsRead = true;
+            await dbContext.SaveChangesAsync(cancellationToken);
+        }
+
+        return notification;
+    }
 
     public async Task MarkAsReadAsync(Guid notificationId, long userId, CancellationToken cancellationToken = default)
     {
@@ -72,5 +90,16 @@ public class NotificationService(
         await dbContext.Notifications
             .Where(n => n.UserId == userId && !n.IsRead)
             .ExecuteUpdateAsync(s => s.SetProperty(n => n.IsRead, true), cancellationToken);
+    }
+
+    public async Task<int> PurgeOldNotificationsAsync(int olderThanDays, CancellationToken cancellationToken = default)
+    {
+        var cutoff = DateTimeOffset.UtcNow.AddDays(-olderThanDays);
+        var deletedCount = await dbContext.Notifications
+            .Where(n => n.CreatedAt < cutoff)
+            .ExecuteDeleteAsync(cancellationToken);
+
+        logger.LogInformation("Purged {Count} old notifications older than {Days} days (before {Cutoff})", deletedCount, olderThanDays, cutoff);
+        return deletedCount;
     }
 }

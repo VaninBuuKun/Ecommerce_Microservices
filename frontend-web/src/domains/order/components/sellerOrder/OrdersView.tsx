@@ -5,7 +5,6 @@ import {
 	Check,
 	X,
 	Eye,
-	EyeOff,
 	Package,
 	Loader2,
 	ChevronLeft,
@@ -13,11 +12,12 @@ import {
 } from "lucide-react";
 import { toast } from "react-toastify";
 import { useSellerStore, useSellerProfileQuery } from "@/domains/seller";
-import { SubOrderDetailView } from "./SubOrderDetailView";
+import { CustomerOrderDetailView } from "../CustomerOrderDetailView";
 import { CancelOrderModal } from "./CancelOrderModal";
 import { PackageReadyModal } from "./PackageReadyModal";
 import { getOrderStatusBadge } from "../VoucherHelpers";
 import { useConfirmSubOrderMutation, usePackageReadySubOrderMutation, useRejectSubOrderMutation, useShopSubOrdersQuery } from "../../hooks/useOrders";
+import { Pagination } from "@/shared/components/Pagination";
 
 export function OrdersView() {
 	const { shopId } = useParams<{ shopId?: string }>();
@@ -42,7 +42,7 @@ export function OrdersView() {
 		refetch,
 		isFetching,
 	} = useShopSubOrdersQuery(
-		resolvedShop?.id?.toString(),
+		resolvedShop?.id ? Number(resolvedShop.id) : undefined,
 		currentPage,
 		PAGE_SIZE,
 		statusFilter === "All" ? undefined : statusFilter,
@@ -52,10 +52,8 @@ export function OrdersView() {
 	const rejectSubOrderMutation = useRejectSubOrderMutation();
 	const packageReadyMutation = usePackageReadySubOrderMutation();
 
-	// State for expanded order details
-	const [expandedOrders, setExpandedOrders] = useState<
-		Record<string, boolean>
-	>({});
+	// State for viewing full order details (tương tự ProfileOrderTabs)
+	const [detailSubOrderId, setDetailSubOrderId] = useState<string | null>(null);
 
 	// State for cancel modal
 	const [cancelingOrderId, setCancelingOrderId] = useState<string | null>(
@@ -69,14 +67,6 @@ export function OrdersView() {
 	const [length, setLength] = useState(10); // cm
 	const [width, setWidth] = useState(10); // cm
 	const [height, setHeight] = useState(10); // cm
-
-	// Toggle detail expand
-	const toggleExpand = (orderId: string) => {
-		setExpandedOrders((prev) => ({
-			...prev,
-			[orderId]: !prev[orderId],
-		}));
-	};
 
 	const handleConfirm = async (id: string) => {
 		try {
@@ -109,6 +99,31 @@ export function OrdersView() {
 		}
 	};
 
+	const handleOpenPackaging = (order: any) => {
+		const items = order.orderItems || order.items || [];
+		let totalWeight = 0;
+		let maxLength = 0;
+		let maxWidth = 0;
+		let totalHeight = 0;
+
+		if (items.length > 0) {
+			items.forEach((item: any) => {
+				const qty = item.quantity || 1;
+				const itemWeight = item.weightInGrams > 0 ? item.weightInGrams : (item.weight > 0 ? item.weight : 500);
+				totalWeight += itemWeight * qty;
+				maxLength = Math.max(maxLength, item.length > 0 ? item.length : 20);
+				maxWidth = Math.max(maxWidth, item.width > 0 ? item.width : 15);
+				totalHeight += (item.height > 0 ? item.height : 5) * qty;
+			});
+		}
+
+		setWeight(totalWeight > 0 ? totalWeight : 500);
+		setLength(maxLength > 0 ? maxLength : 20);
+		setWidth(maxWidth > 0 ? maxWidth : 15);
+		setHeight(totalHeight > 0 ? totalHeight : 10);
+		setPackingOrderId(order.id);
+	};
+
 	const handlePackageReadySubmit = async () => {
 		if (!packingOrderId) return;
 
@@ -135,7 +150,7 @@ export function OrdersView() {
 	const filteredOrders = backendItems.filter((order: any) => {
 		if (!searchQuery.trim()) return true;
 		return (
-			order.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
+			String(order.id).toLowerCase().includes(searchQuery.toLowerCase()) ||
 			(order.shippingAddress &&
 				order.shippingAddress
 					.toLowerCase()
@@ -144,6 +159,17 @@ export function OrdersView() {
 	});
 
 	const totalPages = subOrdersPaged?.totalPages || 1;
+
+	if (detailSubOrderId) {
+		return (
+			<CustomerOrderDetailView
+				subOrderId={detailSubOrderId}
+				isSeller={true}
+				onBack={() => setDetailSubOrderId(null)}
+				onStatusUpdated={() => refetch()}
+			/>
+		);
+	}
 
 	if (isLoading) {
 		return (
@@ -216,7 +242,7 @@ export function OrdersView() {
 				<table className="w-full text-xs text-left">
 					<thead className="bg-brand-light-soft border-b border-brand-border text-brand-dark font-bold">
 						<tr>
-							<th className="p-3">Mã Đơn hàng con</th>
+							<th className="p-3">Mã Đơn hàng</th>
 							<th className="p-3">Ngày đặt</th>
 							<th className="p-3">Khách hàng</th>
 							<th className="p-3">Tổng tiền</th>
@@ -236,17 +262,14 @@ export function OrdersView() {
 							</tr>
 						) : (
 							filteredOrders.map((order: any) => {
-								const isExpanded = !!expandedOrders[order.id];
 								return (
 									<React.Fragment key={order.id}>
-										<tr
-											className={`hover:bg-brand-light-soft/20 ${isExpanded ? "bg-brand-light-soft/10" : ""}`}
-										>
+										<tr className="hover:bg-brand-light-soft/20 transition-colors">
 											<td
 												className="p-3 font-bold text-brand-dark truncate max-w-40"
 												title={order.id}
 											>
-												#{order.id.split("-")[0]}
+												{order.id}
 											</td>
 											<td className="p-3 text-brand-muted">
 												{new Date(
@@ -298,98 +321,70 @@ export function OrdersView() {
 														)}
 													{order.status ===
 														"Processing" && (
-															<button
-																onClick={() =>
-																	setPackingOrderId(
-																		order.id,
-																	)
-																}
-																className="px-2 py-1 text-purple-600 hover:bg-purple-50 border border-purple-200 rounded cursor-pointer transition-all inline-flex items-center gap-1 text-[10px] font-bold"
-															>
-																<Package className="w-3.5 h-3.5" />
-																Đóng gói xong
-															</button>
+															<>
+																<button
+																	onClick={() =>
+																		handleOpenPackaging(
+																			order,
+																		)
+																	}
+																	className="px-2 py-1 text-purple-600 hover:bg-purple-50 border border-purple-200 rounded cursor-pointer transition-all inline-flex items-center gap-1 text-[10px] font-bold"
+																	title="Đóng gói xong"
+																>
+																	<Package className="w-3.5 h-3.5" />
+																	Đóng gói xong
+																</button>
+																<button
+																	onClick={() =>
+																		setCancelingOrderId(
+																			order.id,
+																		)
+																	}
+																	className="p-1 text-red-600 hover:bg-red-50 border border-red-200 rounded cursor-pointer transition-all inline-flex items-center gap-1 text-[10px] font-bold"
+																	title="Hủy đơn"
+																>
+																	<X className="w-3.5 h-3.5" />
+																	Hủy đơn
+																</button>
+															</>
 														)}
 
 													{/* Details toggle button */}
 													<button
 														onClick={() =>
-															toggleExpand(
+															setDetailSubOrderId(
 																order.id,
 															)
 														}
 														className="px-2 py-1 border border-brand-border hover:bg-brand-light-soft rounded-lg text-brand-primary transition-all cursor-pointer inline-flex items-center gap-1 text-[10px] font-bold bg-white"
 														title="Xem chi tiết"
 													>
-														{isExpanded ? (
-															<>
-																<EyeOff className="w-3.5 h-3.5" />
-																Ẩn chi tiết
-															</>
-														) : (
-															<>
-																<Eye className="w-3.5 h-3.5" />
-																Chi tiết
-															</>
-														)}
+														<Eye className="w-3.5 h-3.5" />
+														Chi tiết
 													</button>
 												</div>
 											</td>
 										</tr>
-
-										{/* Expandable Invoice details row */}
-										{isExpanded && (
-											<tr>
-												<td
-													colSpan={6}
-													className="p-4 bg-brand-light-soft/5"
-												>
-													<SubOrderDetailView
-														subOrderId={order.id}
-														isSeller={true}
-													/>
-												</td>
-											</tr>
-										)}
 									</React.Fragment>
 								);
 							})
 						)}
 					</tbody>
 				</table>
-			</div>
 
-			{/* Pagination Controls */}
-			{totalPages > 1 && (
-				<div className="flex justify-between items-center pt-2 text-xs">
-					<span className="text-brand-muted font-bold">
-						Hiển thị trang {currentPage} trên tổng số {totalPages}{" "}
-						trang (Tổng số đơn: {subOrdersPaged?.totalCount || 0})
-					</span>
-					<div className="flex gap-2">
-						<button
-							onClick={() =>
-								setCurrentPage((p) => Math.max(p - 1, 1))
-							}
-							disabled={currentPage === 1}
-							className="h-8 w-8 flex items-center justify-center border border-brand-border rounded-lg bg-white hover:bg-brand-light-soft disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
-						>
-							<ChevronLeft className="w-4 h-4 text-brand-dark" />
-						</button>
-						<button
-							onClick={() =>
-								setCurrentPage((p) =>
-									Math.min(p + 1, totalPages),
-								)
-							}
-							disabled={currentPage === totalPages}
-							className="h-8 w-8 flex items-center justify-center border border-brand-border rounded-lg bg-white hover:bg-brand-light-soft disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
-						>
-							<ChevronRight className="w-4 h-4 text-brand-dark" />
-						</button>
-					</div>
+				{/* Pagination Controls */}
+				<div className="px-4 py-2 border-t border-brand-border bg-brand-light-soft/20 text-xs">
+					<Pagination
+						currentPage={currentPage}
+						totalPages={totalPages}
+						totalCount={subOrdersPaged?.totalCount || 0}
+						pageSize={PAGE_SIZE}
+						onPageChange={setCurrentPage}
+						showQuickJumper
+						showTotal
+					/>
 				</div>
-			)}
+			</div>
 
 			{/* Modal Hủy Đơn */}
 			<CancelOrderModal

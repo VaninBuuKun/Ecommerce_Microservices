@@ -16,6 +16,7 @@ public class ProductDbContext(DbContextOptions<ProductDbContext> options, IInMem
     public DbSet<Category> Categories { get; set; }
     public DbSet<ProductReview> ProductReviews { get; set; }
     public DbSet<Wishlist> Wishlists { get; set; }
+    public DbSet<Banner> Banners { get; set; }
 
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -25,6 +26,7 @@ public class ProductDbContext(DbContextOptions<ProductDbContext> options, IInMem
         modelBuilder.Entity<Wishlist>(entity =>
         {
             entity.HasKey(w => w.Id);
+            entity.Property(w => w.Id).ValueGeneratedNever();
             entity.HasIndex(w => new { w.CustomerId, w.ProductId }).IsUnique();
             entity.HasOne(w => w.Product)
                   .WithMany()
@@ -59,9 +61,24 @@ public class ProductDbContext(DbContextOptions<ProductDbContext> options, IInMem
                   .HasColumnType("json");
         });
 
+        modelBuilder.Entity<Banner>(entity =>
+        {
+            entity.HasKey(b => b.Id);
+            entity.Property(b => b.Title).HasMaxLength(255).IsRequired();
+            entity.Property(b => b.Subtitle).HasMaxLength(500);
+            entity.Property(b => b.Badge).HasMaxLength(100);
+            entity.Property(b => b.ImageUrl).HasMaxLength(1000).IsRequired();
+            entity.Property(b => b.ButtonText).HasMaxLength(100).HasDefaultValue("Mua ngay");
+            entity.Property(b => b.TargetUrl).HasMaxLength(500).HasDefaultValue("/products");
+            entity.Property(b => b.ThemeGradient).HasMaxLength(255).HasDefaultValue("bg-gradient-to-r from-blue-600 via-indigo-600 to-blue-700");
+            entity.Property(b => b.DisplayOrder).HasDefaultValue(0);
+            entity.Property(b => b.IsActive).HasDefaultValue(true);
+        });
+
         modelBuilder.Entity<Product>(entity =>
         {
             entity.HasKey(p => p.Id);
+            entity.Property(p => p.Id).ValueGeneratedNever();
 
             entity.Property(p => p.Status)
                   .HasConversion<string>()
@@ -96,7 +113,8 @@ public class ProductDbContext(DbContextOptions<ProductDbContext> options, IInMem
             
             entity.Property(p => p.Price).HasColumnType("decimal(18,2)").HasDefaultValue(0);
             entity.Property(p => p.DiscountPrice).HasColumnType("decimal(18,2)").HasDefaultValue(0);
-            entity.Property(p => p.AvailableStock).HasDefaultValue(0);
+            entity.Property(p => p.Sold).HasDefaultValue(0);
+            entity.Property(p => p.AttributesJson).HasColumnType("text");
             entity.Property(p => p.Weight).HasDefaultValue(0);
             entity.Property(p => p.Height).HasDefaultValue(0);
             entity.Property(p => p.Width).HasDefaultValue(0);
@@ -114,6 +132,7 @@ public class ProductDbContext(DbContextOptions<ProductDbContext> options, IInMem
         modelBuilder.Entity<ProductOption>(entity =>
         {
             entity.HasKey(o => o.Id);
+            entity.Property(o => o.Id).ValueGeneratedNever();
             entity.Property(o => o.Name).HasMaxLength(255);
 
             entity.HasMany(o => o.Values)
@@ -128,6 +147,7 @@ public class ProductDbContext(DbContextOptions<ProductDbContext> options, IInMem
         modelBuilder.Entity<ProductOptionValue>(entity =>
         {
             entity.HasKey(ov => ov.Id);
+            entity.Property(ov => ov.Id).ValueGeneratedNever();
             entity.Property(ov => ov.Value).HasMaxLength(255);
             entity.Property(ov => ov.ImageUrl).HasMaxLength(1000);
         });
@@ -135,6 +155,7 @@ public class ProductDbContext(DbContextOptions<ProductDbContext> options, IInMem
         modelBuilder.Entity<ProductVariant>(entity =>
         {
             entity.HasKey(v => v.Id);
+            entity.Property(v => v.Id).ValueGeneratedNever();
             entity.Property(v => v.Price).HasColumnType("decimal(18,2)");
             
 

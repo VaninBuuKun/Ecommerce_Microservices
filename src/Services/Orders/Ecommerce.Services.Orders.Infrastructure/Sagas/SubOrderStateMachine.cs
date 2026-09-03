@@ -1,6 +1,7 @@
 using System;
 using Ecommerce.Services.Orders.Contracts.Events;
 using Ecommerce.Services.Orders.Domain.Enums;
+using Ecommerce.Services.Orders.Infrastructure.Extensions;
 using MassTransit;
 using Microsoft.Extensions.Logging;
 
@@ -52,31 +53,64 @@ public class SubOrderStateMachine : MassTransitStateMachine<SubOrderSagaState>
                     context.Saga.TotalAmount = context.Message.TotalAmount;
                     context.Saga.IsOnlinePayment = context.Message.IsOnlinePayment;
                     context.Saga.CreatedDate = DateTime.UtcNow;
+                    context.Saga.ItemsJson = System.Text.Json.JsonSerializer.Serialize(context.Message.OrderItems);
+                    context.Saga.ShippingAddress = context.Message.ShippingAddress;
+                    context.Saga.RecipientName = context.Message.RecipientName;
+                    context.Saga.RecipientPhone = context.Message.RecipientPhone;
+                    context.Saga.RecipientWardId = context.Message.RecipientWardId;
                 })
                 .TransitionTo(AwaitingConfirmation)
         );
 
         During(AwaitingConfirmation,
             When(SubOrderConfirmed)
+                .PublishAsync(context => context.Init<SubOrderStatusChangedEvent>(new SubOrderStatusChangedEvent
+                {
+                    SubOrderId = context.Message.SubOrderId,
+                    Status = "Processing"
+                }))
                 .TransitionTo(Processing),
             When(SubOrderRejected)
+                .HandleRejectionFlow()
                 .TransitionTo(Cancelled)
         );
 
         During(Processing,
             When(SubOrderPackageReady)
-                .TransitionTo(Shipping)
-        );
-
-        During(Shipping,
+                .HandlePackageReadyFlow(),
             When(SubOrderShipped)
+                .PublishAsync(context => context.Init<SubOrderStatusChangedEvent>(new SubOrderStatusChangedEvent
+                {
+                    SubOrderId = context.Message.SubOrderId,
+                    Status = "Shipping"
+                }))
                 .TransitionTo(Shipping),
+            When(SubOrderRejected)
+                .HandleRejectionFlow()
+                .TransitionTo(Cancelled)
+        );
+        
+        During(Shipping,
             When(SubOrderDelivered)
-                .TransitionTo(Delivered)
+                //Kích hoạt bg job để tự động hoàn tất đơn hàng sau 7 ngày
+                .PublishAsync(context => context.Init<SubOrderStatusChangedEvent>(new SubOrderStatusChangedEvent
+                {
+                    SubOrderId = context.Message.SubOrderId,
+                    Status = "Delivered"
+                }))
+                .TransitionTo(Delivered),
+            When(SubOrderRejected)
+                .HandleRejectionFlow()
+                .TransitionTo(Cancelled)
         );
 
         During(Delivered,
             When(SubOrderCompleted)
+                .PublishAsync(context => context.Init<SubOrderStatusChangedEvent>(new SubOrderStatusChangedEvent
+                {
+                    SubOrderId = context.Message.SubOrderId,
+                    Status = "Completed"
+                }))
                 .TransitionTo(Completed),
             When(RefundApproved)
                 .TransitionTo(Refunded)

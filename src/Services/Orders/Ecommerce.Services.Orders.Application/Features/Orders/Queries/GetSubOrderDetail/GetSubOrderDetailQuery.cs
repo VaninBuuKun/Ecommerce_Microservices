@@ -1,8 +1,5 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading;
-using System.Threading.Tasks;
+using System.Text.Json.Serialization;
+using BuildingBlocks.Shared.Converters;
 using BuildingBlocks.Shared.Commons;
 using BuildingBlocks.Shared.Enums;
 using BuildingBlocks.Shared.InfrastructureInterfaces.InMemoryBus;
@@ -18,6 +15,7 @@ namespace Ecommerce.Services.Orders.Application.Features.Orders.Queries.GetSubOr
 
 public class SubOrderDetailDto
 {
+    [JsonConverter(typeof(LongToStringJsonConverter))]
     public long Id { get; set; }
     public long OrderId { get; set; }
     public long CustomerId { get; set; }
@@ -168,7 +166,11 @@ public class GetSubOrderDetailQueryHandler(
                     VariantName = item.VariantName,
                     UnitPrice = item.UnitPrice,
                     Quantity = item.Quantity,
-                    ThumbnailUrl = item.ThumbnailUrl
+                    ThumbnailUrl = item.ThumbnailUrl,
+                    WeightInGrams = item.WeightInGrams,
+                    Length = item.Length,
+                    Width = item.Width,
+                    Height = item.Height
                 }).ToList()
             };
 

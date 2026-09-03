@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { Loader2, RefreshCw, Search, Filter, Ban, ExternalLink } from "lucide-react";
 import { toast } from "react-toastify";
 import { api } from "../../../core";
+import { Pagination } from "@/shared/components/Pagination";
 
 export function AdminShopsView() {
 	const [shops, setShops] = useState<any[]>([]);
@@ -67,23 +68,6 @@ export function AdminShopsView() {
 
 	const totalPages = Math.ceil(totalCount / pageSize) || 1;
 
-	// Tạo mảng số trang hiển thị dạng nút số
-	const getPageNumbers = () => {
-		const pages = [];
-		const maxVisible = 5;
-		let start = Math.max(1, page - Math.floor(maxVisible / 2));
-		let end = Math.min(totalPages, start + maxVisible - 1);
-
-		if (end - start + 1 < maxVisible) {
-			start = Math.max(1, end - maxVisible + 1);
-		}
-
-		for (let i = start; i <= end; i++) {
-			pages.push(i);
-		}
-		return pages;
-	};
-
 	return (
 		<div className="space-y-4 text-left font-sans animate-in fade-in duration-200">
 			<div className="flex justify-between items-center pb-2.5 border-b border-brand-border">
@@ -104,7 +88,7 @@ export function AdminShopsView() {
 						placeholder="Tìm theo tên shop, mô tả hoặc ID..."
 						value={searchTerm}
 						onChange={(e) => setSearchTerm(e.target.value)}
-						className="w-full h-9 pl-9 pr-3 text-xs bg-white border border-brand-border rounded-xl focus:outline-none focus:border-brand-primary"
+						className="w-full h-9 pl-9 pr-3 text-xs bg-white border border-brand-border rounded-md focus:outline-none focus:border-brand-primary"
 					/>
 					<Search className="w-4 h-4 text-brand-muted absolute left-3 top-2.5" />
 				</form>
@@ -117,7 +101,7 @@ export function AdminShopsView() {
 							setStatusFilter(e.target.value);
 							setPage(1);
 						}}
-						className="h-9 pl-9 pr-8 text-xs bg-white border border-brand-border rounded-xl focus:outline-none focus:border-brand-primary cursor-pointer font-bold text-brand-dark appearance-none shadow-xs"
+						className="h-9 pl-9 pr-8 text-xs bg-white border border-brand-border rounded-md focus:outline-none focus:border-brand-primary cursor-pointer font-bold text-brand-dark appearance-none shadow-xs"
 					>
 						<option value="All">Tất cả trạng thái</option>
 						<option value="Active">Đang hoạt động (Active)</option>
@@ -130,7 +114,7 @@ export function AdminShopsView() {
 				</div>
 			</div>
 
-			<div className="border border-brand-border rounded-xl bg-white overflow-hidden shadow-[0_1px_3px_rgba(0,0,0,0.02)]">
+			<div className="border border-brand-border rounded-md bg-white overflow-hidden shadow-[0_1px_3px_rgba(0,0,0,0.02)]">
 				{loading ? (
 					<div className="flex justify-center items-center py-16 text-xs text-brand-muted gap-2">
 						<Loader2 className="w-4 h-4 animate-spin text-brand-primary" /> Đang tải danh sách shops...
@@ -158,7 +142,7 @@ export function AdminShopsView() {
 												<img
 													src={s.logoUrl || s.avatarUrl || `https://api.dicebear.com/7.x/shapes/svg?seed=${s.name}`}
 													alt={s.name}
-													className="w-9 h-9 rounded-lg object-cover border border-brand-border bg-brand-light-soft shrink-0"
+													className="w-9 h-9 rounded-md object-cover border border-brand-border bg-brand-light-soft shrink-0"
 													onError={(e) => {
 														(e.target as HTMLImageElement).src = `https://api.dicebear.com/7.x/shapes/svg?seed=${s.name}`;
 													}}
@@ -212,7 +196,7 @@ export function AdminShopsView() {
 												<button
 													onClick={() => handleBanShop(s.id, s.name)}
 													disabled={banningId === s.id}
-													className="px-2.5 py-1 bg-red-50 hover:bg-red-600 text-red-600 hover:text-white border border-red-200 hover:border-red-600 rounded-lg text-[10px] font-black transition-all cursor-pointer inline-flex items-center gap-1 shadow-xs disabled:opacity-50"
+													className="px-2.5 py-1 bg-red-50 hover:bg-red-600 text-red-600 hover:text-white border border-red-200 hover:border-red-600 rounded-md text-[10px] font-black transition-all cursor-pointer inline-flex items-center gap-1 shadow-xs disabled:opacity-50"
 													title="Khóa gian hàng này"
 												>
 													{banningId === s.id ? (
@@ -232,42 +216,16 @@ export function AdminShopsView() {
 						</table>
 
 						{/* Numbered Pagination Controls */}
-						<div className="flex items-center justify-between p-3 border-t border-brand-border bg-brand-light-soft/30 text-xs">
-							<span className="text-brand-muted font-bold text-[11px]">
-								Tổng số: <strong className="text-brand-dark">{totalCount}</strong> gian hàng
-							</span>
-							<div className="flex items-center gap-1">
-								<button
-									type="button"
-									disabled={page <= 1}
-									onClick={() => setPage(page - 1)}
-									className="px-2.5 py-1 border border-brand-border bg-white rounded-lg disabled:opacity-40 hover:bg-brand-light-soft cursor-pointer font-bold text-[11px] transition-all"
-								>
-									&laquo;
-								</button>
-
-								{getPageNumbers().map((num) => (
-									<button
-										key={num}
-										onClick={() => setPage(num)}
-										className={`w-7 h-7 flex items-center justify-center rounded-lg border text-[11px] font-black transition-all cursor-pointer ${page === num
-											? "bg-brand-dark text-white border-brand-dark shadow-xs"
-											: "bg-white border-brand-border text-brand-dark hover:bg-brand-light-soft"
-											}`}
-									>
-										{num}
-									</button>
-								))}
-
-								<button
-									type="button"
-									disabled={page >= totalPages}
-									onClick={() => setPage(page + 1)}
-									className="px-2.5 py-1 border border-brand-border bg-white rounded-lg disabled:opacity-40 hover:bg-brand-light-soft cursor-pointer font-bold text-[11px] transition-all"
-								>
-									&raquo;
-								</button>
-							</div>
+						<div className="px-4 py-2 border-t border-brand-border bg-brand-light-soft/20 text-xs">
+							<Pagination
+								currentPage={page}
+								totalPages={totalPages}
+								totalCount={totalCount}
+								pageSize={pageSize}
+								onPageChange={setPage}
+								showQuickJumper
+								showTotal
+							/>
 						</div>
 					</>
 				)}

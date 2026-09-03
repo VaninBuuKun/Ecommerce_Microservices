@@ -70,3 +70,40 @@ export function useClearCartMutation() {
     },
   });
 }
+
+export function useRebuyMutation() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: cartApi.rebuy,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: cartQueryKeys.cart });
+    },
+  });
+}
+
+export function useBuyNowOrReorder() {
+  const queryClient = useQueryClient();
+
+  const buyNowOrReorder = async (options: {
+    subOrderId?: number | string | null;
+    variantIds?: (number | string)[] | null;
+    subOrderItems?: { variantId?: string | number; id?: string | number }[];
+  }) => {
+    let resolvedVariantIds = options.variantIds;
+    if (!resolvedVariantIds && options.subOrderItems) {
+      resolvedVariantIds = options.subOrderItems
+        .map((i) => i.variantId || i.id)
+        .filter(Boolean) as (string | number)[];
+    }
+
+    const result = await cartApi.rebuy({
+      subOrderId: options.subOrderId,
+      variantIds: resolvedVariantIds,
+    });
+
+    await queryClient.invalidateQueries({ queryKey: cartQueryKeys.cart });
+    return result;
+  };
+
+  return { buyNowOrReorder };
+}

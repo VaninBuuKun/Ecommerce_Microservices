@@ -1,5 +1,6 @@
 using System.Net;
 using System.Threading.RateLimiting;
+using BuildingBlocks.Caching;
 using BuildingBlocks.Logging;
 
 using Ecommerce.ApiGateway.Consts;
@@ -71,7 +72,7 @@ try
         client.BaseAddress = new Uri(identityUrl);
     });
 
-
+    builder.Services.AddCustomCaching(builder.Configuration.GetConnectionString("Redis") ?? "localhost:6379");
 
     var app = builder.Build();
 
@@ -81,15 +82,17 @@ try
         app.MapOpenApi();
     }
 
-
     app.UseHttpsRedirection();
     app.UseCors("MyPolicy");
 
     app.UseRateLimiter();
     app.MapControllers();
     app.MapHealthChecks("/health");
-    app.MapReverseProxy();
 
+    // Token Revocation & Blacklist Check before proxying to downstream microservices
+    app.UseMiddleware<Ecommerce.ApiGateway.Middlewares.TokenRevocationMiddleware>();
+
+    app.MapReverseProxy();
 
     app.Run();
 }

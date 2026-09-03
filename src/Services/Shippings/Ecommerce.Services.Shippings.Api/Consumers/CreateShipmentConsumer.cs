@@ -5,6 +5,7 @@ using Ecommerce.Services.Shippings.Api.Models.Entities;
 using Ecommerce.Services.Shippings.Api.Models.Enums;
 using Ecommerce.Services.Shippings.Api.Persistances;
 using Ecommerce.Services.Shippings.Api.Services;
+using Ecommerce.Services.Shippings.Api.Models.Interfaces;
 using MassTransit;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;

@@ -1,6 +1,6 @@
 export interface WalletDto {
-  id: string;
-  userId: string;
+  id: number;
+  userId: number;
   balance: number;
   currency: string;
   status: string;
@@ -8,7 +8,7 @@ export interface WalletDto {
 }
 
 export interface BankAccountDto {
-  id: string;
+  id: number;
   bankName: string;
   accountNumber: string;
   accountHolderName: string;
@@ -16,8 +16,8 @@ export interface BankAccountDto {
 }
 
 export interface WalletTransactionDto {
-  id: string;
-  walletId: string;
+  id: number;
+  walletId: number;
   amount: number;
   type: string;
   description: string;
@@ -25,8 +25,8 @@ export interface WalletTransactionDto {
 }
 
 export interface WithdrawalRequestDto {
-  id: string;
-  walletId: string;
+  id: number;
+  walletId: number;
   amount: number;
   status: string;
   bankName: string;

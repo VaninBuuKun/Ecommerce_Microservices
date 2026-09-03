@@ -110,7 +110,8 @@ public class ApproveRefundCommandHandler(
                     OrderId = subOrder.OrderId,
                     VariantItems = subOrderItems.Select(x => new VariantStockData
                     {
-                        VariantId = x.VariantId,
+                        ProductId = x.VariantId > 0 ? 0 : x.ProductId,
+                        VariantId = x.VariantId > 0 ? x.VariantId : 0,
                         Quantity = x.Quantity
                     }).ToList()
                 }, cancellationToken);

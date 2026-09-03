@@ -4,16 +4,16 @@ import { Save, Loader2 } from "lucide-react";
 import { toast } from "react-toastify";
 import {
 	useProductByIdQuery,
+	useUpdateMultiVariantsMutation,
 	useUpdateProductMutation,
-	useBulkUpdateVariantsMutation,
-	useUpdateProductSaleMutation,
+	useUpdateSingleVariantMutation,
 } from "../../hooks/useCatalog";
 import {
 	VariantsSection,
 	type GeneratedVariantType,
 	type OptionType,
 } from "./ProductVariantSection";
-import { ProductBasicInfoSection } from "./ProductBasicInfoSection";
+import { ProductBasicInfoSection, type AttributeItem } from "./ProductBasicInfoSection";
 
 function cartesianProduct<T>(arrays: T[][]): T[][] {
 	return arrays.reduce<T[][]>(
@@ -30,15 +30,16 @@ export function EditProductPage() {
 	const navigate = useNavigate();
 
 	const isNew = productId === "new";
+	const targetProductId = isNew || !productId ? undefined : productId;
 	const {
 		data: loadedProduct,
 		isLoading,
 		isError,
-	} = useProductByIdQuery(isNew ? undefined : productId);
+	} = useProductByIdQuery(targetProductId);
 
 	const updateProductMutation = useUpdateProductMutation();
-	const updateProductSaleMutation = useUpdateProductSaleMutation();
-	const bulkUpdateVariantsMutation = useBulkUpdateVariantsMutation();
+	const updateSingleVariantMutation = useUpdateSingleVariantMutation();
+	const updateMultiVariantsMutation = useUpdateMultiVariantsMutation();
 
 	const [activeSection, setActiveSection] = useState<"basic" | "variants">(
 		"basic",
@@ -50,7 +51,8 @@ export function EditProductPage() {
 	const [coverImage, setCoverImage] = useState("");
 	const [videoUrl, setVideoUrl] = useState("");
 	const [imageUrls, setImageUrls] = useState<string[]>([]);
-	const [categoryId, setCategoryId] = useState("");
+	const [categoryId, setCategoryId] = useState<number | null>(null);
+	const [attributes, setAttributes] = useState<AttributeItem[]>([]);
 
 	// Shipping State
 	const [weight, setWeight] = useState(0);
@@ -74,13 +76,28 @@ export function EditProductPage() {
 	useEffect(() => {
 		if (loadedProduct && !isNew) {
 			setName(loadedProduct.name);
-			setDescription(loadedProduct.description);
-			setCategoryId(loadedProduct.categoryId || "");
+			setDescription(loadedProduct.description || "");
+			setCategoryId(loadedProduct.categoryId ? Number(loadedProduct.categoryId) : null);
 			setCoverImage(
 				loadedProduct.thumbnailUrl || loadedProduct.thumbnailUrl || "",
 			);
 			setVideoUrl(loadedProduct.videoUrl || "");
 			setImageUrls(loadedProduct.imageUrls || []);
+
+			if (loadedProduct.attributesJson) {
+				try {
+					const parsed = JSON.parse(loadedProduct.attributesJson);
+					if (Array.isArray(parsed)) {
+						setAttributes(parsed.filter((item: any) => item.key || item.value));
+					} else {
+						setAttributes([]);
+					}
+				} catch {
+					setAttributes([]);
+				}
+			} else {
+				setAttributes([]);
+			}
 
 			setWeight(loadedProduct.weight);
 			setLength(loadedProduct.length);
@@ -118,7 +135,7 @@ export function EditProductPage() {
 
 							for (const opt of loadedProduct.options) {
 								const matchedVal = opt.values.find(
-									(val: any) => val.id === vo.optionValueId,
+									(val: any) => Number(val.id) === Number(vo.optionValueId),
 								);
 								if (matchedVal) {
 									optionName = opt.name;
@@ -152,10 +169,6 @@ export function EditProductPage() {
 						price: v.price,
 						discountPrice: v.discountPrice,
 						stock: v.availableStock,
-						weight: v.weight || 0,
-						length: v.length || 0,
-						width: v.width || 0,
-						height: v.height || 0,
 						optionValues,
 					};
 				});
@@ -173,10 +186,6 @@ export function EditProductPage() {
 								price: singleV.price,
 								discountPrice: singleV.discountPrice,
 								stock: singleV.availableStock,
-								weight: singleV.weight || 0,
-								length: singleV.length || 0,
-								width: singleV.width || 0,
-								height: singleV.height || 0,
 								optionValues: [],
 							},
 						]
@@ -331,15 +340,7 @@ export function EditProductPage() {
 
 	const handleUpdateVariantField = (
 		varIndex: number,
-		field:
-			| "sku"
-			| "price"
-			| "discountPrice"
-			| "stock"
-			| "weight"
-			| "length"
-			| "width"
-			| "height",
+		field: "sku" | "price" | "discountPrice" | "stock",
 		val: any,
 	) => {
 		const updatedVariants = [...generatedVariants];
@@ -353,25 +354,20 @@ export function EditProductPage() {
 				: undefined;
 		} else if (field === "stock") {
 			updatedVariants[varIndex].stock = Number(val);
-		} else if (field === "weight") {
-			updatedVariants[varIndex].weight = Number(val);
-		} else if (field === "length") {
-			updatedVariants[varIndex].length = Number(val);
-		} else if (field === "width") {
-			updatedVariants[varIndex].width = Number(val);
-		} else if (field === "height") {
-			updatedVariants[varIndex].height = Number(val);
 		}
 		setGeneratedVariants(updatedVariants);
 	};
 
 	const handleSave = async () => {
-		if (!productId) return;
+		if (!targetProductId) return;
 
 		try {
 			if (activeSection === "basic") {
+				const validAttrs = attributes.filter((a) => a.key.trim() || a.value.trim());
+				const attributesJson = validAttrs.length > 0 ? JSON.stringify(validAttrs) : undefined;
+
 				await updateProductMutation.mutateAsync({
-					id: productId,
+					id: targetProductId,
 					payload: {
 						name,
 						description,
@@ -379,12 +375,13 @@ export function EditProductPage() {
 						videoUrl,
 						imageUrls,
 						categoryId: categoryId || undefined,
+						attributesJson,
 					},
 				});
 			} else {
 				if (!enableVariants) {
-					await updateProductSaleMutation.mutateAsync({
-						id: productId,
+					await updateSingleVariantMutation.mutateAsync({
+						id: targetProductId,
 						payload: {
 							price: simplePrice,
 							availableStock: simpleStock,
@@ -399,8 +396,8 @@ export function EditProductPage() {
 						},
 					});
 				} else {
-					await bulkUpdateVariantsMutation.mutateAsync({
-						id: productId,
+					await updateMultiVariantsMutation.mutateAsync({
+						id: targetProductId,
 						payload: {
 							options: options.map((opt) => ({
 								id: opt.id || null,
@@ -412,28 +409,18 @@ export function EditProductPage() {
 								})),
 							})),
 							variants: generatedVariants.map((gv) => {
-								const optionValuesWithImages =
-									gv.optionValues.map((ov) => {
-										return {
-											optionName: ov.optionName,
-											valueName: ov.valueName,
-										};
-									});
-
 								return {
 									id: gv.id || null,
-									sku: gv.sku || null,
 									price: gv.price,
 									availableStock: gv.stock,
-									optionValues: optionValuesWithImages,
-									weight: gv.weight || 0,
-									length: gv.length || 0,
-									width: gv.width || 0,
-									height: gv.height || 0,
 									discountPrice:
 										gv.discountPrice && gv.discountPrice > 0
 											? gv.discountPrice
 											: null,
+									optionValues: gv.optionValues.map((ov) => ({
+										optionName: ov.optionName,
+										valueName: ov.valueName,
+									})),
 								};
 							}),
 						},
@@ -449,8 +436,8 @@ export function EditProductPage() {
 
 	const isSaving =
 		updateProductMutation.isPending ||
-		updateProductSaleMutation.isPending ||
-		bulkUpdateVariantsMutation.isPending;
+		updateSingleVariantMutation.isPending ||
+		updateMultiVariantsMutation.isPending;
 
 	if (isLoading) {
 		return (
@@ -477,8 +464,8 @@ export function EditProductPage() {
 					<button
 						onClick={() => setActiveSection("basic")}
 						className={`w-full text-left px-3 py-2 rounded-lg font-bold transition-all cursor-pointer ${activeSection === "basic"
-								? "bg-brand-primary/10 text-brand-primary-deep"
-								: "hover:bg-brand-light-soft text-brand-muted"
+							? "bg-brand-primary/10 text-brand-primary-deep"
+							: "hover:bg-brand-light-soft text-brand-muted"
 							}`}
 					>
 						Thông tin cơ bản
@@ -486,8 +473,8 @@ export function EditProductPage() {
 					<button
 						onClick={() => setActiveSection("variants")}
 						className={`w-full text-left px-3 py-2 rounded-lg font-bold transition-all cursor-pointer ${activeSection === "variants"
-								? "bg-brand-primary/10 text-brand-primary-deep"
-								: "hover:bg-brand-light-soft text-brand-muted"
+							? "bg-brand-primary/10 text-brand-primary-deep"
+							: "hover:bg-brand-light-soft text-brand-muted"
 							}`}
 					>
 						Thông tin bán hàng
@@ -511,6 +498,8 @@ export function EditProductPage() {
 						setVideoUrl={setVideoUrl}
 						categoryId={categoryId}
 						setCategoryId={setCategoryId}
+						attributes={attributes}
+						setAttributes={setAttributes}
 					/>
 				) : (
 					<VariantsSection

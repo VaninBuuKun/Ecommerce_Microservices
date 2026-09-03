@@ -72,15 +72,14 @@ public class WebhooksController(
 
             switch (status)
             {
-                case "picking":
                 case "storing":
                     targetStatus = ShipmentStatus.Picking;
-                    logMessage = "Courier is picking up the package.";
+                    logMessage = "Shipper đang đến lấy hàng.";
                     break;
                 
                 case "delivering":
                     targetStatus = ShipmentStatus.InTransit;
-                    logMessage = "Package is in transit.";
+                    logMessage = "Hàng đang được vận chuyển.";
                     eventToPublish = new SubOrderShippedEvent 
                     { 
                         SubOrderId = shipment.SubOrderId,
@@ -88,22 +87,20 @@ public class WebhooksController(
                         CustomerId = shipment.CustomerId
                     };
                     break;
-
-
-
+                
                 case "delivered":
                     targetStatus = ShipmentStatus.Delivered;
-                    logMessage = "Package delivered successfully.";
+                    logMessage = "Hàng đã được giao thành công.";
                     eventToPublish = new SubOrderDeliveredEvent { SubOrderId = shipment.SubOrderId };
                     break;
 
-                case "cancelled":
-                case "returned":
-                    targetStatus = status == "cancelled" ? ShipmentStatus.Cancelled : ShipmentStatus.Returned;
-                    failureReason = ghnData.TryGetValue("reason", out var reasonObj) ? reasonObj?.ToString() : "Cancelled by carrier/user";
-                    logMessage = $"Package rejected/returned. Reason: {failureReason}";
-                    eventToPublish = new SubOrderRejectedEvent { SubOrderId = shipment.SubOrderId, Reason = failureReason };
-                    break;
+                // case "cancelled":
+                // case "returned":
+                //     targetStatus = status == "cancelled" ? ShipmentStatus.Cancelled : ShipmentStatus.Returned;
+                //     failureReason = ghnData.TryGetValue("reason", out var reasonObj) ? reasonObj?.ToString() : "Cancelled by carrier/user";
+                //     logMessage = $"Package rejected/returned. Reason: {failureReason}";
+                //     eventToPublish = new SubOrderRejectedEvent { SubOrderId = shipment.SubOrderId, Reason = failureReason };
+                //     break;
 
                 default:
                     logger.LogWarning("Unknown GHN webhook status: {Status}", status);

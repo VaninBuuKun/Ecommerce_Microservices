@@ -1,4 +1,4 @@
-﻿using BuildingBlocks.Shared.Domains;
+using BuildingBlocks.Shared.Domains;
 using BuildingBlocks.Shared.Domains.Interfaces;
 using BuildingBlocks.Shared.InfrastructureInterfaces.InMemoryBus;
 using MediatR;
@@ -11,32 +11,40 @@ public abstract class EfDbContextBase(DbContextOptions options, IInMemoryBus bus
 {
     private IDbContextTransaction? _transaction;
 
-
-    public override async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
+    public override int SaveChanges(bool acceptAllChangesOnSuccess)
     {
         UpdateTrackingEntities();
-        var result =  await base.SaveChangesAsync(cancellationToken);
+        return base.SaveChanges(acceptAllChangesOnSuccess);
+    }
+
+    public override async Task<int> SaveChangesAsync(bool acceptAllChangesOnSuccess, CancellationToken cancellationToken = default)
+    {
+        UpdateTrackingEntities();
+        var result = await base.SaveChangesAsync(acceptAllChangesOnSuccess, cancellationToken);
         
         await DispatchDomainEventsAsync();
         return result;
     }
     
-    private void UpdateTrackingEntities()
+    protected void UpdateTrackingEntities()
     {
-        // Lấy tất cả các entity đang được thêm (Added) hoặc sửa (Modified)
-        var entries = ChangeTracker.Entries<IDateTracking>(); // Giả sử interface của bạn là IAuditable
+        var entries = ChangeTracker.Entries<IDateTracking>();
+        var now = DateTimeOffset.UtcNow;
 
         foreach (var entry in entries)
         {
             if (entry.State == EntityState.Added)
             {
-                entry.Entity.CreatedDate = DateTimeOffset.UtcNow;
-                entry.Entity.LastModifiedDate = DateTimeOffset.UtcNow; // Nếu bạn có dịch vụ lấy User
+                if (entry.Entity.CreatedDate == default)
+                {
+                    entry.Entity.CreatedDate = now;
+                }
+                entry.Entity.LastModifiedDate = now;
             }
 
             if (entry.State == EntityState.Modified)
             {
-                entry.Entity.LastModifiedDate = DateTimeOffset.UtcNow;
+                entry.Entity.LastModifiedDate = now;
             }
         }
     }
@@ -80,7 +88,7 @@ public abstract class EfDbContextBase(DbContextOptions options, IInMemoryBus bus
             
             await _transaction.CommitAsync(cancellationToken);
         }
-        catch (Exception e)
+        catch (Exception)
         {
             await RollbackTransactionAsync(cancellationToken);
             throw;

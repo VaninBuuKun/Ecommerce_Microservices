@@ -6,6 +6,8 @@ using Ecommerce.Services.Shippings.Api.Models.Dtos;
 using Ecommerce.Services.Shippings.Api.Persistances;
 using Microsoft.EntityFrameworkCore;
 
+using Ecommerce.Services.Shippings.Api.Models.Interfaces;
+
 namespace Ecommerce.Services.Shippings.Api.Services;
 
 public class LocationService(ShippingDbContext dbContext) : ILocationService
@@ -40,5 +42,32 @@ public class LocationService(ShippingDbContext dbContext) : ILocationService
             .ToListAsync();
             
         return Result<List<WardDto>>.Success(wards);
+    }
+
+    public async Task<Result<List<LocationSummaryDto>>> ResolveLocationsAsync(List<long> wardIds)
+    {
+        if (wardIds == null || wardIds.Count == 0)
+        {
+            return Result<List<LocationSummaryDto>>.Success(new List<LocationSummaryDto>());
+        }
+
+        var distinctWardIds = wardIds.Where(id => id > 0).Distinct().ToList();
+
+        var query = await dbContext.Wards
+            .AsNoTracking()
+            .Where(w => distinctWardIds.Contains(w.Id))
+            .Include(w => w.District)
+            .ThenInclude(d => d.Province)
+            .Select(w => new LocationSummaryDto(
+                w.District.Province.Id,
+                string.IsNullOrEmpty(w.District.Province.DisplayName) ? w.District.Province.Name : w.District.Province.DisplayName,
+                w.District.Id,
+                string.IsNullOrEmpty(w.District.DisplayName) ? w.District.Name : w.District.DisplayName,
+                w.Id,
+                string.IsNullOrEmpty(w.DisplayName) ? w.Name : w.DisplayName
+            ))
+            .ToListAsync();
+
+        return Result<List<LocationSummaryDto>>.Success(query);
     }
 }

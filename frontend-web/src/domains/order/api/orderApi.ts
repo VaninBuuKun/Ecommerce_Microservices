@@ -13,6 +13,12 @@ export const orderApi = {
 		return response.data;
 	},
 
+	// Cập nhật địa chỉ nhận hàng
+	updateAddress: async (id: number, data: any): Promise<any> => {
+		const response = await api.put(`/users/addresses/${id}`, data);
+		return response.data;
+	},
+
 	// Tính toán tiền hàng và phí vận chuyển
 	calculateTotal: async (data: any): Promise<any> => {
 		const response = await api.post("/orders/calculate", data);
@@ -21,18 +27,22 @@ export const orderApi = {
 
 	// Thực hiện thanh toán và tạo đơn hàng chính thức
 	checkout: async (data: any): Promise<any> => {
-		const response = await api.post("/orders/checkout", data);
+		const headers: Record<string, string> = {};
+		if (data?.idempotencyKey) {
+			headers["X-Idempotency-Key"] = data.idempotencyKey;
+		}
+		const response = await api.post("/orders/checkout", data, { headers });
 		return response.data;
 	},
 
 	// Đặt địa chỉ mặc định
-	setDefaultAddress: async (id: string): Promise<string> => {
+	setDefaultAddress: async (id: number): Promise<string> => {
 		const response = await api.put(`/users/addresses/${id}/default`);
 		return response.data;
 	},
 
 	// Xóa địa chỉ nhận hàng
-	deleteAddress: async (id: string): Promise<void> => {
+	deleteAddress: async (id: number): Promise<void> => {
 		await api.delete(`/users/addresses/${id}`);
 	},
 
@@ -51,7 +61,7 @@ export const orderApi = {
 
 	// Lấy danh sách đơn hàng của Shop dành cho Seller
 	getShopSubOrders: async (
-		shopId: string,
+		shopId: number,
 		pageNumber = 1,
 		pageSize = 5,
 		status?: string
@@ -91,24 +101,24 @@ export const orderApi = {
 	},
 
 	// Lấy danh sách lịch sử mua hàng của khách hàng
-	getCustomerOrders: async (customerId: string): Promise<any[]> => {
+	getCustomerOrders: async (customerId: number): Promise<any[]> => {
 		const response = await api.get(`/orders/customer/${customerId}`);
 		return response.data?.value || response.data;
 	},
 
 	// Lấy danh sách yêu cầu hoàn tiền của Shop
-	getShopRefunds: async (shopId: string): Promise<any[]> => {
+	getShopRefunds: async (shopId: number): Promise<any[]> => {
 		const response = await api.get(`/refunds/shop-requests/${shopId}`);
 		return response.data?.value || response.data;
 	},
 
 	// Chấp nhận yêu cầu hoàn tiền
-	approveRefund: async (id: string, sellerNote?: string): Promise<void> => {
+	approveRefund: async (id: number, sellerNote?: string): Promise<void> => {
 		await api.put(`/refunds/${id}/approve`, { sellerNote });
 	},
 
 	// Từ chối yêu cầu hoàn tiền
-	rejectRefund: async (id: string, sellerNote: string): Promise<void> => {
+	rejectRefund: async (id: number, sellerNote: string): Promise<void> => {
 		await api.delete(`/refunds/${id}/reject`, { data: { sellerNote } });
 	},
 
@@ -159,7 +169,7 @@ export const orderApi = {
 	},
 
 	// Cập nhật tài khoản ngân hàng
-	updateBankAccount: async (id: string, data: any): Promise<any> => {
+	updateBankAccount: async (id: number, data: any): Promise<any> => {
 		const response = await api.put(`/wallet/bank-accounts/${id}`, data);
 		return response.data;
 	},
@@ -171,7 +181,7 @@ export const orderApi = {
 	},
 
 	// Hủy/Rút yêu cầu hoàn tiền
-	cancelRefundRequest: async (id: string): Promise<void> => {
+	cancelRefundRequest: async (id: number): Promise<void> => {
 		await api.delete(`/refunds/${id}`);
 	},
 };

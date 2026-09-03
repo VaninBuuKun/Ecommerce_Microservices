@@ -1,25 +1,23 @@
-import { Outlet } from 'react-router-dom';
+import { Outlet, useLocation } from 'react-router-dom';
 import Header from '../components/Header';
-import { ChatFloatingWidget } from "@/domains/seller";
-
+import { ChatBubbleButton } from "@/shared/components";
 
 export default function MainLayout() {
+  const location = useLocation();
+  const isChatRoute = location.pathname.startsWith('/chat');
+
   return (
-    <div className="min-h-screen flex flex-col bg-brand-light">
+    <div className={`flex flex-col bg-brand-light ${isChatRoute ? "h-screen overflow-hidden" : "min-h-screen"}`}>
       <Header />
 
       {/* Nội dung trang */}
-      <main className="flex-1">
+      <main className={`flex-1 ${isChatRoute ? "min-h-0 overflow-hidden flex flex-col" : ""}`}>
         <Outlet />
       </main>
 
-      {/* Floating Chat Tool */}
-      <ChatFloatingWidget />
-
-      {/* Footer */}
-      <footer className="mt-auto py-12 border-t border-brand-border bg-brand-light text-center text-xs text-brand-muted">
-        <p>© 2026 Supabaze Store. Powered by OpenTelemetry, NestJS, and EF Core 8.</p>
-      </footer>
+      {/* Floating Chat Bubble + Mini Modal: ẩn khi đang ở trang /chat */}
+      {!isChatRoute && <ChatBubbleButton />}
     </div>
   );
 }
+

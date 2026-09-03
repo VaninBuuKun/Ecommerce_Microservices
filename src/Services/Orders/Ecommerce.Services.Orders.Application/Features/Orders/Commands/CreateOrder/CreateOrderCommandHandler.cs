@@ -37,11 +37,28 @@ public class CreateOrderCommandHandler(
         long customerId = command.CustomerId;
         logger.LogInformation("Bắt đầu khởi tạo đơn hàng cho khách hàng {CustomerId} từ Redis CheckoutSession Key: {SessionKey}", customerId, command.CheckoutSessionKey);
 
-        var redisKey = $"checkout:{customerId}:{command.CheckoutSessionKey}";
+        string? idempotencyCacheKey = null;
+        if (!string.IsNullOrWhiteSpace(command.IdempotencyKey))
+        {
+            idempotencyCacheKey = $"order:idempotency:{customerId}:{command.IdempotencyKey.Trim()}";
+            var cachedResponse = await cacheService.GetAsync<CustomerOrderResponse>(idempotencyCacheKey, cancellationToken);
+            if (cachedResponse != null)
+            {
+                logger.LogInformation("Idempotency: Trả về kết quả đơn hàng đã tạo cho IdempotencyKey {IdempotencyKey}", command.IdempotencyKey);
+                return Result<CustomerOrderResponse>.Success(cachedResponse);
+            }
+        }
+
+        var redisKey = $"checkout_session:{command.CheckoutSessionKey}";
         var checkoutSession = await cacheService.GetAsync<CheckoutSession>(redisKey, cancellationToken);
         if (checkoutSession == null)
         {
             return Result<CustomerOrderResponse>.Failure("Phiên thanh toán đã hết hạn hoặc không tồn tại. Vui lòng tiến hành thanh toán lại từ giỏ hàng.", EErrorCode.NotFound);
+        }
+
+        if (checkoutSession.CustomerId != customerId)
+        {
+            return Result<CustomerOrderResponse>.Failure("Phiên thanh toán này không thuộc về tài khoản của bạn.", EErrorCode.Unauthorized);
         }
 
         var selectedItems = checkoutSession.Items;
@@ -60,7 +77,11 @@ public class CreateOrderCommandHandler(
         string fullShippingAddress = addressData.AddressLine;
 
         // Giữ tồn kho trước khi tạo đơn hàng
-        var reserveItems = selectedItems.Select(item => new ReserveStockItemDto(item.VariantId, item.Quantity)).ToList();
+        var reserveItems = selectedItems.Select(item => new ReserveStockItemDto(
+            ProductId: item.ProductId,
+            VariantId: item.VariantId,
+            Quantity: item.Quantity
+        )).ToList();
         var reserveResult = await productService.ReserveStockAsync(reserveItems, cancellationToken);
         if (!reserveResult.IsSuccess || (reserveResult.Value != null && !reserveResult.Value.IsValid))
         {
@@ -81,7 +102,7 @@ public class CreateOrderCommandHandler(
 
             foreach (var item in selectedItems)
             {
-                long shopId = 0;
+                long shopId = item.ShopId;
                 if (!shopToSubOrderIdMap.TryGetValue(shopId, out var subOrderId))
                 {
                     subOrderId = snowflakeIdGenerator.NewId();
@@ -89,12 +110,90 @@ public class CreateOrderCommandHandler(
                 }
 
                 long orderItemId = snowflakeIdGenerator.NewId();
-                order.AddOrderItem(subOrderId, shopId, 0, item.VariantId, string.Empty, string.Empty, item.UnitPrice, item.Quantity, null, orderItemId);
+                order.AddOrderItem(
+                    subOrderId,
+                    shopId,
+                    item.ProductId,
+                    item.VariantId,
+                    item.ProductName,
+                    item.VariantName,
+                    item.UnitPrice,
+                    item.Quantity,
+                    item.ThumbnailUrl,
+                    orderItemId,
+                    item.Weight,
+                    item.Length,
+                    item.Width,
+                    item.Height);
             }
 
             foreach (var shopShipping in checkoutSession.ShopShippingFees)
             {
                 order.SetShippingFee(shopShipping.Key, (long)shopShipping.Value);
+            }
+
+            // Áp dụng Voucher & Giảm giá cho từng Shop
+            var voucherRepo = unitOfWork.Repository<Voucher, long>();
+            var voucherUsageRepo = unitOfWork.Repository<VoucherUsage, Guid>();
+
+            var subOrders = order.GetSubOrders().ToList();
+            foreach (var subOrder in subOrders)
+            {
+                long shopId = subOrder.ShopId;
+                decimal sellerDiscount = checkoutSession.ShopDiscounts.TryGetValue(shopId, out var sDisc) ? sDisc : 0;
+                
+                // Phân bổ Platform Discount theo tỷ lệ SubTotal của từng Shop
+                decimal platformDiscountForShop = 0;
+                if (checkoutSession.SubTotal > 0 && checkoutSession.PlatformDiscount > 0)
+                {
+                    platformDiscountForShop = Math.Round((subOrder.SubTotal / checkoutSession.SubTotal) * checkoutSession.PlatformDiscount, 0);
+                }
+
+                order.ApplyDiscounts(shopId, (long)sellerDiscount, (long)platformDiscountForShop);
+
+                long? shopVoucherId = checkoutSession.ShopVoucherIds.TryGetValue(shopId, out var svId) ? svId : (long?)null;
+                order.ApplyVoucherIds(shopId, shopVoucherId, checkoutSession.PlatformVoucherId);
+
+                if (shopVoucherId.HasValue && shopVoucherId.Value > 0)
+                {
+                    allVoucherIds.Add(shopVoucherId.Value);
+                    var svUsage = new VoucherUsage
+                    {
+                        Id = Guid.NewGuid(),
+                        VoucherId = shopVoucherId.Value,
+                        UserId = customerId,
+                        OrderId = orderId,
+                        SubOrderId = subOrder.Id,
+                        DiscountAmount = sellerDiscount,
+                        UsedAt = DateTimeOffset.UtcNow
+                    };
+                    voucherUsageRepo.Add(svUsage);
+                }
+            }
+
+            if (checkoutSession.PlatformVoucherId.HasValue && checkoutSession.PlatformVoucherId.Value > 0)
+            {
+                allVoucherIds.Add(checkoutSession.PlatformVoucherId.Value);
+                var pvUsage = new VoucherUsage
+                {
+                    Id = Guid.NewGuid(),
+                    VoucherId = checkoutSession.PlatformVoucherId.Value,
+                    UserId = customerId,
+                    OrderId = orderId,
+                    DiscountAmount = checkoutSession.PlatformDiscount,
+                    UsedAt = DateTimeOffset.UtcNow
+                };
+                voucherUsageRepo.Add(pvUsage);
+            }
+
+            // Tăng UsageCount cho các voucher áp dụng thành công
+            foreach (var vId in allVoucherIds.Distinct())
+            {
+                var v = await voucherRepo.GetByIdAsync(vId, cancellationToken);
+                if (v != null)
+                {
+                    v.UsageCount++;
+                }
             }
 
             string? paymentUrl = null;
@@ -131,10 +230,13 @@ public class CreateOrderCommandHandler(
                 IsOnlinePayment = order.IsOnlinePayment,
                 OrderItems = subOrder.SubOrderItems.Select(item => new OrderItemData
                 {
+                    ProductId = item.ProductId,
                     VariantId = item.VariantId,
                     UnitPrice = item.UnitPrice,
                     Quantity = item.Quantity,
-                    ProductName = string.IsNullOrEmpty(item.VariantName) ? item.ProductName : $"{item.ProductName} - {item.VariantName}"
+                    ProductName = string.IsNullOrEmpty(item.VariantName)
+                        ? item.ProductName 
+                        : $"{item.ProductName} - {item.VariantName}"
                 }).ToList()
             }).ToList();
 
@@ -152,6 +254,12 @@ public class CreateOrderCommandHandler(
 
             var response = mapper.Map<CustomerOrderResponse>(order);
             response.PaymentUrl = paymentUrl;
+
+            if (!string.IsNullOrWhiteSpace(idempotencyCacheKey))
+            {
+                await cacheService.SetAsync(idempotencyCacheKey, response, TimeSpan.FromMinutes(5), cancellationToken);
+            }
+
             return Result<CustomerOrderResponse>.Success(response);
         }
         catch (Exception ex)
@@ -187,6 +295,7 @@ public class CreateOrderCommandHandler(
                 OrderId = orderId,
                 VariantItems = items.Select(x => new VariantStockData
                 {
+                    ProductId = x.ProductId,
                     VariantId = x.VariantId,
                     Quantity = x.Quantity
                 }).ToList()

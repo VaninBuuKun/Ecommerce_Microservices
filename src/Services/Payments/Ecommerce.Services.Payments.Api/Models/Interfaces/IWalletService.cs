@@ -18,4 +18,5 @@ public interface IWalletService
     Task<Result> DebitWalletAsync(long userId, object referenceId, decimal amount, TransactionReason reason, string description);
     Task<Result> CreditWalletAsync(long userId, object referenceId, decimal amount, TransactionReason reason, string description);
     Task<Result<List<WalletTransactionDto>>> GetAllTransactions();
+    Task<Result<SellerRevenueReportDto>> GetSellerRevenueReport(long userId);
 }

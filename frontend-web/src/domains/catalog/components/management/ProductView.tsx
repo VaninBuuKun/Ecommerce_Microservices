@@ -8,15 +8,29 @@ import {
 	useToggleProductStatusMutation,
 	productApi 
 } from "@/domains/catalog";
+import { useSellerStore, useSellerProfileQuery } from "@/domains/seller";
 import { CreateProductModal } from "./CreateProductModal";
 import { ProductTable } from "./ProductTable";
 import { ProductSearchBar } from "./ProductSearchBar";
 import { ConfirmModal } from "@/shared";
+import { Pagination } from "@/shared/components/Pagination";
 
 export function ProductsView() {
 	const navigate = useNavigate();
 	const { shopId } = useParams<{ shopId?: string }>();
-	const numericShopId = shopId ? Number(shopId) : 0;
+	const { activeShop } = useSellerStore();
+	const { data: profile } = useSellerProfileQuery();
+
+	const resolvedShop =
+		activeShop ??
+		profile?.shops?.find((shop: any) => String(shop.id) === shopId) ??
+		profile?.shops?.[0] ??
+		null;
+	const numericShopId = resolvedShop?.id
+		? Number(resolvedShop.id)
+		: shopId
+			? Number(shopId)
+			: 0;
 
 	const [page, setPage] = useState(1);
 	const pageSize = 10;
@@ -30,7 +44,7 @@ export function ProductsView() {
 	const [searchTerm, setSearchTerm] = useState("");
 
 	const { data, isLoading, isError, error } = useMyProductsQuery({
-		ShopId: numericShopId,
+		shopId: numericShopId,
 		page,
 		pageSize,
 		searchTerm: searchTerm.trim() || undefined,
@@ -41,7 +55,6 @@ export function ProductsView() {
 
 	const toggleStatusMutation = useToggleProductStatusMutation();
 
-
 	const handleSearch = (term: string) => {
 		setSearchTerm(term);
 		setPage(1);
@@ -49,7 +62,7 @@ export function ProductsView() {
 
 	const handleEditProduct = (productId: string) => {
 		navigate(
-			`/seller/${shopId || "default"}/dashboard/products/edit/${productId}`,
+			`/seller/${numericShopId || "default"}/dashboard/products/edit/${productId}`,
 		);
 	};
 
@@ -90,7 +103,7 @@ export function ProductsView() {
 				</div>
 				<button
 					onClick={() => setIsCreateOpen(true)}
-					className="h-8 px-3 bg-brand-primary hover:bg-brand-primary-deep text-brand-dark text-xs font-semibold rounded flex items-center gap-1 cursor-pointer transition-all duration-200"
+					className="px-3.5 py-1.5 bg-brand-primary hover:bg-brand-primary-deep text-white text-xs font-bold rounded flex items-center gap-1.5 cursor-pointer shadow-xs transition-all border-none"
 				>
 					<Plus className="w-3.5 h-3.5" />
 					Thêm sản phẩm mới
@@ -128,28 +141,15 @@ export function ProductsView() {
 					/>
 
 					{data.length > 0 && (
-						<div className="flex items-center justify-between p-3 border border-brand-border bg-brand-light-soft/30 rounded-xl text-xs bg-white">
-							<span className="text-brand-muted font-medium">
-								Trang {page}
-							</span>
-							<div className="flex gap-2">
-								<button
-									type="button"
-									disabled={page === 1}
-									onClick={() => setPage(page - 1)}
-									className="px-3 py-1 border border-brand-border bg-white rounded-lg disabled:opacity-50 hover:bg-gray-50 cursor-pointer font-bold transition-all"
-								>
-									Trước
-								</button>
-								<button
-									type="button"
-									disabled={data.length < pageSize}
-									onClick={() => setPage(page + 1)}
-									className="px-3 py-1 border border-brand-border bg-white rounded-lg disabled:opacity-50 hover:bg-gray-50 cursor-pointer font-bold transition-all"
-								>
-									Sau
-								</button>
-							</div>
+						<div className="px-4 py-2 border border-brand-border bg-white rounded-md">
+							<Pagination
+								currentPage={page}
+								totalPages={data.length < pageSize ? page : page + 1}
+								totalCount={undefined}
+								pageSize={pageSize}
+								onPageChange={setPage}
+								showQuickJumper
+							/>
 						</div>
 					)}
 				</div>

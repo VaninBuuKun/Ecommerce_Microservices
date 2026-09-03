@@ -27,12 +27,17 @@ public class Product : AggregateRoot<long>
     // Giá sản phẩm (min price của các variants hoặc giá của single variant)
     public decimal Price { get; private set; }
     public decimal DiscountPrice { get; private set; }
-    public int AvailableStock { get; private set; }
+    public int Sold { get; private set; }
+    public string? AttributesJson { get; private set; }
 
     // Thông tin Ratings & Reviews (2NF)
     public double AverageRating { get; private set; }
     public int ReviewCount { get; private set; }
     public int RatingSum { get; private set; }
+
+    // Date tracking
+    public DateTime CreatedAt { get; private set; } = DateTime.UtcNow;
+    public DateTime? UpdatedAt { get; private set; }
 
     // Navigation properties for EAV
     private readonly List<ProductOption> _options = new();
@@ -102,9 +107,10 @@ public class Product : AggregateRoot<long>
         if (variant != null)
         {
             variant.SoftDelete();
-            RecalculateCachedPricesAndStock();
+            RecalculateCachedPrices();
         }
     }
+
 
     public void SetMedia(string? thumbnailUrl, string? videoUrl, List<string>? imageUrls)
     {
@@ -135,10 +141,10 @@ public class Product : AggregateRoot<long>
     {
         _options.Clear();
         _variants.Clear();
-        RecalculateCachedPricesAndStock();
+        RecalculateCachedPrices();
     }
 
-    public void UpdateSaleInfo(int availableStocks, double weight, double length, double width, double height, decimal price, decimal discountPrice)
+    public void UpdatePricingAndShipping(double weight, double length, double width, double height, decimal price, decimal discountPrice)
     {
         Weight = weight;
         Length = length;
@@ -146,7 +152,14 @@ public class Product : AggregateRoot<long>
         Height = height;
         Price = price;
         DiscountPrice = discountPrice;
-        AvailableStock = availableStocks;
+    }
+
+    public void UpdateShippingDimensions(double weight, double length, double width, double height)
+    {
+        Weight = weight;
+        Length = length;
+        Width = width;
+        Height = height;
     }
 
     public ProductOption AddOption(string optionName, int sortOrder = 0)
@@ -156,11 +169,29 @@ public class Product : AggregateRoot<long>
         return option;
     }
 
-    public ProductVariant AddVariant(decimal price, int availableStocks, string? thumbnailUrl = null, decimal? discountPrice = null)
+    public ProductVariant AddVariant(decimal price, int availableStock, decimal? discountPrice = null)
     {
-        var variant = new ProductVariant(Id, price, availableStocks, thumbnailUrl, discountPrice);
+        var variant = new ProductVariant(Id, price, availableStock, discountPrice);
         _variants.Add(variant);
-        RecalculateCachedPricesAndStock();
+        RecalculateCachedPrices();
+        return variant;
+    }
+
+    public ProductVariant EnsureDefaultVariant(long variantId, decimal price = 0, int availableStock = 0, decimal? discountPrice = null)
+    {
+        var existing = _variants.FirstOrDefault(v => !v.IsDeleted && !v.VariantOptions.Any());
+        if (existing != null)
+        {
+            existing.UpdateDetails(price, availableStock, discountPrice);
+            RecalculateCachedPrices();
+            return existing;
+        }
+
+        var variant = new ProductVariant(Id, price, availableStock, discountPrice);
+        
+        variant.UpdateDetails(price, availableStock, discountPrice);
+        _variants.Add(variant);
+        RecalculateCachedPrices();
         return variant;
     }
 
@@ -185,19 +216,30 @@ public class Product : AggregateRoot<long>
         AverageRating = Math.Round((double)RatingSum / ReviewCount, 1);
     }
 
-    public void RecalculateCachedPricesAndStock()
+    public void IncreaseSold(int count)
+    {
+        if (count > 0)
+        {
+            Sold += count;
+        }
+    }
+
+    public void SetAttributes(string? attributesJson)
+    {
+        AttributesJson = attributesJson;
+    }
+
+    public void RecalculateCachedPrices()
     {
         var activeVariants = _variants.Where(v => !v.IsDeleted).ToList();
         if (!activeVariants.Any())
         {
             Price = 0;
             DiscountPrice = 0;
-            AvailableStock = 0;
             return;
         }
 
         Price = activeVariants.Min(v => v.Price);
         DiscountPrice = activeVariants.Min(v => v.DiscountPrice > 0 ? v.DiscountPrice : v.Price);
-        AvailableStock = activeVariants.Sum(v => v.AvailableStocks);
     }
 }

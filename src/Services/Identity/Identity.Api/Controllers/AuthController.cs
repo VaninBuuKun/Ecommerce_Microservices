@@ -1,63 +1,59 @@
-using Ecommerce.Services.Identity.Api.Models.Entities;
-using Identity.Models.Dtos;
-using Microsoft.AspNetCore.Identity;
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Authorization;
+using System.Threading.Tasks;
+using BuildingBlocks.Shared.Extensions;
 using Duende.IdentityServer;
+using Ecommerce.Services.Identity.Api.Services;
+using Ecommerce.Services.Identity.Api.Models.Interfaces;
+using Identity.Models.Dtos;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 
 namespace Ecommerce.Services.Identity.Api.Controllers;
 
 [ApiController]
 [Route("api/auth")]
 [Authorize(AuthenticationSchemes = IdentityServerConstants.LocalApi.AuthenticationScheme)]
-public class AuthController(
-    UserManager<AppUser> userManager,
-    RoleManager<IdentityRole<long>> roleManager) : ControllerBase
+public class AuthController(IUserService userService) : ControllerBase
 {
     [HttpPost("register")]
     [AllowAnonymous]
-    public async Task<ActionResult<RegisterResponse>> Register([FromBody] RegisterRequest request)
+    public async Task<IActionResult> Register([FromBody] RegisterRequest request)
     {
-        var existingUser = await userManager.FindByEmailAsync(request.Email);
-        if (existingUser != null)
+        var result = await userService.RegisterUserAsync(request);
+        if (!result.IsSuccess)
         {
-            return BadRequest(new RegisterResponse
+            return StatusCode((int)result.ErrorCode.ToHttpStatusCode(), result.Value ?? new RegisterResponse
             {
                 Success = false,
-                Message = "Email này đã được đăng ký!"
+                Message = result.Message
             });
         }
 
-        var newUser = new AppUser
-        {
-            UserName = request.Email,
-            Email = request.Email,
-            FirstName = request.FirstName,
-            LastName = request.LastName,
-            EmailConfirmed = true // Bỏ qua bước xác thực email cho đơn giản
-        };
+        return Ok(result.Value);
+    }
 
-        // CreateAsync tự động băm mật khẩu bằng bcrypt trước khi lưu vào DB
-        var result = await userManager.CreateAsync(newUser, request.Password);
-
-        if (!result.Succeeded)
+    [HttpPost("forgot-password")]
+    [AllowAnonymous]
+    public async Task<IActionResult> ForgotPassword([FromBody] ForgotPasswordRequest request)
+    {
+        var result = await userService.ForgotPasswordAsync(request);
+        if (!result.IsSuccess)
         {
-            var errors = string.Join(", ", result.Errors.Select(e => e.Description));
-            return BadRequest(new RegisterResponse
-            {
-                Success = false,
-                Message = $"Đăng ký thất bại: {errors}"
-            });
+            return StatusCode((int)result.ErrorCode.ToHttpStatusCode(), result.Message);
         }
 
-        // Gán role mặc định là "Customer" cho user mới đăng ký
-        await userManager.AddToRoleAsync(newUser, "Customer");
+        return Ok(new { isSuccess = true, message = "Nếu email tồn tại, mã xác thực OTP đã được gửi đến hộp thư của bạn." });
+    }
 
-        return Ok(new RegisterResponse
+    [HttpPost("reset-password")]
+    [AllowAnonymous]
+    public async Task<IActionResult> ResetPassword([FromBody] ResetPasswordWithOtpRequest request)
+    {
+        var result = await userService.ResetPasswordWithOtpAsync(request);
+        if (!result.IsSuccess)
         {
-            Success = true,
-            Message = "Đăng ký tài khoản thành công!",
-            UserId = newUser.Id
-        });
+            return StatusCode((int)result.ErrorCode.ToHttpStatusCode(), result.Message);
+        }
+
+        return Ok(new { isSuccess = true, message = "Đặt lại mật khẩu thành công! Vui lòng đăng nhập bằng mật khẩu mới." });
     }
 }

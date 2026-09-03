@@ -5,7 +5,7 @@ interface BankAccountManagerModalProps {
 	bankAccounts: any[];
 	showAddForm: boolean;
 	setShowAddForm: (show: boolean) => void;
-	editingId: string | null;
+	editingId: number | null;
 	onClose: () => void;
 
 	newBankName: string;
@@ -27,7 +27,7 @@ interface BankAccountManagerModalProps {
 	setEditBankAccountHolder: (val: string) => void;
 	editIsDefault: boolean;
 	setEditIsDefault: (val: boolean) => void;
-	onUpdateSubmit: (id: string) => void;
+	onUpdateSubmit: (id: number) => void;
 	updatePending: boolean;
 
 	startEditing: (account: any) => void;

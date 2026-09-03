@@ -22,8 +22,6 @@ public class RefundRequest : EntityTrackingBase<long>
     private readonly List<RefundRequestItem> _items = new();
     public IReadOnlyCollection<RefundRequestItem> Items => _items.AsReadOnly();
 
-    public DisputeThread? DisputeThread { get; private set; }
-
     private RefundRequest() { }
 
     public RefundRequest(
@@ -77,15 +75,5 @@ public class RefundRequest : EntityTrackingBase<long>
         AttemptCount += 1;
         Status = RefundStatus.Pending;
         ExpirationDate = DateTimeOffset.UtcNow.AddDays(2);
-    }
-
-    public void EscalateToDispute()
-    {
-        Status = RefundStatus.EscalatedToDispute;
-    }
-
-    public void ResolveByAdmin(bool approved)
-    {
-        Status = approved ? RefundStatus.AdminApproved : RefundStatus.AdminRejected;
     }
 }

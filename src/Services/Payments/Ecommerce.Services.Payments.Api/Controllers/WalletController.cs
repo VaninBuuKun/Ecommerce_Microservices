@@ -96,4 +96,18 @@ public class WalletController(IWalletService walletService, ICurrentUserService 
 
         return StatusCode(result.GetHttpStatusCode(), result.Message);
     }
+
+    [HttpGet("revenue")]
+    public async Task<IActionResult> GetRevenueReport()
+    {
+        var userId = currentUserService.UserId;
+        var result = await walletService.GetSellerRevenueReport(userId);
+
+        if (result.IsSuccess)
+        {
+            return Ok(result.Value);
+        }
+
+        return StatusCode(result.GetHttpStatusCode(), result.Message);
+    }
 }

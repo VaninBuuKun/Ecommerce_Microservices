@@ -13,7 +13,7 @@ public class CartItemDto
     public decimal UnitPrice { get; set; }
     public decimal DiscountPrice { get; set; }
     public long ShopId { get; set; }
-    public int AvailableStocks { get; set; }
+    public int AvailableStock { get; set; }
     public double Weight { get; set; }
     public double Length { get; set; }
     public double Width { get; set; }

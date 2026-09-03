@@ -1,4 +1,5 @@
 using BuildingBlocks.EfCore.Persistence.Commons;
+using BuildingBlocks.Grpc.Extensions;
 using BuildingBlocks.Messaging;
 using BuildingBlocks.Shared.InfrastructureInterfaces.Persistence.EFCore;
 using Ecommerce.Services.Catalog.Application.Common.Interfaces;
@@ -33,7 +34,7 @@ public static class DependencyInjection
         });
         
         //Grpc
-        services.AddGrpc();
+        services.AddBuildingBlocksGrpc();
         AppContext.SetSwitch("System.Net.Http.SocketsHttpHandler.Http2UnencryptedSupport", true);
 
         services.AddGrpcClient<BuildingBlocks.Grpc.Services.PaymentGrpc.PaymentGrpcClient>(o =>
@@ -64,6 +65,7 @@ public static class DependencyInjection
         services.AddScoped<IEfUnitOfWork, EfUnitOfWork<ProductDbContext>>();
         services.AddScoped<IVariantRepository, VariantRepository>();
         services.AddScoped<IProductRepository, ProductRepository>();
+        services.AddScoped<CatalogDataSeeder>();
 
         return services;
     }

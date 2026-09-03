@@ -1,5 +1,5 @@
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { productApi, type CreateProductRequest, type UpdateProductRequest, type UpdateProductSaleRequest, type BulkUpdateVariantsRequest, type GetProductsParams, type GetMyProductsParams } from "../api/productApi";
+import { useQuery, useMutation, useQueryClient, useInfiniteQuery } from "@tanstack/react-query";
+import { productApi, type CreateProductRequest, type UpdateProductRequest, type UpdateProductSaleRequest, type BulkUpdateVariantsRequest, type GetProductsParams, type GetMyProductsParams, type UpdateSingleVariantRequest, type UpdateMultiVariantsRequest } from "../api/productApi";
 import { categoryApi } from "../api/categoryApi";
 import { reviewApi, type AddProductReviewRequest, type GetProductReviewsParams } from "../api/reviewApi";
 import {
@@ -15,6 +15,9 @@ export const catalogQueryKeys = {
 	categories: ["catalog", "categories"] as const,
 	reviews: (productId: string) => ["catalog", "reviews", productId] as const,
 	reviewSummary: (productId: string) => ["catalog", "reviewSummary", productId] as const,
+	bestSellers: (limit?: number) => ["catalog", "products", "bestSellers", limit] as const,
+	newArrivals: (limit?: number) => ["catalog", "products", "newArrivals", limit] as const,
+	onSale: (limit?: number) => ["catalog", "products", "onSale", limit] as const,
 };
 
 export function useProductsQuery(params?: GetProductsParams) {
@@ -24,10 +27,60 @@ export function useProductsQuery(params?: GetProductsParams) {
 	});
 }
 
+/**
+ * Hook truy vấn danh sách Sản Phẩm Bán Chạy (Best Sellers)
+ * Tiêu chí: Lọc các sản phẩm có số lượng đã bán (Sold) cao nhất toàn sàn.
+ */
+export function useBestSellersQuery(limit: number = 10) {
+	return useQuery({
+		queryKey: catalogQueryKeys.bestSellers(limit),
+		queryFn: () => productApi.getProducts({ sortBy: "sold", limit }),
+		staleTime: 5 * 60 * 1000,
+	});
+}
+
+/**
+ * Hook truy vấn danh sách Hàng Mới Về (New Arrivals)
+ * Tiêu chí: Lấy các sản phẩm mới nhất dựa theo thời gian tạo (CreatedAt) gần đây.
+ */
+export function useNewArrivalsQuery(limit: number = 10) {
+	return useQuery({
+		queryKey: catalogQueryKeys.newArrivals(limit),
+		queryFn: () => productApi.getProducts({ sortBy: "newest", limit }),
+		staleTime: 5 * 60 * 1000,
+	});
+}
+
+/**
+ * Hook truy vấn danh sách Sản Phẩm Đang Giảm Giá (Flash Sale / Hot Deals)
+ * Tiêu chí: Lọc sản phẩm có discountPrice < price, sắp xếp theo mức giảm giá tốt nhất.
+ */
+export function useOnSaleQuery(limit: number = 10) {
+	return useQuery({
+		queryKey: catalogQueryKeys.onSale(limit),
+		queryFn: () => productApi.getProducts({ sortBy: "discount", hasDiscount: true, limit }),
+		staleTime: 5 * 60 * 1000,
+	});
+}
+
+export function useInfiniteProductsQuery(params?: GetProductsParams) {
+	return useInfiniteQuery({
+		queryKey: [...catalogQueryKeys.products, "infinite", params],
+		queryFn: ({ pageParam }) =>
+			productApi.getProducts({
+				...params,
+				cursor: pageParam ? (pageParam as string) : undefined,
+			}),
+		initialPageParam: undefined as string | undefined,
+		getNextPageParam: (lastPage) => (lastPage.hasNext ? lastPage.nextCursor : undefined),
+	});
+}
+
 export function useMyProductsQuery(params?: GetMyProductsParams) {
 	return useQuery({
 		queryKey: catalogQueryKeys.myProducts(params),
-		queryFn: () => productApi.getMyProducts(params),
+		queryFn: () => (params?.shopId ? productApi.getMyProducts(params) : null),
+		enabled: Boolean(params?.shopId && Number(params.shopId) > 0),
 	});
 }
 
@@ -69,27 +122,31 @@ export function useUpdateProductMutation() {
 	});
 }
 
-export function useUpdateProductSaleMutation() {
+export function useUpdateSingleVariantMutation() {
 	const queryClient = useQueryClient();
 	return useMutation({
-		mutationFn: ({ id, payload }: { id: string; payload: UpdateProductSaleRequest }) =>
-			productApi.updateProductSale(id, payload),
+		mutationFn: ({ id, payload }: { id: string; payload: UpdateSingleVariantRequest }) =>
+			productApi.updateSingleVariant(id, payload),
 		onSuccess: (_, variables) => {
 			queryClient.invalidateQueries({ queryKey: catalogQueryKeys.productById(variables.id) });
 		},
 	});
 }
 
-export function useBulkUpdateVariantsMutation() {
+export const useUpdateProductSaleMutation = useUpdateSingleVariantMutation;
+
+export function useUpdateMultiVariantsMutation() {
 	const queryClient = useQueryClient();
 	return useMutation({
-		mutationFn: ({ id, payload }: { id: string; payload: BulkUpdateVariantsRequest | any }) =>
-			productApi.bulkUpdateVariants(id, payload),
+		mutationFn: ({ id, payload }: { id: string; payload: UpdateMultiVariantsRequest }) =>
+			productApi.updateMultiVariants(id, payload),
 		onSuccess: (_, variables) => {
 			queryClient.invalidateQueries({ queryKey: catalogQueryKeys.productById(variables.id) });
 		},
 	});
 }
+
+export const useBulkUpdateVariantsMutation = useUpdateMultiVariantsMutation;
 
 export function useDeleteProductMutation() {
 	const queryClient = useQueryClient();
@@ -116,7 +173,7 @@ export function useToggleProductStatusMutation() {
 export function useProductReviewsQuery(productId: string, params?: GetProductReviewsParams) {
 	return useQuery({
 		queryKey: [...catalogQueryKeys.reviews(productId), params],
-		queryFn: () => reviewApi.getProductReviews(productId, params),
+		queryFn: () => reviewApi.getProductReviews(Number(productId) || (productId as any), params),
 		enabled: !!productId,
 	});
 }
@@ -124,7 +181,7 @@ export function useProductReviewsQuery(productId: string, params?: GetProductRev
 export function useProductReviewsSummaryQuery(productId: string) {
 	return useQuery({
 		queryKey: catalogQueryKeys.reviewSummary(productId),
-		queryFn: () => reviewApi.getProductReviewsSummary(productId),
+		queryFn: () => reviewApi.getProductReviewsSummary(Number(productId) || (productId as any)),
 		enabled: !!productId,
 	});
 }
@@ -135,8 +192,8 @@ export function useAddProductReviewMutation() {
 		mutationFn: (data: AddProductReviewRequest) => reviewApi.addProductReview(data),
 		onSuccess: (_, variables) => {
 			if (variables?.productId) {
-				queryClient.invalidateQueries({ queryKey: catalogQueryKeys.reviews(variables.productId) });
-				queryClient.invalidateQueries({ queryKey: catalogQueryKeys.reviewSummary(variables.productId) });
+				queryClient.invalidateQueries({ queryKey: catalogQueryKeys.reviews(String(variables.productId)) });
+				queryClient.invalidateQueries({ queryKey: catalogQueryKeys.reviewSummary(String(variables.productId)) });
 			}
 		},
 	});

@@ -19,6 +19,17 @@ export function useCreateAddressMutation() {
 	});
 }
 
+export function useUpdateAddressMutation() {
+	const queryClient = useQueryClient();
+	return useMutation({
+		mutationFn: ({ id, data }: { id: number; data: any }) =>
+			orderApi.updateAddress(id, data),
+		onSuccess: () => {
+			queryClient.invalidateQueries({ queryKey: ["order", "addresses"] });
+		},
+	});
+}
+
 export function useCalculateTotalMutation() {
 	return useMutation({
 		mutationFn: (data: any) => orderApi.calculateTotal(data),
@@ -38,7 +49,7 @@ export function useCheckoutMutation() {
 export function useSetDefaultAddressMutation() {
 	const queryClient = useQueryClient();
 	return useMutation({
-		mutationFn: (id: string) => orderApi.setDefaultAddress(id),
+		mutationFn: (id: number) => orderApi.setDefaultAddress(id),
 		onSuccess: () => {
 			queryClient.invalidateQueries({ queryKey: ["order", "addresses"] });
 		},
@@ -48,7 +59,7 @@ export function useSetDefaultAddressMutation() {
 export function useDeleteAddressMutation() {
 	const queryClient = useQueryClient();
 	return useMutation({
-		mutationFn: (id: string) => orderApi.deleteAddress(id),
+		mutationFn: (id: number) => orderApi.deleteAddress(id),
 		onSuccess: () => {
 			queryClient.invalidateQueries({ queryKey: ["order", "addresses"] });
 		},
@@ -67,11 +78,13 @@ export function useAvailableVouchersQuery(shopId?: number | null, enabled = true
 		queryKey: ["vouchers", "available", shopId],
 		queryFn: () => orderApi.getAvailableVouchers(shopId),
 		enabled,
+		staleTime: 1000 * 60 * 5, // 5 minutes cache to prevent spamming on click
+		gcTime: 1000 * 60 * 10,
 	});
 }
 
 export function useShopSubOrdersQuery(
-	shopId?: string,
+	shopId?: number,
 	pageNumber = 1,
 	pageSize = 5,
 	status?: string
@@ -120,15 +133,15 @@ export function usePackageReadySubOrderMutation() {
 	});
 }
 
-export function useSubOrderDetailQuery(subOrderId?: string, isSeller = true) {
+export function useSubOrderDetailQuery(subOrderId: string, isSeller = true) {
 	return useQuery({
 		queryKey: ["subOrderDetail", subOrderId, isSeller],
-		queryFn: () => orderApi.getSubOrderDetail(subOrderId!, isSeller),
+		queryFn: () => orderApi.getSubOrderDetail(subOrderId, isSeller),
 		enabled: Boolean(subOrderId),
 	});
 }
 
-export function useCustomerOrdersQuery(customerId?: string) {
+export function useCustomerOrdersQuery(customerId?: number) {
 	return useQuery({
 		queryKey: ["customerOrders", customerId],
 		queryFn: () => orderApi.getCustomerOrders(customerId!),
@@ -136,7 +149,7 @@ export function useCustomerOrdersQuery(customerId?: string) {
 	});
 }
 
-export function useShopRefundsQuery(shopId?: string) {
+export function useShopRefundsQuery(shopId?: number) {
 	return useQuery({
 		queryKey: ["shopRefunds", shopId],
 		queryFn: () => orderApi.getShopRefunds(shopId!),
@@ -147,7 +160,7 @@ export function useShopRefundsQuery(shopId?: string) {
 export function useApproveRefundMutation() {
 	const queryClient = useQueryClient();
 	return useMutation({
-		mutationFn: ({ id, sellerNote }: { id: string; sellerNote?: string }) =>
+		mutationFn: ({ id, sellerNote }: { id: number; sellerNote?: string }) =>
 			orderApi.approveRefund(id, sellerNote),
 		onSuccess: () => {
 			queryClient.invalidateQueries({ queryKey: ["shopRefunds"] });
@@ -158,7 +171,7 @@ export function useApproveRefundMutation() {
 export function useRejectRefundMutation() {
 	const queryClient = useQueryClient();
 	return useMutation({
-		mutationFn: ({ id, sellerNote }: { id: string; sellerNote: string }) =>
+		mutationFn: ({ id, sellerNote }: { id: number; sellerNote: string }) =>
 			orderApi.rejectRefund(id, sellerNote),
 		onSuccess: () => {
 			queryClient.invalidateQueries({ queryKey: ["shopRefunds"] });
@@ -249,7 +262,7 @@ export function useAddBankAccountMutation() {
 export function useUpdateBankAccountMutation() {
 	const queryClient = useQueryClient();
 	return useMutation({
-		mutationFn: ({ id, data }: { id: string; data: any }) =>
+		mutationFn: ({ id, data }: { id: number; data: any }) =>
 			orderApi.updateBankAccount(id, data),
 		onSuccess: () => {
 			queryClient.invalidateQueries({ queryKey: ["userBankAccounts"] });
@@ -267,7 +280,7 @@ export function useMyRefundsQuery() {
 export function useCancelRefundMutation() {
 	const queryClient = useQueryClient();
 	return useMutation({
-		mutationFn: (id: string) => orderApi.cancelRefundRequest(id),
+		mutationFn: (id: number) => orderApi.cancelRefundRequest(id),
 		onSuccess: () => {
 			queryClient.invalidateQueries({ queryKey: ["myRefundRequests"] });
 			queryClient.invalidateQueries({ queryKey: ["customerOrders"] });
@@ -278,7 +291,7 @@ export function useCancelRefundMutation() {
 export function useCreateWithdrawMutation() {
 	const queryClient = useQueryClient();
 	return useMutation({
-		mutationFn: (data: { amount: number; bankAccountId: string }) =>
+		mutationFn: (data: { amount: number; bankAccountId: number }) =>
 			api.post("/withdrawals", data).then((r) => r.data),
 		onSuccess: () => {
 			queryClient.invalidateQueries({ queryKey: ["userWallet"] });

@@ -1,3 +1,10 @@
 export * from "./types/notification.types";
+export * from "./types/chat.types";
+export * from "./components/chat/chat.constants";
+export * from "./components/chat/ChatConversationList";
+export * from "./components/chat/ChatMessageArea";
+export * from "./components/chat/ChatRightSidebar";
+export * from "./components/NotificationsTab";
 export * from "./api/notificationApi";
 export * from "./hooks/useNotifications";
+export { useChatStore } from "./stores/useChatStore";

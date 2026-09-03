@@ -11,17 +11,22 @@ public class ProductsWithCursorPaginationSpec : Specification<Product>
         double? minRating, 
         string sortBy, 
         string? lastValue, 
-        Guid? lastId, 
+        long? lastId, 
         int limit,
-        long? shopId = null)
+        long? shopId = null,
+        bool? hasDiscount = null)
     {
         // 1. Chỉ lấy sản phẩm đang hoạt động
         Query.Where(p => p.Status == ProductStatus.Active);
 
-        // 2. Filter theo SearchTerm
-        if (!string.IsNullOrEmpty(searchTerm))
+        // 2. Filter theo SearchTerm (Native Full-Text Search Case-Insensitive)
+        if (!string.IsNullOrWhiteSpace(searchTerm))
         {
-            Query.Where(p => p.Name.Contains(searchTerm));
+            var term = searchTerm.Trim().ToLower();
+            Query.Where(p => 
+                p.Name.ToLower().Contains(term) || 
+                (p.Description != null && p.Description.ToLower().Contains(term))
+            );
         }
 
         // 3. Filter theo Category
@@ -42,16 +47,77 @@ public class ProductsWithCursorPaginationSpec : Specification<Product>
             Query.Where(p => p.ShopId == shopId.Value);
         }
 
+        // 4c. Filter theo HasDiscount
+        if (hasDiscount.HasValue && hasDiscount.Value)
+        {
+            Query.Where(p => p.DiscountPrice > 0 && p.DiscountPrice < p.Price);
+        }
+
         // 5. Load Navigation Properties
         Query.Include(p => p.Category);
 
         // 6. Áp dụng sắp xếp và Keyset Pagination
-        switch (sortBy.ToLower())
+        switch (sortBy?.ToLower())
         {
-            case "rating":
-                if (lastValue != null && lastId != null)
+            case "discount":
+                if (lastValue != null && lastId != null && decimal.TryParse(lastValue, out var discountLimit))
                 {
-                    var ratingLimit = double.Parse(lastValue);
+                    Query.Where(p => (p.Price - p.DiscountPrice) < discountLimit || 
+                        ((p.Price - p.DiscountPrice) == discountLimit && p.Id.CompareTo(lastId.Value) > 0));
+                }
+                Query.OrderByDescending(p => (p.Price - p.DiscountPrice)).ThenBy(p => p.Id);
+                break;
+            case "price_asc":
+                if (lastValue != null && lastId != null && decimal.TryParse(lastValue, out var priceAscLimit))
+                {
+                    Query.Where(p => p.Price > priceAscLimit || 
+                        (p.Price == priceAscLimit && p.Id.CompareTo(lastId.Value) > 0));
+                }
+                Query.OrderBy(p => p.Price).ThenBy(p => p.Id);
+                break;
+
+            case "price_desc":
+                if (lastValue != null && lastId != null && decimal.TryParse(lastValue, out var priceDescLimit))
+                {
+                    Query.Where(p => p.Price < priceDescLimit || 
+                        (p.Price == priceDescLimit && p.Id.CompareTo(lastId.Value) > 0));
+                }
+                Query.OrderByDescending(p => p.Price).ThenBy(p => p.Id);
+                break;
+
+            case "newest":
+                if (lastValue != null && lastId != null && long.TryParse(lastValue, out var newestTicks))
+                {
+                    var dt = new DateTime(newestTicks, DateTimeKind.Utc);
+                    Query.Where(p => p.CreatedAt < dt || 
+                        (p.CreatedAt == dt && p.Id.CompareTo(lastId.Value) > 0));
+                }
+                Query.OrderByDescending(p => p.CreatedAt).ThenBy(p => p.Id);
+                break;
+
+            case "oldest":
+                if (lastValue != null && lastId != null && long.TryParse(lastValue, out var oldestTicks))
+                {
+                    var dt = new DateTime(oldestTicks, DateTimeKind.Utc);
+                    Query.Where(p => p.CreatedAt > dt || 
+                        (p.CreatedAt == dt && p.Id.CompareTo(lastId.Value) > 0));
+                }
+                Query.OrderBy(p => p.CreatedAt).ThenBy(p => p.Id);
+                break;
+
+            case "sold":
+            case "best_selling":
+                if (lastValue != null && lastId != null && int.TryParse(lastValue, out var soldLimit))
+                {
+                    Query.Where(p => p.Sold < soldLimit || 
+                        (p.Sold == soldLimit && p.Id.CompareTo(lastId.Value) > 0));
+                }
+                Query.OrderByDescending(p => p.Sold).ThenBy(p => p.Id);
+                break;
+
+            case "rating":
+                if (lastValue != null && lastId != null && double.TryParse(lastValue, out var ratingLimit))
+                {
                     Query.Where(p => p.AverageRating < ratingLimit || 
                         (p.AverageRating == ratingLimit && p.Id.CompareTo(lastId.Value) > 0));
                 }
@@ -59,9 +125,8 @@ public class ProductsWithCursorPaginationSpec : Specification<Product>
                 break;
 
             case "reviews":
-                if (lastValue != null && lastId != null)
+                if (lastValue != null && lastId != null && int.TryParse(lastValue, out var reviewLimit))
                 {
-                    var reviewLimit = int.Parse(lastValue);
                     Query.Where(p => p.ReviewCount < reviewLimit || 
                         (p.ReviewCount == reviewLimit && p.Id.CompareTo(lastId.Value) > 0));
                 }

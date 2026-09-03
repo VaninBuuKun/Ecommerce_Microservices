@@ -13,22 +13,19 @@ public class ProductMappings : IRegister
             .Map(dest => dest.VariantName, src => src.GetVariantName())
             .Map(dest => dest.ProductName, src => src.Product.Name)
             .Map(dest => dest.ShopId, src => src.Product.ShopId)
-            .Map(dest => dest.Weight,
-                src => src.Weight.HasValue && src.Weight.Value > 0 ? src.Weight.Value : src.Product.Weight)
-            .Map(dest => dest.Length,
-                src => src.Length.HasValue && src.Length.Value > 0 ? src.Length.Value : src.Product.Length)
-            .Map(dest => dest.Width,
-                src => src.Width.HasValue && src.Width.Value > 0 ? src.Width.Value : src.Product.Width)
-            .Map(dest => dest.Height,
-                src => src.Height.HasValue && src.Height.Value > 0 ? src.Height.Value : src.Product.Height)
+            .Map(dest => dest.Weight, src => src.Product.Weight)
+            .Map(dest => dest.Length, src => src.Product.Length)
+            .Map(dest => dest.Width, src => src.Product.Width)
+            .Map(dest => dest.Height, src => src.Product.Height)
             .Map(dest => dest.DiscountPrice, src => src.DiscountPrice)
+            .Map(dest => dest.AvailableStock, src => src.AvailableStock)
             .Map(dest => dest.ThumbnailUrl, src => src.GetThumbnailUrl());
 
         config.NewConfig<Product, VariantDto>()
-            .Map(dest => dest.Id, src => src.Id)
+            .Map(dest => dest.Id, src => 0)
             .Map(dest => dest.ProductId, src => src.Id)
             .Map(dest => dest.ProductName, src => src.Name)
-            .Map(dest => dest.AvailableStocks, src => src.AvailableStock)
+            .Map(dest => dest.AvailableStock, src => src.Variants.Where(v => !v.IsDeleted).Sum(v => v.AvailableStock))
             .Map(dest => dest.Price, src => src.Price)
             .Map(dest => dest.DiscountPrice, src => src.DiscountPrice)
             .Map(dest => dest.VariantName, src => "")
@@ -40,14 +37,19 @@ public class ProductMappings : IRegister
             .Map(dest => dest.ThumbnailUrl, src => src.ThumbnailUrl ?? "");
 
         config.NewConfig<ProductVariant, ProductVariantDto>()
-            .Map(dest => dest.AvailableStock, src => src.AvailableStocks)
+            .Map(dest => dest.AvailableStock, src => src.AvailableStock)
+            .Map(dest => dest.ReservedStock, src => src.ReservedStock)
             .Map(dest => dest.VariantName, src => src.GetVariantName());
 
         config.NewConfig<Product, ProductResponse>()
             .Map(dest => dest.Price, src => src.Price)
             .Map(dest => dest.PriceDisplay, src => src.Price)
             .Map(dest => dest.DiscountPrice, src => src.DiscountPrice)
-            .Map(dest => dest.AvailableStock, src => src.AvailableStock)
+            .Map(dest => dest.MinPrice, src => src.Variants.Any(v => !v.IsDeleted) ? src.Variants.Where(v => !v.IsDeleted).Min(v => v.Price) : src.Price)
+            .Map(dest => dest.MaxPrice, src => src.Variants.Any(v => !v.IsDeleted) ? src.Variants.Where(v => !v.IsDeleted).Max(v => v.Price) : src.Price)
+            .Map(dest => dest.MinDiscountPrice, src => src.Variants.Any(v => !v.IsDeleted) ? src.Variants.Where(v => !v.IsDeleted).Min(v => v.DiscountPrice > 0 ? v.DiscountPrice : v.Price) : src.DiscountPrice)
+            .Map(dest => dest.MaxDiscountPrice, src => src.Variants.Any(v => !v.IsDeleted) ? src.Variants.Where(v => !v.IsDeleted).Max(v => v.DiscountPrice > 0 ? v.DiscountPrice : v.Price) : src.DiscountPrice)
+            .Map(dest => dest.AvailableStock, src => src.Variants.Where(v => !v.IsDeleted).Sum(v => v.AvailableStock))
             .Map(dest => dest.CategoryName, src => src.Category != null ? src.Category.Name : null)
             .Map(dest => dest.ParentCategoryName, src => src.Category != null && src.Category.Parent != null ? src.Category.Parent.Name : null)
             .Map(dest => dest.Variants, src => src.Variants

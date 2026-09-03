@@ -1,9 +1,9 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
-import { Link, useNavigate } from "react-router-dom";
-import { authService } from "@/domains/auth";
-import { Terminal } from "lucide-react";
-
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
+import { authService, useAuthStore } from "@/domains/auth";
+import { Terminal, Eye, EyeOff } from "lucide-react";
+import { toast } from "react-toastify";
 import { checkIsAdmin } from "@/shared/utils/authHelper";
 
 interface FormValues {
@@ -13,18 +13,46 @@ interface FormValues {
 
 export default function LoginPage() {
 	const navigate = useNavigate();
+	const [searchParams] = useSearchParams();
+	const emailParam = searchParams.get("email") || "";
+	const redirectParam = searchParams.get("redirect") || "/";
+
+	const { accessToken, user, clearState } = useAuthStore();
+	const [showPassword, setShowPassword] = useState(false);
 	const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
 	const {
 		register,
 		handleSubmit,
+		setValue,
 		formState: { errors, isSubmitting },
 	} = useForm<FormValues>({
 		defaultValues: {
-			username: "",
+			username: emailParam,
 			password: "",
 		},
 	});
+
+	useEffect(() => {
+		if (emailParam) {
+			setValue("username", emailParam);
+		}
+
+		if (accessToken) {
+			if (!emailParam || (user?.email && user.email.toLowerCase() === emailParam.toLowerCase())) {
+				if (checkIsAdmin()) {
+					navigate("/admin", { replace: true });
+				} else {
+					navigate(redirectParam, { replace: true });
+				}
+				return;
+			}
+
+			// Nếu đang login tài khoản khác với email trong link
+			clearState();
+			toast.info(`Chuyển sang đăng nhập tài khoản ${emailParam}`);
+		}
+	}, [accessToken, user, emailParam, redirectParam, navigate, clearState, setValue]);
 
 	const onSubmit = async (data: FormValues) => {
 		setErrorMsg(null);
@@ -40,7 +68,7 @@ export default function LoginPage() {
 			if (checkIsAdmin()) {
 				navigate("/admin");
 			} else {
-				navigate("/");
+				navigate(redirectParam);
 			}
 		} catch (err: any) {
 			setErrorMsg(
@@ -51,10 +79,9 @@ export default function LoginPage() {
 	};
 
 	return (
-		/* 1. Sửa min-h-[85vh] -> min-h-screen hoặc min-h-[calc(100vh-4rem)] nếu có Navbar */
 		<div className="min-h-screen flex items-center justify-center px-4 py-8 font-sans">
 			<div className="w-full max-w-4xl bg-white border border-brand-border rounded-lg shadow-xl overflow-hidden grid grid-cols-1 md:grid-cols-2 items-stretch">
-				{/* Left column: Login Form - Giảm space-y-6 xuống space-y-4 để tránh tràn padding */}
+				{/* Left column: Login Form */}
 				<form
 					onSubmit={handleSubmit(onSubmit)}
 					className="p-8 flex flex-col justify-center space-y-4 text-left"
@@ -99,21 +126,35 @@ export default function LoginPage() {
 								<label className="block text-xs font-bold text-brand-dark">
 									Mật khẩu
 								</label>
-								<a
-									href="#"
+								<Link
+									to="/forgot-password"
 									className="text-xs text-brand-primary hover:underline font-medium"
 								>
 									Quên mật khẩu?
-								</a>
+								</Link>
 							</div>
-							<input
-								type="password"
-								placeholder="••••••••"
-								{...register("password", {
-									required: "Vui lòng điền mật khẩu",
-								})}
-								className="w-full px-3 py-2 bg-brand-light-soft border border-brand-border rounded text-xs focus:outline-none focus:border-brand-primary text-brand-dark"
-							/>
+							<div className="relative">
+								<input
+									type={showPassword ? "text" : "password"}
+									placeholder="••••••••"
+									{...register("password", {
+										required: "Vui lòng điền mật khẩu",
+									})}
+									className="w-full px-3 py-2 pr-10 bg-brand-light-soft border border-brand-border rounded text-xs focus:outline-none focus:border-brand-primary text-brand-dark"
+								/>
+								<button
+									type="button"
+									onClick={() => setShowPassword(!showPassword)}
+									className="absolute right-2.5 top-1/2 -translate-y-1/2 text-brand-muted hover:text-brand-dark p-1 cursor-pointer border-none bg-transparent"
+									tabIndex={-1}
+								>
+									{showPassword ? (
+										<EyeOff className="w-4 h-4" />
+									) : (
+										<Eye className="w-4 h-4" />
+									)}
+								</button>
+							</div>
 							{errors.password && (
 								<span className="text-[10px] text-red-500 mt-1 block">
 									{errors.password.message}
@@ -179,7 +220,7 @@ export default function LoginPage() {
 
 					<div className="relative z-10 space-y-2">
 						<span className="text-[10px] font-black text-brand-primary tracking-widest uppercase flex items-center gap-1.5">
-							⚡ SUPABAZE STORE
+							⚡ BUUSTORE
 						</span>
 						<h3 className="text-2xl font-black text-white leading-tight tracking-tight">
 							Cửa ngõ dẫn tới bình nguyên vô tận.
@@ -198,12 +239,12 @@ export default function LoginPage() {
 							# Khởi tạo giỏ hàng và đồng bộ session
 						</p>
 						<p className="text-brand-primary-soft">
-							init_customer_session(user_id="van_tuong")
+							init_customer_session(user_id="buu_store")
 						</p>
 					</div>
 
 					<div className="relative z-10 text-[10px] text-brand-muted">
-						© 2026 Supabaze Store Inc. Bảo lưu mọi quyền.
+						© 2026 BuuStore Inc. Bảo lưu mọi quyền.
 					</div>
 				</div>
 			</div>

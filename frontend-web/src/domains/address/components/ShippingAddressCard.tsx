@@ -41,7 +41,17 @@ export function ShippingAddressCard({
 						)}
 					</div>
 					<div className="text-xs text-brand-dark leading-relaxed font-semibold">
-						{selectedAddress.addressLine || selectedAddress.fullAddress || ""}, {getWardName(selectedAddress.wardId || 0)}, {getDistrictName(selectedAddress.districtId)}, {getProvinceName(selectedAddress.provinceId)}
+						{(() => {
+							const ward = getWardName(selectedAddress.wardId || 0);
+							const district = getDistrictName(selectedAddress.districtId);
+							const province = getProvinceName(selectedAddress.provinceId);
+							const area = [ward, district, province].filter(Boolean).join(", ");
+							const line = selectedAddress.addressLine || selectedAddress.fullAddress || "";
+							if (line && area) {
+								return `${line} / ${area}`;
+							}
+							return line || area;
+						})()}
 					</div>
 				</div>
 			) : (

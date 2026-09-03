@@ -91,9 +91,16 @@ public class OrdersController(ICurrentUserService currentUserService, IInMemoryB
     [HttpPost("checkout")]
     [ProducesResponseType(typeof(CustomerOrderResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    public async Task<IActionResult> Checkout([FromBody] CreateOrderCommand request, CancellationToken cancellationToken)
+    public async Task<IActionResult> Checkout(
+        [FromBody] CreateOrderCommand request,
+        [FromHeader(Name = "X-Idempotency-Key")] string? idempotencyKeyHeader,
+        CancellationToken cancellationToken)
     {
-        var result = await _sender.SendAsync(request with{CustomerId = UserId}, cancellationToken);
+        var idempotencyKey = !string.IsNullOrWhiteSpace(request.IdempotencyKey)
+            ? request.IdempotencyKey
+            : idempotencyKeyHeader;
+
+        var result = await _sender.SendAsync(request with { CustomerId = UserId, IdempotencyKey = idempotencyKey }, cancellationToken);
 
         return result.IsSuccess 
             ? Ok(result) 

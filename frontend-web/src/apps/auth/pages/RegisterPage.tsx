@@ -4,7 +4,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { authService } from "@/domains/auth";
-import { Terminal } from "lucide-react";
+import { Terminal, Eye, EyeOff } from "lucide-react";
 
 const registerSchema = z
 	.object({
@@ -27,6 +27,8 @@ type SignUpFormValues = z.infer<typeof registerSchema>;
 
 export default function RegisterPage() {
 	const navigate = useNavigate();
+	const [showPassword, setShowPassword] = useState(false);
+	const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 	const [errorMsg, setErrorMsg] = useState<string | null>(null);
 	const [successMsg, setSuccessMsg] = useState<string | null>(null);
 
@@ -74,6 +76,7 @@ export default function RegisterPage() {
 				{/* Left column: Signup Form */}
 				<form
 					onSubmit={handleSubmit(onSubmit)}
+					autoComplete="off"
 					className="p-8 flex flex-col justify-center space-y-4 text-left"
 				>
 					<div className="space-y-1">
@@ -105,6 +108,7 @@ export default function RegisterPage() {
 							<input
 								type="email"
 								placeholder="name@example.com"
+								autoComplete="off"
 								{...register("email")}
 								className="w-full px-3 py-2 bg-brand-light-soft border border-brand-border rounded text-xs focus:outline-none focus:border-brand-primary text-brand-dark"
 							/>
@@ -123,6 +127,7 @@ export default function RegisterPage() {
 								<input
 									type="text"
 									placeholder="Nguyễn Văn"
+									autoComplete="off"
 									{...register("lastName")}
 									className="w-full px-3 py-2 bg-brand-light-soft border border-brand-border rounded text-xs focus:outline-none focus:border-brand-primary text-brand-dark"
 								/>
@@ -139,6 +144,7 @@ export default function RegisterPage() {
 								<input
 									type="text"
 									placeholder="An"
+									autoComplete="off"
 									{...register("firstName")}
 									className="w-full px-3 py-2 bg-brand-light-soft border border-brand-border rounded text-xs focus:outline-none focus:border-brand-primary text-brand-dark"
 								/>
@@ -155,12 +161,27 @@ export default function RegisterPage() {
 								<label className="block text-xs font-bold text-brand-dark mb-1">
 									Mật khẩu
 								</label>
-								<input
-									type="password"
-									placeholder="••••••••"
-									{...register("password")}
-									className="w-full px-3 py-2 bg-brand-light-soft border border-brand-border rounded text-xs focus:outline-none focus:border-brand-primary text-brand-dark"
-								/>
+								<div className="relative">
+									<input
+										type={showPassword ? "text" : "password"}
+										placeholder="••••••••"
+										autoComplete="new-password"
+										{...register("password")}
+										className="w-full px-3 py-2 pr-8 bg-brand-light-soft border border-brand-border rounded text-xs focus:outline-none focus:border-brand-primary text-brand-dark"
+									/>
+									<button
+										type="button"
+										onClick={() => setShowPassword(!showPassword)}
+										className="absolute right-1.5 top-1/2 -translate-y-1/2 text-brand-muted hover:text-brand-dark p-1 cursor-pointer border-none bg-transparent"
+										tabIndex={-1}
+									>
+										{showPassword ? (
+											<EyeOff className="w-3.5 h-3.5" />
+										) : (
+											<Eye className="w-3.5 h-3.5" />
+										)}
+									</button>
+								</div>
 								{errors.password && (
 									<span className="text-[10px] text-red-500 mt-1 block">
 										{errors.password.message}
@@ -171,12 +192,27 @@ export default function RegisterPage() {
 								<label className="block text-xs font-bold text-brand-dark mb-1">
 									Xác nhận lại
 								</label>
-								<input
-									type="password"
-									placeholder="••••••••"
-									{...register("confirmPassword")}
-									className="w-full px-3 py-2 bg-brand-light-soft border border-brand-border rounded text-xs focus:outline-none focus:border-brand-primary text-brand-dark"
-								/>
+								<div className="relative">
+									<input
+										type={showConfirmPassword ? "text" : "password"}
+										placeholder="••••••••"
+										autoComplete="new-password"
+										{...register("confirmPassword")}
+										className="w-full px-3 py-2 pr-8 bg-brand-light-soft border border-brand-border rounded text-xs focus:outline-none focus:border-brand-primary text-brand-dark"
+									/>
+									<button
+										type="button"
+										onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+										className="absolute right-1.5 top-1/2 -translate-y-1/2 text-brand-muted hover:text-brand-dark p-1 cursor-pointer border-none bg-transparent"
+										tabIndex={-1}
+									>
+										{showConfirmPassword ? (
+											<EyeOff className="w-3.5 h-3.5" />
+										) : (
+											<Eye className="w-3.5 h-3.5" />
+										)}
+									</button>
+								</div>
 								{errors.confirmPassword && (
 									<span className="text-[10px] text-red-500 mt-1 block">
 										{errors.confirmPassword.message}
@@ -218,7 +254,7 @@ export default function RegisterPage() {
 
 					<div className="relative z-10 space-y-2">
 						<span className="text-[10px] font-black text-brand-primary tracking-widest uppercase flex items-center gap-1.5">
-							⚡ SUPABAZE STORE
+							⚡ BUUSTORE
 						</span>
 						<h3 className="text-2xl font-black text-white leading-tight tracking-tight">
 							Ký danh để vào bình nguyên vô tận.
@@ -242,7 +278,7 @@ export default function RegisterPage() {
 					</div>
 
 					<div className="relative z-10 text-[10px] text-brand-muted">
-						© 2026 Supabaze Store Inc. Bảo lưu mọi quyền.
+						© 2026 BuuStore Inc. Bảo lưu mọi quyền.
 					</div>
 				</div>
 			</div>

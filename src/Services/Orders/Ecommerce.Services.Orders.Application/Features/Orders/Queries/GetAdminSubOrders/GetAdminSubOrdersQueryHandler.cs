@@ -63,7 +63,7 @@ public class GetAdminSubOrdersQueryHandler(
             predicate: predicate,
             orderBy: q => q.OrderByDescending(o => o.CreatedDate),
             cancellationToken: cancellationToken,
-            includes: new Expression<Func<SubOrder, object>>[] { o => o.Order }
+            includes: new Expression<Func<SubOrder, object>>[] { o => o.Order, o => o.SubOrderItems }
         );
 
         var items = mapper.Map<List<CustomerOrderResponse>>(subOrders);

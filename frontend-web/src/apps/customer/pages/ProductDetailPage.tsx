@@ -24,14 +24,20 @@ import {
 } from "@/domains/catalog";
 
 import { useSellerProfileQuery } from "@/domains/seller";
-import { useAddItemToCartMutation } from "@/domains/cart";
+import { useAddItemToCartMutation, useBuyNowOrReorder } from "@/domains/cart";
+import { useChatStore } from "@/domains/notification";
+import { useAuthStore, useAuthModalStore } from "@/domains/auth";
 import { toast } from "react-toastify";
 
 export default function ProductDetailPage() {
 	const { id } = useParams<{ id: string }>();
 	const navigate = useNavigate();
 	const addItemToCartMutation = useAddItemToCartMutation();
+	const { openChatWithShop } = useChatStore();
+	const accessToken = useAuthStore((s) => s.accessToken);
+	const { openAuthModal } = useAuthModalStore();
 	const { data: product, isLoading, isError } = useProductByIdQuery(id);
+
 
 	const [activeMedia, setActiveMedia] = useState<{
 		type: "image" | "video";
@@ -50,7 +56,6 @@ export default function ProductDetailPage() {
 		if (!product) return "";
 		return (
 			product.thumbnailUrl ||
-			product.thumbnailUrl ||
 			(product.imageUrls && product.imageUrls[0]) ||
 			""
 		);
@@ -68,34 +73,38 @@ export default function ProductDetailPage() {
 
 	// Find Variant matching selected options
 	useEffect(() => {
-		if (!product?.variants?.length) return;
-
-		if (!product.options?.length) {
-			setSelectedVariant(product.variants[0]);
+		if (!product || !product.variants || product.variants.length === 0) {
+			setSelectedVariant(null);
 			return;
 		}
 
-		const totalOptions = product.options.length;
-		const selectedCount = Object.keys(selectedOptions).length;
+		const numSelected = Object.keys(selectedOptions).length;
+		const totalOptions = product.options?.length || 0;
 
-		if (selectedCount === totalOptions && totalOptions > 0) {
-			const matched = product.variants.find((variant: any) => {
-				return variant.variantOptions?.every((vo: any) => {
-					const parentOption = product.options?.find((o: any) =>
-						o.values?.some(
-							(val: any) => val.id === vo.optionValueId,
-						),
-					);
-					if (!parentOption) return false;
-					return (
-						selectedOptions[parentOption.id] === vo.optionValueId
-					);
-				});
-			});
-			setSelectedVariant(matched || null);
-		} else {
+		if (numSelected !== totalOptions) {
 			setSelectedVariant(null);
+			return;
 		}
+
+		const matched = product.variants.find((variant: any) => {
+			return variant.variantOptions?.every((vo: any) => {
+				const valObj = product.options
+					?.flatMap((o: any) => o.values)
+					.find((v: any) => String(v.id) === String(vo.optionValueId));
+
+				if (!valObj) return false;
+
+				const parentOpt = product.options?.find((o: any) =>
+					o.values.some((v: any) => String(v.id) === String(valObj.id)),
+				);
+
+				return parentOpt
+					? selectedOptions[String(parentOpt.id)] === String(valObj.id)
+					: false;
+			});
+		});
+
+		setSelectedVariant(matched || null);
 	}, [selectedOptions, product]);
 
 	// Calculate prices dynamically
@@ -208,10 +217,10 @@ export default function ProductDetailPage() {
 				setActiveMedia({ type: "image", url: coverImageUrl });
 			} else if (tierIndex === 0 && updated[optionId]) {
 				const parentOption = product.options?.find(
-					(o: any) => o.id === optionId,
+					(o: any) => String(o.id) === String(optionId),
 				);
 				const chosenVal = parentOption?.values?.find(
-					(v: any) => v.id === valueId,
+					(v: any) => String(v.id) === String(valueId),
 				);
 				if (chosenVal?.imageUrl) {
 					setActiveMedia({ type: "image", url: chosenVal.imageUrl });
@@ -224,7 +233,15 @@ export default function ProductDetailPage() {
 
 	const handleAddToCart = () => {
 		if (!product) return;
-		if (product.options?.length > 0 && !selectedVariant) {
+		if (!accessToken) {
+			openAuthModal({
+				title: "Thêm vào giỏ hàng",
+				description: "Vui lòng đăng nhập tài khoản để thêm sản phẩm vào giỏ hàng và thanh toán.",
+			});
+			return;
+		}
+		const hasOptions = Boolean(product.options && product.options.length > 0);
+		if (hasOptions && !selectedVariant) {
 			toast.warning("Vui lòng chọn đầy đủ Phân loại sản phẩm!");
 			return;
 		}
@@ -232,43 +249,72 @@ export default function ProductDetailPage() {
 			toast.warning(`Không thể mua quá số lượng tồn kho khả dụng (${currentStock})!`);
 			return;
 		}
-		const targetId = selectedVariant?.id || (product.variants && product.variants[0]?.id) || product.id;
-		if (!targetId) {
-			toast.error("Không tìm thấy thông tin sản phẩm!");
-			return;
-		}
-		addItemToCartMutation.mutate({
-			variantId: targetId,
-			quantity,
-		});
-	};
+		const activeVariant = hasOptions ? selectedVariant : (product.variants?.[0] || null);
+		const variantId = activeVariant ? String(activeVariant.id) : "";
 
-	const handleBuyNow = () => {
-		if (!product) return;
-		if (product.options?.length > 0 && !selectedVariant) {
-			toast.warning("Vui lòng chọn đầy đủ Phân loại sản phẩm!");
+		if (!variantId) {
+			toast.warning("Vui lòng chọn phân loại sản phẩm hợp lệ!");
 			return;
 		}
-		if (quantity > currentStock) {
-			toast.warning(`Không thể mua quá số lượng tồn kho khả dụng (${currentStock})!`);
-			return;
-		}
-		const targetId = selectedVariant?.id || (product.variants && product.variants[0]?.id) || product.id;
-		if (!targetId) {
-			toast.error("Không tìm thấy thông tin sản phẩm!");
-			return;
-		}
+
 		addItemToCartMutation.mutate(
 			{
-				variantId: targetId,
+				variantId,
 				quantity,
 			},
 			{
 				onSuccess: () => {
-					navigate("/cart");
+					toast.success("Đã thêm sản phẩm vào giỏ hàng!");
+				},
+				onError: (err: any) => {
+					const msg = err.response?.data?.message || err.response?.data || "Không thể thêm sản phẩm vào giỏ hàng";
+					toast.error(msg);
 				},
 			}
 		);
+	};
+
+	const { buyNowOrReorder } = useBuyNowOrReorder();
+	const [isBuyingNow, setIsBuyingNow] = useState(false);
+
+	const handleBuyNow = async () => {
+		if (!product) return;
+		if (!accessToken) {
+			openAuthModal({
+				title: "Mua hàng ngay",
+				description: "Vui lòng đăng nhập tài khoản để tiến hành đặt mua sản phẩm.",
+			});
+			return;
+		}
+		const hasOptions = Boolean(product.options && product.options.length > 0);
+		if (hasOptions && !selectedVariant) {
+			toast.warning("Vui lòng chọn đầy đủ Phân loại sản phẩm!");
+			return;
+		}
+		if (quantity > currentStock) {
+			toast.warning(`Không thể mua quá số lượng tồn kho khả dụng (${currentStock})!`);
+			return;
+		}
+		const activeVariant = hasOptions ? selectedVariant : (product.variants?.[0] || null);
+		const variantId = activeVariant ? String(activeVariant.id) : "";
+
+		if (!variantId) {
+			toast.warning("Vui lòng chọn phân loại sản phẩm hợp lệ!");
+			return;
+		}
+
+		try {
+			setIsBuyingNow(true);
+			await buyNowOrReorder({
+				variantIds: [variantId],
+			});
+			navigate("/cart");
+		} catch (err: any) {
+			const msg = err.response?.data?.message || err.response?.data || "Không thể xử lý đơn hàng";
+			toast.error(msg);
+		} finally {
+			setIsBuyingNow(false);
+		}
 	};
 
 	const { data: sellerProfile } = useSellerProfileQuery();
@@ -387,7 +433,7 @@ export default function ProductDetailPage() {
 							<div className="w-[1px] h-3.5 bg-brand-border" />
 							<div>
 								<span className="text-brand-dark font-extrabold">
-									{product.soldCount || 0}
+									{product.sold || product.soldCount || 0}
 								</span>{" "}
 								Đã bán
 							</div>
@@ -403,7 +449,7 @@ export default function ProductDetailPage() {
 								<div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[11px] text-brand-muted font-medium">
 									{product.weight > 0 && (
 										<span>
-											Cân nặng:{" "}
+											Khối lượng:{" "}
 											<strong className="text-brand-dark">
 												{product.weight}g
 											</strong>
@@ -563,15 +609,15 @@ export default function ProductDetailPage() {
 							<button
 								type="button"
 								onClick={() => {
+									if (!accessToken) {
+										openAuthModal({
+											title: "Trò chuyện với người bán",
+											description: "Vui lòng đăng nhập tài khoản để kết nối và nhắn tin trực tiếp với cửa hàng.",
+										});
+										return;
+									}
 									const storeName = product.shopName || `Shop #${product.shopId}`;
-									window.dispatchEvent(
-										new CustomEvent("open-shop-chat", {
-											detail: {
-												shopId: Number(product.shopId),
-												shopName: storeName,
-											},
-										})
-									);
+									openChatWithShop(Number(product.shopId), storeName);
 								}}
 								className="flex-1 md:flex-initial h-9 px-4 border border-brand-primary text-brand-primary-deep bg-brand-primary/10 hover:bg-brand-primary/20 rounded-xl text-xs font-black transition-all cursor-pointer flex items-center justify-center gap-1.5"
 							>
@@ -590,7 +636,7 @@ export default function ProductDetailPage() {
 			</div>
 
 			{/* Description Section */}
-			<ProductDescription description={product.description} />
+			<ProductDescription description={product.description} attributesJson={product.attributesJson} />
 
 			{/* Ratings & Reviews System */}
 			<ProductReviewsSection productId={product.id} />

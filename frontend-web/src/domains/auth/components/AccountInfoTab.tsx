@@ -177,7 +177,7 @@ export function AccountInfoTab({ user, setUser }: AccountInfoTabProps) {
 								value={lastName}
 								onChange={(e) => setLastName(e.target.value)}
 								required
-								className="w-full h-9 px-3 border border-brand-border rounded-lg text-xs focus:outline-none focus:border-brand-primary bg-white font-bold text-brand-dark"
+								className="w-full h-9 px-3 border border-brand-border rounded-md text-xs focus:outline-none focus:border-brand-primary bg-white font-bold text-brand-dark"
 							/>
 						</div>
 						<div>
@@ -187,7 +187,7 @@ export function AccountInfoTab({ user, setUser }: AccountInfoTabProps) {
 								value={firstName}
 								onChange={(e) => setFirstName(e.target.value)}
 								required
-								className="w-full h-9 px-3 border border-brand-border rounded-lg text-xs focus:outline-none focus:border-brand-primary bg-white font-bold text-brand-dark"
+								className="w-full h-9 px-3 border border-brand-border rounded-md text-xs focus:outline-none focus:border-brand-primary bg-white font-bold text-brand-dark"
 							/>
 						</div>
 					</div>
@@ -198,7 +198,7 @@ export function AccountInfoTab({ user, setUser }: AccountInfoTabProps) {
 							<select
 								value={birthDay}
 								onChange={(e) => setBirthDay(e.target.value)}
-								className="h-9 px-2 border border-brand-border rounded-lg text-xs focus:outline-none cursor-pointer bg-white font-bold text-brand-dark"
+								className="h-9 px-2 border border-brand-border rounded-md text-xs focus:outline-none cursor-pointer bg-white font-bold text-brand-dark"
 							>
 								<option value="">-- Ngày (Chưa chọn) --</option>
 								{days.map((d) => (
@@ -210,7 +210,7 @@ export function AccountInfoTab({ user, setUser }: AccountInfoTabProps) {
 							<select
 								value={birthMonth}
 								onChange={(e) => setBirthMonth(e.target.value)}
-								className="h-9 px-2 border border-brand-border rounded-lg text-xs focus:outline-none cursor-pointer bg-white font-bold text-brand-dark"
+								className="h-9 px-2 border border-brand-border rounded-md text-xs focus:outline-none cursor-pointer bg-white font-bold text-brand-dark"
 							>
 								<option value="">-- Tháng (Chưa chọn) --</option>
 								{months.map((m) => (
@@ -222,7 +222,7 @@ export function AccountInfoTab({ user, setUser }: AccountInfoTabProps) {
 							<select
 								value={birthYear}
 								onChange={(e) => setBirthYear(e.target.value)}
-								className="h-9 px-2 border border-brand-border rounded-lg text-xs focus:outline-none cursor-pointer bg-white font-bold text-brand-dark"
+								className="h-9 px-2 border border-brand-border rounded-md text-xs focus:outline-none cursor-pointer bg-white font-bold text-brand-dark"
 							>
 								<option value="">-- Năm (Chưa chọn) --</option>
 								{years.map((y) => (
@@ -288,7 +288,7 @@ export function AccountInfoTab({ user, setUser }: AccountInfoTabProps) {
 						<button
 							type="submit"
 							disabled={isUpdating}
-							className="px-6 py-2 bg-brand-dark text-white hover:bg-brand-primary hover:text-brand-dark rounded-xl text-xs font-black transition-all cursor-pointer flex items-center gap-2"
+							className="px-6 py-2 bg-brand-primary text-white hover:bg-brand-primary-deep rounded-md text-xs font-black transition-all cursor-pointer flex items-center gap-2"
 						>
 							{isUpdating && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
 							Lưu thay đổi

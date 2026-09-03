@@ -41,7 +41,8 @@ public class CurrentUserService(IHttpContextAccessor accessor) : ICurrentUserSer
             var user = accessor.HttpContext?.User;
             if (user == null) return false;
             
-            return user.IsInRole("Admin");
+            return user.IsInRole("Admin")
+                || user.HasClaim(c => (c.Type == "role" || c.Type == ClaimTypes.Role) && string.Equals(c.Value, "Admin", StringComparison.OrdinalIgnoreCase));
         }
     }
 }

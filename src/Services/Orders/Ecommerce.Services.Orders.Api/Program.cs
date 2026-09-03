@@ -1,4 +1,6 @@
 using BuildingBlocks.Auth;
+using BuildingBlocks.BackgroundJobs.Configurations;
+using BuildingBlocks.Grpc.Extensions;
 using BuildingBlocks.Logging;
 
 using Ecommerce.Services.Orders.Infrastructure;
@@ -22,12 +24,13 @@ try
             options.JsonSerializerOptions.Converters.Add(new System.Text.Json.Serialization.JsonStringEnumConverter());
         });
     builder.Services.AddHttpContextAccessor();
-    builder.Services.AddGrpc();
+    builder.Services.AddBuildingBlocksGrpc();
     builder.Services.AddBuildingBlocksWeb(builder.Configuration);
     builder.Services.AddBuildingBlocsAuth(builder.Configuration);
     
     builder.Services.AddInfrastructure(builder.Configuration);
     builder.Services.AddApplication();
+    builder.Services.AddBuildingBlocksHangfire(builder.Configuration, schemaName: "hangfire_orders");
 
     var app = builder.Build();
 
@@ -41,6 +44,7 @@ try
         app.UseHttpsRedirection();
     }
     app.UseCors("CorsPolicy");
+    app.UseBuildingBlocksHangfireDashboard("/hangfire");
     app.MapControllers();
     app.MapGrpcService<Ecommerce.Services.Orders.Api.GrpcServers.OrderGrpcServer>();
 

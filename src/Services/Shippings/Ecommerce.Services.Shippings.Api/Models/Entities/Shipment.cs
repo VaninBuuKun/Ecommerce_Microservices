@@ -1,4 +1,6 @@
 using System;
+using System.Text.Json.Serialization;
+using BuildingBlocks.Shared.Converters;
 using BuildingBlocks.Shared.Domains;
 using Ecommerce.Services.Shippings.Api.Models.Enums;
 
@@ -6,6 +8,7 @@ namespace Ecommerce.Services.Shippings.Api.Models.Entities;
 
 public class Shipment : EntityTrackingBase<Guid>
 {
+    [JsonConverter(typeof(LongToStringJsonConverter))]
     public long SubOrderId { get; set; }
     public long OrderId { get; set; }
     public long CustomerId { get; set; }

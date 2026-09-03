@@ -11,6 +11,13 @@ const basicInfoSchema = z.object({
 
 type BasicInfoErrors = Partial<Record<"name" | "description", string>>;
 
+import { Plus, Trash2 } from "lucide-react";
+
+export interface AttributeItem {
+	key: string;
+	value: string;
+}
+
 interface ProductBasicInfoProps {
 	name: string;
 	setName: (val: string) => void;
@@ -22,8 +29,10 @@ interface ProductBasicInfoProps {
 	setImageUrls: (val: string[]) => void;
 	videoUrl: string;
 	setVideoUrl: (val: string) => void;
-	categoryId: string;
-	setCategoryId: (val: string) => void;
+	categoryId: number | null;
+	setCategoryId: (val: number | null) => void;
+	attributes: AttributeItem[];
+	setAttributes: React.Dispatch<React.SetStateAction<AttributeItem[]>>;
 }
 
 export const ProductBasicInfoSection: React.FC<ProductBasicInfoProps> = ({
@@ -39,6 +48,8 @@ export const ProductBasicInfoSection: React.FC<ProductBasicInfoProps> = ({
 	setVideoUrl,
 	categoryId,
 	setCategoryId,
+	attributes,
+	setAttributes,
 }) => {
 	const [errors, setErrors] = useState<BasicInfoErrors>({});
 
@@ -55,13 +66,11 @@ export const ProductBasicInfoSection: React.FC<ProductBasicInfoProps> = ({
 	const { data: categories = [], isLoading: isLoadingCates } = useCategoriesQuery();
 
 	const validCategories = useMemo(() => {
-		return categories.filter(
-			(c: any) => Array.isArray(c.subCategories) && c.subCategories.length > 0
-		);
+		return categories;
 	}, [categories]);
 
 	const [isOpen, setIsOpen] = useState(false);
-	const [activeParentId, setActiveParentId] = useState<string | null>(null);
+	const [activeParentId, setActiveParentId] = useState<number | null>(null);
 	const dropdownRef = useRef<HTMLDivElement>(null);
 
 	useEffect(() => {
@@ -77,29 +86,34 @@ export const ProductBasicInfoSection: React.FC<ProductBasicInfoProps> = ({
 	useEffect(() => {
 		if (validCategories.length > 0) {
 			if (categoryId) {
+				const numCateId = Number(categoryId);
 				const parent = validCategories.find((c: any) =>
-					c.subCategories?.some((s: any) => s.id === categoryId)
+					c.subCategories?.some((s: any) => Number(s.id) === numCateId)
 				);
 				if (parent) {
 					setActiveParentId(parent.id);
 					return;
 				}
 			}
-			if (!activeParentId || !validCategories.some((c: any) => c.id === activeParentId)) {
-				setActiveParentId(validCategories[0]?.id || null);
-			}
+			setActiveParentId((prev) => {
+				if (prev && validCategories.some((c: any) => c.id === prev)) {
+					return prev;
+				}
+				return validCategories[0]?.id || null;
+			});
 		}
-	}, [categoryId, validCategories, activeParentId]);
+	}, [categoryId, validCategories]);
 
 	const getCategoryDisplayPath = () => {
-		if (!categoryId || validCategories.length === 0) return "Chọn Danh mục";
+		if (!categoryId || validCategories.length === 0) return "Chọn Danh mục con";
+		const numCateId = Number(categoryId);
 		for (const parent of validCategories) {
-			const sub = parent.subCategories?.find((s: any) => s.id === categoryId);
+			const sub = parent.subCategories?.find((s: any) => Number(s.id) === numCateId);
 			if (sub) {
 				return `${parent.name} > ${sub.name}`;
 			}
 		}
-		return "Chọn Danh mục";
+		return "Chọn Danh mục con";
 	};
 
 	const activeParent = validCategories.find((c: any) => c.id === activeParentId);
@@ -168,13 +182,13 @@ export const ProductBasicInfoSection: React.FC<ProductBasicInfoProps> = ({
 
 				<div className="relative" ref={dropdownRef}>
 					<label className="block text-xs font-bold text-brand-dark mb-1">
-						Danh mục <span className="text-red-500 font-bold">*</span>
+						Danh mục con (SubCategory) <span className="text-red-500 font-bold">*</span>
 					</label>
 					<div
 						onClick={() => setIsOpen(!isOpen)}
 						className="w-full h-8 px-3 border border-brand-border rounded-lg text-xs flex justify-between items-center bg-white cursor-pointer select-none"
 					>
-						<span className="font-semibold text-brand-dark">
+						<span className={`font-semibold ${categoryId ? "text-brand-dark" : "text-brand-muted"}`}>
 							{getCategoryDisplayPath()}
 						</span>
 						<ChevronDown className="w-3.5 h-3.5 text-brand-muted" />
@@ -196,44 +210,52 @@ export const ProductBasicInfoSection: React.FC<ProductBasicInfoProps> = ({
 									<div className="w-1/2 border-r border-brand-border/60 overflow-y-auto p-1.5 space-y-0.5 bg-gray-50/50">
 										{validCategories.map((parent: any) => {
 											const isActive = activeParentId === parent.id;
+											const hasSubs = Array.isArray(parent.subCategories) && parent.subCategories.length > 0;
 
 											return (
 												<div
 													key={parent.id}
-													onMouseEnter={() => setActiveParentId(parent.id)}
 													onClick={() => setActiveParentId(parent.id)}
-													className={`flex items-center justify-between px-2.5 py-2 rounded-lg cursor-pointer text-xs transition-colors ${isActive
+													className={`flex items-center justify-between px-2.5 py-2 rounded-lg cursor-pointer text-xs transition-colors ${
+														isActive
 															? "bg-brand-primary/10 text-brand-primary-deep font-bold"
 															: "hover:bg-brand-light-soft text-brand-dark font-semibold"
-														}`}
+													}`}
 												>
 													<span>{parent.name}</span>
-													<ChevronRight className="w-3 h-3 text-brand-muted" />
+													{hasSubs && <ChevronRight className="w-3 h-3 text-brand-muted" />}
 												</div>
 											);
 										})}
 									</div>
 
 									<div className="w-1/2 overflow-y-auto p-1.5 space-y-0.5 bg-white">
-										{activeSubCategories.map((sub: any) => {
-											const isSelected = categoryId === sub.id;
+										{activeSubCategories.length === 0 ? (
+											<div className="p-3 text-center text-brand-muted text-[11px] italic">
+												(Không có danh mục con)
+											</div>
+										) : (
+											activeSubCategories.map((sub: any) => {
+												const isSelected = categoryId === sub.id;
 
-											return (
-												<div
-													key={sub.id}
-													onClick={() => {
-														setCategoryId(sub.id);
-														setIsOpen(false);
-													}}
-													className={`px-2.5 py-2 rounded-lg cursor-pointer text-xs transition-colors ${isSelected
-															? "bg-brand-primary/15 text-brand-primary-deep font-bold"
-															: "hover:bg-brand-light-soft text-brand-muted font-medium"
+												return (
+													<div
+														key={sub.id}
+														onClick={() => {
+															setCategoryId(sub.id);
+															setIsOpen(false);
+														}}
+														className={`px-2.5 py-2 rounded-lg cursor-pointer text-xs transition-colors ${
+															isSelected
+																? "bg-brand-primary/20 text-brand-primary-deep font-bold"
+																: "hover:bg-brand-light-soft text-brand-dark font-medium"
 														}`}
-												>
-													{sub.name}
-												</div>
-											);
-										})}
+													>
+														{sub.name}
+													</div>
+												);
+											})
+										)}
 									</div>
 								</>
 							)}
@@ -241,52 +263,120 @@ export const ProductBasicInfoSection: React.FC<ProductBasicInfoProps> = ({
 					)}
 				</div>
 
-				<div className="border-t border-brand-border/60 pt-4 space-y-4">
-					<div>
-						<label className="block text-xs font-bold text-brand-dark mb-1">
-							Tên sản phẩm <span className="text-red-500 font-bold">*</span>
-						</label>
-						<input
-							type="text"
-							value={name}
-							onChange={(e) => {
-								setName(e.target.value);
-								validate("name", e.target.value);
-							}}
-							placeholder="Nhập tên sản phẩm..."
-							className={`w-full h-8 px-3 border rounded-lg text-xs focus:outline-none focus:border-brand-primary ${
-								errors.name ? "border-red-400 bg-red-50" : "border-brand-border"
-							}`}
-						/>
-						{errors.name && (
-							<p className="flex items-center gap-1 text-red-500 text-[10px] mt-1">
-								<AlertCircle className="w-3 h-3" />{errors.name}
+				<div>
+					<label className="block text-xs font-bold text-brand-dark mb-1">
+						Tên sản phẩm <span className="text-red-500 font-bold">*</span>
+					</label>
+					<input
+						type="text"
+						value={name}
+						onChange={(e) => {
+							setName(e.target.value);
+							validate("name", e.target.value);
+						}}
+						placeholder="Nhập tên sản phẩm (Ví dụ: Áo thun nam phong cách Streetwear)"
+						className={`w-full h-8 px-3 border rounded-lg text-xs bg-white focus:outline-none text-brand-dark font-sans ${
+							errors.name ? "border-red-500 focus:border-red-500" : "border-brand-border focus:border-brand-primary"
+						}`}
+					/>
+					{errors.name && (
+						<p className="flex items-center gap-1 text-[11px] text-red-500 font-semibold mt-1">
+							<AlertCircle className="w-3 h-3 shrink-0" />
+							{errors.name}
+						</p>
+					)}
+				</div>
+
+				<div>
+					<label className="block text-xs font-bold text-brand-dark mb-1">
+						Mô tả sản phẩm <span className="text-red-500 font-bold">*</span>
+					</label>
+					<textarea
+						rows={5}
+						value={description}
+						onChange={(e) => {
+							setDescription(e.target.value);
+							validate("description", e.target.value);
+						}}
+						placeholder="Nhập thông tin chi tiết sản phẩm, chất liệu, hướng dẫn sử dụng, bảo quản..."
+						className={`w-full p-3 border rounded-lg text-xs bg-white focus:outline-none text-brand-dark font-sans resize-y ${
+							errors.description ? "border-red-500 focus:border-red-500" : "border-brand-border focus:border-brand-primary"
+						}`}
+					/>
+					{errors.description && (
+						<p className="flex items-center gap-1 text-[11px] text-red-500 font-semibold mt-1">
+							<AlertCircle className="w-3 h-3 shrink-0" />
+							{errors.description}
+						</p>
+					)}
+				</div>
+
+				{/* Specification Attributes Section */}
+				<div className="pt-4 border-t border-brand-border/60 space-y-3">
+					<div className="flex items-center justify-between">
+						<div>
+							<label className="block text-xs font-bold text-brand-dark">
+								Thông số & Thuộc tính sản phẩm
+							</label>
+							<p className="text-[11px] text-brand-muted font-medium">
+								Ví dụ: Xuất xứ - Việt Nam, Chất liệu - Cotton 100%, Thương hiệu - Local Brand
 							</p>
-						)}
+						</div>
+						<button
+							type="button"
+							onClick={() => setAttributes([...attributes, { key: "", value: "" }])}
+							className="px-3 py-1.5 bg-brand-primary/10 text-brand-primary-deep hover:bg-brand-primary/20 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1"
+						>
+							<Plus className="w-3.5 h-3.5" />
+							Thêm thuộc tính
+						</button>
 					</div>
 
-					<div>
-						<label className="block text-xs font-bold text-brand-dark mb-1">
-							Mô tả sản phẩm <span className="text-red-500 font-bold">*</span>
-						</label>
-						<textarea
-							rows={5}
-							value={description}
-							onChange={(e) => {
-								setDescription(e.target.value);
-								validate("description", e.target.value);
-							}}
-							placeholder="Mô tả đặc điểm nổi bật, chất liệu, hướng dẫn sử dụng sản phẩm..."
-							className={`w-full p-2.5 border rounded-lg text-xs focus:outline-none focus:border-brand-primary ${
-								errors.description ? "border-red-400 bg-red-50" : "border-brand-border"
-							}`}
-						/>
-						{errors.description && (
-							<p className="flex items-center gap-1 text-red-500 text-[10px] mt-1">
-								<AlertCircle className="w-3 h-3" />{errors.description}
-							</p>
-						)}
-					</div>
+					{attributes.length === 0 ? (
+						<div className="p-3 text-center text-brand-muted text-xs bg-gray-50 border border-brand-border/60 rounded-xl italic">
+							Chưa thêm thuộc tính nào cho sản phẩm.
+						</div>
+					) : (
+						<div className="space-y-2">
+							{attributes.map((attr, idx) => (
+								<div key={idx} className="flex items-center gap-2">
+									<input
+										type="text"
+										value={attr.key}
+										onChange={(e) => {
+											const updated = [...attributes];
+											updated[idx].key = e.target.value;
+											setAttributes(updated);
+										}}
+										placeholder="Tên thuộc tính (VD: Chất liệu)"
+										className="w-1/3 h-8 px-3 border border-brand-border rounded-lg text-xs bg-white focus:outline-none focus:border-brand-primary text-brand-dark font-sans"
+									/>
+									<input
+										type="text"
+										value={attr.value}
+										onChange={(e) => {
+											const updated = [...attributes];
+											updated[idx].value = e.target.value;
+											setAttributes(updated);
+										}}
+										placeholder="Giá trị (VD: 100% Cotton)"
+										className="flex-1 h-8 px-3 border border-brand-border rounded-lg text-xs bg-white focus:outline-none focus:border-brand-primary text-brand-dark font-sans"
+									/>
+									<button
+										type="button"
+										onClick={() => {
+											const updated = attributes.filter((_, i) => i !== idx);
+											setAttributes(updated);
+										}}
+										className="p-1.5 text-red-500 hover:bg-red-50 rounded-lg transition-colors cursor-pointer border-none shrink-0"
+										title="Xóa thuộc tính"
+									>
+										<Trash2 className="w-4 h-4" />
+									</button>
+								</div>
+							))}
+						</div>
+					)}
 				</div>
 			</div>
 		</div>

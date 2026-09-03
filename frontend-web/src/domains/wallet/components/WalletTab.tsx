@@ -42,7 +42,7 @@ export function WalletTab() {
 	// State cho Modal Quản lý ngân hàng
 	const [showBankModal, setShowBankModal] = useState(false);
 	const [showAddForm, setShowAddForm] = useState(false);
-	const [editingId, setEditingId] = useState<string | null>(null);
+	const [editingId, setEditingId] = useState<number | null>(null);
 
 	const [newBankName, setNewBankName] = useState("");
 	const [newBankAccountNumber, setNewBankAccountNumber] = useState("");
@@ -129,7 +129,7 @@ export function WalletTab() {
 		setEditingId(null);
 	};
 
-	const handleUpdateBankAccount = (id: string) => {
+	const handleUpdateBankAccount = (id: number) => {
 		if (!editBankName || !editBankAccountNumber || !editBankAccountHolder) {
 			toast.error("Vui lòng nhập đầy đủ thông tin.");
 			return;

@@ -2,12 +2,9 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 
-namespace Ecommerce.Services.Shippings.Api.Services;
+using Ecommerce.Services.Shippings.Api.Models.Interfaces;
 
-public interface IShippingProviderFactory
-{
-    IShippingProvider GetProvider(string providerName);
-}
+namespace Ecommerce.Services.Shippings.Api.Services;
 
 public class ShippingProviderFactory(IEnumerable<IShippingProvider> providers) : IShippingProviderFactory
 {

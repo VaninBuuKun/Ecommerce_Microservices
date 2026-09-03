@@ -5,9 +5,19 @@ import { useAuthStore } from "@/domains/auth";
 export const sellerQueryKeys = {
   myShops: ["shops", "me"] as const,
   profile: ["seller", "profile"] as const,
-  shopDetail: (id: string) => ["shops", id] as const,
+  shopDetail: (id: number) => ["shops", id] as const,
+  publicShop: (id: number) => ["shops", "public", id] as const,
   vouchers: (params: any) => ["vouchers", params] as const,
 };
+
+export function usePublicShopQuery(shopId?: number) {
+  return useQuery({
+    queryKey: sellerQueryKeys.publicShop(shopId!),
+    queryFn: () => sellerApi.getPublicShopById(shopId!),
+    enabled: !!shopId,
+    staleTime: 1000 * 60 * 5,
+  });
+}
 
 export function useSellerProfileQuery() {
   const accessToken = useAuthStore((state) => state.accessToken);
@@ -29,10 +39,10 @@ export function useMyShopsQuery() {
   });
 }
 
-export function useShopDetailQuery(shopId: string) {
+export function useShopDetailQuery(shopId?: number) {
   return useQuery({
-    queryKey: sellerQueryKeys.shopDetail(shopId),
-    queryFn: () => sellerApi.getShopById(shopId),
+    queryKey: sellerQueryKeys.shopDetail(shopId!),
+    queryFn: () => sellerApi.getShopById(shopId!),
     enabled: !!shopId,
   });
 }
@@ -51,7 +61,7 @@ export function useCreateShopMutation() {
 export function useUpdateShopMutation() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ id, payload }: { id: string; payload: any }) => sellerApi.updateShop(id, payload),
+    mutationFn: ({ id, payload }: { id: number; payload: any }) => sellerApi.updateShop(id, payload),
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: sellerQueryKeys.myShops });
       queryClient.invalidateQueries({ queryKey: sellerQueryKeys.profile });
@@ -81,7 +91,7 @@ export function useCreateVoucherMutation() {
 export function useUpdateVoucherMutation() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ id, payload }: { id: string; payload: any }) =>
+    mutationFn: ({ id, payload }: { id: number; payload: any }) =>
       sellerApi.updateVoucher(id, payload),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["vouchers"] });
@@ -92,7 +102,7 @@ export function useUpdateVoucherMutation() {
 export function useDeleteVoucherMutation() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (voucherId: string) => sellerApi.deleteVoucher(voucherId),
+    mutationFn: (voucherId: number) => sellerApi.deleteVoucher(voucherId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["vouchers"] });
     },

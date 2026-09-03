@@ -34,9 +34,27 @@ export function useWardsQuery(districtId?: number) {
 	});
 }
 
+export function useResolveLocationsQuery(wardIds: number[]) {
+	return useQuery({
+		queryKey: ["locations", "resolve", wardIds.sort().join(",")],
+		queryFn: () => shippingApi.resolveLocations(wardIds),
+		enabled: Boolean(wardIds && wardIds.length > 0),
+		staleTime: 1000 * 60 * 10, // 10 minutes cache
+	});
+}
+
 export function useCalculateShippingFeeMutation() {
 	return useMutation({
 		mutationFn: (payload: CalculateShippingFeeRequest) =>
 			shippingApi.calculateShippingFee(payload),
+	});
+}
+
+export function useShipmentBySubOrderQuery(subOrderId: string) {
+	return useQuery({
+		queryKey: ["shipment", "subOrder", subOrderId],
+		queryFn: () => shippingApi.getShipmentBySubOrderId(subOrderId),
+		enabled: Boolean(subOrderId && subOrderId > 0),
+		retry: false,
 	});
 }

@@ -1,4 +1,5 @@
 using System.Reflection;
+using BuildingBlocks.BackgroundJobs.Configurations;
 using BuildingBlocks.Messaging;
 using Ecommerce.Services.Notifications.Api.Persistances;
 using MassTransit;
@@ -32,6 +33,7 @@ public static class InfrastructureConfiguration
         services.AddBuildingBlocksConfigurations(configuration);
         services.AddServiceConfigurations(configuration);
         services.AddGrpcConfigurations(configuration);
+        services.AddBuildingBlocksHangfire(configuration, schemaName: "hangfire_notifications");
 
         services.AddHttpContextAccessor();
     }

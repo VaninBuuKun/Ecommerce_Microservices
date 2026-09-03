@@ -12,6 +12,8 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Ecommerce.Services.Shippings.Api.Persistances;
 
+using Ecommerce.Services.Shippings.Api.Models.Interfaces;
+
 namespace Ecommerce.Services.Shippings.Api.Services;
 
 public class GhnShippingProvider(

@@ -21,10 +21,19 @@ export interface Ward {
 	displayName?: string;
 }
 
+export interface LocationSummary {
+	provinceId: number;
+	provinceName: string;
+	districtId: number;
+	districtName: string;
+	wardId: number;
+	wardName: string;
+}
+
 export interface Shipment {
-	id: string;
-	orderId: string;
-	subOrderId: string;
+	id: number;
+	orderId: number;
+	subOrderId: number;
 	trackingNumber?: string;
 	carrier: string;
 	status: string;

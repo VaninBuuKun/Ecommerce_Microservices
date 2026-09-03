@@ -1,18 +1,13 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Security.Claims;
 using System.Threading.Tasks;
 using BuildingBlocks.Auth;
+using BuildingBlocks.Shared.Extensions;
 using Duende.IdentityServer;
-using Ecommerce.Services.Identity.Api.Models.Entities;
-using Ecommerce.Services.Identity.Api.Persistances;
 using Ecommerce.Services.Identity.Api.Services;
+using Ecommerce.Services.Identity.Api.Models.Interfaces;
 using Identity.Models.Dtos;
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 
 namespace Ecommerce.Services.Identity.Api.Controllers;
 
@@ -21,74 +16,44 @@ namespace Ecommerce.Services.Identity.Api.Controllers;
 [Authorize(AuthenticationSchemes = IdentityServerConstants.LocalApi.AuthenticationScheme)]
 public class UsersController(
     ICurrentUserService currentUserService,
-    IAddressService addressService,
-    UserManager<AppUser> userManager,
-    RoleManager<IdentityRole<long>> roleManager,
-    AppDbContext dbContext) : ControllerBase
+    IUserService userService,
+    IAddressService addressService) : ControllerBase
 {
     // ==========================================
     // SECTION 1: PERSONAL ACCOUNT APIs (me, profile)
     // ==========================================
-    
-    private static readonly System.Collections.Concurrent.ConcurrentDictionary<long, (string Gender, DateTime? BirthDate)> _profileCache = new();
 
-    private static string? NormalizeGender(string? input)
-    {
-        if (string.IsNullOrWhiteSpace(input)) return null;
-        var lower = input.Trim().ToLower();
-        return lower switch
-        {
-            "male" or "nam" => "Male",
-            "female" or "nữ" or "nu" => "Female",
-            "other" or "khác" or "khac" => "Other",
-            _ => null
-        };
-    }
-
-    // Thay thế auth/me cũ
     [HttpGet("me")]
     public async Task<IActionResult> GetCurrentUser()
     {
-        var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? User.FindFirst("sub")?.Value;
-        if (string.IsNullOrEmpty(userId)) return Unauthorized();
-
-        var user = await userManager.FindByIdAsync(userId);
-        if (user == null) return NotFound();
-
-        var gender = user.Gender ?? "Female";
-        DateTime? birthDate = user.BirthDate;
-
-        if (_profileCache.TryGetValue(user.Id, out var cachedProfile))
+        var userIdStr = User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? User.FindFirst("sub")?.Value;
+        if (string.IsNullOrEmpty(userIdStr) || !long.TryParse(userIdStr, out var userId))
         {
-            gender = cachedProfile.Gender;
-            birthDate = cachedProfile.BirthDate;
+            return Unauthorized();
         }
 
-        return Ok(new
+        var result = await userService.GetCurrentUserAsync(userId);
+        if (!result.IsSuccess)
         {
-            user.Id,
-            user.Email,
-            user.FullName,
-            user.FirstName,
-            user.LastName,
-            user.AvatarUrl,
-            Gender = gender,
-            BirthDate = birthDate,
-            Roles = await userManager.GetRolesAsync(user)
-        });
+            return StatusCode((int)result.ErrorCode.ToHttpStatusCode(), result.Message);
+        }
+
+        return Ok(result.Value);
     }
 
     [HttpPost("change-password")]
     public async Task<IActionResult> ChangePassword([FromBody] ChangePasswordRequest request)
     {
-        var currentUserId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? User.FindFirst("sub")?.Value;
-        var user = await userManager.FindByIdAsync(currentUserId!);
-        if (user == null) return NotFound();
-
-        var result = await userManager.ChangePasswordAsync(user, request.OldPassword, request.NewPassword);
-        if (!result.Succeeded)
+        var userIdStr = User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? User.FindFirst("sub")?.Value;
+        if (string.IsNullOrEmpty(userIdStr) || !long.TryParse(userIdStr, out var userId))
         {
-            return BadRequest(string.Join(", ", result.Errors.Select(e => e.Description)));
+            return Unauthorized();
+        }
+
+        var result = await userService.ChangePasswordAsync(userId, request);
+        if (!result.IsSuccess)
+        {
+            return StatusCode((int)result.ErrorCode.ToHttpStatusCode(), result.Message);
         }
 
         return Ok("Đổi mật khẩu thành công!");
@@ -97,215 +62,92 @@ public class UsersController(
     [HttpPut("profile")]
     public async Task<IActionResult> UpdateProfile([FromBody] UpdateProfileRequest request)
     {
-        var currentUserId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? User.FindFirst("sub")?.Value;
-        var user = await userManager.FindByIdAsync(currentUserId!);
-        if (user == null) return NotFound();
-
-        if (!string.IsNullOrEmpty(request.Gender))
+        var userIdStr = User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? User.FindFirst("sub")?.Value;
+        if (string.IsNullOrEmpty(userIdStr) || !long.TryParse(userIdStr, out var userId))
         {
-            var normalizedGender = NormalizeGender(request.Gender);
-            if (normalizedGender == null)
-            {
-                return BadRequest("Giới tính không hợp lệ. Vui lòng chọn Male, Female hoặc Other.");
-            }
-            user.Gender = normalizedGender;
+            return Unauthorized();
         }
 
-        user.FirstName = request.FirstName ?? user.FirstName;
-        user.LastName = request.LastName ?? user.LastName;
-        user.AvatarUrl = request.AvatarUrl ?? user.AvatarUrl;
-        if (request.BirthDate.HasValue)
+        var result = await userService.UpdateProfileAsync(userId, request);
+        if (!result.IsSuccess)
         {
-            user.BirthDate = request.BirthDate.Value;
+            return StatusCode((int)result.ErrorCode.ToHttpStatusCode(), result.Message);
         }
-
-        var result = await userManager.UpdateAsync(user);
-        if (!result.Succeeded)
-        {
-            return BadRequest(string.Join(", ", result.Errors.Select(e => e.Description)));
-        }
-
-        var genderToCache = user.Gender ?? "Female";
-        var birthDateToCache = user.BirthDate;
-        _profileCache[user.Id] = (genderToCache, birthDateToCache);
 
         return Ok("Cập nhật thông tin cá nhân thành công!");
     }
 
-    // Endpoint dành cho Admin tạo tài khoản mới kèm vai trò
     [HttpPost]
     [Authorize(AuthenticationSchemes = IdentityServerConstants.LocalApi.AuthenticationScheme, Roles = "Admin")]
     public async Task<IActionResult> CreateUserByAdmin([FromBody] CreateUserByAdminRequest request)
     {
-        var existingUser = await userManager.FindByEmailAsync(request.Email);
-        if (existingUser != null)
+        var result = await userService.CreateUserByAdminAsync(request);
+        if (!result.IsSuccess)
         {
-            return BadRequest("Email này đã được sử dụng!");
+            return StatusCode((int)result.ErrorCode.ToHttpStatusCode(), result.Message);
         }
 
-        var newUser = new AppUser
-        {
-            UserName = request.Email,
-            Email = request.Email,
-            FirstName = request.FirstName,
-            LastName = request.LastName,
-            AvatarUrl = request.AvatarUrl,
-            EmailConfirmed = true,
-            CreatedDate = DateTimeOffset.UtcNow
-        };
-
-        var result = await userManager.CreateAsync(newUser, request.Password);
-        if (!result.Succeeded)
-        {
-            return BadRequest(string.Join(", ", result.Errors.Select(e => e.Description)));
-        }
-
-        var roleName = string.IsNullOrWhiteSpace(request.Role) ? "User" : request.Role;
-        if (!await roleManager.RoleExistsAsync(roleName))
-        {
-            await roleManager.CreateAsync(new IdentityRole<long>(roleName));
-        }
-
-        await userManager.AddToRoleAsync(newUser, roleName);
-
-        return Ok(new
-        {
-            newUser.Id,
-            newUser.Email,
-            newUser.FirstName,
-            newUser.LastName,
-            newUser.AvatarUrl,
-            Roles = new[] { roleName }
-        });
+        return Ok(result.Value);
     }
 
     // ==========================================
     // SECTION 2: ADMIN USER MANAGEMENT APIs
     // ==========================================
-    
+
     [HttpGet]
     [Authorize(AuthenticationSchemes = IdentityServerConstants.LocalApi.AuthenticationScheme, Roles = "Admin")]
-    public async Task<ActionResult<UserListResponse>> GetUsers(
+    public async Task<IActionResult> GetUsers(
         [FromQuery] int page = 1,
         [FromQuery] int pageSize = 10,
         [FromQuery] string? search = null)
     {
-        var query = userManager.Users;
-
-        if (!string.IsNullOrEmpty(search))
+        var result = await userService.GetUsersPagedAsync(page, pageSize, search);
+        if (!result.IsSuccess)
         {
-            var searchUpper = search.ToUpper();
-            query = query.Where(u => (u.Email != null && u.Email.ToUpper().Contains(searchUpper)) ||
-                                     (u.FirstName != null && u.FirstName.ToUpper().Contains(searchUpper)) ||
-                                     (u.LastName != null && u.LastName.ToUpper().Contains(searchUpper)));
+            return StatusCode((int)result.ErrorCode.ToHttpStatusCode(), result.Message);
         }
 
-        var totalCount = await query.CountAsync();
-        
-        var users = await query
-            .OrderBy(u => u.Id)
-            .Skip((page - 1) * pageSize)
-            .Take(pageSize)
-            .ToListAsync();
-        
-        var userIds = users.Select(u => u.Id).ToList();
-        var userRoles = await dbContext.UserRoles
-            .Where(ur => userIds.Contains(ur.UserId))
-            .Join(dbContext.Roles, ur => ur.RoleId, r => r.Id, (ur, r) => new { ur.UserId, r.Name })
-            .ToListAsync();
-
-        var userRolesLookup = userRoles
-            .GroupBy(ur => ur.UserId)
-            .ToDictionary(g => g.Key, g => g.Select(x => x.Name ?? "").ToList());
-
-        var userDtos = new List<UserDto>();
-        var now = DateTimeOffset.UtcNow;
-        foreach (var u in users)
-        {
-            var roles = userRolesLookup.TryGetValue(u.Id, out var r) ? r : new List<string>();
-            var isLockedOut = u.LockoutEnabled && u.LockoutEnd.HasValue && u.LockoutEnd.Value > now;
-
-            userDtos.Add(new UserDto
-            {
-                Id = u.Id,
-                Email = u.Email,
-                FirstName = u.FirstName,
-                LastName = u.LastName,
-                AvatarUrl = u.AvatarUrl,
-                Roles = roles,
-                IsLockedOut = isLockedOut,
-                IsActive = u.IsActive
-            });
-        }
-
-        return Ok(new UserListResponse
-        {
-            Items = userDtos,
-            TotalCount = totalCount,
-            Page = page,
-            PageSize = pageSize
-        });
+        return Ok(result.Value);
     }
 
     [HttpGet("{id:long}")]
     [Authorize(AuthenticationSchemes = IdentityServerConstants.LocalApi.AuthenticationScheme, Roles = "Admin")]
-    public async Task<ActionResult<UserDetailResponse>> GetUserById(long id)
+    public async Task<IActionResult> GetUserById(long id)
     {
-        var user = await userManager.FindByIdAsync(id.ToString());
-        if (user == null) return NotFound("Không tìm thấy người dùng!");
-
-        return Ok(new UserDetailResponse
+        var result = await userService.GetUserByIdAsync(id);
+        if (!result.IsSuccess)
         {
-            Id = user.Id,
-            Email = user.Email,
-            FirstName = user.FirstName,
-            LastName = user.LastName,
-            AvatarUrl = user.AvatarUrl,
-            Roles = await userManager.GetRolesAsync(user),
-            IsLockedOut = await userManager.IsLockedOutAsync(user),
-            LockoutEnd = user.LockoutEnd
-        });
+            return StatusCode((int)result.ErrorCode.ToHttpStatusCode(), result.Message);
+        }
+
+        return Ok(result.Value);
     }
 
     [HttpGet("{id:long}/public")]
     [AllowAnonymous]
     public async Task<IActionResult> GetPublicUser(long id)
     {
-        var user = await userManager.FindByIdAsync(id.ToString());
-        if (user == null) return NotFound("Không tìm thấy người dùng!");
-
-        return Ok(new
+        var result = await userService.GetPublicUserAsync(id);
+        if (!result.IsSuccess)
         {
-            user.Id,
-            user.FullName,
-            user.FirstName,
-            user.LastName,
-            user.AvatarUrl
-        });
+            return StatusCode((int)result.ErrorCode.ToHttpStatusCode(), result.Message);
+        }
+
+        return Ok(result.Value);
     }
 
     [HttpPut("{id:long}")]
     public async Task<IActionResult> UpdateUser(long id, [FromBody] UpdateProfileRequest request)
     {
-        var currentUserId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? User.FindFirst("sub")?.Value;
+        var userIdStr = User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? User.FindFirst("sub")?.Value;
+        long currentUserId = 0;
+        if (!string.IsNullOrEmpty(userIdStr)) long.TryParse(userIdStr, out currentUserId);
         var isAdmin = User.IsInRole("Admin");
 
-        if (currentUserId != id.ToString() && !isAdmin)
+        var result = await userService.UpdateUserAsync(id, request, currentUserId, isAdmin);
+        if (!result.IsSuccess)
         {
-            return Forbid("Bạn không có quyền cập nhật tài khoản này!");
-        }
-
-        var user = await userManager.FindByIdAsync(id.ToString());
-        if (user == null) return NotFound("Không tìm thấy người dùng!");
-
-        user.FirstName = request.FirstName ?? user.FirstName;
-        user.LastName = request.LastName ?? user.LastName;
-        user.AvatarUrl = request.AvatarUrl ?? user.AvatarUrl;
-
-        var result = await userManager.UpdateAsync(user);
-        if (!result.Succeeded)
-        {
-            return BadRequest(string.Join(", ", result.Errors.Select(e => e.Description)));
+            return StatusCode((int)result.ErrorCode.ToHttpStatusCode(), result.Message);
         }
 
         return Ok("Cập nhật thông tin thành công!");
@@ -315,15 +157,11 @@ public class UsersController(
     [Authorize(AuthenticationSchemes = IdentityServerConstants.LocalApi.AuthenticationScheme, Roles = "Admin")]
     public async Task<IActionResult> AssignRole(long id, [FromBody] AssignRoleRequest request)
     {
-        var user = await userManager.FindByIdAsync(id.ToString());
-        if (user == null) return NotFound("Không tìm thấy người dùng!");
-
-        var roleExists = await roleManager.RoleExistsAsync(request.RoleName);
-        if (!roleExists) return BadRequest("Role không hợp lệ!");
-
-        var currentRoles = await userManager.GetRolesAsync(user);
-        await userManager.RemoveFromRolesAsync(user, currentRoles);
-        await userManager.AddToRoleAsync(user, request.RoleName);
+        var result = await userService.AssignRoleAsync(id, request.RoleName);
+        if (!result.IsSuccess)
+        {
+            return StatusCode((int)result.ErrorCode.ToHttpStatusCode(), result.Message);
+        }
 
         return Ok($"Đã gán role '{request.RoleName}' cho người dùng!");
     }
@@ -332,14 +170,10 @@ public class UsersController(
     [Authorize(AuthenticationSchemes = IdentityServerConstants.LocalApi.AuthenticationScheme, Roles = "Admin")]
     public async Task<IActionResult> LockUser(long id)
     {
-        var user = await userManager.FindByIdAsync(id.ToString());
-        if (user == null) return NotFound("Không tìm thấy người dùng!");
-
-        user.IsActive = false;
-        var result = await userManager.SetLockoutEndDateAsync(user, DateTimeOffset.UtcNow.AddYears(100));
-        if (!result.Succeeded)
+        var result = await userService.LockUserAsync(id);
+        if (!result.IsSuccess)
         {
-            return BadRequest(string.Join(", ", result.Errors.Select(e => e.Description)));
+            return StatusCode((int)result.ErrorCode.ToHttpStatusCode(), result.Message);
         }
 
         return Ok("Đã cấm/khóa tài khoản người dùng thành công!");
@@ -349,14 +183,10 @@ public class UsersController(
     [Authorize(AuthenticationSchemes = IdentityServerConstants.LocalApi.AuthenticationScheme, Roles = "Admin")]
     public async Task<IActionResult> UnlockUser(long id)
     {
-        var user = await userManager.FindByIdAsync(id.ToString());
-        if (user == null) return NotFound("Không tìm thấy người dùng!");
-
-        user.IsActive = true;
-        var result = await userManager.SetLockoutEndDateAsync(user, null);
-        if (!result.Succeeded)
+        var result = await userService.UnlockUserAsync(id);
+        if (!result.IsSuccess)
         {
-            return BadRequest(string.Join(", ", result.Errors.Select(e => e.Description)));
+            return StatusCode((int)result.ErrorCode.ToHttpStatusCode(), result.Message);
         }
 
         return Ok("Đã mở khóa tài khoản người dùng thành công!");
@@ -365,36 +195,21 @@ public class UsersController(
     // ==========================================
     // SECTION 3: USER ADDRESSES APIs (Sub-resource)
     // ==========================================
-    
+
     [HttpGet("addresses")]
     public async Task<IActionResult> GetAddresses()
     {
         long userId = currentUserService.UserId;
-        
         if (userId == 0) return Unauthorized();
 
         var addresses = await addressService.GetAddressesByUserIdAsync(userId);
-        
-        var result = addresses.Select(a => new
-        {
-            a.Id,
-            a.RecipientName,
-            a.Phone,
-            a.ProvinceId,
-            a.DistrictId,
-            a.WardId,
-            a.AddressLine,
-            a.IsDefault
-        });
-
-        return Ok(result);
+        return Ok(addresses);
     }
 
     [HttpPost("addresses")]
     public async Task<IActionResult> CreateAddress([FromBody] CreateUserAddressRequest request)
     {
         long userId = currentUserService.UserId;
-        
         if (userId == 0) return Unauthorized();
 
         var dto = new CreateAddressDto
@@ -409,25 +224,40 @@ public class UsersController(
         };
 
         var newAddress = await addressService.CreateAddressAsync(userId, dto);
+        return Ok(newAddress);
+    }
 
-        return Ok(new
+    [HttpPut("addresses/{id:long}")]
+    public async Task<IActionResult> UpdateAddress(long id, [FromBody] UpdateUserAddressRequest request)
+    {
+        long userId = currentUserService.UserId;
+        if (userId == 0) return Unauthorized();
+
+        var dto = new UpdateAddressDto
         {
-            newAddress.Id,
-            newAddress.RecipientName,
-            newAddress.Phone,
-            newAddress.ProvinceId,
-            newAddress.DistrictId,
-            newAddress.WardId,
-            newAddress.AddressLine,
-            newAddress.IsDefault
-        });
+            Id = id,
+            RecipientName = request.RecipientName,
+            Phone = request.Phone,
+            ProvinceId = request.ProvinceId,
+            DistrictId = request.DistrictId,
+            WardId = request.WardId,
+            AddressLine = request.AddressLine,
+            IsDefault = request.IsDefault
+        };
+
+        var updated = await addressService.UpdateAddressAsync(userId, dto);
+        if (updated == null)
+        {
+            return NotFound("Địa chỉ không tồn tại hoặc không thuộc về người dùng này.");
+        }
+
+        return Ok(updated);
     }
 
     [HttpDelete("addresses/{id:long}")]
     public async Task<IActionResult> DeleteAddress(long id)
     {
         long userId = currentUserService.UserId;
-        
         if (userId == 0) return Unauthorized();
 
         var success = await addressService.DeleteAddressAsync(userId, id);
@@ -443,7 +273,6 @@ public class UsersController(
     public async Task<IActionResult> SetDefaultAddress(long id)
     {
         long userId = currentUserService.UserId;
-        
         if (userId == 0) return Unauthorized();
 
         var success = await addressService.SetDefaultAddressAsync(userId, id);
@@ -457,6 +286,17 @@ public class UsersController(
 }
 
 public class CreateUserAddressRequest
+{
+    public string RecipientName { get; set; } = string.Empty;
+    public string Phone { get; set; } = string.Empty;
+    public long ProvinceId { get; set; }
+    public long DistrictId { get; set; }
+    public long WardId { get; set; }
+    public string AddressLine { get; set; } = string.Empty;
+    public bool IsDefault { get; set; }
+}
+
+public class UpdateUserAddressRequest
 {
     public string RecipientName { get; set; } = string.Empty;
     public string Phone { get; set; } = string.Empty;

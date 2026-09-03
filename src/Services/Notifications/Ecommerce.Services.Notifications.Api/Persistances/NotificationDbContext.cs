@@ -1,4 +1,5 @@
 using Ecommerce.Services.Notifications.Api.Models;
+using Ecommerce.Services.Notifications.Api.Models.Entities;
 using MassTransit;
 using Microsoft.EntityFrameworkCore;
 
@@ -40,6 +41,8 @@ public class NotificationDbContext(DbContextOptions<NotificationDbContext> optio
             entity.Property(r => r.ShopId).IsRequired();
             entity.Property(r => r.BuyerUserId).IsRequired();
             entity.Property(r => r.LastMessage).HasMaxLength(1000);
+            entity.Property(r => r.ThemeColor).HasMaxLength(50).IsRequired(false);
+            entity.Property(r => r.BackgroundColor).HasMaxLength(50).IsRequired(false);
 
             // Index composite key to make Room lookup fast
             entity.HasIndex(r => new { r.ShopId, r.BuyerUserId }).IsUnique();
@@ -53,8 +56,10 @@ public class NotificationDbContext(DbContextOptions<NotificationDbContext> optio
             entity.Property(c => c.RoomId).IsRequired();
             entity.Property(c => c.SenderId).IsRequired();
             entity.Property(c => c.Content).IsRequired().HasMaxLength(2000);
+            entity.Property(c => c.MessageType).HasConversion<string>().HasMaxLength(50);
 
             entity.HasIndex(c => c.RoomId);
+            entity.HasIndex(c => c.SentAt);
         });
     }
 }

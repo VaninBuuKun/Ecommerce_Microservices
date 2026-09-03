@@ -9,6 +9,7 @@ public class UserDetailResponse
     public string? FirstName { get; set; }
     public string? LastName { get; set; }
     public string? AvatarUrl { get; set; }
+    public string? Phone { get; set; }
     public IList<string> Roles { get; set; } = new List<string>();
     public bool IsLockedOut { get; set; }
     public DateTimeOffset? LockoutEnd { get; set; }

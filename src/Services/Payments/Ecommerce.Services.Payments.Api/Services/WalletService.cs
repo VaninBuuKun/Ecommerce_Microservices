@@ -356,4 +356,38 @@ public class WalletService(IEfUnitOfWork unitOfWork, IMapper mapper) : IWalletSe
 
         return Result<List<WalletTransactionDto>>.Success(dtos);
     }
+
+    public async Task<Result<SellerRevenueReportDto>> GetSellerRevenueReport(long userId)
+    {
+        var wallet = await _walletRepository.FirstOrDefaultAsync(w => w.UserId == userId);
+        if (wallet == null)
+        {
+            return Result<SellerRevenueReportDto>.Success(new SellerRevenueReportDto(0m, 0m, 0m, 0, new List<DailyRevenueDto>()));
+        }
+
+        var transactions = await _transactionRepository.GetAllAsync(t => t.WalletId == wallet.Id && t.Type == TransactionType.Credit);
+        var totalRevenue = transactions.Sum(t => t.Amount);
+        var totalCompletedOrders = transactions.Count;
+
+        // Group by Date for 7-day revenue chart
+        var dailyRevenues = transactions
+            .GroupBy(t => t.CreatedDate.ToString("yyyy-MM-dd"))
+            .Select(g => new DailyRevenueDto(
+                Date: g.Key,
+                Revenue: g.Sum(x => x.Amount),
+                OrderCount: g.Count()
+            ))
+            .OrderBy(d => d.Date)
+            .ToList();
+
+        var report = new SellerRevenueReportDto(
+            TotalRevenue: totalRevenue,
+            AvailableBalance: wallet.Balance,
+            FrozenBalance: 0m,
+            TotalCompletedOrders: totalCompletedOrders,
+            DailyRevenues: dailyRevenues
+        );
+
+        return Result<SellerRevenueReportDto>.Success(report);
+    }
 }

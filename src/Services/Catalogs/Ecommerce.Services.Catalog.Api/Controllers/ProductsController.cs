@@ -1,18 +1,13 @@
-using System;
-using System.Collections.Generic;
-using System.Threading.Tasks;
 using BuildingBlocks.Auth;
-using BuildingBlocks.Shared.Commons;
 using Ecommerce.Services.Catalog.Api.Dtos;
-using Ecommerce.Services.Catalog.Application.Commons.Dtos.Products;
-using Ecommerce.Services.Catalog.Application.Features.Products.Commands.BulkUpdateVariants;
 using Ecommerce.Services.Catalog.Application.Features.Products.Commands.CreateProduct;
 using Ecommerce.Services.Catalog.Application.Features.Products.Commands.DeleteProduct;
 using Ecommerce.Services.Catalog.Application.Features.Products.Commands.DeleteProductVariant;
-using Ecommerce.Services.Catalog.Application.Features.Products.Commands.InitSingleVariant;
-using Ecommerce.Services.Catalog.Application.Features.Products.Commands.SetupProductVariants;
 using Ecommerce.Services.Catalog.Application.Features.Products.Commands.ToggleProductStatus;
+using Ecommerce.Services.Catalog.Application.Features.Products.Commands.UpdateMultiVariants;
 using Ecommerce.Services.Catalog.Application.Features.Products.Commands.UpdateProduct;
+using Ecommerce.Services.Catalog.Application.Features.Products.Commands.UpdateSingleVariant;
+using Ecommerce.Services.Catalog.Application.Features.Products.Queries.GetAdminProducts;
 using Ecommerce.Services.Catalog.Application.Features.Products.Queries.GetMyProducts;
 using Ecommerce.Services.Catalog.Application.Features.Products.Queries.GetProductById;
 using Ecommerce.Services.Catalog.Application.Features.Products.Queries.GetProducts;
@@ -28,10 +23,37 @@ namespace Ecommerce.Services.Catalog.Api.Controllers;
 [Route("api/[controller]")]
 public class ProductsController(ISender sender) : ControllerBase
 {
-    [HttpGet]
-    public async Task<IActionResult> GetProducts([FromQuery] string? cursor = null, [FromQuery] int limit = 10)
+    [HttpGet("admin")]
+    [Authorize(Roles = "Admin")]
+    public async Task<IActionResult> GetAdminProducts(
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 10,
+        [FromQuery] string? searchTerm = null,
+        [FromQuery] long? categoryId = null,
+        [FromQuery] long? shopId = null,
+        [FromQuery] string? status = null)
     {
-        var result = await sender.Send(new GetProductsQuery(null, null, null, cursor, limit));
+        var result = await sender.Send(new GetAdminProductsQuery(page, pageSize, searchTerm, categoryId, shopId, status));
+
+        if (result.IsSuccess)
+        {
+            return Ok(result.Value);
+        }
+        return StatusCode(result.GetHttpStatusCode(), result.Message);
+    }
+
+    [HttpGet]
+    public async Task<IActionResult> GetProducts(
+        [FromQuery] string? searchTerm = null,
+        [FromQuery] long? categoryId = null,
+        [FromQuery] double? minRating = null,
+        [FromQuery] string? cursor = null,
+        [FromQuery] int limit = 10,
+        [FromQuery] string sortBy = "name",
+        [FromQuery] long? shopId = null,
+        [FromQuery] bool? hasDiscount = null)
+    {
+        var result = await sender.Send(new GetProductsQuery(searchTerm, categoryId, minRating, cursor, limit, sortBy, shopId, hasDiscount));
 
         if (result.IsSuccess)
         {
@@ -145,7 +167,8 @@ public class ProductsController(ISender sender) : ControllerBase
             request.ThumbnailUrl,
             request.VideoUrl,
             request.ImageUrls,
-            request.CategoryId
+            request.CategoryId,
+            request.AttributesJson
         ));
 
         if (result.IsSuccess)
@@ -156,10 +179,10 @@ public class ProductsController(ISender sender) : ControllerBase
         return StatusCode(result.GetHttpStatusCode(), result.Message);
     }
 
-    [HttpPut("{id:long}/sale")]
-    public async Task<IActionResult> UpdateProductSale(long id, [FromBody] UpdateProductSaleRequest request)
+    [HttpPut("{id:long}/single-variant")]
+    public async Task<IActionResult> UpdateSingleVariant(long id, [FromBody] UpdateSingleVariantRequest request)
     {
-        var result = await sender.Send(new UpdateProductSaleCommand(
+        var result = await sender.Send(new UpdateSingleVariantCommand(
             id,
             request.Price,
             request.AvailableStock,
@@ -169,19 +192,6 @@ public class ProductsController(ISender sender) : ControllerBase
             request.Height,
             request.DiscountPrice
         ));
-
-        if (result.IsSuccess)
-        {
-            return Ok(result.Value);
-        }
-        
-        return StatusCode(result.GetHttpStatusCode(), result.Message);
-    }
-
-    [HttpPut("{id:long}/init-variants")]
-    public async Task<IActionResult> InitVariants(long id, [FromBody] InitVariantsCommand command)
-    {
-        var result = await sender.Send(command with { ProductId = id });
 
         if (result.IsSuccess)
         {
@@ -204,10 +214,23 @@ public class ProductsController(ISender sender) : ControllerBase
         return StatusCode(result.GetHttpStatusCode(), result.Message);
     }
 
-    [HttpPut("{id:long}/variants")]
-    public async Task<IActionResult> BulkUpdateVariants(long id, [FromBody] BulkUpdateVariantsRequest request)
+    [HttpPut("{id:long}/multi-variants")]
+    public async Task<IActionResult> UpdateMultiVariants(long id, [FromBody] UpdateMultiVariantsRequest request)
     {
-        var result = await sender.Send(new BulkUpdateVariantsCommand(id, request.Options, request.Variants));
+        var result = await sender.Send(new UpdateMultiVariantsCommand(id, request.Options, request.Variants));
+
+        if (result.IsSuccess)
+        {
+            return Ok(result.Value);
+        }
+        
+        return StatusCode(result.GetHttpStatusCode(), result.Message);
+    }
+
+    [HttpPut("{id:long}/attributes")]
+    public async Task<IActionResult> UpdateAttributes(long id, [FromBody] UpdateAttributesRequest request)
+    {
+        var result = await sender.Send(new Ecommerce.Services.Catalog.Application.Features.Products.Commands.UpdateProductAttributes.UpdateProductAttributesCommand(id, request.AttributesJson));
 
         if (result.IsSuccess)
         {
@@ -256,3 +279,5 @@ public class ProductsController(ISender sender) : ControllerBase
         return StatusCode(result.GetHttpStatusCode(), result.Message);
     }
 }
+
+public record UpdateAttributesRequest(string? AttributesJson);

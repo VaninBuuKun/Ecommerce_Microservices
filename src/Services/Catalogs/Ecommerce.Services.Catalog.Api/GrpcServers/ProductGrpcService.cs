@@ -1,3 +1,6 @@
+using System;
+using System.Linq;
+using System.Threading.Tasks;
 using BuildingBlocks.Grpc.Extensions;
 using BuildingBlocks.Grpc.Services;
 using BuildingBlocks.Shared.Extensions;
@@ -17,23 +20,27 @@ public class ProductGrpcService(ISender sender, ILogger<ProductGrpcService> logg
     {
         if (request.Id <= 0)
         {
-            throw new RpcException(new Status(StatusCode.InvalidArgument, "Invalid variant ID"));
-        } 
-        logger.LogInformation($"Getting variant with variant ID {request.Id}");
-        var result = await sender.Send(new GetVariantByIdQuery(request.Id));
+            logger.LogWarning("gRPC GetVariantById nhận ID không hợp lệ: {Id}", request.Id);
+            throw new RpcException(new Status(StatusCode.InvalidArgument, $"Mã phân loại biến thể không hợp lệ: {request.Id}"));
+        }
 
-        if (!result.IsSuccess)
+        logger.LogInformation("gRPC GetVariantById: Truy vấn thông tin biến thể #{VariantId}", request.Id);
+        var result = await sender.Send(new GetVariantByIdQuery(request.Id), context.CancellationToken);
+
+        if (!result.IsSuccess || result.Value == null)
         {
+            logger.LogWarning("gRPC GetVariantById: Không tìm thấy biến thể #{VariantId}: {Message}", request.Id, result.Message);
             throw result.ToRpcException();
         }
         
-        var response = new GetVariantByIdResponse();
         var variant = result.Value;
-
-        response.VariantId = variant.Id;
-        response.ProductId = variant.ProductId != 0 ? variant.ProductId : variant.Id;
-        response.AvailableStocks = variant.AvailableStocks;
-        response.ShopId = variant.ShopId;
+        var response = new GetVariantByIdResponse
+        {
+            VariantId = variant.Id,
+            ProductId = variant.ProductId != 0 ? variant.ProductId : variant.Id,
+            AvailableStock = variant.AvailableStock,
+            ShopId = variant.ShopId
+        };
 
         return response;
     }
@@ -42,10 +49,14 @@ public class ProductGrpcService(ISender sender, ILogger<ProductGrpcService> logg
     {
         var variantIds = request.VariantIds.ToList();
         var productIds = request.ProductIds.ToList();
-        var result = await sender.Send(new GetVariantsByIdsQuery(variantIds, productIds));
+        logger.LogInformation("gRPC GetVariantsByIds: Truy vấn danh sách {VariantCount} biến thể và {ProductCount} sản phẩm",
+            variantIds.Count, productIds.Count);
 
-        if (!result.IsSuccess)
+        var result = await sender.Send(new GetVariantsByIdsQuery(variantIds, productIds), context.CancellationToken);
+
+        if (!result.IsSuccess || result.Value == null)
         {
+            logger.LogWarning("gRPC GetVariantsByIds thất bại: {Message}", result.Message);
             throw result.ToRpcException();
         }
         
@@ -54,53 +65,61 @@ public class ProductGrpcService(ISender sender, ILogger<ProductGrpcService> logg
         
         foreach (var variantDto in variants)
         {
-            var variant = new RpcVariantDto();
-            variant.UnitPrice = variantDto.Price.ToGrpcString();
-            variant.DiscountPrice = variantDto.DiscountPrice.ToGrpcString();
-            variant.ProductName = variantDto.ProductName;
-            variant.ProductId = variantDto.ProductId;
-            variant.AvailableStocks = variantDto.AvailableStocks;
-            variant.VariantId = variantDto.Id;
-            variant.VariantName = variantDto.VariantName;
-            variant.ShopId = variantDto.ShopId;
-            variant.Weight = variantDto.Weight;
-            variant.Length = variantDto.Length;
-            variant.Width = variantDto.Width;
-            variant.Height = variantDto.Height;
-            variant.ThumbnailUrl = variantDto.ThumbnailUrl ?? "";
+            var variant = new RpcVariantDto
+            {
+                UnitPrice = variantDto.Price.ToGrpcString(),
+                DiscountPrice = variantDto.DiscountPrice.ToGrpcString(),
+                ProductName = variantDto.ProductName ?? string.Empty,
+                ProductId = variantDto.ProductId,
+                AvailableStock = variantDto.AvailableStock,
+                VariantId = variantDto.Id,
+                VariantName = variantDto.VariantName ?? string.Empty,
+                ShopId = variantDto.ShopId,
+                Weight = variantDto.Weight,
+                Length = variantDto.Length,
+                Width = variantDto.Width,
+                Height = variantDto.Height,
+                ThumbnailUrl = variantDto.ThumbnailUrl ?? string.Empty
+            };
             response.Variants.Add(variant);
         }
+
+        logger.LogInformation("gRPC GetVariantsByIds: Trả về thành công {Count} biến thể", response.Variants.Count);
         return response;
     }
 
     public override async Task<ReserveStockResponse> ReserveStock(ReserveStockRequest request, ServerCallContext context)
     {
-        logger.LogInformation("Nhận yêu cầu giữ kho gRPC cho {Count} sản phẩm", request.Items.Count);
+        logger.LogInformation("gRPC ReserveStock: Nhận yêu cầu giữ kho cho {Count} mặt hàng", request.Items.Count);
         
         var variantDtos = request.Items.Select(x => new VariantStockDto
         {
+            ProductId = x.ProductId,
             VariantId = x.VariantId,
             Quantity = x.Quantity
         }).ToList();
         
-        var result = await sender.Send(new ReserveStocksCommand(variantDtos));
+        var result = await sender.Send(new ReserveStocksCommand(variantDtos), context.CancellationToken);
         
-        if (!result.IsSuccess)
+        if (!result.IsSuccess || result.Value == null)
         {
+            var errorMsg = result.Message ?? "Không thể giữ tồn kho sản phẩm.";
+            logger.LogWarning("gRPC ReserveStock thất bại: {Message}", errorMsg);
             return new ReserveStockResponse
             {
                 IsSuccess = false,
-                ErrorMessage = result.Value.ErrorMessage
+                ErrorMessage = errorMsg
             };
         }
         
         var appResponse = result.Value;
-        var response = new ReserveStockResponse
+        logger.LogInformation("gRPC ReserveStock hoàn tất: IsSuccess={IsSuccess}, ErrorMessage={ErrorMessage}", 
+            appResponse.IsSuccess, appResponse.ErrorMessage);
+
+        return new ReserveStockResponse
         {
             IsSuccess = appResponse.IsSuccess,
-            ErrorMessage = appResponse.ErrorMessage
+            ErrorMessage = appResponse.ErrorMessage ?? string.Empty
         };
-        
-        return response;
     }
 }

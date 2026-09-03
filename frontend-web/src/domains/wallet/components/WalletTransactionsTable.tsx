@@ -44,7 +44,7 @@ export function WalletTransactionsTable({
 								const isDebit = tx.type === "Debit";
 								return (
 									<tr key={idx} className="hover:bg-brand-light-soft/10">
-										<td className="p-3 font-mono font-bold text-brand-dark">#{tx.id.split("-")[0]}</td>
+										<td className="p-3 font-mono font-bold text-brand-dark">#{tx.id}</td>
 										<td className="p-3 text-brand-muted">{new Date(tx.createdDate).toLocaleString("vi-VN")}</td>
 										<td className="p-3 font-bold text-brand-dark">{tx.description}</td>
 										<td className={`p-3 text-right font-extrabold ${isDebit ? "text-red-600" : "text-emerald-600"}`}>

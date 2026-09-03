@@ -8,5 +8,5 @@ namespace Ecommerce.Services.Carts.Api.Models.Interfaces;
 public interface IProductService
 {
     Task<Result<ProductDto>> GetProductVariantAsync(long variantId);
-    Task<Result<List<ProductDto>>> GetProductVariantListAsync(List<long> variantIds, List<long> productIds);
+    Task<Result<List<ProductDto>>> GetProductVariantListAsync(List<long> variantIds, List<long>? productIds = null);
 }

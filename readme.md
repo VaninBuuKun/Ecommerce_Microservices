@@ -18,7 +18,8 @@ An enterprise-grade **Marketplace Ecommerce Platform** built with modern **Micro
         ├──► Payments.Api     (REST 5052 / gRPC 5053) ──► PostgreSQL
         ├──► Shippings.Api    (REST 5070 / gRPC 5071) ──► PostgreSQL
         ├──► Sellers.Api      (REST 5042 / gRPC 5043) ──► PostgreSQL
-        └──► Identity.Api     (REST 5027 / gRPC 5028) ──► PostgreSQL
+        ├──► Identity.Api     (REST 5027 / gRPC 5028) ──► PostgreSQL
+        └──► Notifications.Api(REST 5080)              ──► PostgreSQL
 
 [ Synchronous Communication ]
 gRPC + Protocol Buffers
@@ -38,10 +39,10 @@ Saga State Machine + Transactional Outbox
 | **Cart.Api**          | 5004 | 5005 | Redis      | Shopping Cart, Shop Grouping                                |
 | **Orders.Api**        | 5007 | 5008 | PostgreSQL | Orders, SubOrders, Vouchers, Refund Workflow                |
 | **Identity.Api**      | 5027 | 5028 | PostgreSQL | Authentication, Authorization, OAuth2/OIDC, User Addresses  |
-| **Sellers.Api**       | 5042 | 5043 | PostgreSQL | KYC Verification, Shop Management, Pickup Addresses         |
+| **Sellers.Api**       | 5042 | 5043 | PostgreSQL | KYC Verification, Shop Management, Pickup Addresses, Follow |
 | **Payments.Api**      | 5052 | 5053 | PostgreSQL | VNPay, MoMo, COD, Seller Wallets, Withdrawals               |
 | **Shippings.Api**     | 5070 | 5071 | PostgreSQL | GHN Integration, Shipping Rates, Delivery Tracking          |
-| **Notifications.Api** | 5080 | -    | PostgreSQL      | SignalR Realtime Notifications & Chat                       |
+| **Notifications.Api** | 5080 | —    | PostgreSQL | SignalR Realtime Notifications                              |
 
 ---
 
@@ -52,25 +53,23 @@ Saga State Machine + Transactional Outbox
 ### KYC Verification
 
 * National ID verification with front/back image upload.
-* Approval workflow:
-
-  * Draft
-  * Submitted
-  * Approved
-  * Rejected
+* Approval workflow: Draft → Submitted → Approved / Rejected.
+* Admin KYC management panel with approve/reject actions.
 
 ### Shop Management
 
 * Shop creation after successful KYC approval.
-* Shop profile management.
-* Pickup address management integrated with GHN.
+* Shop profile management (name, description, logo, address).
+* Pickup address management integrated with GHN locations.
+* Shop activate / suspend / ban (Admin).
+* Follow / Unfollow shops (Customer).
 
 ### Seller Wallet
 
 * Wallet activation.
-* Bank account linking.
+* Bank account management (add, update).
 * Transaction history.
-* Withdrawal requests.
+* Withdrawal requests with admin approval workflow.
 
 ---
 
@@ -78,87 +77,83 @@ Saga State Machine + Transactional Outbox
 
 ### Product Management
 
-* Product variants management.
-* Product options and attributes.
-* Shipping dimensions and weight configuration.
+* Product creation with rich description.
+* Product variant matrix (options → variants with SKU/price/stock).
+* Bulk variant updates.
+* Sale price configuration.
 * Product activation/deactivation.
+* Shipping dimensions and weight configuration.
 
 ### Ratings & Reviews
 
-* Star ratings.
-* Product reviews and comments.
-* Media uploads.
-* Review eligibility validation through gRPC:
+* Star ratings with review text.
+* Media uploads in reviews.
+* Review eligibility validation via gRPC (completed purchase count).
 
-  * Number of reviews cannot exceed completed purchases.
+### Wishlists
+
+* Toggle wishlist for products.
+* Wishlist page with product grid.
 
 ### Redis Shopping Cart
 
 * Add/update/remove products.
 * Product selection for checkout.
 * Automatic grouping by seller shop.
+* Select all / deselect all.
+* **1-Call Rebuy & Buy-Now**: Server-side resolution of sub-orders or variant lists with shop ownership validation and automatic unselect of other items.
+* **Out-of-Stock Handling**: Zero-quantity items displayed with dimmed styling, disabled checkbox and "Hết hàng" badges.
 
 ---
 
 ## 🛒 Checkout, Orders & Payments
 
-### Checkout Calculation
+### Checkout Calculation & Idempotency
 
-* Product subtotal.
-* Platform vouchers.
-* Shop vouchers.
+* Product subtotal, platform vouchers, and shop vouchers.
 * Shipping fee calculation via GHN gRPC integration.
+* Redis checkout session for calculation data persistence.
+* **Idempotent Order Placement**: Deduplication via `X-Idempotency-Key` and Redis cache (`order:idempotency:{customerId}:{key}`) with 5-minute TTL to prevent double-charging and duplicate order generation on network retry or double clicks.
 
 ### Multi-Shop Orders
 
-A single checkout can be automatically split into multiple SubOrders based on seller ownership.
+A single checkout is automatically split into multiple SubOrders based on seller shop ownership.
 
-### Order Lifecycle
+### Order & Saga State Machine Lifecycle
 
 ```text
-AwaitingPayment
-    ↓
-AwaitingConfirmation
-    ↓
-Processing
-    ↓
-PackageReady
-    ↓
-Shipping
-    ↓
-Delivered
-    ↓
-Completed
-
-or
-
-Cancelled
-Refunded
+[ AwaitingConfirmation ]
+          │  (Seller confirms order)
+          ▼
+    [ Processing ] ── (Package ready → CreateShipmentRequest to GHN)
+          │  (GHN shipper picks up package / SubOrderShippedEvent)
+          ▼
+     [ Shipping ]
+          │  (GHN delivery success / SubOrderDeliveredEvent)
+          ▼
+    [ Delivered ]  ── (Enqueues 7-day Hangfire delayed auto-complete job)
+          │
+    ┌─────┴───────────────────────┐
+    ▼                             ▼
+[ Completed ]                [ Refunded ]
+(Customer confirm /       (Refund request approved
+ 7-day Hangfire job)       by seller / admin)
 ```
 
 ### Payment Integration
 
 Supported payment methods:
-
-* MoMo QR Payment
-* VNPay
+* MoMo QR Payment (Sandbox)
+* VNPay (Sandbox)
 * Cash On Delivery (COD)
 
-Payment webhooks automatically trigger:
-
-```text
-PaymentSucceededEvent
-        ↓
-Orders Service
-        ↓
-AwaitingConfirmation
-```
+Payment webhooks automatically trigger status transitions via MassTransit events.
 
 ### Refund Workflow
 
-* Buyer submits refund request.
-* Seller approves or rejects request.
-* Automatic refund processing through event consumers.
+* Buyer submits refund request with evidence media.
+* Seller approves or rejects refund.
+* Automatic refund balance restoration and stock release via Saga orchestration.
 
 ---
 
@@ -166,192 +161,143 @@ AwaitingConfirmation
 
 ### GHN Integration
 
-Features:
-
-* Province/District/Ward synchronization.
-* Shipping fee calculation.
-* Automatic shipment creation.
-* Shipment tracking.
+* Province/District/Ward synchronization (cron job).
+* Shipping fee calculation (batch support).
+* Automatic shipment creation (waybill).
+* Shipment tracking via webhooks.
 
 ### Delivery Workflow
 
 ```text
-GHN Delivered
-        ↓
-ShipmentDeliveredEvent
-        ↓
-Orders Service
-        ↓
-SubOrder Delivered
-        ↓
-SellerRevenueConsumer
-        ↓
-Seller Wallet Credit
+GHN Delivered → ShipmentDeliveredEvent → Orders Service → SubOrder Delivered
+                                                        → SellerRevenueConsumer → Seller Wallet Credit
 ```
 
 ---
 
 ## 🛡️ Administration & Governance
 
-### Order Management
+### Admin Dashboard
 
-* Global SubOrder management.
-* Pagination and filtering.
-* Keyword search.
-* Detailed order inspection.
+* **Products Overview**: Approval, inventory, pricing, specification attributes, and status management.
+* **Dynamic Banners & Carousels**: Full CRUD with priority ordering, status toggle, link routing, and live theme color customizers.
+* **Order & SubOrder Management**: Multi-shop order tracking, status overrides, keyword searching, and pagination.
+* **Shipment Tracking**: GHN waybill tracking logs and webhook sync inspection.
+* **Refund Management**: Proof review, approve/reject workflows with balance restoration.
+* **Category Tree Management**: Hierarchical category tree management with drag/sort order.
+* **User & Security Governance**: Lock/unlock accounts, role assignments, device login history inspection.
+* **Shop Governance**: Shop status moderation (Active, Suspend, Ban), owner validation.
+* **KYC Verification Workflow**: Dual-photo ID verification, status progression (Draft → Submitted → Approved/Rejected).
+* **Voucher Management**: Platform-wide and shop-scoped voucher CRUD (discount percentage/fixed, minimum order, usage limits).
+* **Wallet & Withdrawal Management**: Admin review, approval, rejection, and final completion with proof payment receipt upload.
+* **Platform Commission Configuration**: Global marketplace fee rate adjustment (`/api/admin/commission`).
 
-### Seller Management
+### Available Roles
 
-* Shop listing.
-* KYC approval workflow.
-* Shop ban/unban.
+* `Admin` — Full platform management, commission settings, moderation, and finance approvals.
+* `Manager` — Operations, catalog, order processing, and merchant verification.
+* `Staff` — Customer support, order inspection, and verification assistance.
+* `User` — Marketplace customer and seller shop owner.
 
-### User Management
+---
 
-* Account lock/unlock.
-* Role assignment.
+## 🔔 Real-time Notifications, Chat & Email
 
-Available roles:
+### Real-time Messaging & Floating Chat
+* **SignalR Customer ↔ Shop Chat Page (`/chat`)**: Fullscreen real-time communication between buyers and seller shops with chat history.
+* **Floating Chat Bubble & Modal (`ChatBubbleButton` + `ChatMiniModal`)**: 2-column popup chat widget accessible across all customer and seller pages.
+* **Room Customization**: Custom theme colors and background styling per conversation (`ThemeColor`, `BackgroundColor`).
 
-* Admin
-* Manager
-* Staff
-* User
+### Isolated HTML Email Template Engine
+* **Dynamic Template Renderer**: Decoupled HTML templates in `Templates/Emails/` (`OtpEmail.html`, `WelcomeEmail.html`, `WithdrawalSuccessEmail.html`, `NewDeviceAlertEmail.html`, `PasswordChangedSuccessEmail.html`) rendered dynamically via `ITemplateRenderer`.
+* **Withdrawal Completion Notification**: Automatic email notification with formatted amount, bank info, and proof payment receipt image (`ProofImageUrl`).
 
-### Voucher & Withdrawal Management
+### Security, Device Intelligence & Session Revocation
+* **Device Fingerprint Recognition (`UserKnownDevices`)**: Persistent hardware/environment fingerprinting (`DeviceHash`, `DeviceName`, `LastIpAddress`) to eliminate repetitive login alert emails.
+* **Session Revocation & Force Logout on Password Change**: Automatic `SecurityStamp` renewal, Duende grant revocation, security alert email, SignalR `ForceLogout` broadcast, and Redis `auth:revoked_before:{userId}` blacklist check at API Gateway to reject stale tokens.
 
-* Platform-wide vouchers.
-* Withdrawal approval process.
+### Customer Notifications Center (`/profile?tab=notifications`)
+* **Master-Detail Notifications View**: 15-day query limit, category filtering (*All*, *Orders*, *Payments & Wallet*, *Security & Account*), contextual rich alerts with action buttons, and automated **Hangfire 30-day purge job** (`0 2 * * *`).
+
+### Event-Driven Consumers
+* `PaymentSucceededNotificationConsumer` / `PaymentFailedNotificationConsumer`
+* `SubOrderCreatedNotificationConsumer` (notify seller)
+* `SubOrderShippedNotificationConsumer` (notify buyer)
+* `UserRegisteredNotificationConsumer` (welcome email)
+* `ResetPasswordOtpNotificationConsumer` (OTP email)
+* `NewDeviceLoginAlertNotificationConsumer` (security email on new device)
+* `WithdrawalCompletedNotificationConsumer` (payout confirmation + proof image)
+* `UserPasswordChangedNotificationConsumer` (security email + SignalR ForceLogout)
+
+---
+
+## 🔍 Native Full-Text Search & Explore Page
+* **PostgreSQL Native Full-Text Search**: `to_tsvector` and `websearch_to_tsquery` for Vietnamese text search.
+* **Autocomplete Search Suggestions**: Real-time search keyword suggestions via `/api/products/search-suggestions`.
+* **Explore Products Page (`/explore`)**: 2-column layout with 1-5 star ratings filter, single-choice sort criteria (Newest, Price asc/desc, Best Seller), and keyword title header.
 
 ---
 
 # 📐 4. Architectural Standards
 
-## CQRS + Clean Architecture
+## Clean Architecture CQRS vs Service Layer Pattern
 
-Commands and Queries are fully separated.
-
-```text
-CreateOrderCommand.cs
-CreateOrderCommandHandler.cs
-
-GetOrderQuery.cs
-GetOrderQueryHandler.cs
-```
-
----
+* **CQRS + MediatR Services (`Catalog.Api`, `Orders.Api`)**: Strict separation of Commands and Queries, dedicated Handler files, and feature-driven folder structures.
+* **Service Layer Pattern Services (`Payments.Api`, `Sellers.Api`, `Shippings.Api`, `Identity.Api`, `Cart.Api`, `Notifications.Api`)**: 0% MediatR, direct interface dependency injection (`Models/Interfaces/I[Name]Service.cs`), and centralized service implementations (`Services/`).
 
 ## gRPC Presentation Adapter Pattern
 
-gRPC services only act as transport adapters.
-
-```csharp
-await sender.Send(command);
-```
-
-Business logic remains inside the Application Layer.
-
----
+gRPC servers strictly act as transport adapters, delegating execution to the Application Layer / Service Layer without direct database or DbContext queries.
 
 ## gRPC Client Abstraction
 
-Inter-service communication is wrapped behind service abstractions.
-
-Examples:
-
-```text
-ProductClientService
-SellerClientService
-ShippingClientService
-```
-
-Benefits:
-
-* Centralized error handling.
-* RpcException wrapping.
-* Consistent Result<T> responses.
-
----
+Inter-service communication wrapped behind service abstractions with `RpcException` → `Result<T>` mapping.
 
 ## Unit of Work & Repository Pattern
 
-Database access is abstracted through:
+Database access abstracted through `IEfUnitOfWork` and `IGenericEfRepository<T>`.
 
-```text
-IEfUnitOfWork
-IGenericEfRepository<T>
-```
+## EfDbContextBase — Automatic Date Tracking
 
-Benefits:
+`SaveChangesAsync()` automatically populates `CreatedDate` and `LastModifiedDate` for all `IDateTracking` entities.
 
-* Transaction management.
-* Consistent repository implementation.
-* Improved testability.
+## Background Jobs & Hangfire Abstraction
 
----
+Decoupled via `IBackgroundJobManager` (Fire-and-forget, Delayed, Recurring) in `BuildingBlocks.Shared` backed by `BuildingBlocks.BackgroundJobs` (Hangfire + PostgreSQL).
+* **Delayed Job**: 7-day auto-completion for delivered sub-orders scheduled individually per sub-order without database table polling.
+* **Recurring Job**: Automated daily purge of notifications older than 30 days (`0 2 * * *`).
+
+## Token Revocation Middleware at API Gateway
+
+YARP reverse proxy pipeline integrates `TokenRevocationMiddleware`, performing O(1) Redis lookups (`auth:revoked_before:{userId}`) against token `iat` claims to instantly reject stale sessions after password changes.
 
 ## MassTransit Saga & Transactional Outbox
 
-Used to guarantee eventual consistency between:
+Ensures reliable event delivery with distributed transaction orchestration.
 
-```text
-Database Transaction
-+
-RabbitMQ Message Publication
-```
+## Snowflake ID Generator
 
-Benefits:
-
-* Reliable event delivery.
-* Distributed transaction orchestration.
-* Recovery from partial failures.
+64-bit distributed unique IDs for Orders (non-sequential, non-guessable).
 
 ---
 
 ## Frontend Architecture (React 19)
 
-Frontend follows a three-layer architecture:
+Three-layer ACO (Apps - Components - Domains) architecture:
 
 ```text
-apps/
-domains/
-shared/
+apps/     → Page entry points by role (customer, seller, admin, auth)
+domains/  → Business domain modules (auth, catalog, cart, order, seller, kyc, address, wallet, shipping, admin, notification)
+shared/   → Reusable UI primitives & utilities
 ```
-
-### apps/
-
-Complete application pages grouped by business role:
-
-* User
-* Seller
-* Admin
-* Authentication
-
-### domains/
-
-Business domain modules:
-
-* API integrations
-* Hooks
-* Types
-* Components
-
-### shared/
-
-Reusable utilities and common components.
 
 ### UI Standards
 
-* Modals rendered using:
-
-```tsx
-createPortal(..., document.body)
-```
-
-* Centralized API error handling based on:
-
-  * HTTP Status Codes
-  * Result.ErrorCode
+* React Toastify for all user feedback (no `alert()`)
+* Modals via `createPortal(..., document.body)` with `z-10000`
+* Component files max ~300 lines — decompose larger components
+* Tailwind CSS v4 utility-first styling
+* Framer Motion animations
 
 ---
 
@@ -364,13 +310,10 @@ createPortal(..., document.body)
 * Docker Desktop
 
 Infrastructure Components:
-
 * PostgreSQL
 * MySQL
 * Redis
 * RabbitMQ
-
----
 
 ## Start Infrastructure
 
@@ -378,37 +321,23 @@ Infrastructure Components:
 docker compose up -d
 ```
 
----
-
 ## Run Backend Services
 
 ```bash
 dotnet build Microservices.sln
 ```
 
-Run services from:
-
-* Visual Studio
-* JetBrains Rider
-* .NET CLI
-
----
+Run services from Visual Studio, JetBrains Rider, or .NET CLI.
 
 ## Run Frontend
 
 ```bash
 cd frontend-web
-
 npm install
-
 npm run dev
 ```
 
-Application URL:
-
-```text
-http://localhost:5173
-```
+Application URL: `http://localhost:5173`
 
 ---
 
@@ -417,24 +346,13 @@ http://localhost:5173
 Deploy the complete stack on a VPS using Docker Compose.
 
 ```bash
-# Navigate to source directory
 cd src
-
-# Create environment file
 cp .env.example .env
-
-# Edit environment variables
 nano .env
-
-# Start all services
-docker compose \
-  -f docker-compose.prod.yaml \
-  --env-file .env \
-  up -d
+docker compose -f docker-compose.prod.yaml --env-file .env up -d
 ```
 
 This deployment includes:
-
 * API Gateway
 * Frontend
 * All Backend Services
@@ -448,13 +366,14 @@ This deployment includes:
 
 ### Backend
 
-* .NET 9
-* ASP.NET Core
-* MediatR
-* FluentValidation
-* MassTransit
-* gRPC
-* Entity Framework Core
+* .NET 9 / ASP.NET Core
+* MediatR / FluentValidation
+* MassTransit + RabbitMQ
+* gRPC + Protocol Buffers
+* Entity Framework Core 9
+* Duende IdentityServer (OAuth2/OIDC)
+* SignalR (Real-time)
+* Hangfire (Background & Scheduled Jobs)
 
 ### Databases
 
@@ -462,32 +381,28 @@ This deployment includes:
 * MySQL
 * Redis
 
-### Messaging
-
-* RabbitMQ
-* MassTransit Saga State Machine
-
 ### Frontend
 
-* React 19
-* TypeScript
-* Zustand
-* TanStack Query
-* React Hook Form
-* Zod
+* React 19 / TypeScript 5.x
+* Vite 8
+* Tailwind CSS v4
+* TanStack Query v5
+* Zustand v5
+* React Hook Form + Zod
+* Framer Motion
+* Radix UI
+* React Toastify
+* Axios
 
 ### Infrastructure
 
-* Docker
-* Docker Compose
+* Docker / Docker Compose
 * YARP API Gateway
 
 ### Observability
 
 * OpenTelemetry
-* Grafana
-* Loki
-* Tempo
+* Grafana / Loki / Tempo
 
 ---
 
