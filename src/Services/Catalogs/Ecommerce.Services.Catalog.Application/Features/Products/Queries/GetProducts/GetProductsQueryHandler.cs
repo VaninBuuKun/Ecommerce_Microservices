@@ -58,7 +58,8 @@ public class GetProductsQueryHandler(
                 lastValue,
                 lastId,
                 query.Limit + 1,
-                query.ShopId
+                query.ShopId,
+                query.HasDiscount
             );
 
             var products = await _productRepository.GetListAsync(spec, cancellationToken);
@@ -79,6 +80,7 @@ public class GetProductsQueryHandler(
                     "price_asc" or "price_desc" => lastItem.Price.ToString("F2"),
                     "newest" or "oldest" => lastItem.CreatedAt.Ticks.ToString(),
                     "sold" or "best_selling" => lastItem.Sold.ToString(),
+                    "discount" => (lastItem.Price - lastItem.DiscountPrice).ToString("F2"),
                     _ => lastItem.Name
                 };
                 var rawCursor = $"{cursorValue}|{lastItem.Id}";

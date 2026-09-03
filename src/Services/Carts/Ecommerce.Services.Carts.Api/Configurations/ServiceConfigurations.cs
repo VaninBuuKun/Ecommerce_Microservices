@@ -13,5 +13,6 @@ public static class ServiceConfigurations
         services.AddScoped<ICartService, CartService>();
         services.AddScoped<IProductService, ProductClientService>();
         services.AddScoped<ISellerService, SellerClientService>();
+        services.AddScoped<IOrderService, OrderClientService>();
     }
 }

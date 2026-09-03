@@ -3,9 +3,6 @@ import { DollarSign, TrendingUp, ShoppingCart, Wallet, Loader2, Calendar } from 
 import { api } from "@/core";
 import { toast } from "react-toastify";
 
-// USE_MOCK_DATA flag for fallback testing
-const USE_MOCK_DATA = false;
-
 interface DailyRevenue {
 	date: string;
 	revenue: number;
@@ -28,27 +25,9 @@ export function RevenueView() {
 		const fetchRevenueReport = async () => {
 			try {
 				setIsLoading(true);
-				if (USE_MOCK_DATA) {
-					await new Promise((res) => setTimeout(res, 400));
-					setReport({
-						totalRevenue: 15450000,
-						availableBalance: 8200000,
-						frozenBalance: 1200000,
-						totalCompletedOrders: 32,
-						dailyRevenues: [
-							{ date: "2026-08-23", revenue: 1500000, orderCount: 3 },
-							{ date: "2026-08-24", revenue: 2200000, orderCount: 5 },
-							{ date: "2026-08-25", revenue: 1800000, orderCount: 4 },
-							{ date: "2026-08-26", revenue: 3100000, orderCount: 7 },
-							{ date: "2026-08-27", revenue: 2700000, orderCount: 6 },
-							{ date: "2026-08-28", revenue: 4150000, orderCount: 7 },
-						],
-					});
-				} else {
-					const res = await api.get("/wallet/revenue");
-					const data = res.data?.value || res.data;
-					setReport(data);
-				}
+				const res = await api.get("/wallet/revenue");
+				const data = res.data?.value || res.data;
+				setReport(data);
 			} catch (err: any) {
 				console.error("Lỗi khi tải báo cáo doanh thu:", err);
 				toast.error("Không thể tải báo cáo doanh thu.");

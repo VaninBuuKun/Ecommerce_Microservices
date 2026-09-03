@@ -37,6 +37,18 @@ public class CreateOrderCommandHandler(
         long customerId = command.CustomerId;
         logger.LogInformation("Bắt đầu khởi tạo đơn hàng cho khách hàng {CustomerId} từ Redis CheckoutSession Key: {SessionKey}", customerId, command.CheckoutSessionKey);
 
+        string? idempotencyCacheKey = null;
+        if (!string.IsNullOrWhiteSpace(command.IdempotencyKey))
+        {
+            idempotencyCacheKey = $"order:idempotency:{customerId}:{command.IdempotencyKey.Trim()}";
+            var cachedResponse = await cacheService.GetAsync<CustomerOrderResponse>(idempotencyCacheKey, cancellationToken);
+            if (cachedResponse != null)
+            {
+                logger.LogInformation("Idempotency: Trả về kết quả đơn hàng đã tạo cho IdempotencyKey {IdempotencyKey}", command.IdempotencyKey);
+                return Result<CustomerOrderResponse>.Success(cachedResponse);
+            }
+        }
+
         var redisKey = $"checkout_session:{command.CheckoutSessionKey}";
         var checkoutSession = await cacheService.GetAsync<CheckoutSession>(redisKey, cancellationToken);
         if (checkoutSession == null)
@@ -242,6 +254,12 @@ public class CreateOrderCommandHandler(
 
             var response = mapper.Map<CustomerOrderResponse>(order);
             response.PaymentUrl = paymentUrl;
+
+            if (!string.IsNullOrWhiteSpace(idempotencyCacheKey))
+            {
+                await cacheService.SetAsync(idempotencyCacheKey, response, TimeSpan.FromMinutes(5), cancellationToken);
+            }
+
             return Result<CustomerOrderResponse>.Success(response);
         }
         catch (Exception ex)

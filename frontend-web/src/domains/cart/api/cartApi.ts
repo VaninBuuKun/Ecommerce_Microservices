@@ -20,6 +20,11 @@ export interface RemoveItemRequest {
 	variantId: string;
 }
 
+export interface RebuyRequest {
+	subOrderId?: number | string | null;
+	variantIds?: (number | string)[] | null;
+}
+
 export const cartApi = {
 	getCart: async (): Promise<any> => {
 		const response = await api.get("/carts");
@@ -63,6 +68,14 @@ export const cartApi = {
 
 	clearCart: async (): Promise<any> => {
 		const response = await api.delete("/carts");
+		return response.data;
+	},
+
+	rebuy: async (data: RebuyRequest): Promise<any> => {
+		const response = await api.post("/carts/rebuy", {
+			subOrderId: data.subOrderId ? String(data.subOrderId) : null,
+			variantIds: data.variantIds ? data.variantIds.map(String) : null,
+		});
 		return response.data;
 	},
 };

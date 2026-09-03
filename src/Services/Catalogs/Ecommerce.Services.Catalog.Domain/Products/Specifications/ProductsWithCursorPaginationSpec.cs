@@ -13,7 +13,8 @@ public class ProductsWithCursorPaginationSpec : Specification<Product>
         string? lastValue, 
         long? lastId, 
         int limit,
-        long? shopId = null)
+        long? shopId = null,
+        bool? hasDiscount = null)
     {
         // 1. Chỉ lấy sản phẩm đang hoạt động
         Query.Where(p => p.Status == ProductStatus.Active);
@@ -46,12 +47,26 @@ public class ProductsWithCursorPaginationSpec : Specification<Product>
             Query.Where(p => p.ShopId == shopId.Value);
         }
 
+        // 4c. Filter theo HasDiscount
+        if (hasDiscount.HasValue && hasDiscount.Value)
+        {
+            Query.Where(p => p.DiscountPrice > 0 && p.DiscountPrice < p.Price);
+        }
+
         // 5. Load Navigation Properties
         Query.Include(p => p.Category);
 
         // 6. Áp dụng sắp xếp và Keyset Pagination
         switch (sortBy?.ToLower())
         {
+            case "discount":
+                if (lastValue != null && lastId != null && decimal.TryParse(lastValue, out var discountLimit))
+                {
+                    Query.Where(p => (p.Price - p.DiscountPrice) < discountLimit || 
+                        ((p.Price - p.DiscountPrice) == discountLimit && p.Id.CompareTo(lastId.Value) > 0));
+                }
+                Query.OrderByDescending(p => (p.Price - p.DiscountPrice)).ThenBy(p => p.Id);
+                break;
             case "price_asc":
                 if (lastValue != null && lastId != null && decimal.TryParse(lastValue, out var priceAscLimit))
                 {

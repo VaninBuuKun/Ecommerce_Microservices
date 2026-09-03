@@ -64,6 +64,11 @@ public class SubOrderStateMachine : MassTransitStateMachine<SubOrderSagaState>
 
         During(AwaitingConfirmation,
             When(SubOrderConfirmed)
+                .PublishAsync(context => context.Init<SubOrderStatusChangedEvent>(new SubOrderStatusChangedEvent
+                {
+                    SubOrderId = context.Message.SubOrderId,
+                    Status = "Processing"
+                }))
                 .TransitionTo(Processing),
             When(SubOrderRejected)
                 .HandleRejectionFlow()
@@ -72,20 +77,27 @@ public class SubOrderStateMachine : MassTransitStateMachine<SubOrderSagaState>
 
         During(Processing,
             When(SubOrderPackageReady)
-                .HandlePackageReadyFlow()
+                .HandlePackageReadyFlow(),
+            When(SubOrderShipped)
+                .PublishAsync(context => context.Init<SubOrderStatusChangedEvent>(new SubOrderStatusChangedEvent
+                {
+                    SubOrderId = context.Message.SubOrderId,
+                    Status = "Shipping"
+                }))
                 .TransitionTo(Shipping),
             When(SubOrderRejected)
                 .HandleRejectionFlow()
                 .TransitionTo(Cancelled)
         );
-
+        
         During(Shipping,
-            When(SubOrderPackageReady)
-                .HandlePackageReadyFlow()
-                .TransitionTo(Shipping),
-            When(SubOrderShipped)
-                .TransitionTo(Shipping),
             When(SubOrderDelivered)
+                //Kích hoạt bg job để tự động hoàn tất đơn hàng sau 7 ngày
+                .PublishAsync(context => context.Init<SubOrderStatusChangedEvent>(new SubOrderStatusChangedEvent
+                {
+                    SubOrderId = context.Message.SubOrderId,
+                    Status = "Delivered"
+                }))
                 .TransitionTo(Delivered),
             When(SubOrderRejected)
                 .HandleRejectionFlow()
@@ -94,6 +106,11 @@ public class SubOrderStateMachine : MassTransitStateMachine<SubOrderSagaState>
 
         During(Delivered,
             When(SubOrderCompleted)
+                .PublishAsync(context => context.Init<SubOrderStatusChangedEvent>(new SubOrderStatusChangedEvent
+                {
+                    SubOrderId = context.Message.SubOrderId,
+                    Status = "Completed"
+                }))
                 .TransitionTo(Completed),
             When(RefundApproved)
                 .TransitionTo(Refunded)

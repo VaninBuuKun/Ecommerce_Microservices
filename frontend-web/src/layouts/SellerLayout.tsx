@@ -22,7 +22,9 @@ import {
 	Menu,
 	X,
 } from "lucide-react";
-import { useSellerStore, useSellerProfileQuery, ChatFloatingWidget } from "@/domains/seller";
+import { useSellerStore, useSellerProfileQuery } from "@/domains/seller";
+import { ChatBubbleButton } from "@/shared/components";
+import { useNotifications } from "@/domains/notification";
 
 
 export default function SellerLayout() {
@@ -145,30 +147,7 @@ export default function SellerLayout() {
 			: "block py-1 px-2 rounded text-[11px] font-medium text-brand-muted hover:text-brand-primary-deep hover:bg-brand-primary/5 transition-colors";
 	};
 
-	const mockNotifications = [
-		{
-			id: 1,
-			title: "Đơn hàng mới",
-			content: "Shop của bạn nhận được đơn hàng mới #129384",
-			time: "10 phút trước",
-			read: false,
-		},
-		{
-			id: 2,
-			title: "Khuyến mãi cực hot",
-			content: "Ví Shopee đang có chương trình hoàn xu đến 50%",
-			time: "2 giờ trước",
-			read: false,
-		},
-		{
-			id: 3,
-			title: "Cập nhật tài khoản",
-			content:
-				"Thông tin tài khoản định danh của bạn đã được duyệt thành công",
-			time: "1 ngày trước",
-			read: true,
-		},
-	];
+	const { notifications, unreadCount } = useNotifications();
 
 	const getBreadcrumbItems = (): BreadcrumbItem[] => {
 		const paths = location.pathname.split("/").filter(Boolean);
@@ -254,9 +233,11 @@ export default function SellerLayout() {
 					>
 						<button className="relative w-8 h-8 text-brand-dark hover:bg-brand-primary/10 rounded transition-colors flex items-center justify-center cursor-pointer border-none bg-transparent">
 							<Bell className="w-4.5 h-4.5" />
-							<span className="absolute top-0 right-0 bg-red-500 text-white font-black text-[9px] w-4 h-4 rounded-full flex items-center justify-center">
-								3
-							</span>
+							{unreadCount > 0 && (
+								<span className="absolute top-0 right-0 bg-red-500 text-white font-black text-[9px] w-4 h-4 rounded-full flex items-center justify-center">
+									{unreadCount > 9 ? "9+" : unreadCount}
+								</span>
+							)}
 						</button>
 
 						{showNotificationDropdown && (
@@ -266,24 +247,30 @@ export default function SellerLayout() {
 										Thông báo mới nhận
 									</span>
 									<div className="space-y-2 max-h-60 overflow-y-auto">
-										{mockNotifications.map((notif) => (
-											<div
-												key={notif.id}
-												className={`p-2 rounded text-xs transition-colors ${notif.read ? "bg-transparent" : "bg-brand-light-soft border-l-2 border-brand-primary"}`}
-											>
-												<div className="flex justify-between items-start mb-0.5">
-													<h4 className="font-bold text-brand-dark">
-														{notif.title}
-													</h4>
-													<span className="text-[9px] text-brand-muted shrink-0">
-														{notif.time}
-													</span>
-												</div>
-												<p className="text-brand-muted text-[11px] leading-snug">
-													{notif.content}
-												</p>
+										{notifications.length === 0 ? (
+											<div className="py-6 text-center text-xs text-brand-muted font-medium">
+												Chưa có thông báo mới nào
 											</div>
-										))}
+										) : (
+											notifications.map((notif: any) => (
+												<div
+													key={notif.id}
+													className={`p-2 rounded text-xs transition-colors ${notif.isRead ? "bg-transparent" : "bg-brand-light-soft border-l-2 border-brand-primary"}`}
+												>
+													<div className="flex justify-between items-start mb-0.5">
+														<h4 className="font-bold text-brand-dark">
+															{notif.title}
+														</h4>
+														<span className="text-[9px] text-brand-muted shrink-0">
+															{notif.createdAt ? new Date(notif.createdAt).toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" }) : ""}
+														</span>
+													</div>
+													<p className="text-brand-muted text-[11px] leading-snug">
+														{notif.body || notif.content}
+													</p>
+												</div>
+											))
+										)}
 									</div>
 								</div>
 							</div>
@@ -682,8 +669,9 @@ export default function SellerLayout() {
 					</div>
 				</main>
 			</div>
-			{/* Chat floating widget for Seller */}
-			<ChatFloatingWidget />
+			{/* Chat floating bubble for Seller */}
+			<ChatBubbleButton />
 		</div>
 	);
 }
+

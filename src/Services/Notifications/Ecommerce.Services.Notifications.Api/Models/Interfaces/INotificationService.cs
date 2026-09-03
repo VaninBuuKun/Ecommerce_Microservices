@@ -13,9 +13,15 @@ public interface INotificationService
 
 
 
+    /// <summary>Lấy thông tin chi tiết một notification của user.</summary>
+    Task<Notification?> GetByIdAsync(Guid id, long userId, CancellationToken cancellationToken = default);
+
     /// <summary>Đánh dấu notification đã đọc.</summary>
     Task MarkAsReadAsync(Guid notificationId, long userId, CancellationToken cancellationToken = default);
 
     /// <summary>Đánh dấu tất cả notification của user đã đọc.</summary>
     Task MarkAllAsReadAsync(long userId, CancellationToken cancellationToken = default);
+
+    /// <summary>Tự động dọn dẹp các notification cũ hơn số ngày chỉ định.</summary>
+    Task<int> PurgeOldNotificationsAsync(int olderThanDays, CancellationToken cancellationToken = default);
 }

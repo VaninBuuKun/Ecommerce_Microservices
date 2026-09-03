@@ -1,16 +1,18 @@
 using System;
+using System.Collections.Generic;
+using System.Globalization;
 using System.Net;
 using System.Net.Mail;
 using System.Threading.Tasks;
+using Ecommerce.Services.Notifications.Api.Models.Interfaces;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
-
-using Ecommerce.Services.Notifications.Api.Models.Interfaces;
 
 namespace Ecommerce.Services.Notifications.Api.Services;
 
 public class EmailService(
     IConfiguration configuration,
+    ITemplateRenderer templateRenderer,
     ILogger<EmailService> logger)
     : IEmailService
 {
@@ -61,223 +63,123 @@ public class EmailService(
         var encodedName = WebUtility.HtmlEncode(fullName);
         var frontendUrl = configuration["FrontendUrl"] ?? "http://localhost:5173";
         var exploreUrl = $"{frontendUrl}/login?email={Uri.EscapeDataString(toEmail)}&redirect=/";
-        
-        var html = $@"
-        <!DOCTYPE html>
-        <html lang='vi'>
-        <head>
-            <meta charset='utf-8'>
-            <meta name='viewport' content='width=device-width, initial-scale=1.0'>
-        </head>
-        <body style='margin: 0; padding: 0; background-color: #fafafa; font-family: -apple-system, BlinkMacSystemFont, ""Segoe UI"", Roboto, Helvetica, Arial, sans-serif; color: #171717;'>
-            <table role='presentation' width='100%' border='0' cellspacing='0' cellpadding='0' style='background-color: #fafafa; padding: 32px 12px;'>
-                <tr>
-                    <td align='center'>
-                        <table role='presentation' width='100%' border='0' cellspacing='0' cellpadding='0' style='max-width: 480px; background-color: #ffffff; border: 1px solid #e5e5e5; border-radius: 4px; overflow: hidden;'>
-                            
-                            <!-- Header: Nền Trắng - Chữ Xanh Emerald -->
-                            <tr>
-                                <td style='background-color: #ffffff; padding: 24px 28px 20px 28px; border-bottom: 1px solid #f0f0f0;'>
-                                    <table role='presentation' width='100%' border='0' cellspacing='0' cellpadding='0'>
-                                        <tr>
-                                            <td>
-                                                <span style='color: #10b981; font-size: 20px; font-weight: 800; letter-spacing: -0.5px;'>⚡ BuuStore</span>
-                                            </td>
-                                            <td align='right'>
-                                                <span style='color: #a3a3a3; font-size: 11px; font-weight: 600; text-transform: uppercase;'>Welcome</span>
-                                            </td>
-                                        </tr>
-                                    </table>
-                                </td>
-                            </tr>
 
-                            <!-- Nội dung chính: Gọn nhẹ, năng động -->
-                            <tr>
-                                <td style='padding: 28px;'>
-                                    <h1 style='color: #171717; font-size: 18px; font-weight: 700; margin: 0 0 12px 0; letter-spacing: -0.3px;'>
-                                        Chào mừng {encodedName}! 👋
-                                    </h1>
-                                    
-                                    <p style='color: #525252; font-size: 14px; line-height: 1.6; margin: 0 0 20px 0;'>
-                                        Tài khoản mua sắm của bạn đã sẵn sàng tại <strong>BuuStore</strong>. Bắt đầu khám phá hàng ngàn sản phẩm chất lượng cùng các ưu đãi hấp dẫn ngay hôm nay.
-                                    </p>
+        var replacements = new Dictionary<string, string>
+        {
+            ["FullName"] = encodedName,
+            ["ExploreUrl"] = exploreUrl
+        };
 
-                                    <!-- Nút Khám Phá: Bo nhẹ 4px, năng động -->
-                                    <div style='margin-bottom: 24px;'>
-                                        <a href='{exploreUrl}' target='_blank' style='display: inline-block; background-color: #10b981; color: #ffffff; font-size: 13px; font-weight: 700; text-decoration: none; padding: 11px 24px; border-radius: 4px; letter-spacing: 0.2px;'>
-                                            Khám Phá BuuStore &rarr;
-                                        </a>
-                                    </div>
-
-                                    <!-- Quick Feature Strip -->
-                                    <table role='presentation' width='100%' border='0' cellspacing='0' cellpadding='0' style='border-top: 1px solid #f5f5f5; padding-top: 16px;'>
-                                        <tr>
-                                            <td style='color: #737373; font-size: 12px; line-height: 1.5;'>
-                                                🚀 Giao siêu tốc &bull; 🛡️ 100% Chính hãng &bull; 🎁 Ưu đãi độc quyền
-                                            </td>
-                                        </tr>
-                                    </table>
-                                </td>
-                            </tr>
-
-                        </table>
-                    </td>
-                </tr>
-            </table>
-        </body>
-        </html>";
-
+        var html = await templateRenderer.RenderAsync("WelcomeEmail", replacements);
         await SendHtmlEmailAsync(toEmail, "🎉 Chào mừng bạn đến với BuuStore!", html);
     }
 
     public async Task SendResetPasswordOtpEmailAsync(string toEmail, string otpCode)
     {
-        var html = $@"
-        <!DOCTYPE html>
-        <html lang='vi'>
-        <head>
-            <meta charset='utf-8'>
-            <meta name='viewport' content='width=device-width, initial-scale=1.0'>
-        </head>
-        <body style='margin: 0; padding: 0; background-color: #fafafa; font-family: -apple-system, BlinkMacSystemFont, ""Segoe UI"", Roboto, Helvetica, Arial, sans-serif; color: #171717;'>
-            <table role='presentation' width='100%' border='0' cellspacing='0' cellpadding='0' style='background-color: #fafafa; padding: 32px 12px;'>
-                <tr>
-                    <td align='center'>
-                        <table role='presentation' width='100%' border='0' cellspacing='0' cellpadding='0' style='max-width: 480px; background-color: #ffffff; border: 1px solid #e5e5e5; border-radius: 4px; overflow: hidden;'>
-                            
-                            <!-- Header: Nền Trắng - Chữ Xanh Emerald -->
-                            <tr>
-                                <td style='background-color: #ffffff; padding: 24px 28px 20px 28px; border-bottom: 1px solid #f0f0f0;'>
-                                    <table role='presentation' width='100%' border='0' cellspacing='0' cellpadding='0'>
-                                        <tr>
-                                            <td>
-                                                <span style='color: #10b981; font-size: 20px; font-weight: 800; letter-spacing: -0.5px;'>⚡ BuuStore</span>
-                                            </td>
-                                            <td align='right'>
-                                                <span style='color: #a3a3a3; font-size: 11px; font-weight: 600; text-transform: uppercase;'>Bảo mật</span>
-                                            </td>
-                                        </tr>
-                                    </table>
-                                </td>
-                            </tr>
+        var replacements = new Dictionary<string, string>
+        {
+            ["Badge"] = "Bảo mật",
+            ["Title"] = "Mã OTP Khôi Phục Mật Khẩu 🔒",
+            ["Description"] = $"Bạn vừa yêu cầu đặt lại mật khẩu cho tài khoản <strong>{WebUtility.HtmlEncode(toEmail)}</strong>. Sử dụng mã OTP dưới đây để xác nhận:",
+            ["OtpCode"] = otpCode,
+            ["ExpiryText"] = "Hiệu lực trong 5 phút",
+            ["Note"] = "Nếu không phải bạn yêu cầu, vui lòng bỏ qua email này để bảo đảm an toàn tài khoản."
+        };
 
-                            <!-- Nội dung OTP -->
-                            <tr>
-                                <td style='padding: 28px;'>
-                                    <h1 style='color: #171717; font-size: 18px; font-weight: 700; margin: 0 0 12px 0; letter-spacing: -0.3px;'>
-                                        Mã OTP Khôi Phục Mật Khẩu 🔒
-                                    </h1>
-                                    
-                                    <p style='color: #525252; font-size: 14px; line-height: 1.6; margin: 0 0 20px 0;'>
-                                        Bạn vừa yêu cầu đặt lại mật khẩu cho tài khoản <strong>{toEmail}</strong>. Sử dụng mã OTP dưới đây để xác nhận:
-                                    </p>
-
-                                    <!-- OTP Box: Gọn gàng, viền xanh nhẹ, bo 4px -->
-                                    <div style='background-color: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 4px; padding: 16px; text-align: center; margin-bottom: 20px;'>
-                                        <div style='font-size: 28px; font-weight: 800; letter-spacing: 6px; color: #10b981; font-family: monospace;'>
-                                            {otpCode}
-                                        </div>
-                                        <div style='color: #6b7280; font-size: 11px; margin-top: 4px;'>
-                                            Hiệu lực trong 5 phút
-                                        </div>
-                                    </div>
-
-                                    <p style='color: #a3a3a3; font-size: 12px; line-height: 1.5; margin: 0;'>
-                                        Nếu không phải bạn yêu cầu, vui lòng bỏ qua email này.
-                                    </p>
-                                </td>
-                            </tr>
-
-                        </table>
-                    </td>
-                </tr>
-            </table>
-        </body>
-        </html>";
-
+        var html = await templateRenderer.RenderAsync("OtpEmail", replacements);
         await SendHtmlEmailAsync(toEmail, $"Mã OTP Khôi Phục Mật Khẩu [{otpCode}] - BuuStore", html);
+    }
+
+    public async Task SendRegisterOtpEmailAsync(string toEmail, string otpCode)
+    {
+        var replacements = new Dictionary<string, string>
+        {
+            ["Badge"] = "Xác thực tài khoản",
+            ["Title"] = "Mã OTP Xác Thực Đăng Ký Tài Khoản ⚡",
+            ["Description"] = $"Chào mừng bạn đến với <strong>BuuStore</strong>! Sử dụng mã OTP dưới đây để hoàn tất quá trình kích hoạt tài khoản của bạn:",
+            ["OtpCode"] = otpCode,
+            ["ExpiryText"] = "Hiệu lực trong 5 phút",
+            ["Note"] = "Tuyệt đối không chia sẻ mã OTP này cho bất kỳ ai, kể cả nhân viên hỗ trợ."
+        };
+
+        var html = await templateRenderer.RenderAsync("OtpEmail", replacements);
+        await SendHtmlEmailAsync(toEmail, $"Mã OTP Xác Thực Đăng Ký [{otpCode}] - BuuStore", html);
+    }
+
+    public async Task SendWithdrawalSuccessEmailAsync(
+        string toEmail,
+        string fullName,
+        decimal amount,
+        string bankName,
+        string bankAccountNumber,
+        string bankAccountHolder,
+        string? proofImageUrl,
+        string? adminNote,
+        DateTimeOffset completedAt)
+    {
+        var formattedAmount = amount.ToString("N0", new CultureInfo("vi-VN"));
+
+        string adminNoteRow = string.IsNullOrWhiteSpace(adminNote) ? string.Empty : $@"
+            <tr>
+                <td style='color: #737373; font-size: 13px; padding: 4px 0;'>Ghi chú từ Admin:</td>
+                <td align='right' style='color: #171717; font-size: 13px; font-style: italic; padding: 4px 0;'>{WebUtility.HtmlEncode(adminNote)}</td>
+            </tr>";
+
+        string proofImageSection = string.IsNullOrWhiteSpace(proofImageUrl) ? string.Empty : $@"
+            <div style='margin-top: 20px; border: 1px solid #e2e8f0; border-radius: 6px; overflow: hidden; background-color: #f8fafc;'>
+                <div style='padding: 10px 16px; background-color: #f1f5f9; border-bottom: 1px solid #e2e8f0; font-size: 12px; font-weight: 700; color: #475569;'>
+                    📸 Ảnh chứng từ chuyển khoản
+                </div>
+                <div style='padding: 12px; text-align: center;'>
+                    <a href='{proofImageUrl}' target='_blank' style='display: inline-block;'>
+                        <img src='{proofImageUrl}' alt='Chứng từ chuyển khoản' style='max-width: 100%; max-height: 360px; border-radius: 4px; border: 1px solid #cbd5e1; object-fit: contain;' />
+                    </a>
+                    <div style='margin-top: 6px; font-size: 11px; color: #94a3b8;'>
+                        (Nhấp vào ảnh để xem kích thước đầy đủ)
+                    </div>
+                </div>
+            </div>";
+
+        var replacements = new Dictionary<string, string>
+        {
+            ["FullName"] = WebUtility.HtmlEncode(fullName),
+            ["FormattedAmount"] = formattedAmount,
+            ["BankName"] = WebUtility.HtmlEncode(bankName),
+            ["BankAccountNumber"] = WebUtility.HtmlEncode(bankAccountNumber),
+            ["BankAccountHolder"] = WebUtility.HtmlEncode(bankAccountHolder),
+            ["CompletedAt"] = completedAt.ToString("dd/MM/yyyy HH:mm:ss") + " UTC",
+            ["AdminNoteRow"] = adminNoteRow,
+            ["ProofImageSection"] = proofImageSection
+        };
+
+        var html = await templateRenderer.RenderAsync("WithdrawalSuccessEmail", replacements);
+        await SendHtmlEmailAsync(toEmail, $"[BuuStore] Chuyển tiền rút thành công (+{formattedAmount} VND)", html);
     }
 
     public async Task SendNewDeviceLoginAlertEmailAsync(string toEmail, string deviceName, string ipAddress, DateTimeOffset loginTime)
     {
-        var encodedDevice = WebUtility.HtmlEncode(deviceName);
-        var encodedIp = WebUtility.HtmlEncode(ipAddress);
+        var replacements = new Dictionary<string, string>
+        {
+            ["Email"] = WebUtility.HtmlEncode(toEmail),
+            ["DeviceName"] = WebUtility.HtmlEncode(deviceName),
+            ["IpAddress"] = WebUtility.HtmlEncode(ipAddress),
+            ["LoginTime"] = $"{loginTime:dd/MM/yyyy HH:mm:ss} UTC"
+        };
 
-        var html = $@"
-        <!DOCTYPE html>
-        <html lang='vi'>
-        <head>
-            <meta charset='utf-8'>
-            <meta name='viewport' content='width=device-width, initial-scale=1.0'>
-        </head>
-        <body style='margin: 0; padding: 0; background-color: #fafafa; font-family: -apple-system, BlinkMacSystemFont, ""Segoe UI"", Roboto, Helvetica, Arial, sans-serif; color: #171717;'>
-            <table role='presentation' width='100%' border='0' cellspacing='0' cellpadding='0' style='background-color: #fafafa; padding: 32px 12px;'>
-                <tr>
-                    <td align='center'>
-                        <table role='presentation' width='100%' border='0' cellspacing='0' cellpadding='0' style='max-width: 480px; background-color: #ffffff; border: 1px solid #e5e5e5; border-radius: 4px; overflow: hidden;'>
-                            
-                            <!-- Header: Nền Trắng - Chữ Xanh Emerald -->
-                            <tr>
-                                <td style='background-color: #ffffff; padding: 24px 28px 20px 28px; border-bottom: 1px solid #f0f0f0;'>
-                                    <table role='presentation' width='100%' border='0' cellspacing='0' cellpadding='0'>
-                                        <tr>
-                                            <td>
-                                                <span style='color: #10b981; font-size: 20px; font-weight: 800; letter-spacing: -0.5px;'>⚡ BuuStore</span>
-                                            </td>
-                                            <td align='right'>
-                                                <span style='color: #ef4444; font-size: 11px; font-weight: 600; text-transform: uppercase;'>Cảnh báo</span>
-                                            </td>
-                                        </tr>
-                                    </table>
-                                </td>
-                            </tr>
-
-                            <!-- Nội dung Cảnh báo -->
-                            <tr>
-                                <td style='padding: 28px;'>
-                                    <h1 style='color: #171717; font-size: 18px; font-weight: 700; margin: 0 0 12px 0; letter-spacing: -0.3px;'>
-                                        Đăng nhập từ thiết bị mới ⚠️
-                                    </h1>
-                                    
-                                    <p style='color: #525252; font-size: 14px; line-height: 1.6; margin: 0 0 18px 0;'>
-                                        Tài khoản <strong>{toEmail}</strong> vừa đăng nhập từ thiết bị mới:
-                                    </p>
-
-                                    <!-- Bảng chi tiết: Bo 4px -->
-                                    <table role='presentation' width='100%' border='0' cellspacing='0' cellpadding='0' style='background-color: #fafafa; border: 1px solid #f0f0f0; border-radius: 4px; margin-bottom: 20px;'>
-                                        <tr>
-                                            <td style='padding: 14px 18px;'>
-                                                <table role='presentation' width='100%' border='0' cellspacing='0' cellpadding='0'>
-                                                    <tr>
-                                                        <td style='color: #737373; font-size: 12px; padding: 3px 0;'>Thiết bị:</td>
-                                                        <td align='right' style='color: #171717; font-size: 13px; font-weight: 600; padding: 3px 0;'>{encodedDevice}</td>
-                                                    </tr>
-                                                    <tr>
-                                                        <td style='color: #737373; font-size: 12px; padding: 3px 0;'>Địa chỉ IP:</td>
-                                                        <td align='right' style='color: #171717; font-size: 13px; font-weight: 600; font-family: monospace; padding: 3px 0;'>{encodedIp}</td>
-                                                    </tr>
-                                                    <tr>
-                                                        <td style='color: #737373; font-size: 12px; padding: 3px 0;'>Thời gian:</td>
-                                                        <td align='right' style='color: #171717; font-size: 12px; padding: 3px 0;'>{loginTime:dd/MM/yyyy HH:mm:ss} UTC</td>
-                                                    </tr>
-                                                </table>
-                                            </td>
-                                        </tr>
-                                    </table>
-
-                                    <p style='color: #a3a3a3; font-size: 12px; line-height: 1.5; margin: 0;'>
-                                        Nếu không phải bạn đăng nhập, vui lòng đổi mật khẩu ngay để bảo vệ tài khoản.
-                                    </p>
-                                </td>
-                            </tr>
-
-                        </table>
-                    </td>
-                </tr>
-            </table>
-        </body>
-        </html>";
-
+        var html = await templateRenderer.RenderAsync("NewDeviceAlertEmail", replacements);
         await SendHtmlEmailAsync(toEmail, "⚠️ Cảnh báo đăng nhập thiết bị mới - BuuStore", html);
+    }
+
+    public async Task SendPasswordChangedEmailAsync(string toEmail, string fullName, DateTimeOffset changedAt)
+    {
+        var replacements = new Dictionary<string, string>
+        {
+            ["Email"] = WebUtility.HtmlEncode(toEmail),
+            ["FullName"] = WebUtility.HtmlEncode(string.IsNullOrWhiteSpace(fullName) ? toEmail : fullName),
+            ["ChangedAt"] = $"{changedAt:dd/MM/yyyy HH:mm:ss} UTC"
+        };
+
+        var html = await templateRenderer.RenderAsync("PasswordChangedSuccessEmail", replacements);
+        await SendHtmlEmailAsync(toEmail, "🔒 Mật khẩu tài khoản BuuStore đã được thay đổi", html);
     }
 }

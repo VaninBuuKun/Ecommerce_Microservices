@@ -9,6 +9,7 @@ export interface GetProductsParams {
 	sortBy?: string;
 	pageNumber?: number;
 	pageSize?: number;
+	hasDiscount?: boolean;
 }
 
 export interface GetMyProductsParams {

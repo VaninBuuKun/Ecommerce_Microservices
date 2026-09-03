@@ -1,7 +1,9 @@
 import {
 	CategorySidebar,
 	HeroBannerSection,
+	FlashSaleSection,
 	BestSellersSection,
+	NewArrivalsSection,
 	InterestedProductsSection,
 	TodayRecommendationsSection,
 } from "@/domains/catalog";
@@ -27,13 +29,19 @@ export default function LandingPage() {
 					{/* 1. HERO BLOCK: BANNER + SHORTCUTS */}
 					<HeroBannerSection />
 
-					{/* 2. SECTION: SẢN PHẨM BÁN CHẠY (BEST SELLERS) */}
+					{/* 2. SECTION: FLASH SALE (DEALS HOT GIẢM SÂU) */}
+					<FlashSaleSection />
+
+					{/* 3. SECTION: SẢN PHẨM BÁN CHẠY (BEST SELLERS) */}
 					<BestSellersSection />
 
-					{/* 3. SECTION: SẢN PHẨM BẠN QUAN TÂM (INTERESTED PRODUCTS) */}
+					{/* 4. SECTION: HÀNG MỚI VỀ (NEW ARRIVALS) */}
+					<NewArrivalsSection />
+
+					{/* 5. SECTION: SẢN PHẨM BẠN QUAN TÂM (INTERESTED PRODUCTS) */}
 					<InterestedProductsSection />
 
-					{/* 4. SECTION: GỢI Ý HÔM NAY (TODAY'S RECOMMENDATIONS) */}
+					{/* 6. SECTION: GỢI Ý HÔM NAY (TODAY'S RECOMMENDATIONS) */}
 					<TodayRecommendationsSection />
 				</div>
 			</div>

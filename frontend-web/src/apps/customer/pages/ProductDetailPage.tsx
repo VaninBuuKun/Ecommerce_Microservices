@@ -24,14 +24,20 @@ import {
 } from "@/domains/catalog";
 
 import { useSellerProfileQuery } from "@/domains/seller";
-import { useAddItemToCartMutation } from "@/domains/cart";
+import { useAddItemToCartMutation, useBuyNowOrReorder } from "@/domains/cart";
+import { useChatStore } from "@/domains/notification";
+import { useAuthStore, useAuthModalStore } from "@/domains/auth";
 import { toast } from "react-toastify";
 
 export default function ProductDetailPage() {
 	const { id } = useParams<{ id: string }>();
 	const navigate = useNavigate();
 	const addItemToCartMutation = useAddItemToCartMutation();
+	const { openChatWithShop } = useChatStore();
+	const accessToken = useAuthStore((s) => s.accessToken);
+	const { openAuthModal } = useAuthModalStore();
 	const { data: product, isLoading, isError } = useProductByIdQuery(id);
+
 
 	const [activeMedia, setActiveMedia] = useState<{
 		type: "image" | "video";
@@ -227,6 +233,13 @@ export default function ProductDetailPage() {
 
 	const handleAddToCart = () => {
 		if (!product) return;
+		if (!accessToken) {
+			openAuthModal({
+				title: "Thêm vào giỏ hàng",
+				description: "Vui lòng đăng nhập tài khoản để thêm sản phẩm vào giỏ hàng và thanh toán.",
+			});
+			return;
+		}
 		const hasOptions = Boolean(product.options && product.options.length > 0);
 		if (hasOptions && !selectedVariant) {
 			toast.warning("Vui lòng chọn đầy đủ Phân loại sản phẩm!");
@@ -261,8 +274,18 @@ export default function ProductDetailPage() {
 		);
 	};
 
-	const handleBuyNow = () => {
+	const { buyNowOrReorder } = useBuyNowOrReorder();
+	const [isBuyingNow, setIsBuyingNow] = useState(false);
+
+	const handleBuyNow = async () => {
 		if (!product) return;
+		if (!accessToken) {
+			openAuthModal({
+				title: "Mua hàng ngay",
+				description: "Vui lòng đăng nhập tài khoản để tiến hành đặt mua sản phẩm.",
+			});
+			return;
+		}
 		const hasOptions = Boolean(product.options && product.options.length > 0);
 		if (hasOptions && !selectedVariant) {
 			toast.warning("Vui lòng chọn đầy đủ Phân loại sản phẩm!");
@@ -280,21 +303,18 @@ export default function ProductDetailPage() {
 			return;
 		}
 
-		addItemToCartMutation.mutate(
-			{
-				variantId,
-				quantity,
-			},
-			{
-				onSuccess: () => {
-					navigate("/cart");
-				},
-				onError: (err: any) => {
-					const msg = err.response?.data?.message || err.response?.data || "Không thể thêm sản phẩm vào giỏ hàng";
-					toast.error(msg);
-				},
-			}
-		);
+		try {
+			setIsBuyingNow(true);
+			await buyNowOrReorder({
+				variantIds: [variantId],
+			});
+			navigate("/cart");
+		} catch (err: any) {
+			const msg = err.response?.data?.message || err.response?.data || "Không thể xử lý đơn hàng";
+			toast.error(msg);
+		} finally {
+			setIsBuyingNow(false);
+		}
 	};
 
 	const { data: sellerProfile } = useSellerProfileQuery();
@@ -589,15 +609,15 @@ export default function ProductDetailPage() {
 							<button
 								type="button"
 								onClick={() => {
+									if (!accessToken) {
+										openAuthModal({
+											title: "Trò chuyện với người bán",
+											description: "Vui lòng đăng nhập tài khoản để kết nối và nhắn tin trực tiếp với cửa hàng.",
+										});
+										return;
+									}
 									const storeName = product.shopName || `Shop #${product.shopId}`;
-									window.dispatchEvent(
-										new CustomEvent("open-shop-chat", {
-											detail: {
-												shopId: Number(product.shopId),
-												shopName: storeName,
-											},
-										})
-									);
+									openChatWithShop(Number(product.shopId), storeName);
 								}}
 								className="flex-1 md:flex-initial h-9 px-4 border border-brand-primary text-brand-primary-deep bg-brand-primary/10 hover:bg-brand-primary/20 rounded-xl text-xs font-black transition-all cursor-pointer flex items-center justify-center gap-1.5"
 							>

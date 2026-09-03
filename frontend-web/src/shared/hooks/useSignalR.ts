@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
 import * as signalR from "@microsoft/signalr";
+import { toast } from "react-toastify";
+import { useAuthStore } from "@/domains/auth";
 
 const HUB_URL = "http://localhost:5111/hubs/notification";
 
@@ -37,6 +39,19 @@ export function useSignalR() {
 				.withAutomaticReconnect([0, 2000, 5000, 10000, 30000])
 				.configureLogging(signalR.LogLevel.Warning)
 				.build();
+
+			// Lắng nghe sự kiện ForceLogout khi đổi / reset mật khẩu từ server
+			globalConnection.on("ForceLogout", (data?: { reason?: string }) => {
+				console.warn("[SignalR] Received ForceLogout event:", data);
+				useAuthStore.getState().clearState();
+				toast.warn(data?.reason || "Mật khẩu của bạn đã được thay đổi. Vui lòng đăng nhập lại.", {
+					toastId: "force-logout-toast",
+					autoClose: 6000,
+				});
+				if (window.location.pathname !== "/login") {
+					window.location.href = "/login";
+				}
+			});
 
 			globalConnection.onreconnecting(() => {
 				console.warn("[SignalR] Reconnecting...");

@@ -15,12 +15,51 @@ export const catalogQueryKeys = {
 	categories: ["catalog", "categories"] as const,
 	reviews: (productId: string) => ["catalog", "reviews", productId] as const,
 	reviewSummary: (productId: string) => ["catalog", "reviewSummary", productId] as const,
+	bestSellers: (limit?: number) => ["catalog", "products", "bestSellers", limit] as const,
+	newArrivals: (limit?: number) => ["catalog", "products", "newArrivals", limit] as const,
+	onSale: (limit?: number) => ["catalog", "products", "onSale", limit] as const,
 };
 
 export function useProductsQuery(params?: GetProductsParams) {
 	return useQuery({
 		queryKey: [...catalogQueryKeys.products, params],
 		queryFn: () => productApi.getProducts(params),
+	});
+}
+
+/**
+ * Hook truy vấn danh sách Sản Phẩm Bán Chạy (Best Sellers)
+ * Tiêu chí: Lọc các sản phẩm có số lượng đã bán (Sold) cao nhất toàn sàn.
+ */
+export function useBestSellersQuery(limit: number = 10) {
+	return useQuery({
+		queryKey: catalogQueryKeys.bestSellers(limit),
+		queryFn: () => productApi.getProducts({ sortBy: "sold", limit }),
+		staleTime: 5 * 60 * 1000,
+	});
+}
+
+/**
+ * Hook truy vấn danh sách Hàng Mới Về (New Arrivals)
+ * Tiêu chí: Lấy các sản phẩm mới nhất dựa theo thời gian tạo (CreatedAt) gần đây.
+ */
+export function useNewArrivalsQuery(limit: number = 10) {
+	return useQuery({
+		queryKey: catalogQueryKeys.newArrivals(limit),
+		queryFn: () => productApi.getProducts({ sortBy: "newest", limit }),
+		staleTime: 5 * 60 * 1000,
+	});
+}
+
+/**
+ * Hook truy vấn danh sách Sản Phẩm Đang Giảm Giá (Flash Sale / Hot Deals)
+ * Tiêu chí: Lọc sản phẩm có discountPrice < price, sắp xếp theo mức giảm giá tốt nhất.
+ */
+export function useOnSaleQuery(limit: number = 10) {
+	return useQuery({
+		queryKey: catalogQueryKeys.onSale(limit),
+		queryFn: () => productApi.getProducts({ sortBy: "discount", hasDiscount: true, limit }),
+		staleTime: 5 * 60 * 1000,
 	});
 }
 

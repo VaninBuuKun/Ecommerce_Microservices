@@ -13,6 +13,7 @@ public record GetProductsQuery(
     string? Cursor, 
     int Limit = 10, 
     string SortBy = "name",
-    long? ShopId = null) : IQuery<PagedCursorResponse<ProductResponse>>;
+    long? ShopId = null,
+    bool? HasDiscount = null) : IQuery<PagedCursorResponse<ProductResponse>>;
 
 public record PagedCursorResponse<T>(IEnumerable<T> Items, string? NextCursor, bool HasNext);

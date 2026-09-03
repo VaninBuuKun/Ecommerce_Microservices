@@ -110,6 +110,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Notifications", "Notificati
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Ecommerce.Services.Notifications.Api", "src\Services\Notifications\Ecommerce.Services.Notifications.Api\Ecommerce.Services.Notifications.Api.csproj", "{5178FBF4-A523-4D96-810A-27BA362EF0C1}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BuildingBlocks.BackgroundJobs", "src\BuildingBlocks\BuildingBlocks.BackgroundJobs\BuildingBlocks.BackgroundJobs.csproj", "{522DE732-D4D6-4691-9F27-5FA8C4481527}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -456,6 +458,18 @@ Global
 		{5178FBF4-A523-4D96-810A-27BA362EF0C1}.Release|x64.Build.0 = Release|Any CPU
 		{5178FBF4-A523-4D96-810A-27BA362EF0C1}.Release|x86.ActiveCfg = Release|Any CPU
 		{5178FBF4-A523-4D96-810A-27BA362EF0C1}.Release|x86.Build.0 = Release|Any CPU
+		{522DE732-D4D6-4691-9F27-5FA8C4481527}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{522DE732-D4D6-4691-9F27-5FA8C4481527}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{522DE732-D4D6-4691-9F27-5FA8C4481527}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{522DE732-D4D6-4691-9F27-5FA8C4481527}.Debug|x64.Build.0 = Debug|Any CPU
+		{522DE732-D4D6-4691-9F27-5FA8C4481527}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{522DE732-D4D6-4691-9F27-5FA8C4481527}.Debug|x86.Build.0 = Debug|Any CPU
+		{522DE732-D4D6-4691-9F27-5FA8C4481527}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{522DE732-D4D6-4691-9F27-5FA8C4481527}.Release|Any CPU.Build.0 = Release|Any CPU
+		{522DE732-D4D6-4691-9F27-5FA8C4481527}.Release|x64.ActiveCfg = Release|Any CPU
+		{522DE732-D4D6-4691-9F27-5FA8C4481527}.Release|x64.Build.0 = Release|Any CPU
+		{522DE732-D4D6-4691-9F27-5FA8C4481527}.Release|x86.ActiveCfg = Release|Any CPU
+		{522DE732-D4D6-4691-9F27-5FA8C4481527}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -501,5 +515,6 @@ Global
 		{DD565378-BF66-4A09-9993-C94CF3800138} = {175030A3-FCEC-496B-B6C1-D5BB9786D821}
 		{6CDA1CBC-A1EE-0A76-8E11-75063EA3D8D8} = {1CCA764A-C052-4010-B92E-BE066A0A5B0D}
 		{5178FBF4-A523-4D96-810A-27BA362EF0C1} = {6CDA1CBC-A1EE-0A76-8E11-75063EA3D8D8}
+		{522DE732-D4D6-4691-9F27-5FA8C4481527} = {1C774E0E-9157-4B34-B980-4EAE0DEB66C8}
 	EndGlobalSection
 EndGlobal

@@ -1,0 +1,21 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>net9.0</TargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+        <RootNamespace>BuildingBlocks.BackgroundJobs</RootNamespace>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <PackageReference Include="Hangfire.AspNetCore" Version="1.8.18" />
+        <PackageReference Include="Hangfire.PostgreSql" Version="1.20.10" />
+        <PackageReference Include="Microsoft.Extensions.Configuration.Abstractions" Version="9.0.5" />
+        <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="10.0.0" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\BuildingBlocks.Shared\BuildingBlocks.Shared.csproj" />
+    </ItemGroup>
+
+</Project>

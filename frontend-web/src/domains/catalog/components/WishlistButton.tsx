@@ -2,6 +2,7 @@ import React from "react";
 import { motion } from "framer-motion";
 import { Heart } from "lucide-react";
 import { useWishlist } from "../hooks/useWishlist";
+import { useAuthStore, useAuthModalStore } from "@/domains/auth";
 
 interface WishlistButtonProps {
 	productId: string;
@@ -17,11 +18,20 @@ export const WishlistButton: React.FC<WishlistButtonProps> = ({
 	showLabel = false,
 }) => {
 	const { isWishlisted, toggleWishlist, isToggling } = useWishlist();
+	const accessToken = useAuthStore((s) => s.accessToken);
+	const { openAuthModal } = useAuthModalStore();
 	const liked = isWishlisted(productId);
 
 	const handleClick = (e: React.MouseEvent) => {
 		e.preventDefault();
 		e.stopPropagation();
+		if (!accessToken) {
+			openAuthModal({
+				title: "Yêu thích sản phẩm",
+				description: "Vui lòng đăng nhập tài khoản để lưu sản phẩm vào danh sách yêu thích của bạn.",
+			});
+			return;
+		}
 		if (!isToggling) {
 			toggleWishlist(productId);
 		}

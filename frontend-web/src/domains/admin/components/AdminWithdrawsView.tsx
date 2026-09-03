@@ -44,15 +44,8 @@ export function AdminWithdrawsView() {
 			}
 		} catch (err) {
 			console.error("Lỗi khi tải danh sách rút tiền:", err);
-			const mockData = [
-				{ id: "W-84729104", createdDate: new Date(Date.now() - 3600000 * 2).toISOString(), userId: 2, fullName: "Tường Vân", bankName: "Vietcombank", bankAccountNumber: "1028372839", bankAccountHolder: "DUONG TUONG VAN", amount: 1500000, status: "Pending", adminNote: "", proofImageUrl: "" },
-				{ id: "W-73928192", createdDate: new Date(Date.now() - 3600000 * 24).toISOString(), userId: 5, fullName: "Minh Thư", bankName: "Techcombank", bankAccountNumber: "1902837281", bankAccountHolder: "HOANG MINH THU", amount: 450000, status: "Approved", adminNote: "", proofImageUrl: "" },
-				{ id: "W-62810382", createdDate: new Date(Date.now() - 3600000 * 48).toISOString(), userId: 12, fullName: "Hải Đăng", bankName: "MB Bank", bankAccountNumber: "9902837283", bankAccountHolder: "NGUYEN HAI DANG", amount: 2000000, status: "Paid", adminNote: "Đã chuyển qua SmartBanking", proofImageUrl: "https://images.unsplash.com/photo-1559526324-4b87b5e36e44?auto=format&fit=crop&w=300" }
-			];
-			const statusParam = filterStatus === "All" ? undefined : filterStatus;
-			const filtered = mockData.filter(x => !statusParam || x.status === statusParam);
-			setWithdraws(filtered);
-			setTotalCount(filtered.length);
+			setWithdraws([]);
+			setTotalCount(0);
 		} finally {
 			setLoading(false);
 		}

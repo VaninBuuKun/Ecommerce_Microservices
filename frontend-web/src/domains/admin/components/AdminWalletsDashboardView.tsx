@@ -33,13 +33,8 @@ export function AdminWalletsDashboardView() {
 			}
 		} catch (err) {
 			console.error("Lỗi khi tải giao dịch hệ thống:", err);
-			const mockTx = [
-				{ id: "TX-1928372", createdDate: new Date(Date.now() - 3600000 * 3).toISOString(), walletId: "W-8820", amount: 450000, type: "Credit", reason: "SellerRevenue", description: "Cộng doanh thu đơn hàng phụ #SO-88201" },
-				{ id: "TX-1928373", createdDate: new Date(Date.now() - 3600000 * 5).toISOString(), walletId: "W-9901", amount: 1500000, type: "Debit", reason: "WithdrawalHold", description: "Yêu cầu rút tiền đang chờ duyệt" },
-				{ id: "TX-1928374", createdDate: new Date(Date.now() - 3600000 * 12).toISOString(), walletId: "W-8820", amount: 300000, type: "Credit", reason: "SellerRevenue", description: "Cộng doanh thu đơn hàng phụ #SO-88205" }
-			];
-			setTransactions(mockTx);
-			setTotalCount(mockTx.length);
+			setTransactions([]);
+			setTotalCount(0);
 		} finally {
 			setTxLoading(false);
 		}

@@ -4,9 +4,6 @@ import { Lock, CheckCircle2, Loader2, ArrowLeft, Eye, EyeOff } from "lucide-reac
 import { api } from "@/core";
 import { toast } from "react-toastify";
 
-// USE_MOCK_DATA flag for fallback testing
-const USE_MOCK_DATA = false;
-
 export function ResetPasswordPage() {
 	const navigate = useNavigate();
 	const [searchParams] = useSearchParams();
@@ -32,15 +29,11 @@ export function ResetPasswordPage() {
 
 		try {
 			setIsLoading(true);
-			if (USE_MOCK_DATA) {
-				await new Promise((res) => setTimeout(res, 800));
-			} else {
-				await api.post("/identity/users/reset-password", {
-					email: emailParam,
-					token: tokenParam,
-					newPassword,
-				});
-			}
+			await api.post("/identity/users/reset-password", {
+				email: emailParam,
+				token: tokenParam,
+				newPassword,
+			});
 			setIsSuccess(true);
 			toast.success("Đặt lại mật khẩu thành công!");
 		} catch (err: any) {

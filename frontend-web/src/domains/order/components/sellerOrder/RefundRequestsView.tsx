@@ -32,31 +32,6 @@ interface RefundRequest {
 	createdDate: string;
 }
 
-const MOCK_REFUND_DATA: RefundRequest[] = [
-	{
-		id: 1,
-		subOrderId: "101",
-		customerId: 6,
-		shopId: 1,
-		refundAmount: 250000,
-		reason: "Sản phẩm bị lỗi đường may, rách chỉ góc túi bên trái",
-		status: "Pending",
-		createdDate: new Date(Date.now() - 3600000 * 3).toISOString(),
-	},
-	{
-		id: 2,
-		subOrderId: "102",
-		customerId: 12,
-		shopId: 1,
-		refundAmount: 590000,
-		reason: "Giao sai màu sắc (tôi đặt màu Đen nhưng nhận màu Emerald)",
-		status: "Approved",
-		sellerNote:
-			"Đã xác nhận lỗi đóng gói từ phía nhân viên. Hoàn tiền cho khách.",
-		createdDate: new Date(Date.now() - 3600000 * 24).toISOString(),
-	},
-];
-
 export default function RefundRequestsView() {
 	const { shopId } = useParams<{ shopId?: string }>();
 	const {
@@ -79,10 +54,7 @@ export default function RefundRequestsView() {
 	const [sellerNote, setSellerNote] = useState("");
 
 	// Determine data source
-	const hasServerData = serverData && serverData.length > 0;
-	const refundRequests: RefundRequest[] = hasServerData
-		? serverData
-		: MOCK_REFUND_DATA;
+	const refundRequests: RefundRequest[] = serverData || [];
 
 	const handleActionSubmit = (e: React.FormEvent) => {
 		e.preventDefault();
@@ -154,11 +126,6 @@ export default function RefundRequestsView() {
 						hàng.
 					</p>
 				</div>
-				{!hasServerData && (
-					<span className="text-[10px] font-bold bg-amber-50 border border-amber-200 text-amber-600 px-2 py-1 rounded-lg">
-						Chế độ: Demo Mock Data
-					</span>
-				)}
 			</div>
 
 			{refundRequests.length === 0 ? (

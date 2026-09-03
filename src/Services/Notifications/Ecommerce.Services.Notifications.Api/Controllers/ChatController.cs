@@ -35,6 +35,24 @@ public class ChatController(IChatService chatService, ICurrentUserService curren
 
         return StatusCode(result.GetHttpStatusCode(), result.Message);
     }
+    /// <summary>
+    /// Cập nhật chủ đề màu sắc cho phòng chat.
+    /// </summary>
+    [HttpPut("rooms/{roomId}/theme")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    public async Task<IActionResult> UpdateRoomTheme(
+        [FromRoute] Guid roomId,
+        [FromBody] UpdateRoomThemeRequest request)
+    {
+        var currentUserId = currentUserService.UserId;
+        var result = await chatService.UpdateRoomThemeAsync(roomId, currentUserId, request.ThemeColor, request.BackgroundColor);
+        if (result.IsSuccess)
+        {
+            return Ok(result.Value);
+        }
+
+        return StatusCode(result.GetHttpStatusCode(), result.Message);
+    }
 }
 
 public class ConversationDto
@@ -46,4 +64,12 @@ public class ConversationDto
     public DateTimeOffset LastActiveAt { get; set; }
     public string DisplayName { get; set; } = string.Empty;
     public string DisplayAvatar { get; set; } = string.Empty;
+    public string? ThemeColor { get; set; }
+    public string? BackgroundColor { get; set; }
+}
+
+public class UpdateRoomThemeRequest
+{
+    public string? ThemeColor { get; set; }
+    public string? BackgroundColor { get; set; }
 }

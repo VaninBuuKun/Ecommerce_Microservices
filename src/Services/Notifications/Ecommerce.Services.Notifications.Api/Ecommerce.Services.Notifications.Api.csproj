@@ -19,8 +19,15 @@
     </ItemGroup>
 
     <ItemGroup>
+        <None Update="Templates\**\*">
+            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+        </None>
+    </ItemGroup>
+
+    <ItemGroup>
       <ProjectReference Include="..\..\..\BuildingBlocks\BuildingBlocks.Application\BuildingBlocks.Application.csproj" />
       <ProjectReference Include="..\..\..\BuildingBlocks\BuildingBlocks.Auth\BuildingBlocks.Auth.csproj" />
+      <ProjectReference Include="..\..\..\BuildingBlocks\BuildingBlocks.BackgroundJobs\BuildingBlocks.BackgroundJobs.csproj" />
       <ProjectReference Include="..\..\..\BuildingBlocks\BuildingBlocks.EfCore\BuildingBlocks.EfCore.csproj" />
       <ProjectReference Include="..\..\..\BuildingBlocks\BuildingBlocks.Grpc\BuildingBlocks.Grpc.csproj" />
       <ProjectReference Include="..\..\..\BuildingBlocks\BuildingBlocks.Logging\BuildingBlocks.Logging.csproj" />

@@ -16,9 +16,6 @@ import {
 import { api } from "@/core";
 import { toast } from "react-toastify";
 
-// USE_MOCK_DATA flag for fallback testing
-const USE_MOCK_DATA = false;
-
 interface OrderDetail {
 	id: string;
 	orderId: string;
@@ -64,39 +61,9 @@ export function OrderDetailPage() {
 			if (!subOrderId) return;
 			try {
 				setIsLoading(true);
-				if (USE_MOCK_DATA) {
-					await new Promise((res) => setTimeout(res, 500));
-					setOrder({
-						id: subOrderId,
-						orderId: "ORD12345678",
-						shopId: 101,
-						shopName: "Supabaze Official Shop",
-						status: "Shipping",
-						subTotal: 500000,
-						shippingFee: 30000,
-						discountAmount: 20000,
-						grandTotal: 510000,
-						recipientName: "Nguyễn Văn A",
-						recipientPhone: "0987654321",
-						shippingAddress: "123 Đường Lê Lợi, Phường Bến Nghé, Quận 1, TP. Hồ Chí Minh",
-						trackingCode: "GHN_VN88992211",
-						items: [
-							{
-								id: "1",
-								productName: "Áo Thun Cotton Supabaze Premium",
-								variantName: "Size L / Màu Đen",
-								unitPrice: 250000,
-								quantity: 2,
-								thumbnailUrl: "https://images.unsplash.com/photo-1521572267360-ee0c2909d518?auto=format&fit=crop&w=300&q=80",
-							},
-						],
-						createdAt: new Date().toISOString(),
-					});
-				} else {
-					const res = await api.get(`/orders/suborder/${subOrderId}/detail`);
-					const data = res.data?.value || res.data;
-					setOrder(data);
-				}
+				const res = await api.get(`/orders/suborder/${subOrderId}/detail`);
+				const data = res.data?.value || res.data;
+				setOrder(data);
 			} catch (err: any) {
 				console.error("Lỗi tải chi tiết đơn hàng:", err);
 				toast.error("Không thể tải thông tin chi tiết đơn hàng.");

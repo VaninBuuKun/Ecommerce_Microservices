@@ -8,13 +8,13 @@ export function useNotifications() {
 
 	const notificationsQuery = useQuery({
 		queryKey: ["notifications"],
-		queryFn: () => notificationApi.getMyNotifications(),
+		queryFn: () => notificationApi.getMyNotifications(1, 50),
 		enabled: !!accessToken,
 		staleTime: 1000 * 30, // 30s
 	});
 
 	const markAsReadMutation = useMutation({
-		mutationFn: (id: number) => notificationApi.markAsRead(id),
+		mutationFn: (id: string | number) => notificationApi.markAsRead(id),
 		onSuccess: () => {
 			queryClient.invalidateQueries({ queryKey: ["notifications"] });
 		},
@@ -33,7 +33,9 @@ export function useNotifications() {
 		notifications: notificationsQuery.data || [],
 		isLoading: notificationsQuery.isLoading,
 		unreadCount,
+		refetch: notificationsQuery.refetch,
 		markAsRead: markAsReadMutation.mutate,
 		markAllAsRead: markAllAsReadMutation.mutate,
+		isMarkingAll: markAllAsReadMutation.isPending,
 	};
 }

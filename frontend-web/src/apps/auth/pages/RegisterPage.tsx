@@ -76,6 +76,7 @@ export default function RegisterPage() {
 				{/* Left column: Signup Form */}
 				<form
 					onSubmit={handleSubmit(onSubmit)}
+					autoComplete="off"
 					className="p-8 flex flex-col justify-center space-y-4 text-left"
 				>
 					<div className="space-y-1">
@@ -107,6 +108,7 @@ export default function RegisterPage() {
 							<input
 								type="email"
 								placeholder="name@example.com"
+								autoComplete="off"
 								{...register("email")}
 								className="w-full px-3 py-2 bg-brand-light-soft border border-brand-border rounded text-xs focus:outline-none focus:border-brand-primary text-brand-dark"
 							/>
@@ -125,6 +127,7 @@ export default function RegisterPage() {
 								<input
 									type="text"
 									placeholder="Nguyễn Văn"
+									autoComplete="off"
 									{...register("lastName")}
 									className="w-full px-3 py-2 bg-brand-light-soft border border-brand-border rounded text-xs focus:outline-none focus:border-brand-primary text-brand-dark"
 								/>
@@ -141,6 +144,7 @@ export default function RegisterPage() {
 								<input
 									type="text"
 									placeholder="An"
+									autoComplete="off"
 									{...register("firstName")}
 									className="w-full px-3 py-2 bg-brand-light-soft border border-brand-border rounded text-xs focus:outline-none focus:border-brand-primary text-brand-dark"
 								/>
@@ -161,6 +165,7 @@ export default function RegisterPage() {
 									<input
 										type={showPassword ? "text" : "password"}
 										placeholder="••••••••"
+										autoComplete="new-password"
 										{...register("password")}
 										className="w-full px-3 py-2 pr-8 bg-brand-light-soft border border-brand-border rounded text-xs focus:outline-none focus:border-brand-primary text-brand-dark"
 									/>
@@ -191,6 +196,7 @@ export default function RegisterPage() {
 									<input
 										type={showConfirmPassword ? "text" : "password"}
 										placeholder="••••••••"
+										autoComplete="new-password"
 										{...register("confirmPassword")}
 										className="w-full px-3 py-2 pr-8 bg-brand-light-soft border border-brand-border rounded text-xs focus:outline-none focus:border-brand-primary text-brand-dark"
 									/>

@@ -21,4 +21,10 @@ public class ChatRoom
 
     /// <summary>Thời gian hoạt động cuối cùng của phòng chat</summary>
     public DateTimeOffset LastActiveAt { get; set; } = DateTimeOffset.UtcNow;
+
+    /// <summary>Màu sắc bong bóng tin nhắn đã chọn (nếu null dùng màu mặc định #e11d48/rose hoặc style project)</summary>
+    public string? ThemeColor { get; set; }
+
+    /// <summary>Màu nền khung chat đã chọn</summary>
+    public string? BackgroundColor { get; set; }
 }

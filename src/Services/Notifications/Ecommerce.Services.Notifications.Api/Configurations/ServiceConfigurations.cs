@@ -9,7 +9,9 @@ public static class ServiceConfigurations
 {
     public static void AddServiceConfigurations(this IServiceCollection services, IConfiguration configuration)
     {
+        services.AddSingleton<ITemplateRenderer, TemplateRenderer>();
         services.AddScoped<INotificationService, NotificationService>();
+        services.AddScoped<INotificationJobService, NotificationJobService>();
         services.AddScoped<IChatService, ChatService>();
         services.AddScoped<IEmailService, EmailService>();
 

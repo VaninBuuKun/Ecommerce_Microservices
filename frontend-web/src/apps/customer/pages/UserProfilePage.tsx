@@ -1,10 +1,11 @@
 import { useState, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { User, MapPin, Package, CreditCard, ArrowLeftRight } from "lucide-react";
+import { User, MapPin, Package, CreditCard, ArrowLeftRight, Bell } from "lucide-react";
 import { useAuthStore, AccountInfoTab } from "@/domains/auth";
 import { ShippingAddressTab } from "@/domains/address";
 import { MyOrdersTab, RefundRequestsTab } from "@/domains/order";
 import { WalletTab } from "@/domains/wallet";
+import { NotificationsTab } from "@/domains/notification";
 
 export default function UserProfilePage() {
 	const location = useLocation();
@@ -17,7 +18,7 @@ export default function UserProfilePage() {
 		params.get("tab") ||
 		(location.pathname === "/orders" ? "orders" : "profile");
 	
-	const [activeTab, setActiveTab] = useState<"profile" | "addresses" | "orders" | "wallet" | "refunds">(
+	const [activeTab, setActiveTab] = useState<"profile" | "addresses" | "orders" | "wallet" | "refunds" | "notifications">(
 		initialTab as any,
 	);
 
@@ -128,6 +129,20 @@ export default function UserProfilePage() {
 							<ArrowLeftRight className={`w-4 h-4 ${activeTab === "refunds" ? "text-brand-primary-deep" : "text-brand-muted"}`} />
 							<span>Yêu cầu hoàn tiền</span>
 						</button>
+						<button
+							onClick={() => {
+								setActiveTab("notifications");
+								navigate("/profile?tab=notifications");
+							}}
+							className={`w-full flex items-center gap-2.5 px-3 py-1.5 rounded-md text-xs font-bold transition-colors cursor-pointer ${
+								activeTab === "notifications"
+									? "text-brand-primary-deep bg-brand-primary/10"
+									: "text-brand-muted hover:text-brand-dark hover:bg-brand-light-soft"
+							}`}
+						>
+							<Bell className={`w-4 h-4 ${activeTab === "notifications" ? "text-brand-primary-deep" : "text-brand-muted"}`} />
+							<span>Thông báo</span>
+						</button>
 					</div>
 				</div>
 
@@ -147,6 +162,9 @@ export default function UserProfilePage() {
 					)}
 					{activeTab === "refunds" && (
 						<RefundRequestsTab />
+					)}
+					{activeTab === "notifications" && (
+						<NotificationsTab initialNotificationId={params.get("id")} />
 					)}
 				</div>
 			</div>

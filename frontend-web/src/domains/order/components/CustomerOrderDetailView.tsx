@@ -11,7 +11,8 @@ import {
 	User,
 	MapPin,
 	ShieldCheck,
-	Clock
+	Clock,
+	Star,
 } from "lucide-react";
 import {
 	useSubOrderDetailQuery,
@@ -24,6 +25,8 @@ import {
 	getPaymentStatusLabel,
 } from "@/domains/order";
 import { useResolveLocationsQuery, useShipmentBySubOrderQuery } from "@/domains/shipping";
+import { ProductReviewModal } from "@/domains/catalog";
+import { useBuyNowOrReorder } from "@/domains/cart";
 import { PackageReadyModal } from "./sellerOrder/PackageReadyModal";
 import { CancelOrderModal } from "./sellerOrder/CancelOrderModal";
 import { usePackageReadySubOrderMutation } from "../hooks/useOrders";
@@ -45,6 +48,7 @@ export function CustomerOrderDetailView({
 	onStatusUpdated,
 }: CustomerOrderDetailViewProps) {
 	const navigate = useNavigate();
+	const { buyNowOrReorder } = useBuyNowOrReorder();
 
 	// 1. ALL HOOKS CALLED AT TOP LEVEL UNCONDITIONALLY (Strict Rules of Hooks)
 	const { data: detail, isLoading, refetch } = useSubOrderDetailQuery(subOrderId, isSeller);
@@ -66,6 +70,13 @@ export function CustomerOrderDetailView({
 	const [showRefundModal, setShowRefundModal] = useState(false);
 	const [showNoWalletModal, setShowNoWalletModal] = useState(false);
 	const [reason, setReason] = useState("");
+	const [sellerRejectReason, setSellerRejectReason] = useState("");
+	const [reviewingItem, setReviewingItem] = useState<{
+		productId: string | number;
+		productName: string;
+		variantName?: string;
+		thumbnailUrl?: string;
+	} | null>(null);
 	const [errorMessage, setErrorMessage] = useState("");
 
 	// Seller Action Modals state
@@ -487,11 +498,55 @@ export function CustomerOrderDetailView({
 												)} */}
 
 												{!isSeller && (
-													<div className="flex gap-2 pt-1">
-														<button type="button" className="px-2 py-1 bg-white border border-brand-border hover:bg-brand-light-soft text-[10px] font-black text-brand-dark rounded transition-all cursor-pointer">
+													<div className="flex flex-wrap gap-2 pt-1">
+														{(detail.status === "Completed" || detail.status === "Delivered") && (
+															<button
+																type="button"
+																onClick={() =>
+																	setReviewingItem({
+																		productId: item.productId || item.id,
+																		productName: item.productName,
+																		variantName: item.variantName,
+																		thumbnailUrl: item.thumbnailUrl,
+																	})
+																}
+																className="px-2.5 py-1 bg-amber-50 hover:bg-amber-100 border border-amber-300 text-[10px] font-black text-amber-800 rounded transition-all cursor-pointer flex items-center gap-1 shadow-2xs"
+															>
+																<Star className="w-3 h-3 text-amber-500 fill-amber-500" />
+																Đánh giá sản phẩm
+															</button>
+														)}
+														<button
+															type="button"
+															onClick={() => {
+																const shopName = detail.shopName || `Shop #${detail.shopId}`;
+																if (detail.shopId) {
+																	window.dispatchEvent(
+																		new CustomEvent("open-shop-chat", {
+																			detail: { shopId: detail.shopId, shopName },
+																		})
+																	);
+																}
+															}}
+															className="px-2 py-1 bg-white border border-brand-border hover:bg-brand-light-soft text-[10px] font-black text-brand-dark rounded transition-all cursor-pointer"
+														>
 															Chat với nhà bán
 														</button>
-														<button type="button" className="px-2 py-1 bg-white border border-brand-border hover:bg-brand-light-soft text-[10px] font-black text-brand-dark rounded transition-all cursor-pointer">
+														<button
+															type="button"
+															onClick={async () => {
+																try {
+																	await buyNowOrReorder({
+																		variantIds: [item.variantId || item.id],
+																	});
+																	toast.success(`Đã chọn mua lại sản phẩm ${item.productName}`);
+																	navigate("/cart");
+																} catch (err: any) {
+																	toast.error("Không thể mua lại sản phẩm này!");
+																}
+															}}
+															className="px-2 py-1 bg-white border border-brand-border hover:bg-brand-light-soft text-[10px] font-black text-brand-dark rounded transition-all cursor-pointer"
+														>
 															Mua lại
 														</button>
 													</div>
@@ -834,6 +889,18 @@ export function CustomerOrderDetailView({
 				setHeight={setPkgHeight}
 				isPending={packageReadyMutation.isPending}
 			/>
+
+			{/* Modal Đánh giá sản phẩm (Customer) */}
+			{reviewingItem && (
+				<ProductReviewModal
+					isOpen={!!reviewingItem}
+					onClose={() => setReviewingItem(null)}
+					productId={reviewingItem.productId}
+					productName={reviewingItem.productName}
+					variantName={reviewingItem.variantName}
+					thumbnailUrl={reviewingItem.thumbnailUrl}
+				/>
+			)}
 
 			{/* Bottom back link */}
 			<div className="pt-4 border-t border-brand-border">

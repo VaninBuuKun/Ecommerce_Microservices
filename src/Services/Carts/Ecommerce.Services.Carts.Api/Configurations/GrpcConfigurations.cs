@@ -19,6 +19,10 @@ public static class GrpcConfigurations
         {
             o.Address = new Uri(configuration["Services:SellerGrpcUrl"] ?? throw new InvalidOperationException("SellerGrpcUrl is missing."));
         });
+        services.AddGrpcClient<OrderGrpc.OrderGrpcClient>(o =>
+        {
+            o.Address = new Uri(configuration["Services:OrderGrpcUrl"] ?? throw new InvalidOperationException("OrderGrpcUrl is missing."));
+        });
         services.AddBuildingBlocksGrpc();
     }
 }

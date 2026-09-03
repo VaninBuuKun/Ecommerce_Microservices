@@ -111,8 +111,12 @@ export default function CartPage() {
 
     const shopGroups = cart.shopGroups || [];
     const allItems = shopGroups.flatMap((group: any) => group.items || []);
-    const selectedItems = allItems.filter((item: any) => item.isSelected);
-    const allSelected = allItems.length > 0 && allItems.every((item: any) => item.isSelected);
+    const selectableItems = allItems.filter((item: any) => {
+        const stock = item.availableStock ?? (item as any).availableStocks;
+        return (stock === undefined || stock > 0) && item.quantity > 0;
+    });
+    const selectedItems = selectableItems.filter((item: any) => item.isSelected);
+    const allSelected = selectableItems.length > 0 && selectableItems.every((item: any) => item.isSelected);
 
     // Tính toán tài chính cơ bản: Dùng item.quantity từ Server data (chỉ cập nhật giá khi API đã thành công)
     const { totalOriginal, subTotal } = selectedItems.reduce(
@@ -194,7 +198,7 @@ export default function CartPage() {
 
     const handleToggleAll = () => {
         const targetState = !allSelected;
-        allItems.forEach((item: any) => {
+        selectableItems.forEach((item: any) => {
             if (item.isSelected !== targetState) {
                 const itemKey = String(item.variantId || item.productVariantId);
                 updateSelectStateMutation.mutate({ 
@@ -388,24 +392,33 @@ export default function CartPage() {
                                                         : item.unitPrice;
                                                 const itemKey = String(item.variantId || item.productVariantId || item.productId);
                                                 const currentQty = localQuantities[itemKey] !== undefined ? localQuantities[itemKey] : item.quantity;
-                                                const itemTotal = activePrice * item.quantity;
+                                                const availableStock = item.availableStock ?? (item as any).availableStocks ?? 0;
+                                                const isOutOfStock = availableStock <= 0 || item.quantity === 0;
+                                                const itemTotal = isOutOfStock ? 0 : activePrice * item.quantity;
 
                                                 return (
                                                     <div
                                                         key={itemKey}
                                                         className={`p-3 sm:p-3.5 transition-colors ${
-                                                            item.isSelected ? "bg-brand-primary/5 hover:bg-brand-primary/10" : "hover:bg-gray-50/30"
+                                                            isOutOfStock
+                                                                ? "bg-slate-50/80 opacity-60 grayscale-[35%]"
+                                                                : item.isSelected
+                                                                    ? "bg-brand-primary/5 hover:bg-brand-primary/10"
+                                                                    : "hover:bg-gray-50/30"
                                                         }`}
                                                     >
                                                         <div className="grid grid-cols-1 sm:grid-cols-12 gap-3 items-center">
                                                             {/* Checkbox + Product Info (6 cols) */}
                                                             <div className="sm:col-span-6 flex gap-2.5 items-center">
                                                                 <button
-                                                                    onClick={() => handleToggleSelect(item, item.isSelected)}
-                                                                    aria-label="Chọn sản phẩm"
-                                                                    className="border-none bg-transparent cursor-pointer p-0 flex-shrink-0"
+                                                                    onClick={() => !isOutOfStock && handleToggleSelect(item, item.isSelected)}
+                                                                    disabled={isOutOfStock}
+                                                                    aria-label={isOutOfStock ? "Sản phẩm đã hết hàng" : "Chọn sản phẩm"}
+                                                                    className={`border-none bg-transparent p-0 flex-shrink-0 ${
+                                                                        isOutOfStock ? "cursor-not-allowed opacity-40" : "cursor-pointer"
+                                                                    }`}
                                                                 >
-                                                                    {item.isSelected ? (
+                                                                    {item.isSelected && !isOutOfStock ? (
                                                                         <CheckSquare className="w-4 h-4 text-brand-primary fill-brand-primary/10" />
                                                                     ) : (
                                                                         <Square className="w-4 h-4 text-gray-300" />
@@ -436,11 +449,17 @@ export default function CartPage() {
                                                                         >
                                                                             {item.productName}
                                                                         </h4>
-                                                                        {item.variantName && (
-                                                                            <span className="inline-block text-[9px] font-bold text-brand-muted bg-brand-light-soft px-1.5 py-0.5 rounded-sm">
-                                                                                Phân loại: {item.variantName}
-                                                                            </span>
-                                                                        )}
+                                                                        <div className="flex items-center gap-1.5 flex-wrap">
+                                                                            {isOutOfStock ? (
+                                                                                <span className="inline-block text-[9px] font-black text-red-600 bg-red-100/90 border border-red-200 px-1.5 py-0.5 rounded-sm uppercase tracking-wider">
+                                                                                    Hết hàng
+                                                                                </span>
+                                                                            ) : item.variantName ? (
+                                                                                <span className="inline-block text-[9px] font-bold text-brand-muted bg-brand-light-soft px-1.5 py-0.5 rounded-sm">
+                                                                                    Phân loại: {item.variantName}
+                                                                                </span>
+                                                                            ) : null}
+                                                                        </div>
                                                                     </div>
                                                                 </Link>
                                                             </div>
@@ -463,47 +482,53 @@ export default function CartPage() {
                                                             {/* Quantity (2 cols) */}
                                                             <div className="sm:col-span-2 flex sm:justify-center justify-between items-center">
                                                                 <span className="text-[10px] text-brand-muted font-bold sm:hidden">Số lượng:</span>
-                                                                <div className="flex items-center border border-brand-border rounded-md overflow-hidden h-7 w-22 bg-white shadow-xs">
-                                                                    <button
-                                                                        onClick={() =>
-                                                                            handleQuantityChange(
-                                                                                item,
-                                                                                currentQty,
-                                                                                -1,
-                                                                                item.availableStock ?? (item as any).availableStocks
-                                                                            )
-                                                                        }
-                                                                        aria-label="Giảm số lượng"
-                                                                        className="w-6 h-full flex items-center justify-center border-none bg-transparent hover:bg-gray-100 cursor-pointer text-brand-muted transition-colors active:bg-gray-200"
-                                                                    >
-                                                                        <Minus className="w-2.5 h-2.5" />
-                                                                    </button>
-                                                                    <span className="flex-1 text-center text-xs font-bold text-brand-dark">
-                                                                        {currentQty}
+                                                                {isOutOfStock ? (
+                                                                    <span className="text-[10px] font-bold text-red-500 bg-red-50 border border-red-200 px-2 py-0.5 rounded-md">
+                                                                        Hết hàng
                                                                     </span>
-                                                                    <button
-                                                                        onClick={() =>
-                                                                            handleQuantityChange(
-                                                                                item,
-                                                                                currentQty,
-                                                                                1,
-                                                                                item.availableStock ?? (item as any).availableStocks
-                                                                            )
-                                                                        }
-                                                                        aria-label="Tăng số lượng"
-                                                                        className="w-6 h-full flex items-center justify-center border-none bg-transparent hover:bg-gray-100 cursor-pointer text-brand-muted transition-colors active:bg-gray-200 disabled:opacity-30"
-                                                                        disabled={currentQty >= (item.availableStock ?? (item as any).availableStocks ?? 9999)}
-                                                                    >
-                                                                        <Plus className="w-2.5 h-2.5" />
-                                                                    </button>
-                                                                </div>
+                                                                ) : (
+                                                                    <div className="flex items-center border border-brand-border rounded-md overflow-hidden h-7 w-22 bg-white shadow-xs">
+                                                                        <button
+                                                                            onClick={() =>
+                                                                                handleQuantityChange(
+                                                                                    item,
+                                                                                    currentQty,
+                                                                                    -1,
+                                                                                    availableStock
+                                                                                )
+                                                                            }
+                                                                            aria-label="Giảm số lượng"
+                                                                            className="w-6 h-full flex items-center justify-center border-none bg-transparent hover:bg-gray-100 cursor-pointer text-brand-muted transition-colors active:bg-gray-200"
+                                                                        >
+                                                                            <Minus className="w-2.5 h-2.5" />
+                                                                        </button>
+                                                                        <span className="flex-1 text-center text-xs font-bold text-brand-dark">
+                                                                            {currentQty}
+                                                                        </span>
+                                                                        <button
+                                                                            onClick={() =>
+                                                                                handleQuantityChange(
+                                                                                    item,
+                                                                                    currentQty,
+                                                                                    1,
+                                                                                    availableStock
+                                                                                )
+                                                                            }
+                                                                            aria-label="Tăng số lượng"
+                                                                            className="w-6 h-full flex items-center justify-center border-none bg-transparent hover:bg-gray-100 cursor-pointer text-brand-muted transition-colors active:bg-gray-200 disabled:opacity-30"
+                                                                            disabled={currentQty >= availableStock}
+                                                                        >
+                                                                            <Plus className="w-2.5 h-2.5" />
+                                                                        </button>
+                                                                    </div>
+                                                                )}
                                                             </div>
 
                                                             {/* Total & Remove (2 cols) */}
                                                             <div className="sm:col-span-2 flex sm:justify-end justify-between items-center text-right gap-2">
                                                                 <span className="text-[10px] text-brand-muted font-bold sm:hidden">Thành tiền:</span>
-                                                                <span className="font-black text-brand-primary-deep text-xs">
-                                                                    {itemTotal.toLocaleString("vi-VN")}đ
+                                                                <span className={`font-black text-xs ${isOutOfStock ? "text-gray-400" : "text-brand-primary-deep"}`}>
+                                                                    {isOutOfStock ? "0đ" : `${itemTotal.toLocaleString("vi-VN")}đ`}
                                                                 </span>
                                                                 <button
                                                                     onClick={() =>

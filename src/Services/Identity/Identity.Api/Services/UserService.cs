@@ -8,7 +8,10 @@ using System.Threading.Tasks;
 using BuildingBlocks.Shared.Commons;
 using BuildingBlocks.Shared.Enums;
 using BuildingBlocks.Shared.Events;
+using BuildingBlocks.Shared.InfrastructureInterfaces.Caching;
 using BuildingBlocks.Shared.InfrastructureInterfaces.Messaging;
+using Duende.IdentityServer.Models;
+using Duende.IdentityServer.Services;
 using Ecommerce.Services.Identity.Api.Models.Entities;
 using Ecommerce.Services.Identity.Api.Persistances;
 using Ecommerce.Services.Identity.Api.Models.Interfaces;
@@ -24,6 +27,8 @@ public class UserService(
     UserManager<AppUser> userManager,
     RoleManager<IdentityRole<long>> roleManager,
     AppDbContext dbContext,
+    IPersistedGrantService persistedGrantService,
+    ICacheService cacheService,
     IEventPublisher eventPublisher,
     IHttpContextAccessor httpContextAccessor,
     ILogger<UserService> logger)
@@ -169,6 +174,41 @@ public class UserService(
             return Result.Failure(errors, EErrorCode.ValidationErrors);
         }
 
+        // 1. Cập nhật SecurityStamp để vô hiệu hóa token/phiên cũ
+        await userManager.UpdateSecurityStampAsync(user);
+
+        // 2. Thu hồi toàn bộ Refresh Tokens của User từ Duende IdentityServer
+        try
+        {
+            await persistedGrantService.RemoveAllGrantsAsync(user.Id.ToString());
+        }
+        catch (Exception ex)
+        {
+            logger.LogWarning(ex, "Failed to revoke persisted grants for user {UserId}", userId);
+        }
+
+        // 3. Lưu mốc thời gian đổi mật khẩu vào Redis để vô hiệu hóa toàn bộ Access Token cũ tại ApiGateway / Middleware
+        try
+        {
+            var currentTimestamp = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
+            await cacheService.SetAsync($"auth:revoked_before:{user.Id}", currentTimestamp, TimeSpan.FromDays(7));
+        }
+        catch (Exception ex)
+        {
+            logger.LogWarning(ex, "Failed to set Redis token revocation timestamp for user {UserId}", userId);
+        }
+
+        // 4. Publish Event thông báo đổi mật khẩu & Force Logout các thiết bị khác
+        var changedEvent = new UserPasswordChangedEvent
+        {
+            UserId = user.Id,
+            Email = user.Email ?? string.Empty,
+            FullName = $"{user.FirstName} {user.LastName}".Trim(),
+            ChangedAt = DateTime.UtcNow
+        };
+        await eventPublisher.PublishAsync(changedEvent);
+
+        logger.LogInformation("Password changed successfully and sessions revoked for user {UserId}", userId);
         return Result.Success();
     }
 
@@ -522,8 +562,42 @@ public class UserService(
 
         // Xóa OTP sau khi đổi thành công
         PasswordResetOtps.TryRemove(normalizedEmail, out _);
-        logger.LogInformation("Password reset successfully for user {Email}", normalizedEmail);
 
+        // 1. Cập nhật SecurityStamp để vô hiệu hóa token/phiên cũ
+        await userManager.UpdateSecurityStampAsync(user);
+
+        // 2. Thu hồi toàn bộ Refresh Tokens của User từ Duende IdentityServer
+        try
+        {
+            await persistedGrantService.RemoveAllGrantsAsync(user.Id.ToString());
+        }
+        catch (Exception ex)
+        {
+            logger.LogWarning(ex, "Failed to revoke persisted grants for user {UserId}", user.Id);
+        }
+
+        // 3. Lưu mốc thời gian đổi mật khẩu vào Redis để vô hiệu hóa toàn bộ Access Token cũ tại ApiGateway / Middleware
+        try
+        {
+            var currentTimestamp = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
+            await cacheService.SetAsync($"auth:revoked_before:{user.Id}", currentTimestamp, TimeSpan.FromDays(7));
+        }
+        catch (Exception ex)
+        {
+            logger.LogWarning(ex, "Failed to set Redis token revocation timestamp for user {UserId}", user.Id);
+        }
+
+        // 4. Publish Event thông báo đổi mật khẩu & Force Logout các thiết bị khác
+        var changedEvent = new UserPasswordChangedEvent
+        {
+            UserId = user.Id,
+            Email = user.Email ?? normalizedEmail,
+            FullName = $"{user.FirstName} {user.LastName}".Trim(),
+            ChangedAt = DateTime.UtcNow
+        };
+        await eventPublisher.PublishAsync(changedEvent);
+
+        logger.LogInformation("Password reset successfully and sessions revoked for user {Email}", normalizedEmail);
         return Result.Success();
     }
 

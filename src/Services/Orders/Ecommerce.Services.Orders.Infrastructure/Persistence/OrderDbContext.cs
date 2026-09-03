@@ -16,8 +16,6 @@ public class OrderDbContext(DbContextOptions<OrderDbContext> options, IInMemoryB
     public DbSet<ShippingAddress> ShippingAddresses { get; set; }
     public DbSet<RefundRequest> RefundRequests { get; set; }
     public DbSet<RefundRequestItem> RefundRequestItems { get; set; }
-    public DbSet<DisputeThread> DisputeThreads { get; set; }
-    public DbSet<DisputeMessage> DisputeMessages { get; set; }
     public DbSet<Voucher> Vouchers { get; set; }
     public DbSet<VoucherUsage> VoucherUsages { get; set; }
 
@@ -111,30 +109,6 @@ public class OrderDbContext(DbContextOptions<OrderDbContext> options, IInMemoryB
         {
             entity.HasKey(ri => ri.Id);
             entity.Property(ri => ri.UnitPrice).HasColumnType("decimal(18,2)");
-        });
-
-        modelBuilder.Entity<DisputeThread>(entity =>
-        {
-            entity.HasKey(dt => dt.Id);
-            entity.Property(dt => dt.Status).IsRequired().HasMaxLength(50);
-            entity.Property(dt => dt.ResolutionDecision).HasMaxLength(50);
-
-            entity.HasOne(dt => dt.RefundRequest)
-                  .WithOne(r => r.DisputeThread)
-                  .HasForeignKey<DisputeThread>(dt => dt.RefundRequestId)
-                  .OnDelete(DeleteBehavior.Cascade);
-
-            entity.HasMany(dt => dt.Messages)
-                  .WithOne()
-                  .HasForeignKey(m => m.DisputeThreadId)
-                  .OnDelete(DeleteBehavior.Cascade);
-        });
-
-        modelBuilder.Entity<DisputeMessage>(entity =>
-        {
-            entity.HasKey(dm => dm.Id);
-            entity.Property(dm => dm.SenderRole).IsRequired().HasMaxLength(20);
-            entity.Property(dm => dm.Content).IsRequired();
         });
         
         modelBuilder.Entity<Voucher>(entity =>

@@ -101,29 +101,43 @@ Saga State Machine + Transactional Outbox
 * Product selection for checkout.
 * Automatic grouping by seller shop.
 * Select all / deselect all.
+* **1-Call Rebuy & Buy-Now**: Server-side resolution of sub-orders or variant lists with shop ownership validation and automatic unselect of other items.
+* **Out-of-Stock Handling**: Zero-quantity items displayed with dimmed styling, disabled checkbox and "Hết hàng" badges.
 
 ---
 
 ## 🛒 Checkout, Orders & Payments
 
-### Checkout Calculation
+### Checkout Calculation & Idempotency
 
-* Product subtotal.
-* Platform vouchers.
-* Shop vouchers.
+* Product subtotal, platform vouchers, and shop vouchers.
 * Shipping fee calculation via GHN gRPC integration.
-* Redis checkout session for data persistence.
+* Redis checkout session for calculation data persistence.
+* **Idempotent Order Placement**: Deduplication via `X-Idempotency-Key` and Redis cache (`order:idempotency:{customerId}:{key}`) with 5-minute TTL to prevent double-charging and duplicate order generation on network retry or double clicks.
 
 ### Multi-Shop Orders
 
 A single checkout is automatically split into multiple SubOrders based on seller shop ownership.
 
-### Order Lifecycle
+### Order & Saga State Machine Lifecycle
 
 ```text
-AwaitingPayment → AwaitingConfirmation → Processing → PackageReady → Shipping → Delivered → Completed
-                                                                                     or
-                                                                              Cancelled / Refunded
+[ AwaitingConfirmation ]
+          │  (Seller confirms order)
+          ▼
+    [ Processing ] ── (Package ready → CreateShipmentRequest to GHN)
+          │  (GHN shipper picks up package / SubOrderShippedEvent)
+          ▼
+     [ Shipping ]
+          │  (GHN delivery success / SubOrderDeliveredEvent)
+          ▼
+    [ Delivered ]  ── (Enqueues 7-day Hangfire delayed auto-complete job)
+          │
+    ┌─────┴───────────────────────┐
+    ▼                             ▼
+[ Completed ]                [ Refunded ]
+(Customer confirm /       (Refund request approved
+ 7-day Hangfire job)       by seller / admin)
 ```
 
 ### Payment Integration
@@ -139,7 +153,7 @@ Payment webhooks automatically trigger status transitions via MassTransit events
 
 * Buyer submits refund request with evidence media.
 * Seller approves or rejects refund.
-* Automatic refund processing via event consumers.
+* Automatic refund balance restoration and stock release via Saga orchestration.
 
 ---
 
@@ -165,34 +179,55 @@ GHN Delivered → ShipmentDeliveredEvent → Orders Service → SubOrder Deliver
 
 ### Admin Dashboard
 
-* Products overview
-* Order management (pagination, filtering, keyword search)
-* Shipment tracking
-* Refund management
-* Category management (hierarchical tree)
-* User management (lock/unlock, role assignment)
-* Shop management (view, ban/suspend)
-* KYC approval workflow
-* Voucher management (CRUD)
-* Wallet & Withdrawal management (approve/reject/complete)
+* **Products Overview**: Approval, inventory, pricing, specification attributes, and status management.
+* **Dynamic Banners & Carousels**: Full CRUD with priority ordering, status toggle, link routing, and live theme color customizers.
+* **Order & SubOrder Management**: Multi-shop order tracking, status overrides, keyword searching, and pagination.
+* **Shipment Tracking**: GHN waybill tracking logs and webhook sync inspection.
+* **Refund Management**: Proof review, approve/reject workflows with balance restoration.
+* **Category Tree Management**: Hierarchical category tree management with drag/sort order.
+* **User & Security Governance**: Lock/unlock accounts, role assignments, device login history inspection.
+* **Shop Governance**: Shop status moderation (Active, Suspend, Ban), owner validation.
+* **KYC Verification Workflow**: Dual-photo ID verification, status progression (Draft → Submitted → Approved/Rejected).
+* **Voucher Management**: Platform-wide and shop-scoped voucher CRUD (discount percentage/fixed, minimum order, usage limits).
+* **Wallet & Withdrawal Management**: Admin review, approval, rejection, and final completion with proof payment receipt upload.
+* **Platform Commission Configuration**: Global marketplace fee rate adjustment (`/api/admin/commission`).
 
 ### Available Roles
 
-* Admin
-* Manager
-* Staff
-* User
+* `Admin` — Full platform management, commission settings, moderation, and finance approvals.
+* `Manager` — Operations, catalog, order processing, and merchant verification.
+* `Staff` — Customer support, order inspection, and verification assistance.
+* `User` — Marketplace customer and seller shop owner.
 
 ---
 
-## 🔔 Real-time Notifications & Chat
-* SignalR Hub for real-time push.
-* **SignalR Customer ↔ Shop Chat Page (`/chat`)**: Fullscreen real-time messaging between Customers and Sellers with chat history.
-* **MailKit / MimeKit Email System**: HTML email notifications (Order confirmations, Password reset).
-* Event-driven consumers:
-  * Payment succeeded / failed
-  * New order created (notify seller)
-  * Order shipped (notify buyer)
+## 🔔 Real-time Notifications, Chat & Email
+
+### Real-time Messaging & Floating Chat
+* **SignalR Customer ↔ Shop Chat Page (`/chat`)**: Fullscreen real-time communication between buyers and seller shops with chat history.
+* **Floating Chat Bubble & Modal (`ChatBubbleButton` + `ChatMiniModal`)**: 2-column popup chat widget accessible across all customer and seller pages.
+* **Room Customization**: Custom theme colors and background styling per conversation (`ThemeColor`, `BackgroundColor`).
+
+### Isolated HTML Email Template Engine
+* **Dynamic Template Renderer**: Decoupled HTML templates in `Templates/Emails/` (`OtpEmail.html`, `WelcomeEmail.html`, `WithdrawalSuccessEmail.html`, `NewDeviceAlertEmail.html`, `PasswordChangedSuccessEmail.html`) rendered dynamically via `ITemplateRenderer`.
+* **Withdrawal Completion Notification**: Automatic email notification with formatted amount, bank info, and proof payment receipt image (`ProofImageUrl`).
+
+### Security, Device Intelligence & Session Revocation
+* **Device Fingerprint Recognition (`UserKnownDevices`)**: Persistent hardware/environment fingerprinting (`DeviceHash`, `DeviceName`, `LastIpAddress`) to eliminate repetitive login alert emails.
+* **Session Revocation & Force Logout on Password Change**: Automatic `SecurityStamp` renewal, Duende grant revocation, security alert email, SignalR `ForceLogout` broadcast, and Redis `auth:revoked_before:{userId}` blacklist check at API Gateway to reject stale tokens.
+
+### Customer Notifications Center (`/profile?tab=notifications`)
+* **Master-Detail Notifications View**: 15-day query limit, category filtering (*All*, *Orders*, *Payments & Wallet*, *Security & Account*), contextual rich alerts with action buttons, and automated **Hangfire 30-day purge job** (`0 2 * * *`).
+
+### Event-Driven Consumers
+* `PaymentSucceededNotificationConsumer` / `PaymentFailedNotificationConsumer`
+* `SubOrderCreatedNotificationConsumer` (notify seller)
+* `SubOrderShippedNotificationConsumer` (notify buyer)
+* `UserRegisteredNotificationConsumer` (welcome email)
+* `ResetPasswordOtpNotificationConsumer` (OTP email)
+* `NewDeviceLoginAlertNotificationConsumer` (security email on new device)
+* `WithdrawalCompletedNotificationConsumer` (payout confirmation + proof image)
+* `UserPasswordChangedNotificationConsumer` (security email + SignalR ForceLogout)
 
 ---
 
@@ -205,13 +240,14 @@ GHN Delivered → ShipmentDeliveredEvent → Orders Service → SubOrder Deliver
 
 # 📐 4. Architectural Standards
 
-## CQRS + Clean Architecture
+## Clean Architecture CQRS vs Service Layer Pattern
 
-Commands and Queries are fully separated with dedicated handler files.
+* **CQRS + MediatR Services (`Catalog.Api`, `Orders.Api`)**: Strict separation of Commands and Queries, dedicated Handler files, and feature-driven folder structures.
+* **Service Layer Pattern Services (`Payments.Api`, `Sellers.Api`, `Shippings.Api`, `Identity.Api`, `Cart.Api`, `Notifications.Api`)**: 0% MediatR, direct interface dependency injection (`Models/Interfaces/I[Name]Service.cs`), and centralized service implementations (`Services/`).
 
 ## gRPC Presentation Adapter Pattern
 
-gRPC services only act as transport adapters, delegating to MediatR handlers.
+gRPC servers strictly act as transport adapters, delegating execution to the Application Layer / Service Layer without direct database or DbContext queries.
 
 ## gRPC Client Abstraction
 
@@ -224,6 +260,16 @@ Database access abstracted through `IEfUnitOfWork` and `IGenericEfRepository<T>`
 ## EfDbContextBase — Automatic Date Tracking
 
 `SaveChangesAsync()` automatically populates `CreatedDate` and `LastModifiedDate` for all `IDateTracking` entities.
+
+## Background Jobs & Hangfire Abstraction
+
+Decoupled via `IBackgroundJobManager` (Fire-and-forget, Delayed, Recurring) in `BuildingBlocks.Shared` backed by `BuildingBlocks.BackgroundJobs` (Hangfire + PostgreSQL).
+* **Delayed Job**: 7-day auto-completion for delivered sub-orders scheduled individually per sub-order without database table polling.
+* **Recurring Job**: Automated daily purge of notifications older than 30 days (`0 2 * * *`).
+
+## Token Revocation Middleware at API Gateway
+
+YARP reverse proxy pipeline integrates `TokenRevocationMiddleware`, performing O(1) Redis lookups (`auth:revoked_before:{userId}`) against token `iat` claims to instantly reject stale sessions after password changes.
 
 ## MassTransit Saga & Transactional Outbox
 
@@ -327,6 +373,7 @@ This deployment includes:
 * Entity Framework Core 9
 * Duende IdentityServer (OAuth2/OIDC)
 * SignalR (Real-time)
+* Hangfire (Background & Scheduled Jobs)
 
 ### Databases
 

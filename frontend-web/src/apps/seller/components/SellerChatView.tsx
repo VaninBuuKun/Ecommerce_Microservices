@@ -3,9 +3,6 @@ import { MessageSquare, Send, User, Loader2, Store } from "lucide-react";
 import { api } from "@/core";
 import { toast } from "react-toastify";
 
-// USE_MOCK_DATA flag for fallback testing
-const USE_MOCK_DATA = false;
-
 interface Conversation {
 	partnerId: number;
 	partnerName: string;
@@ -35,32 +32,10 @@ export function SellerChatView() {
 		const fetchConversations = async () => {
 			try {
 				setIsLoading(true);
-				if (USE_MOCK_DATA) {
-					await new Promise((res) => setTimeout(res, 400));
-					const mockList: Conversation[] = [
-						{
-							partnerId: 1001,
-							partnerName: "Khách hàng Nguyễn Văn A",
-							lastMessage: "Shop ơi áo này còn size L không ạ?",
-							lastMessageAt: new Date().toISOString(),
-							unreadCount: 1,
-						},
-						{
-							partnerId: 1002,
-							partnerName: "Khách hàng Trần Thị B",
-							lastMessage: "Dạ em nhận được hàng rồi, rất ưng ạ!",
-							lastMessageAt: new Date(Date.now() - 86400000).toISOString(),
-							unreadCount: 0,
-						},
-					];
-					setConversations(mockList);
-					if (mockList.length > 0) setActivePartnerId(mockList[0].partnerId);
-				} else {
-					const res = await api.get("/chats/conversations");
-					const data = res.data?.value || res.data || [];
-					setConversations(data);
-					if (data.length > 0) setActivePartnerId(data[0].partnerId);
-				}
+				const res = await api.get("/chat/conversations", { params: { isSeller: true } });
+				const data = res.data?.value || res.data || [];
+				setConversations(data);
+				if (data.length > 0) setActivePartnerId(data[0].partnerId || data[0].buyerUserId);
 			} catch (err: any) {
 				console.error("Lỗi tải hội thoại chat seller:", err);
 			} finally {
@@ -75,23 +50,11 @@ export function SellerChatView() {
 		const fetchMessages = async () => {
 			if (!activePartnerId) return;
 			try {
-				if (USE_MOCK_DATA) {
-					setMessages([
-						{
-							id: "m1",
-							senderId: activePartnerId,
-							receiverId: 999,
-							content: "Shop ơi áo này còn size L không ạ?",
-							createdAt: new Date().toISOString(),
-						},
-					]);
-				} else {
-					const res = await api.get(`/chats/messages`, {
-						params: { partnerId: activePartnerId },
-					});
-					const data = res.data?.value || res.data || [];
-					setMessages(data);
-				}
+				const res = await api.get(`/chats/messages`, {
+					params: { partnerId: activePartnerId },
+				});
+				const data = res.data?.value || res.data || [];
+				setMessages(data);
 			} catch (err: any) {
 				console.error("Lỗi tải tin nhắn:", err);
 			}
@@ -109,31 +72,20 @@ export function SellerChatView() {
 
 		try {
 			setIsSending(true);
-			if (USE_MOCK_DATA) {
-				const newMsg: ChatMessage = {
+			await api.post("/chats/send", {
+				receiverId: activePartnerId,
+				content: textToSend,
+			});
+			setMessages((prev) => [
+				...prev,
+				{
 					id: Date.now().toString(),
 					senderId: 999,
 					receiverId: activePartnerId,
 					content: textToSend,
 					createdAt: new Date().toISOString(),
-				};
-				setMessages((prev) => [...prev, newMsg]);
-			} else {
-				await api.post("/chats/send", {
-					receiverId: activePartnerId,
-					content: textToSend,
-				});
-				setMessages((prev) => [
-					...prev,
-					{
-						id: Date.now().toString(),
-						senderId: 999,
-						receiverId: activePartnerId,
-						content: textToSend,
-						createdAt: new Date().toISOString(),
-					},
-				]);
-			}
+				},
+			]);
 		} catch (err: any) {
 			toast.error("Gửi tin nhắn thất bại.");
 		} finally {

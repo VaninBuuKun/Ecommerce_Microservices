@@ -13,4 +13,6 @@ public interface IChatService
         bool isSeller, 
         BuildingBlocks.Grpc.Services.IdentityGrpc.IdentityGrpcClient identityClient,
         BuildingBlocks.Grpc.Services.SellerGrpc.SellerGrpcClient sellerClient);
+
+    Task<Result<bool>> UpdateRoomThemeAsync(Guid roomId, long currentUserId, string? themeColor, string? backgroundColor);
 }

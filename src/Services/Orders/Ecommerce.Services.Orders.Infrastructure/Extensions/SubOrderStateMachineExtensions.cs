@@ -43,7 +43,12 @@ public static class SubOrderStateMachineExtensions
                         Quantity = x.Quantity
                     }).ToList() ?? new List<VariantStockData>()
                 });
-            });
+            })
+            .PublishAsync(context => context.Init<SubOrderStatusChangedEvent>(new SubOrderStatusChangedEvent
+            {
+                SubOrderId = context.Saga.SubOrderId,
+                Status = "Cancelled"
+            }));
     }
 
     public static EventActivityBinder<SubOrderSagaState, PackageReadyEvent> HandlePackageReadyFlow(

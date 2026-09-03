@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import {
 	Package,
 	ArrowLeftRight,
@@ -6,8 +7,10 @@ import {
 	Search,
 	CornerDownRight,
 	RefreshCw,
+	ShoppingBag,
 } from "lucide-react";
 import { toast } from "react-toastify";
+import { useBuyNowOrReorder } from "@/domains/cart";
 import {
 	useCustomerOrdersQuery,
 	useMyRefundsQuery,
@@ -17,6 +20,10 @@ import { getOrderStatusBadge } from "./VoucherHelpers";
 import { CustomerOrderDetailView } from "./CustomerOrderDetailView";
 
 export function MyOrdersTab({ customerId }: { customerId?: number }) {
+	const navigate = useNavigate();
+	const { buyNowOrReorder } = useBuyNowOrReorder();
+	const [isReorderingId, setIsReorderingId] = useState<string | null>(null);
+
 	const {
 		data: customerOrders = [],
 		isLoading: ordersLoading,
@@ -226,6 +233,32 @@ export function MyOrdersTab({ customerId }: { customerId?: number }) {
 									</span>
 								</div>
 								<div className="flex gap-2 w-full sm:w-auto">
+									<button
+										type="button"
+										onClick={async () => {
+											try {
+												setIsReorderingId(order.id);
+												await buyNowOrReorder({
+													subOrderId: order.id,
+												});
+												navigate("/cart");
+											} catch (err: any) {
+												const msg = err.response?.data?.message || err.response?.data || "Không thể mua lại đơn hàng. Vui lòng thử lại!";
+												toast.error(msg);
+											} finally {
+												setIsReorderingId(null);
+											}
+										}}
+										disabled={isReorderingId === order.id}
+										className="flex-1 sm:flex-none px-3.5 py-1.5 bg-white border border-brand-primary text-brand-primary-deep hover:bg-brand-primary/10 rounded text-xs font-bold transition-all cursor-pointer shadow-2xs flex items-center justify-center gap-1.5 disabled:opacity-50"
+									>
+										{isReorderingId === order.id ? (
+											<Loader2 className="w-3.5 h-3.5 animate-spin text-brand-primary" />
+										) : (
+											<ShoppingBag className="w-3.5 h-3.5" />
+										)}
+										<span>Mua lại đơn này</span>
+									</button>
 									<button
 										onClick={() => setDetailSubOrderId(order.id)}
 										className="flex-1 sm:flex-none px-3.5 py-1.5 bg-brand-primary hover:bg-brand-primary-deep text-white rounded text-xs font-bold transition-all cursor-pointer border-none shadow-xs"

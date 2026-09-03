@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 import {
 	ShoppingBag,
 	Search,
@@ -20,7 +20,10 @@ import { useNotifications } from "@/domains/notification";
 
 export default function Header() {
 	const navigate = useNavigate();
+	const location = useLocation();
+	const isChatRoute = location.pathname.startsWith('/chat');
 	const { user, isInitializing } = useAuthStore();
+
 	const { data: cart } = useCartQuery();
 	const { wishlistItems } = useWishlist();
 	const { notifications, unreadCount, markAsRead, markAllAsRead } = useNotifications();
@@ -91,7 +94,7 @@ export default function Header() {
 		navigate("/login");
 	};
 
-	const mockSuggestions = [
+	const POPULAR_SEARCH_KEYWORDS = [
 		"Áo Hoodie Streetwear Emerald",
 		"Quần Cargo Đen Technical",
 		"Túi Đeo Chéo Canvas Minimalist",
@@ -137,11 +140,13 @@ export default function Header() {
 					)}
 				</Link>
 
-				{/* Thanh Search thông minh (Chiều cao h-8 chuẩn) */}
-				<div
-					ref={searchRef}
-					className="relative w-full max-w-2xl hidden sm:block"
-				>
+				{/* Thanh Search thông minh (Ẩn khi đang ở trang /chat) */}
+				{!isChatRoute && (
+					<div
+						ref={searchRef}
+						className="relative w-full max-w-2xl hidden sm:block"
+					>
+
 					<form
 						onSubmit={(e) => {
 							e.preventDefault();
@@ -207,7 +212,7 @@ export default function Header() {
 										Không tìm thấy gợi ý khớp với "{searchQuery}"
 									</div>
 								) : (
-									mockSuggestions.map((suggestion, idx) => (
+									POPULAR_SEARCH_KEYWORDS.map((suggestion, idx) => (
 										<button
 											key={idx}
 											onClick={() => {
@@ -235,7 +240,10 @@ export default function Header() {
 						</div>
 					)}
 				</div>
+			)}
 			</div>
+
+
 
 			{/* KHỐI BÊN PHẢI: Kênh bán + Wishlist + Giỏ hàng + Thông báo + Auth Slot */}
 			<div className="flex items-center gap-3 shrink-0 ml-auto h-8">

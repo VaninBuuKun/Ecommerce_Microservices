@@ -49,6 +49,11 @@ public static class CartEndpoints
             .WithName("ClearCart")
             .WithSummary("Xóa toàn bộ giỏ hàng");
 
+        // POST /api/carts/rebuy
+        group.MapPost("/rebuy", Rebuy)
+            .WithName("Rebuy")
+            .WithSummary("Mua ngay hoặc mua lại sản phẩm/đơn hàng");
+
         return endpoints;
     }
 
@@ -112,6 +117,15 @@ public static class CartEndpoints
         var result = await cartService.ClearCartAsync(userService.UserId);
         return result.IsSuccess
             ? Results.Json(new { message = "Đã xóa toàn bộ giỏ hàng" }, statusCode: result.GetHttpStatusCode())
+            : Results.Json(new { message = result.Message }, statusCode: result.GetHttpStatusCode());
+    }
+
+    // 7. MUA LẠI HOẶC MUA NGAY (REBUY / REORDER)
+    private static async Task<IResult> Rebuy([FromBody] RebuyCartRequest request, ICartService cartService, ICurrentUserService userService)
+    {
+        var result = await cartService.RebuyAsync(userService.UserId, request);
+        return result.IsSuccess
+            ? Results.Json(result.Value, statusCode: result.GetHttpStatusCode())
             : Results.Json(new { message = result.Message }, statusCode: result.GetHttpStatusCode());
     }
 }

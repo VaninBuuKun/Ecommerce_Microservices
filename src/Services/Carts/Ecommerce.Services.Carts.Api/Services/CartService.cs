@@ -18,6 +18,7 @@ public class CartService(
     ICacheService cacheService,
     IProductService productService,
     ISellerService sellerService,
+    IOrderService orderService,
     ILogger<CartService> logger) : ICartService
 {
     public async Task<Result<CartResponse>> GetCartAsync(long customerId, CancellationToken cancellationToken = default)
@@ -286,5 +287,98 @@ public class CartService(
         }
 
         return Result.Success();
+    }
+
+    public async Task<Result<CartResponse>> RebuyAsync(long customerId, RebuyCartRequest request, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var targetVariantIds = new List<long>();
+
+            // 1. Lấy danh sách VariantId từ SubOrderId hoặc trực tiếp từ request
+            if (request.SubOrderId.HasValue && request.SubOrderId.Value > 0)
+            {
+                var subOrderResult = await orderService.GetSubOrderItemsForRebuyAsync(request.SubOrderId.Value, customerId);
+                if (!subOrderResult.IsSuccess || subOrderResult.Value == null || subOrderResult.Value.Count == 0)
+                {
+                    return Result<CartResponse>.Failure(
+                        subOrderResult.Message ?? "Không tìm thấy thông tin sản phẩm trong đơn hàng.",
+                        subOrderResult.ErrorCode);
+                }
+
+                targetVariantIds = subOrderResult.Value.Select(i => i.VariantId).Where(v => v > 0).Distinct().ToList();
+            }
+            else if (request.VariantIds != null && request.VariantIds.Count > 0)
+            {
+                targetVariantIds = request.VariantIds.Where(v => v > 0).Distinct().ToList();
+            }
+
+            if (targetVariantIds.Count == 0)
+            {
+                return Result<CartResponse>.Failure("Vui lòng cung cấp mã đơn hàng hoặc danh sách phân loại sản phẩm để mua lại.", EErrorCode.ValidationErrors);
+            }
+
+            // 2. Gọi gRPC sang Catalog lấy thông tin chi tiết các biến thể
+            var productsResult = await productService.GetProductVariantListAsync(targetVariantIds);
+            if (!productsResult.IsSuccess || productsResult.Value == null || productsResult.Value.Count == 0)
+            {
+                return Result<CartResponse>.Failure(productsResult.Message ?? "Không tìm thấy thông tin sản phẩm trên hệ thống.", productsResult.ErrorCode);
+            }
+
+            var validVariants = productsResult.Value;
+
+            // 3. Kiểm tra quyền sở hữu Shop (người dùng không thể tự mua sản phẩm từ Shop của chính mình)
+            var uniqueShopIds = validVariants.Select(v => v.ShopId).Where(s => s > 0).Distinct().ToList();
+            foreach (var shopId in uniqueShopIds)
+            {
+                var validateOwnerResult = await sellerService.ValidateShopOwnerAsync(shopId, customerId);
+                if (validateOwnerResult.IsSuccess && validateOwnerResult.Value)
+                {
+                    return Result<CartResponse>.Failure("Bạn không thể mua sản phẩm từ cửa hàng do chính mình sở hữu.", EErrorCode.ValidationErrors);
+                }
+            }
+
+            // 4. Cập nhật giỏ hàng trên Redis
+            var cart = await cacheService.GetAsync<Cart>(CartCacheKey.GetCartCacheKey(customerId), cancellationToken) 
+                       ?? new Cart(customerId);
+
+            // Bỏ chọn toàn bộ sản phẩm hiện có trong giỏ
+            foreach (var item in cart.Items)
+            {
+                item.IsSelected = false;
+            }
+
+            // Thêm hoặc cập nhật các biến thể mục tiêu
+            foreach (var variant in validVariants)
+            {
+                bool inStock = variant.AvailableStock > 0;
+                int targetQty = inStock ? 1 : 0;
+                bool isSelected = inStock;
+
+                var existingItem = cart.Items.FirstOrDefault(i => i.VariantId == variant.VariantId);
+                if (existingItem != null)
+                {
+                    existingItem.Quantity = targetQty;
+                    existingItem.IsSelected = isSelected;
+                }
+                else
+                {
+                    cart.Items.Add(new CartItem
+                    {
+                        VariantId = variant.VariantId,
+                        Quantity = targetQty,
+                        IsSelected = isSelected
+                    });
+                }
+            }
+
+            await cacheService.SetAsync(CartCacheKey.GetCartCacheKey(customerId), cart, TimeSpan.FromDays(7), cancellationToken);
+            return await GetCartAsync(customerId, cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Lỗi khi xử lý mua lại giỏ hàng của {CustomerId}: {Message}", customerId, ex.Message);
+            return Result<CartResponse>.Failure(ex.Message, EErrorCode.InternalServerError);
+        }
     }
 }

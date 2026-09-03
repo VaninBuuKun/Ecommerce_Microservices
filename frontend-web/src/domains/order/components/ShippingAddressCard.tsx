@@ -41,14 +41,16 @@ export function ShippingAddressCard({
 						)}
 					</div>
 					<div className="text-xs text-brand-dark leading-relaxed font-semibold">
-						{[
-							selectedAddress.addressLine,
-							selectedAddress.wardId ? getWardName(selectedAddress.wardId) : null,
-							selectedAddress.districtId ? getDistrictName(selectedAddress.districtId) : null,
-							selectedAddress.provinceId ? getProvinceName(selectedAddress.provinceId) : null,
-						]
-							.filter(Boolean)
-							.join(", ")}
+						{(() => {
+							const ward = selectedAddress.wardId ? getWardName(selectedAddress.wardId) : null;
+							const district = selectedAddress.districtId ? getDistrictName(selectedAddress.districtId) : null;
+							const province = selectedAddress.provinceId ? getProvinceName(selectedAddress.provinceId) : null;
+							const area = [ward, district, province].filter(Boolean).join(", ");
+							if (selectedAddress.addressLine && area) {
+								return `${selectedAddress.addressLine} / ${area}`;
+							}
+							return selectedAddress.addressLine || area;
+						})()}
 					</div>
 				</div>
 			) : (

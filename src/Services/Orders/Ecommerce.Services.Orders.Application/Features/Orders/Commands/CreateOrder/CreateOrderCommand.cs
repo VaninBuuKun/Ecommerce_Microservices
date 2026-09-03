@@ -8,4 +8,5 @@ public record CreateOrderCommand(
     long CustomerId,
     string PaymentProvider,
     string CheckoutSessionKey,
-    long AddressId) : ICommand<CustomerOrderResponse>;
+    long AddressId,
+    string? IdempotencyKey = null) : ICommand<CustomerOrderResponse>;

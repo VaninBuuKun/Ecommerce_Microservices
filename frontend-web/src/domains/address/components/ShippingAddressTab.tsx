@@ -44,7 +44,11 @@ export function ShippingAddressTab() {
 	const formatFullAddress = (addr: any) => {
 		const loc = locationMap.get(Number(addr.wardId));
 		if (loc) {
-			return `${addr.addressLine || ""}, ${loc.wardName}, ${loc.districtName}, ${loc.provinceName}`;
+			const area = [loc.wardName, loc.districtName, loc.provinceName].filter(Boolean).join(", ");
+			if (addr.addressLine && area) {
+				return `${addr.addressLine} / ${area}`;
+			}
+			return addr.addressLine || area;
 		}
 		return addr.addressLine || "";
 	};
@@ -99,7 +103,7 @@ export function ShippingAddressTab() {
 				</div>
 				<button
 					onClick={handleOpenAdd}
-					className="px-3.5 py-1.5 bg-brand-primary hover:bg-brand-primary-deep text-white rounded text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer shadow-xs border-none shrink-0 self-start sm:self-auto"
+					className="px-3.5 py-1.5 bg-brand-primary hover:bg-brand-primary-deep text-brand-dark rounded text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer shadow-xs border-none shrink-0 self-start sm:self-auto"
 				>
 					<Plus className="w-3.5 h-3.5" />
 					Thêm địa chỉ mới
@@ -121,12 +125,12 @@ export function ShippingAddressTab() {
 					{addresses.map((addr: any) => (
 						<div
 							key={addr.id}
-							className="py-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 group hover:bg-brand-light-soft/30 transition-colors -mx-2 px-2 rounded"
+							className="py-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 group hover:bg-brand-light-soft/30 transition-colors -mx-2 px-2 rounded-xl"
 						>
 							{/* Address Info */}
 							<div className="space-y-1 flex-1 min-w-0">
 								<div className="flex items-center gap-2.5 flex-wrap">
-									<span className="font-bold text-xs text-brand-dark">
+									<span className="font-extrabold text-xs text-brand-dark">
 										{addr.recipientName}
 									</span>
 									<span className="text-brand-border font-light">|</span>
@@ -139,35 +143,42 @@ export function ShippingAddressTab() {
 										</span>
 									)}
 								</div>
-								<p className="text-xs text-brand-muted leading-relaxed truncate sm:whitespace-normal font-medium">
+								<p className="text-xs text-brand-dark leading-relaxed font-medium">
 									{formatFullAddress(addr)}
 								</p>
 							</div>
 
-							{/* Actions Buttons */}
+							{/* Actions Buttons: Cập nhật -> Thiết lập mặc định -> Xóa */}
 							<div className="flex items-center gap-2 shrink-0 self-end sm:self-center">
+								{/* 1. Cập nhật */}
 								<button
+									type="button"
 									onClick={() => handleOpenEdit(addr)}
-									className="px-2.5 py-1 text-brand-dark hover:text-brand-primary-deep text-xs font-bold transition-colors cursor-pointer border border-brand-border hover:bg-white rounded flex items-center gap-1 bg-brand-light-soft/50 shadow-2xs"
+									className="px-2.5 py-1 text-brand-dark hover:text-brand-primary-deep text-xs font-bold transition-all cursor-pointer border border-brand-border hover:bg-white rounded-lg flex items-center gap-1.5 bg-brand-light-soft/50 shadow-2xs"
+									title="Chỉnh sửa địa chỉ"
 								>
-									<Edit2 className="w-3 h-3 text-brand-muted" />
+									<Edit2 className="w-3.5 h-3.5 text-brand-muted" />
 									<span>Cập nhật</span>
 								</button>
 
+								{/* 2. Thiết lập mặc định */}
 								{!addr.isDefault && (
 									<button
+										type="button"
 										onClick={() => handleSetDefault(addr.id)}
 										disabled={setDefaultAddressMutation.isPending}
-										className="px-2.5 py-1 border border-brand-border hover:bg-brand-light-soft text-brand-muted hover:text-brand-dark rounded text-xs font-bold transition-colors cursor-pointer bg-white"
+										className="px-2.5 py-1 border border-brand-border hover:bg-brand-light-soft text-brand-muted hover:text-brand-dark rounded-lg text-xs font-bold transition-all cursor-pointer bg-white"
 									>
 										Thiết lập mặc định
 									</button>
 								)}
 
+								{/* 3. Xóa */}
 								<button
+									type="button"
 									onClick={() => handleDelete(addr.id)}
 									disabled={deleteAddressMutation.isPending}
-									className="p-1.5 text-brand-muted hover:text-red-500 hover:bg-red-50 rounded transition-colors cursor-pointer border border-transparent hover:border-red-100"
+									className="p-1.5 text-brand-muted hover:text-red-500 hover:bg-red-50 rounded-lg transition-all cursor-pointer border border-transparent hover:border-red-100"
 									title="Xóa địa chỉ"
 								>
 									<Trash2 className="w-3.5 h-3.5" />

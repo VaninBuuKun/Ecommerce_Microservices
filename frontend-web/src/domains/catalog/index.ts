@@ -13,3 +13,4 @@ export * from "./components/management";
 export * from "./components/landing";
 export { ProductsView } from "./components/management/ProductView";
 export { EditProductPage } from "./components/management/EditProductPage";
+export * from "./components/reviews/ProductReviewModal";

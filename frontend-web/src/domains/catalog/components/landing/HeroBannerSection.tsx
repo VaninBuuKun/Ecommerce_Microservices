@@ -34,7 +34,7 @@ export function HeroBannerSection() {
 	const [banners, setBanners] = useState<BannerDto[]>([]);
 	const [isLoading, setIsLoading] = useState(true);
 
-	// Load dynamic banners từ Backend API (Không dùng mock data)
+	// Load dynamic banners từ Backend API
 	useEffect(() => {
 		let isMounted = true;
 		setIsLoading(true);
@@ -196,27 +196,28 @@ export function HeroBannerSection() {
 			</div>
 
 			{/* Quick Shortcuts Bar */}
-			<div className="bg-white border border-brand-border/70 rounded-xl p-3 shadow-2xs">
-				<div className="grid grid-cols-4 sm:grid-cols-8 gap-1.5 text-center">
-					{QUICK_SHORTCUTS.map((item) => {
-						const IconComp = item.icon;
-						return (
-							<button
-								key={item.id}
-								onClick={() => navigate("/products")}
-								className="flex flex-col items-center gap-1 p-1 rounded-lg hover:bg-brand-light-soft transition-all border-none bg-transparent cursor-pointer group"
-							>
-								<div className={`p-2 rounded-lg ${item.color} group-hover:scale-110 transition-transform shadow-2xs`}>
-									<IconComp className="w-4 h-4" />
-								</div>
-								<span className="text-[10px] font-bold text-brand-dark line-clamp-1 leading-tight">
-									{item.label}
-								</span>
-							</button>
-						);
-					})}
-				</div>
-			</div>
+			{/*<div className="bg-white border border-brand-border/70 rounded-xl p-3 shadow-2xs">*/}
+			{/*	<div className="grid grid-cols-4 sm:grid-cols-8 gap-1.5 text-center">*/}
+			{/*		{QUICK_SHORTCUTS.map((item) => {*/}
+			{/*			const IconComp = item.icon;*/}
+			{/*			return (*/}
+			{/*				<button*/}
+			{/*					key={item.id}*/}
+			{/*					onClick={() => navigate("/products")}*/}
+			{/*					className="flex flex-col items-center gap-1 p-1 rounded-lg hover:bg-brand-light-soft transition-all border-none bg-transparent cursor-pointer group"*/}
+			{/*				>*/}
+			{/*					<div className={`p-2 rounded-lg ${item.color} group-hover:scale-110 transition-transform shadow-2xs`}>*/}
+			{/*						<IconComp className="w-4 h-4" />*/}
+			{/*					</div>*/}
+			{/*					<span className="text-[10px] font-bold text-brand-dark line-clamp-1 leading-tight">*/}
+			{/*						{item.label}*/}
+			{/*					</span>*/}
+			{/*				</button>*/}
+			{/*			);*/}
+			{/*		})}*/}
+			{/*	</div>*/}
+			{/*</div>*/}
+			
 		</div>
 	);
 }

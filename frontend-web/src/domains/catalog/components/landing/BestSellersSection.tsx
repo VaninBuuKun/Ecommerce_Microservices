@@ -2,19 +2,16 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { Flame, Star, ChevronLeft, ChevronRight } from "lucide-react";
-import { useProductsQuery } from "../../hooks/useCatalog";
+import { useBestSellersQuery } from "../../hooks/useCatalog";
 
 export function BestSellersSection() {
 	const navigate = useNavigate();
 	const [bestSellerSlide, setBestSellerSlide] = useState(0);
 
-	const { data: topProductsData } = useProductsQuery({
-		limit: 18,
-		pageSize: 18,
-		sortBy: "best_selling",
-	});
+	const { data: topProductsData } = useBestSellersQuery(18);
 
 	const allBestSellers = topProductsData?.items || [];
+
 	const SLIDE_ITEMS_PER_PAGE = 6;
 	const totalBestSellerSlides = Math.ceil(allBestSellers.length / SLIDE_ITEMS_PER_PAGE) || 1;
 
@@ -53,7 +50,7 @@ export function BestSellersSection() {
 						Sản phẩm bán chạy
 					</h2>
 					<p className="text-[10px] text-brand-muted font-bold">
-						Top sản phẩm được săn đón nhất trong tuần
+						Top sản phẩm được săn đón nhất
 					</p>
 				</div>
 			</div>

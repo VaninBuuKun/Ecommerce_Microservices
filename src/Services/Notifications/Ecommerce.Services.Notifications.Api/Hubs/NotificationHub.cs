@@ -84,7 +84,7 @@ public class NotificationHub(
     }
 
     /// <summary>Client gửi tin nhắn chat. Tự động khởi tạo ChatRoom nếu roomId chưa tồn tại (Default/Empty).</summary>
-    public async Task SendChatMessage(Guid roomId, string content, long recipientId, string senderRole)
+    public async Task SendChatMessage(Guid roomId, string content, long recipientId, string senderRole, string messageType = "Text")
     {
         if (string.IsNullOrWhiteSpace(content)) return;
         if (!long.TryParse(Context.UserIdentifier, out var senderId)) return;
@@ -120,11 +120,13 @@ public class NotificationHub(
 
         if (room == null) return;
 
+        var msgType = Enum.TryParse<ChatMessageType>(messageType, true, out var parsedType) ? parsedType : ChatMessageType.Text;
         var message = new ChatMessage
         {
             RoomId = roomId,
             SenderId = senderId,
             Content = content.Trim(),
+            MessageType = msgType,
             SentAt = DateTimeOffset.UtcNow
         };
 
@@ -144,6 +146,7 @@ public class NotificationHub(
             roomId = message.RoomId,
             senderId = message.SenderId,
             content = message.Content,
+            messageType = message.MessageType.ToString(),
             sentAt = message.SentAt
         });
 
@@ -188,6 +191,7 @@ public class NotificationHub(
                 roomId = m.RoomId,
                 senderId = m.SenderId,
                 content = m.Content,
+                messageType = m.MessageType.ToString(),
                 sentAt = m.SentAt
             })
             .ToListAsync();

@@ -1,5 +1,6 @@
 using System.Reflection;
 using BuildingBlocks.Application;
+using BuildingBlocks.Caching;
 using BuildingBlocks.Logging;
 
 using Ecommerce.Services.Identity.Api.Configurations;
@@ -34,6 +35,7 @@ try
     });
 
     builder.Services.AddBuildingBlocksApplication(Assembly.GetExecutingAssembly());
+    builder.Services.AddCustomCaching(builder.Configuration.GetConnectionString("Redis") ?? "localhost:6379");
 
     builder.Services.AddEndpointsApiExplorer();
     builder.Services.AddInfrastructureConfiguration(builder.Configuration);

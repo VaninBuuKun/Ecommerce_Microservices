@@ -27,7 +27,11 @@ export const orderApi = {
 
 	// Thực hiện thanh toán và tạo đơn hàng chính thức
 	checkout: async (data: any): Promise<any> => {
-		const response = await api.post("/orders/checkout", data);
+		const headers: Record<string, string> = {};
+		if (data?.idempotencyKey) {
+			headers["X-Idempotency-Key"] = data.idempotencyKey;
+		}
+		const response = await api.post("/orders/checkout", data, { headers });
 		return response.data;
 	},
 

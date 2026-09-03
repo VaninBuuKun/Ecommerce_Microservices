@@ -1,4 +1,13 @@
+using System;
+
 namespace Ecommerce.Services.Notifications.Api.Models.Entities;
+
+public enum ChatMessageType
+{
+    Text,
+    Image,
+    Icon
+}
 
 /// <summary>
 /// Chat message giữa buyer và shop.
@@ -15,6 +24,7 @@ public class ChatMessage
 
     public string Content { get; set; } = string.Empty;
 
+    public ChatMessageType MessageType { get; set; } = ChatMessageType.Text;
+
     public DateTimeOffset SentAt { get; set; } = DateTimeOffset.UtcNow;
 }
-

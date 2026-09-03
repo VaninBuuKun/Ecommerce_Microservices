@@ -1,10 +1,8 @@
 import { useState, useEffect } from "react";
-import { Bell, CheckCheck, Loader2 } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { Bell, CheckCheck, Loader2, ArrowRight } from "lucide-react";
 import { api } from "@/core";
 import { toast } from "react-toastify";
-
-// USE_MOCK_DATA flag for fallback testing
-const USE_MOCK_DATA = false;
 
 interface NotificationItem {
 	id: string;
@@ -16,6 +14,7 @@ interface NotificationItem {
 }
 
 export function NotificationBell() {
+	const navigate = useNavigate();
 	const [isOpen, setIsOpen] = useState(false);
 	const [notifications, setNotifications] = useState<NotificationItem[]>([]);
 	const [isLoading, setIsLoading] = useState(false);
@@ -23,31 +22,9 @@ export function NotificationBell() {
 	const fetchNotifications = async () => {
 		try {
 			setIsLoading(true);
-			if (USE_MOCK_DATA) {
-				await new Promise((res) => setTimeout(res, 300));
-				setNotifications([
-					{
-						id: "1",
-						title: "Đơn hàng mới #SUB1002",
-						body: "Đơn hàng của bạn đang được người bán chuẩn bị đóng gói.",
-						type: "OrderShipped",
-						isRead: false,
-						createdAt: new Date().toISOString(),
-					},
-					{
-						id: "2",
-						title: "Thanh toán thành công",
-						body: "Bạn đã thanh toán thành công 510.000đ qua VNPay.",
-						type: "PaymentSucceeded",
-						isRead: true,
-						createdAt: new Date(Date.now() - 3600000).toISOString(),
-					},
-				]);
-			} else {
-				const res = await api.get("/notifications");
-				const data = res.data?.value || res.data || [];
-				setNotifications(Array.isArray(data) ? data : []);
-			}
+			const res = await api.get("/notifications");
+			const data = res.data?.value || res.data || [];
+			setNotifications(Array.isArray(data) ? data : []);
 		} catch (err: any) {
 			console.error("Lỗi khi tải thông báo:", err);
 		} finally {
@@ -61,24 +38,24 @@ export function NotificationBell() {
 
 	const unreadCount = notifications.filter((n) => !n.isRead).length;
 
-	const handleMarkAsRead = async (id: string) => {
+	const handleItemClick = async (item: NotificationItem) => {
 		try {
-			if (!USE_MOCK_DATA) {
-				await api.put(`/notifications/${id}/read`);
+			if (!item.isRead) {
+				await api.put(`/notifications/${item.id}/read`);
+				setNotifications((prev) =>
+					prev.map((n) => (n.id === item.id ? { ...n, isRead: true } : n))
+				);
 			}
-			setNotifications((prev) =>
-				prev.map((n) => (n.id === id ? { ...n, isRead: true } : n))
-			);
 		} catch (err: any) {
-			toast.error("Không thể cập nhật trạng thái thông báo.");
+			console.error(err);
 		}
+		setIsOpen(false);
+		navigate(`/profile?tab=notifications&id=${item.id}`);
 	};
 
 	const handleMarkAllAsRead = async () => {
 		try {
-			if (!USE_MOCK_DATA) {
-				await api.put("/notifications/read-all");
-			}
+			await api.put("/notifications/read-all");
 			setNotifications((prev) => prev.map((n) => ({ ...n, isRead: true })));
 			toast.success("Đã đánh dấu tất cả thông báo là đã đọc!");
 		} catch (err: any) {
@@ -139,13 +116,13 @@ export function NotificationBell() {
 								</div>
 							) : notifications.length === 0 ? (
 								<div className="py-8 text-center text-xs font-bold text-brand-muted">
-									Bạn chưa có thông báo nào.
+									Bạn chưa có thông báo nào trong 15 ngày qua.
 								</div>
 							) : (
 								notifications.map((item) => (
 									<div
 										key={item.id}
-										onClick={() => !item.isRead && handleMarkAsRead(item.id)}
+										onClick={() => handleItemClick(item)}
 										className={`p-3 transition-colors cursor-pointer hover:bg-slate-50 ${
 											!item.isRead ? "bg-brand-primary/5" : "bg-white"
 										}`}
@@ -167,6 +144,20 @@ export function NotificationBell() {
 									</div>
 								))
 							)}
+						</div>
+
+						{/* Footer view all link */}
+						<div className="p-2.5 bg-slate-50 border-t border-brand-border text-center">
+							<button
+								onClick={() => {
+									setIsOpen(false);
+									navigate("/profile?tab=notifications");
+								}}
+								className="w-full inline-flex items-center justify-center gap-1.5 py-1.5 text-xs font-black text-brand-primary-deep hover:text-brand-dark transition-colors cursor-pointer"
+							>
+								<span>Xem tất cả thông báo (15 ngày)</span>
+								<ArrowRight className="w-3.5 h-3.5" />
+							</button>
 						</div>
 					</div>
 				</>

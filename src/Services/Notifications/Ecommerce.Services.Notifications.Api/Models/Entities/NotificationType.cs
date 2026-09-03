@@ -8,5 +8,6 @@ public enum NotificationType
     SubOrderShipped,
     ShopProductCreated,
     NewDeviceLogin,
+    PasswordChanged,
     SystemAlert
 }

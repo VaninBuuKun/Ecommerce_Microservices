@@ -4,6 +4,8 @@ using System.Linq;
 using System.Threading.Tasks;
 using BuildingBlocks.Shared.Commons;
 using BuildingBlocks.Shared.Enums;
+using BuildingBlocks.Shared.Events;
+using BuildingBlocks.Shared.InfrastructureInterfaces.Messaging;
 using BuildingBlocks.Shared.InfrastructureInterfaces.Persistence.EFCore;
 using Ecommerce.Services.Payments.Api.Models.Dtos;
 using Ecommerce.Services.Payments.Api.Models.Entities;
@@ -13,7 +15,7 @@ using MapsterMapper;
 
 namespace Ecommerce.Services.Payments.Api.Services;
 
-public class WithdrawalService(IEfUnitOfWork unitOfWork, IMapper mapper) : IWithdrawalService
+public class WithdrawalService(IEfUnitOfWork unitOfWork, IMapper mapper, IEventPublisher eventPublisher) : IWithdrawalService
 {
     private readonly IGenericEfRepository<Wallet, long> _walletRepository = unitOfWork.Repository<Wallet, long>();
     private readonly IGenericEfRepository<BankAccount, long> _bankAccountRepository = unitOfWork.Repository<BankAccount, long>();
@@ -154,6 +156,20 @@ public class WithdrawalService(IEfUnitOfWork unitOfWork, IMapper mapper) : IWith
         withdrawal.ProcessedAt = DateTime.UtcNow;
         withdrawal.ProcessedByAdminId = adminId;
         _withdrawalRepository.Update(withdrawal);
+
+        // Publish event vào EF Core Outbox trước khi SaveChangesAsync để lưu transaction nguyên tử
+        await eventPublisher.PublishAsync(new WithdrawalCompletedEvent
+        {
+            WithdrawalId = withdrawal.Id,
+            UserId = withdrawal.UserId,
+            Amount = withdrawal.Amount,
+            BankName = withdrawal.BankName,
+            BankAccountNumber = withdrawal.BankAccountNumber,
+            BankAccountHolder = withdrawal.BankAccountHolder,
+            ProofImageUrl = withdrawal.ProofImageUrl,
+            AdminNote = withdrawal.AdminNote,
+            CompletedAt = withdrawal.ProcessedAt ?? DateTime.UtcNow
+        });
 
         await unitOfWork.SaveChangesAsync();
         return Result.Success();

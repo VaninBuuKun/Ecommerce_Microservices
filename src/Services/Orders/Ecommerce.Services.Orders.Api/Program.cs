@@ -1,4 +1,5 @@
 using BuildingBlocks.Auth;
+using BuildingBlocks.BackgroundJobs.Configurations;
 using BuildingBlocks.Grpc.Extensions;
 using BuildingBlocks.Logging;
 
@@ -29,6 +30,7 @@ try
     
     builder.Services.AddInfrastructure(builder.Configuration);
     builder.Services.AddApplication();
+    builder.Services.AddBuildingBlocksHangfire(builder.Configuration, schemaName: "hangfire_orders");
 
     var app = builder.Build();
 
@@ -42,6 +44,7 @@ try
         app.UseHttpsRedirection();
     }
     app.UseCors("CorsPolicy");
+    app.UseBuildingBlocksHangfireDashboard("/hangfire");
     app.MapControllers();
     app.MapGrpcService<Ecommerce.Services.Orders.Api.GrpcServers.OrderGrpcServer>();
 

@@ -50,9 +50,10 @@ public class ProductsController(ISender sender) : ControllerBase
         [FromQuery] string? cursor = null,
         [FromQuery] int limit = 10,
         [FromQuery] string sortBy = "name",
-        [FromQuery] long? shopId = null)
+        [FromQuery] long? shopId = null,
+        [FromQuery] bool? hasDiscount = null)
     {
-        var result = await sender.Send(new GetProductsQuery(searchTerm, categoryId, minRating, cursor, limit, sortBy, shopId));
+        var result = await sender.Send(new GetProductsQuery(searchTerm, categoryId, minRating, cursor, limit, sortBy, shopId, hasDiscount));
 
         if (result.IsSuccess)
         {
