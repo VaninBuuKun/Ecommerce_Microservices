@@ -88,6 +88,7 @@ public class UpdateSingleVariantCommandHandler(
             );
 
             product.RecalculateCachedPrices();
+            product.RebuildSearchDocument(product.Category?.Name);
             _productRepository.Update(product);
 
             await unitOfWork.SaveChangesAsync(cancellationToken);

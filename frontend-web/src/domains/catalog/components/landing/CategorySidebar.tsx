@@ -83,9 +83,13 @@ export function CategorySidebar() {
 						categories.map((c: any, index: number) => (
 							<button
 								key={c.id}
-								onClick={() =>
-									navigate(`/products?categoryId=${c.id}`)
-								}
+								onClick={() => {
+									if (!c.parentId) {
+										navigate(`/explore?parentCategoryId=${c.id}`);
+									} else {
+										navigate(`/explore?subCategoryId=${c.id}`);
+									}
+								}}
 								className="w-full flex items-center gap-2 p-1.5 rounded-lg text-xs font-bold text-brand-dark hover:bg-brand-primary/10 hover:text-brand-primary-deep transition-all duration-150 cursor-pointer border-none bg-transparent group text-left"
 							>
 								{c.iconUrl ? (

@@ -49,17 +49,39 @@ public class GetProductsQueryHandler(
                 }
             }
 
-            // 2. Dùng Specification của Repo (Không dùng GetQueryable hay AsQueryable trực tiếp)
+            // 2. Phân tích ý định tìm kiếm nếu có SearchTerm (đồng nhất với Search endpoint)
+            var searchTerm = query.SearchTerm;
+            var minPrice = query.MinPrice;
+            var maxPrice = query.MaxPrice;
+            var minRating = query.MinRating;
+            var sortBy = query.SortBy;
+
+            if (!string.IsNullOrWhiteSpace(searchTerm))
+            {
+                var (cleanKw, parsedFilters) = Ecommerce.Services.Catalog.Application.Features.Search.SearchQueryParser.Parse(searchTerm);
+                searchTerm = cleanKw;
+                minPrice ??= parsedFilters.MinPrice;
+                maxPrice ??= parsedFilters.MaxPrice;
+                minRating ??= parsedFilters.MinRating;
+                if ((string.IsNullOrWhiteSpace(sortBy) || sortBy == "newest") && !string.IsNullOrEmpty(parsedFilters.SortBy))
+                {
+                    sortBy = parsedFilters.SortBy;
+                }
+            }
+
+            // 3. Dùng Specification của Repo (Không dùng GetQueryable hay AsQueryable trực tiếp)
             var spec = new ProductsWithCursorPaginationSpec(
-                query.SearchTerm,
+                searchTerm,
                 query.CategoryId,
-                query.MinRating,
-                query.SortBy,
+                minRating,
+                sortBy,
                 lastValue,
                 lastId,
                 query.Limit + 1,
                 query.ShopId,
-                query.HasDiscount
+                query.HasDiscount,
+                minPrice,
+                maxPrice
             );
 
             var products = await _productRepository.GetListAsync(spec, cancellationToken);

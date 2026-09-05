@@ -9,13 +9,26 @@ import {
 	Store,
 	Bell,
 	Heart,
+	Clock,
+	X,
+	Trash2,
+	ArrowRight,
 } from "lucide-react";
 import { authService, useAuthStore } from "@/domains/auth";
 import { useCartQuery } from "@/domains/cart";
 import { api } from "@/core";
 
 import { checkIsAdmin } from "../shared/utils/authHelper";
-import { useWishlist } from "@/domains/catalog";
+import {
+	useWishlist,
+	useSearchHistoryQuery,
+	useSaveSearchKeywordMutation,
+	useSyncSearchHistoryMutation,
+	useClearSearchHistoryMutation,
+	useRemoveSearchHistoryItemMutation,
+	productApi,
+	type SearchSuggestionsResponse,
+} from "@/domains/catalog";
 import { useNotifications } from "@/domains/notification";
 
 export default function Header() {
@@ -34,26 +47,54 @@ export default function Header() {
 	const [showNotificationDropdown, setShowNotificationDropdown] = useState(false);
 	const [showUserDropdown, setShowUserDropdown] = useState(false);
 	const [searchQuery, setSearchQuery] = useState("");
-	const [suggestions, setSuggestions] = useState<any[]>([]);
 	const [isSearchingSuggestions, setIsSearchingSuggestions] = useState(false);
+	const [suggestionData, setSuggestionData] = useState<SearchSuggestionsResponse | null>(null);
 
 	const searchRef = useRef<HTMLDivElement>(null);
 
-	// Fetch autocomplete suggestions from Catalog Service (PostgreSQL FTS)
+	// Queries & Mutations cho Tìm Kiếm
+	const { data: serverHistory = [] } = useSearchHistoryQuery(!!user);
+	const saveKeywordMutation = useSaveSearchKeywordMutation();
+	const syncHistoryMutation = useSyncSearchHistoryMutation();
+	const clearHistoryMutation = useClearSearchHistoryMutation();
+	const removeHistoryMutation = useRemoveSearchHistoryItemMutation();
+
+	// Quản lý LocalStorage History cho khách vãng lai (Guest)
+	const [guestHistory, setGuestHistory] = useState<string[]>(() => {
+		try {
+			const saved = localStorage.getItem("guest_search_history");
+			return saved ? JSON.parse(saved) : [];
+		} catch {
+			return [];
+		}
+	});
+
+	const searchHistory = user ? serverHistory : guestHistory;
+
+	// Tự động đồng bộ lịch sử tìm kiếm khi User đăng nhập
+	useEffect(() => {
+		if (user && guestHistory.length > 0) {
+			syncHistoryMutation.mutate(guestHistory, {
+				onSuccess: () => {
+					localStorage.removeItem("guest_search_history");
+					setGuestHistory([]);
+				},
+			});
+		}
+	}, [user]);
+
+	// Fetch Autocomplete & Smart Intent Suggestions (Debounce 250ms)
 	useEffect(() => {
 		if (!searchQuery.trim()) {
-			setSuggestions([]);
+			setSuggestionData(null);
 			return;
 		}
 
 		const timer = setTimeout(async () => {
 			try {
 				setIsSearchingSuggestions(true);
-				const res = await api.get("/products", {
-					params: { searchTerm: searchQuery.trim(), limit: 5 },
-				});
-				const items = res.data?.value?.items || res.data?.items || [];
-				setSuggestions(items);
+				const data = await productApi.getSearchSuggestions(searchQuery.trim(), 5);
+				setSuggestionData(data);
 			} catch (e) {
 				console.error("Lỗi gợi ý tìm kiếm:", e);
 			} finally {
@@ -64,13 +105,52 @@ export default function Header() {
 		return () => clearTimeout(timer);
 	}, [searchQuery]);
 
-	const handleExecuteSearch = (queryToSearch?: string) => {
-		const term = (queryToSearch !== undefined ? queryToSearch : searchQuery).trim();
+	const handleExecuteSearch = (targetUrlOrTerm?: string) => {
 		setShowSearchSuggestions(false);
+
+		// Nếu là URL chuyển tiếp trực tiếp từ gợi ý ý định
+		if (targetUrlOrTerm && targetUrlOrTerm.startsWith("/explore")) {
+			navigate(targetUrlOrTerm);
+			return;
+		}
+
+		const term = (targetUrlOrTerm !== undefined ? targetUrlOrTerm : searchQuery).trim();
 		if (term) {
+			if (user) {
+				saveKeywordMutation.mutate(term);
+			} else {
+				try {
+					const updated = [term, ...guestHistory.filter((k) => k.toLowerCase() !== term.toLowerCase())].slice(0, 5);
+					localStorage.setItem("guest_search_history", JSON.stringify(updated));
+					setGuestHistory(updated);
+				} catch (e) {
+					console.error("Lỗi lưu lịch sử khách:", e);
+				}
+			}
 			navigate(`/explore?search=${encodeURIComponent(term)}`);
 		} else {
 			navigate("/explore");
+		}
+	};
+
+	const handleClearHistory = (e: React.MouseEvent) => {
+		e.stopPropagation();
+		if (user) {
+			clearHistoryMutation.mutate();
+		} else {
+			localStorage.removeItem("guest_search_history");
+			setGuestHistory([]);
+		}
+	};
+
+	const handleRemoveHistoryItem = (e: React.MouseEvent, item: string) => {
+		e.stopPropagation();
+		if (user) {
+			removeHistoryMutation.mutate(item);
+		} else {
+			const updated = guestHistory.filter((k) => k !== item);
+			localStorage.setItem("guest_search_history", JSON.stringify(updated));
+			setGuestHistory(updated);
 		}
 	};
 
@@ -170,71 +250,176 @@ export default function Header() {
 						</button>
 					</form>
 
-					{/* Gợi ý tìm kiếm Fuzzy Search từ PostgreSQL */}
+					{/* Dropdown Gợi ý tìm kiếm thông minh (Không bo góc, lịch sử dạng dọc) */}
 					{showSearchSuggestions && (
-						<div className="absolute top-full left-0 right-0 mt-1 bg-white border border-brand-border rounded-xl shadow-xl p-2.5 text-left z-50 animate-in fade-in duration-150">
-							<span className="block text-[10px] text-brand-muted font-bold px-2 py-1 uppercase tracking-wider">
-								{searchQuery.trim() ? "Gợi ý sản phẩm phù hợp" : "Tìm kiếm phổ biến"}
-							</span>
-
-							<div className="mt-1 space-y-1">
-								{isSearchingSuggestions ? (
-									<div className="p-3 text-center text-xs text-brand-muted font-medium">
-										Đang tìm gợi ý...
-									</div>
-								) : searchQuery.trim() && suggestions.length > 0 ? (
-									suggestions.map((item: any) => (
-										<div
-											key={item.id}
-											onClick={() => {
-												setShowSearchSuggestions(false);
-												navigate(`/products/${item.id}`);
-											}}
-											className="flex items-center gap-3 p-2 hover:bg-slate-50 rounded-lg cursor-pointer transition-colors"
-										>
-											<img
-												src={item.thumbnailUrl || "https://images.unsplash.com/photo-1523275335684-37898b6baf30?auto=format&fit=crop&w=120&q=80"}
-												alt={item.name}
-												className="w-9 h-9 object-cover rounded border border-brand-border"
-											/>
-											<div className="flex-1 min-w-0">
-												<h4 className="text-xs font-bold text-brand-dark truncate">
-													{item.name}
-												</h4>
-												<span className="text-[10px] text-brand-primary-deep font-black">
-													{item.price?.toLocaleString("vi-VN")}đ
+						<div className="absolute top-full left-0 right-0 mt-1 bg-white border border-slate-200 rounded-none shadow-[0_12px_45px_rgba(0,0,0,0.12)] p-3 text-left z-50 animate-in fade-in duration-150 max-h-[80vh] overflow-y-auto custom-scrollbar">
+							{/* Case 1: Search Query TRỐNG -> Hiển thị Lịch sử tìm kiếm DỌC (tối đa 5) */}
+							{!searchQuery.trim() ? (
+								<div className="space-y-2">
+									{searchHistory.length > 0 ? (
+										<div className="space-y-1">
+											<div className="flex items-center justify-between pb-1.5 border-b border-slate-100 px-1">
+												<span className="text-[11px] font-black text-brand-dark uppercase tracking-wider flex items-center gap-1.5">
+													<Clock className="w-3.5 h-3.5 text-brand-primary" />
+													Lịch sử tìm kiếm
 												</span>
+												<button
+													type="button"
+													onClick={handleClearHistory}
+													className="text-[10px] font-bold text-red-500 hover:text-red-700 transition-colors flex items-center gap-0.5 border-none bg-transparent cursor-pointer"
+												>
+													<Trash2 className="w-3 h-3" />
+													Xóa tất cả
+												</button>
+											</div>
+
+											{/* Danh sách DỌC (Vertical List) */}
+											<div className="divide-y divide-slate-100">
+												{searchHistory.map((kw, idx) => (
+													<div
+														key={idx}
+														onClick={() => {
+															setSearchQuery(kw);
+															handleExecuteSearch(kw);
+														}}
+														className="group flex items-center justify-between py-2 px-2 hover:bg-slate-50 text-xs font-semibold text-slate-700 hover:text-brand-primary-deep transition-colors cursor-pointer"
+													>
+														<div className="flex items-center gap-2.5 min-w-0 flex-1">
+															<Clock className="w-3.5 h-3.5 text-slate-400 group-hover:text-brand-primary shrink-0" />
+															<span className="truncate">{kw}</span>
+														</div>
+														<button
+															type="button"
+															onClick={(e) => handleRemoveHistoryItem(e, kw)}
+															className="text-slate-300 hover:text-red-500 p-1 transition-colors border-none bg-transparent cursor-pointer flex items-center shrink-0"
+															title="Xóa"
+														>
+															<X className="w-3 h-3" />
+														</button>
+													</div>
+												))}
 											</div>
 										</div>
-									))
-								) : searchQuery.trim() && suggestions.length === 0 ? (
-									<div className="p-3 text-center text-xs text-brand-muted font-medium">
-										Không tìm thấy gợi ý khớp với "{searchQuery}"
-									</div>
-								) : (
-									POPULAR_SEARCH_KEYWORDS.map((suggestion, idx) => (
-										<button
-											key={idx}
-											onClick={() => {
-												setSearchQuery(suggestion);
-												handleExecuteSearch(suggestion);
-											}}
-											className="w-full text-left px-2.5 py-1.5 text-xs text-brand-dark hover:bg-brand-light-soft hover:text-brand-primary rounded-lg transition-colors border-none bg-transparent cursor-pointer font-medium"
-										>
-											🔍 {suggestion}
-										</button>
-									))
-								)}
-							</div>
+									) : (
+										<div className="py-4 text-center text-xs text-brand-muted font-medium">
+											Nhập từ khóa để tìm kiếm sản phẩm hoặc danh mục...
+										</div>
+									)}
+								</div>
+							) : (
+								/* Case 2: Search Query ĐANG NHẬP CHỮ -> Không bo góc */
+								<div className="space-y-3.5">
+									{isSearchingSuggestions ? (
+										<div className="py-6 text-center text-xs text-brand-muted font-medium">
+											Đang tìm kiếm danh mục và sản phẩm...
+										</div>
+									) : (
+										<>
+											{/* A. DANH MỤC TÌM KIẾM (Hiện ở ĐẦU nếu có, tối đa 5 SubCategories kèm ảnh + tên) */}
+											{suggestionData?.suggestedCategories && suggestionData.suggestedCategories.length > 0 && (
+												<div className="space-y-2">
+													<span className="block text-[11px] font-black text-brand-dark uppercase tracking-wider px-1">
+														Danh mục tìm kiếm
+													</span>
+													<div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+														{suggestionData.suggestedCategories.map((cat) => (
+															<div
+																key={cat.id}
+																onClick={() => {
+																	setShowSearchSuggestions(false);
+																	navigate(
+																		cat.parentId
+																			? `/explore?parentCategoryId=${cat.parentId}&subCategoryId=${cat.id}`
+																			: `/explore?categoryId=${cat.id}`
+																	);
+																}}
+																className="flex items-center gap-2.5 p-2 bg-slate-50/80 hover:bg-slate-100 rounded-none cursor-pointer transition-all group border border-slate-100"
+															>
+																<img
+																	src={cat.imageUrl || "https://cdn-icons-png.flaticon.com/512/3081/3081986.png"}
+																	alt={cat.name}
+																	className="w-8 h-8 object-cover rounded-none bg-white shrink-0 group-hover:scale-105 transition-transform"
+																	onError={(e) => {
+																		(e.target as HTMLImageElement).src = "https://cdn-icons-png.flaticon.com/512/3081/3081986.png";
+																	}}
+																/>
+																<div className="min-w-0 flex-1">
+																	<span className="block text-xs font-bold text-slate-800 group-hover:text-brand-primary-deep truncate transition-colors">
+																		{cat.name}
+																	</span>
+																	{cat.parentName && (
+																		<span className="block text-[10px] text-brand-muted truncate">
+																			{cat.parentName}
+																		</span>
+																	)}
+																</div>
+															</div>
+														))}
+													</div>
+												</div>
+											)}
 
-							{searchQuery.trim() && (
-								<div className="border-t border-brand-border/60 mt-2 pt-2 text-center">
-									<button
-										onClick={() => handleExecuteSearch()}
-										className="w-full py-1.5 text-xs text-brand-dark font-extrabold hover:bg-brand-primary hover:text-brand-dark rounded-lg transition-colors border-none bg-brand-light-soft cursor-pointer"
-									>
-										Xem tất cả kết quả cho "{searchQuery}" ➔
-									</button>
+											{/* B. SẢN PHẨM GỢI Ý (Hiện ở CUỐI nếu có, 5 sản phẩm) */}
+											{suggestionData?.topProducts && suggestionData.topProducts.length > 0 && (
+												<div className={`space-y-1.5 ${suggestionData?.suggestedCategories && suggestionData.suggestedCategories.length > 0 ? "pt-2.5 border-t border-slate-100" : ""}`}>
+													<span className="block text-[11px] font-black text-brand-dark uppercase tracking-wider px-1">
+														Sản phẩm gợi ý
+													</span>
+													{suggestionData.topProducts.map((p: any) => (
+														<div
+															key={p.id}
+															onClick={() => {
+																setShowSearchSuggestions(false);
+																navigate(`/products/${p.id}`);
+															}}
+															className="flex items-center gap-3 p-2 hover:bg-slate-50 rounded-none cursor-pointer transition-colors group"
+														>
+															<img
+																src={p.thumbnailUrl || "https://images.unsplash.com/photo-1523275335684-37898b6baf30?auto=format&fit=crop&w=120&q=80"}
+																alt={p.name}
+																className="w-10 h-10 object-cover rounded-none bg-slate-100 shrink-0 group-hover:scale-105 transition-transform"
+															/>
+															<div className="flex-1 min-w-0">
+																<h4 className="text-xs font-bold text-brand-dark truncate group-hover:text-brand-primary-deep transition-colors">
+																	{p.name}
+																</h4>
+																<div className="flex items-center gap-2 mt-0.5">
+																	<span className="text-xs text-red-600 font-black">
+																		{(p.discountPrice && p.discountPrice > 0 ? p.discountPrice : p.price)?.toLocaleString("vi-VN")}đ
+																	</span>
+																	{p.sold > 0 && (
+																		<span className="text-[10px] text-brand-muted">
+																			Đã bán {p.sold}
+																		</span>
+																	)}
+																</div>
+															</div>
+														</div>
+													))}
+												</div>
+											)}
+
+											{/* C. Khi cả danh mục và sản phẩm đều không có */}
+											{(!suggestionData?.suggestedCategories || suggestionData.suggestedCategories.length === 0) &&
+											 (!suggestionData?.topProducts || suggestionData.topProducts.length === 0) && (
+												<div className="py-6 text-center text-xs text-brand-muted font-medium">
+													Không tìm thấy danh mục hoặc sản phẩm phù hợp với "{searchQuery}"
+												</div>
+											)}
+
+											{/* Footer Action */}
+											<div className="border-t border-slate-100 pt-2.5 text-center">
+												<button
+													type="button"
+													onClick={() => handleExecuteSearch()}
+													className="w-full py-2.5 text-xs text-brand-dark font-black hover:bg-brand-primary-deep rounded-none transition-all border-none bg-brand-primary cursor-pointer flex items-center justify-center gap-1.5 shadow-2xs"
+												>
+													<span>Xem tất cả kết quả cho "{searchQuery}"</span>
+													<ArrowRight className="w-3.5 h-3.5" />
+												</button>
+											</div>
+										</>
+									)}
 								</div>
 							)}
 						</div>

@@ -36,6 +36,7 @@ public class ProductResponse
     public double Height { get; set; }
     public long? CategoryId { get; set; }
     public string? CategoryName { get; set; }
+    public long? ParentCategoryId { get; set; }
     public string? ParentCategoryName { get; set; }
     public long ShopId { get; set; }
     public string ShopName { get; set; } = string.Empty;

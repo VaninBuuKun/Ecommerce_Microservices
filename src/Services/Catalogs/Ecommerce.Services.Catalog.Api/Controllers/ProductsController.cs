@@ -8,11 +8,18 @@ using Ecommerce.Services.Catalog.Application.Features.Products.Commands.UpdateMu
 using Ecommerce.Services.Catalog.Application.Features.Products.Commands.UpdateProduct;
 using Ecommerce.Services.Catalog.Application.Features.Products.Commands.UpdateSingleVariant;
 using Ecommerce.Services.Catalog.Application.Features.Products.Queries.GetAdminProducts;
+using Ecommerce.Services.Catalog.Application.Features.Search.Queries.SearchProducts;
 using Ecommerce.Services.Catalog.Application.Features.Products.Queries.GetMyProducts;
 using Ecommerce.Services.Catalog.Application.Features.Products.Queries.GetProductById;
 using Ecommerce.Services.Catalog.Application.Features.Products.Queries.GetProducts;
 using Ecommerce.Services.Catalog.Application.Features.Products.Queries.GetVariantById;
 using Ecommerce.Services.Catalog.Application.Features.Reviews.Commands.CreateProductReview;
+using Ecommerce.Services.Catalog.Application.Features.Search.Commands.ClearSearchHistory;
+using Ecommerce.Services.Catalog.Application.Features.Search.Commands.RemoveSearchHistoryItem;
+using Ecommerce.Services.Catalog.Application.Features.Search.Commands.SaveSearchKeyword;
+using Ecommerce.Services.Catalog.Application.Features.Search.Commands.SyncSearchHistory;
+using Ecommerce.Services.Catalog.Application.Features.Search.Queries.GetSearchHistory;
+using Ecommerce.Services.Catalog.Application.Features.Search.Queries.GetSearchSuggestions;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -51,9 +58,35 @@ public class ProductsController(ISender sender) : ControllerBase
         [FromQuery] int limit = 10,
         [FromQuery] string sortBy = "name",
         [FromQuery] long? shopId = null,
-        [FromQuery] bool? hasDiscount = null)
+        [FromQuery] bool? hasDiscount = null,
+        [FromQuery] decimal? minPrice = null,
+        [FromQuery] decimal? maxPrice = null)
     {
-        var result = await sender.Send(new GetProductsQuery(searchTerm, categoryId, minRating, cursor, limit, sortBy, shopId, hasDiscount));
+        var result = await sender.Send(new GetProductsQuery(searchTerm, categoryId, minRating, cursor, limit, sortBy, shopId, hasDiscount, minPrice, maxPrice));
+
+        if (result.IsSuccess)
+        {
+            return Ok(result.Value);
+        }
+        return StatusCode(result.GetHttpStatusCode(), result.Message);
+    }
+
+    [HttpGet("search")]
+    public async Task<IActionResult> SearchProducts(
+        [FromQuery] string? q = null,
+        [FromQuery] string? searchTerm = null,
+        [FromQuery] long? categoryId = null,
+        [FromQuery] double? minRating = null,
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 36,
+        [FromQuery] string sortBy = "relevance",
+        [FromQuery] long? shopId = null,
+        [FromQuery] bool? hasDiscount = null,
+        [FromQuery] decimal? minPrice = null,
+        [FromQuery] decimal? maxPrice = null)
+    {
+        var keyword = !string.IsNullOrWhiteSpace(q) ? q : searchTerm;
+        var result = await sender.Send(new SearchProductsQuery(keyword, page, pageSize, categoryId, minRating, sortBy, shopId, hasDiscount, minPrice, maxPrice));
 
         if (result.IsSuccess)
         {
@@ -278,6 +311,87 @@ public class ProductsController(ISender sender) : ControllerBase
 
         return StatusCode(result.GetHttpStatusCode(), result.Message);
     }
+
+    [HttpGet("suggestions")]
+    public async Task<IActionResult> GetSuggestions([FromQuery] string q, [FromQuery] int limit = 5)
+    {
+        var result = await sender.Send(new SearchProductsQuery(Query: q, Page: 1, PageSize: limit, SortBy: "relevance"));
+        if (result.IsSuccess)
+        {
+            return Ok(result.Value);
+        }
+        return StatusCode(result.GetHttpStatusCode(), result.Message);
+    }
+    
+
+    [HttpGet("search-history")]
+    public async Task<IActionResult> GetSearchHistory([FromServices] ICurrentUserService userService)
+    {
+        if (userService.UserId <= 0)
+        {
+            return Ok(new List<string>());
+        }
+        var result = await sender.Send(new GetSearchHistoryQuery(userService.UserId));
+        if (result.IsSuccess)
+        {
+            return Ok(result.Value);
+        }
+        return StatusCode(result.GetHttpStatusCode(), result.Message);
+    }
+
+    [HttpPost("search-history")]
+    public async Task<IActionResult> SaveSearchKeyword(
+        [FromBody] SaveSearchHistoryRequest request,
+        [FromServices] ICurrentUserService userService)
+    {
+        var userId = userService.UserId > 0 ? (long?)userService.UserId : null;
+        var clientIp = HttpContext.Connection.RemoteIpAddress?.ToString();
+        var result = await sender.Send(new SaveSearchKeywordCommand(request.Keyword, userId, clientIp));
+        return Ok(result.IsSuccess);
+    }
+
+    [HttpPost("search-history/sync")]
+    public async Task<IActionResult> SyncSearchHistory(
+        [FromBody] SyncSearchHistoryRequest request,
+        [FromServices] ICurrentUserService userService)
+    {
+        if (userService.UserId <= 0)
+        {
+            return Ok(request.Keywords ?? new List<string>());
+        }
+        var result = await sender.Send(new SyncSearchHistoryCommand(userService.UserId, request.Keywords ?? new List<string>()));
+        if (result.IsSuccess)
+        {
+            return Ok(result.Value);
+        }
+        return StatusCode(result.GetHttpStatusCode(), result.Message);
+    }
+
+    [HttpDelete("search-history")]
+    public async Task<IActionResult> ClearSearchHistory([FromServices] ICurrentUserService userService)
+    {
+        if (userService.UserId <= 0)
+        {
+            return Ok(true);
+        }
+        var result = await sender.Send(new ClearSearchHistoryCommand(userService.UserId));
+        return Ok(result.IsSuccess);
+    }
+
+    [HttpDelete("search-history/item")]
+    public async Task<IActionResult> RemoveSearchHistoryItem(
+        [FromQuery] string keyword,
+        [FromServices] ICurrentUserService userService)
+    {
+        if (userService.UserId <= 0)
+        {
+            return Ok(true);
+        }
+        var result = await sender.Send(new RemoveSearchHistoryItemCommand(userService.UserId, keyword));
+        return Ok(result.IsSuccess);
+    }
 }
 
 public record UpdateAttributesRequest(string? AttributesJson);
+public record SaveSearchHistoryRequest(string Keyword);
+public record SyncSearchHistoryRequest(List<string> Keywords);

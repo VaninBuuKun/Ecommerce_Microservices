@@ -6,6 +6,7 @@ using BuildingBlocks.Shared.Commons;
 using BuildingBlocks.Shared.Enums;
 using BuildingBlocks.Shared.InfrastructureInterfaces.Persistence.EFCore;
 using Ecommerce.Services.Catalog.Domain.Products;
+using Ecommerce.Services.Catalog.Domain.Products.Specifications;
 using Microsoft.Extensions.Logging;
 
 namespace Ecommerce.Services.Catalog.Application.Features.Products.Commands.UpdateProductAttributes;
@@ -21,13 +22,15 @@ public class UpdateProductAttributesCommandHandler(
     {
         try
         {
-            var product = await _productRepository.GetByIdAsync(command.ProductId);
+            var spec = new ProductWithVariantsAndOptionsSpec(command.ProductId);
+            var product = await _productRepository.FirstOrDefaultAsync(spec, cancellationToken);
             if (product == null)
             {
                 return Result<bool>.Failure("Không tìm thấy sản phẩm", EErrorCode.NotFound);
             }
 
             product.SetAttributes(command.AttributesJson);
+            product.RebuildSearchDocument(product.Category?.Name);
             _productRepository.Update(product);
             await unitOfWork.SaveChangesAsync(cancellationToken);
 

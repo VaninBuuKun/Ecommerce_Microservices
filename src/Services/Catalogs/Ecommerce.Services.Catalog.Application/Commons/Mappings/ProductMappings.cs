@@ -51,6 +51,7 @@ public class ProductMappings : IRegister
             .Map(dest => dest.MaxDiscountPrice, src => src.Variants.Any(v => !v.IsDeleted) ? src.Variants.Where(v => !v.IsDeleted).Max(v => v.DiscountPrice > 0 ? v.DiscountPrice : v.Price) : src.DiscountPrice)
             .Map(dest => dest.AvailableStock, src => src.Variants.Where(v => !v.IsDeleted).Sum(v => v.AvailableStock))
             .Map(dest => dest.CategoryName, src => src.Category != null ? src.Category.Name : null)
+            .Map(dest => dest.ParentCategoryId, src => src.Category != null ? src.Category.ParentId : null)
             .Map(dest => dest.ParentCategoryName, src => src.Category != null && src.Category.Parent != null ? src.Category.Parent.Name : null)
             .Map(dest => dest.Variants, src => src.Variants
                 .Where(v => !v.IsDeleted)

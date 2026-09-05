@@ -53,6 +53,7 @@ public class CreateProductCommandHandler(
 
             // Khởi tạo Default Variant với Snowflake ID
             product.EnsureDefaultVariant(snowflakeIdGenerator.NewId(), 0, 0);
+            product.RebuildSearchDocument();
 
             _productRepository.Add(product);
             await unitOfWork.SaveChangesAsync(cancellationToken);

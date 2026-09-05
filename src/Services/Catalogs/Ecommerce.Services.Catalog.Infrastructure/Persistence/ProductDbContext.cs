@@ -23,6 +23,9 @@ public class ProductDbContext(DbContextOptions<ProductDbContext> options, IInMem
     {
         base.OnModelCreating(modelBuilder);
 
+        modelBuilder.HasPostgresExtension("unaccent");
+        modelBuilder.HasPostgresExtension("pg_trgm");
+
         modelBuilder.Entity<Wishlist>(entity =>
         {
             entity.HasKey(w => w.Id);
@@ -112,9 +115,10 @@ public class ProductDbContext(DbContextOptions<ProductDbContext> options, IInMem
                   .UsePropertyAccessMode(PropertyAccessMode.Field);
             
             entity.Property(p => p.Price).HasColumnType("decimal(18,2)").HasDefaultValue(0);
+            entity.Property(p => p.MaxPrice).HasColumnType("decimal(18,2)").HasDefaultValue(0);
             entity.Property(p => p.DiscountPrice).HasColumnType("decimal(18,2)").HasDefaultValue(0);
             entity.Property(p => p.Sold).HasDefaultValue(0);
-            entity.Property(p => p.AttributesJson).HasColumnType("text");
+            entity.Property(p => p.AttributesJson).HasColumnType("jsonb");
             entity.Property(p => p.Weight).HasDefaultValue(0);
             entity.Property(p => p.Height).HasDefaultValue(0);
             entity.Property(p => p.Width).HasDefaultValue(0);
@@ -127,6 +131,11 @@ public class ProductDbContext(DbContextOptions<ProductDbContext> options, IInMem
                       v => System.Text.Json.JsonSerializer.Deserialize<List<string>>(v, (System.Text.Json.JsonSerializerOptions)null) ?? new List<string>()
                   )
                   .HasColumnType("json");
+
+            entity.Property(p => p.SearchDocument).HasColumnType("text").HasDefaultValue(string.Empty);
+            entity.HasIndex(p => p.SearchDocument)
+                  .HasMethod("gin")
+                  .HasOperators("gin_trgm_ops");
         });
 
         modelBuilder.Entity<ProductOption>(entity =>

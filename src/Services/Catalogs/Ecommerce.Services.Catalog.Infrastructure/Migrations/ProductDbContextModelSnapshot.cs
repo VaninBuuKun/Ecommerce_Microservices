@@ -20,6 +20,8 @@ namespace Ecommerce.Services.Catalog.Infrastructure.Migrations
                 .HasAnnotation("ProductVersion", "9.0.16")
                 .HasAnnotation("Relational:MaxIdentifierLength", 63);
 
+            NpgsqlModelBuilderExtensions.HasPostgresExtension(modelBuilder, "pg_trgm");
+            NpgsqlModelBuilderExtensions.HasPostgresExtension(modelBuilder, "unaccent");
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
             modelBuilder.Entity("Ecommerce.Services.Catalog.Domain.Banner", b =>
@@ -175,7 +177,7 @@ namespace Ecommerce.Services.Catalog.Infrastructure.Migrations
                         .HasColumnType("bigint");
 
                     b.Property<string>("AttributesJson")
-                        .HasColumnType("text");
+                        .HasColumnType("jsonb");
 
                     b.Property<double>("AverageRating")
                         .HasColumnType("double precision");
@@ -209,6 +211,11 @@ namespace Ecommerce.Services.Catalog.Infrastructure.Migrations
                         .HasColumnType("double precision")
                         .HasDefaultValue(0.0);
 
+                    b.Property<decimal>("MaxPrice")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("decimal(18,2)")
+                        .HasDefaultValue(0m);
+
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasColumnType("text");
@@ -223,6 +230,12 @@ namespace Ecommerce.Services.Catalog.Infrastructure.Migrations
 
                     b.Property<int>("ReviewCount")
                         .HasColumnType("integer");
+
+                    b.Property<string>("SearchDocument")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("text")
+                        .HasDefaultValue("");
 
                     b.Property<long>("ShopId")
                         .HasColumnType("bigint");
@@ -261,6 +274,11 @@ namespace Ecommerce.Services.Catalog.Infrastructure.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("CategoryId");
+
+                    b.HasIndex("SearchDocument");
+
+                    NpgsqlIndexBuilderExtensions.HasMethod(b.HasIndex("SearchDocument"), "gin");
+                    NpgsqlIndexBuilderExtensions.HasOperators(b.HasIndex("SearchDocument"), new[] { "gin_trgm_ops" });
 
                     b.ToTable("Products");
                 });

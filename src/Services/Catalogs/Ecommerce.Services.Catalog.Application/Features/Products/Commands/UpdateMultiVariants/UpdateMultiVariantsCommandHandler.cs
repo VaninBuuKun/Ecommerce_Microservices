@@ -214,6 +214,7 @@ public class UpdateMultiVariantsCommandHandler(
             }
             
             product.RecalculateCachedPrices();
+            product.RebuildSearchDocument(product.Category?.Name);
             _productRepository.Update(product);
 
             // SaveChanges Phase 2: Lưu hoàn tất Variants và ProductVariantOptions

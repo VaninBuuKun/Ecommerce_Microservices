@@ -12,7 +12,7 @@ An enterprise-grade **Marketplace Ecommerce Platform** built with modern **Micro
         ▼
 [ YARP API Gateway ] ── (CORS / Rate Limiting / Routing)
         │
-        ├──► Catalog.Api      (REST 5001 / gRPC 5002) ──► MySQL
+        ├──► Catalog.Api      (REST 5001 / gRPC 5002) ──► PostgreSQL
         ├──► Cart.Api         (REST 5004 / gRPC 5005) ──► Redis
         ├──► Orders.Api       (REST 5007 / gRPC 5008) ──► PostgreSQL
         ├──► Payments.Api     (REST 5052 / gRPC 5053) ──► PostgreSQL
@@ -35,7 +35,7 @@ Saga State Machine + Transactional Outbox
 
 | Service               | REST | gRPC | Database   | Responsibilities                                            |
 | --------------------- | ---- | ---- | ---------- | ----------------------------------------------------------- |
-| **Catalog.Api**       | 5001 | 5002 | MySQL      | Product Catalog, SKU Variants, Inventory, Ratings & Reviews |
+| **Catalog.Api**       | 5001 | 5002 | PostgreSQL | Product Catalog, SKU Variants, Inventory, Ratings & Reviews, Smart Search |
 | **Cart.Api**          | 5004 | 5005 | Redis      | Shopping Cart, Shop Grouping                                |
 | **Orders.Api**        | 5007 | 5008 | PostgreSQL | Orders, SubOrders, Vouchers, Refund Workflow                |
 | **Identity.Api**      | 5027 | 5028 | PostgreSQL | Authentication, Authorization, OAuth2/OIDC, User Addresses  |
@@ -83,6 +83,22 @@ Saga State Machine + Transactional Outbox
 * Sale price configuration.
 * Product activation/deactivation.
 * Shipping dimensions and weight configuration.
+* Price range indexing (`Price` & `MaxPrice`) for min/max price range filtering.
+* Native `jsonb` attributes storage with PostgreSQL GIN index (`jsonb_path_ops`).
+* PostgreSQL Trigram (`pg_trgm`) & `unaccent` for accent-insensitive typo-tolerant search.
+
+### 🔍 Smart Search & Discovery
+
+* **Search History (Redis List)**: Stores the 5 most recent search queries per authenticated user (`search:history:{userId}`) with individual deletion and clear all.
+* **Guest History Sync**: Automatically synchronizes guest local search history to Redis upon user login via `POST /api/products/search-history/sync`.
+* **Trending Searches (Redis Sorted Set)**: Tracks top 5 hot queries with rank badges, debounced increment rate-limiting, and background decay service (`HalfLifeHours`). Supports campaign duration overrides and pinned promotional keywords.
+* **Smart Intent Suggestions**: Real-time regex intent parser extracting price constraints (e.g., `dưới 500k`, `từ 100k đến 200k`), star ratings (`4 sao trở lên`), popularity (`bán chạy`), categories, and dynamic specification attributes. Directs users to `/explore` with pre-filled structured filters.
+* **Streamlined Explore Page**:
+  * Root categories removed from main view; focuses exclusively on subcategories.
+  * Preserves and accumulates subcategories across filter changes and infinite scroll batches (subcategory list never shrinks unexpectedly).
+  * Direct subcategory navigation from landing page and product detail breadcrumbs.
+  * Consolidated sorting select box (`Mới nhất`, `Cũ nhất`, `Giá thấp đến cao`, `Giá cao đến thấp`, `Bán chạy nhất`) and dynamic result counter ("Tìm thấy X sản phẩm").
+  * Clean product grid focused on browsing without redundant detail-only action buttons.
 
 ### Ratings & Reviews
 

@@ -33,9 +33,10 @@ public class UpdateProductCommandHandler(
             }
 
             // Kiểm tra CategoryId: Bắt buộc phải tồn tại và phải là SubCategory (ParentId != null)
+            Category? category = null;
             if (command.CategoryId.HasValue && command.CategoryId.Value > 0)
             {
-                var category = await _categoryRepository.GetByIdAsync(command.CategoryId.Value, cancellationToken);
+                category = await _categoryRepository.GetByIdAsync(command.CategoryId.Value, cancellationToken);
                 if (category == null)
                 {
                     return Result<ProductResponse>.ValidationFailure($"Danh mục sản phẩm không tồn tại (Id: {command.CategoryId}).");
@@ -58,6 +59,7 @@ public class UpdateProductCommandHandler(
 
             existsProduct.SetCategory(command.CategoryId);
             existsProduct.SetAttributes(command.AttributesJson);
+            existsProduct.RebuildSearchDocument(category?.Name);
 
             _productRepository.Update(existsProduct);
             await unitOfWork.SaveChangesAsync(cancellationToken);

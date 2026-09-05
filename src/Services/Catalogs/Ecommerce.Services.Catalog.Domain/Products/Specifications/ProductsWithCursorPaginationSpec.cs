@@ -14,19 +14,24 @@ public class ProductsWithCursorPaginationSpec : Specification<Product>
         long? lastId, 
         int limit,
         long? shopId = null,
-        bool? hasDiscount = null)
+        bool? hasDiscount = null,
+        decimal? minPrice = null,
+        decimal? maxPrice = null)
     {
         // 1. Chỉ lấy sản phẩm đang hoạt động
         Query.Where(p => p.Status == ProductStatus.Active);
 
-        // 2. Filter theo SearchTerm (Native Full-Text Search Case-Insensitive)
+        // 2. Filter theo SearchTerm qua GIN Trigram SearchDocument
         if (!string.IsNullOrWhiteSpace(searchTerm))
         {
-            var term = searchTerm.Trim().ToLower();
-            Query.Where(p => 
-                p.Name.ToLower().Contains(term) || 
-                (p.Description != null && p.Description.ToLower().Contains(term))
-            );
+            var tokens = searchTerm.Trim()
+                .Split(new[] { ' ', ',', '-', '+' }, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+
+            foreach (var token in tokens)
+            {
+                var lowerToken = token.ToLower();
+                Query.Where(p => p.SearchDocument.Contains(lowerToken));
+            }
         }
 
         // 3. Filter theo Category
@@ -51,6 +56,16 @@ public class ProductsWithCursorPaginationSpec : Specification<Product>
         if (hasDiscount.HasValue && hasDiscount.Value)
         {
             Query.Where(p => p.DiscountPrice > 0 && p.DiscountPrice < p.Price);
+        }
+
+        // 4d. Filter theo MinPrice & MaxPrice
+        if (minPrice.HasValue && minPrice.Value > 0)
+        {
+            Query.Where(p => p.Price >= minPrice.Value);
+        }
+        if (maxPrice.HasValue && maxPrice.Value > 0)
+        {
+            Query.Where(p => p.Price <= maxPrice.Value);
         }
 
         // 5. Load Navigation Properties

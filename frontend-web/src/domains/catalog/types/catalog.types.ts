@@ -98,3 +98,55 @@ export type ProductDto = Product;
 export type ProductVariantDto = ProductVariant;
 export type ProductOptionDto = ProductOption;
 export type ProductOptionValueDto = ProductOptionValue;
+
+export interface CategorySuggestion {
+	id: number;
+	name: string;
+	imageUrl?: string;
+	parentId?: number;
+	parentName?: string;
+}
+
+export interface SearchSuggestionsResponse {
+	cleanKeyword: string;
+	suggestedCategories: CategorySuggestion[];
+	suggestions?: Array<{ text: string; targetUrl: string }>;
+	topProducts: Array<{
+		id: number | string;
+		name: string;
+		price: number;
+		maxPrice?: number;
+		discountPrice: number;
+		thumbnailUrl?: string;
+		averageRating: number;
+		reviewCount: number;
+		sold: number;
+		categoryId?: number;
+	}>;
+	products?: {
+		items: Product[];
+		totalCount: number;
+		page: number;
+		pageSize: number;
+		totalPages: number;
+	};
+}
+
+export interface SearchProductsResponse {
+	cleanKeyword: string;
+	suggestedCategories: CategorySuggestion[];
+	topProducts: Product[];
+	products: {
+		items: Product[];
+		totalCount: number;
+		page: number;
+		pageSize: number;
+		totalPages: number;
+	};
+	appliedFilters?: {
+		minPrice?: number;
+		maxPrice?: number;
+		minRating?: number;
+		sortBy?: string;
+	};
+}

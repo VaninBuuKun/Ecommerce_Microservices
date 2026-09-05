@@ -26,9 +26,11 @@ public class Product : AggregateRoot<long>
     
     // Giá sản phẩm (min price của các variants hoặc giá của single variant)
     public decimal Price { get; private set; }
+    public decimal MaxPrice { get; private set; }
     public decimal DiscountPrice { get; private set; }
     public int Sold { get; private set; }
     public string? AttributesJson { get; private set; }
+    public string SearchDocument { get; private set; } = string.Empty;
 
     // Thông tin Ratings & Reviews (2NF)
     public double AverageRating { get; private set; }
@@ -69,6 +71,7 @@ public class Product : AggregateRoot<long>
         AverageRating = 0;
         ReviewCount = 0;
         RatingSum = 0;
+        RebuildSearchDocument();
     }
 
     public static Product Create(long shopId, string name, string description, string thumbnailUrl, double weight, double length, double width, double height)
@@ -151,6 +154,7 @@ public class Product : AggregateRoot<long>
         Width = width;
         Height = height;
         Price = price;
+        MaxPrice = price;
         DiscountPrice = discountPrice;
     }
 
@@ -235,11 +239,114 @@ public class Product : AggregateRoot<long>
         if (!activeVariants.Any())
         {
             Price = 0;
+            MaxPrice = 0;
             DiscountPrice = 0;
             return;
         }
 
         Price = activeVariants.Min(v => v.Price);
+        MaxPrice = activeVariants.Max(v => v.Price);
         DiscountPrice = activeVariants.Min(v => v.DiscountPrice > 0 ? v.DiscountPrice : v.Price);
+    }
+
+    public void RebuildSearchDocument(string? categoryName = null)
+    {
+        var parts = new List<string>();
+
+        if (!string.IsNullOrWhiteSpace(Name))
+        {
+            parts.Add(Name.Trim());
+        }
+
+        var catName = categoryName ?? Category?.Name;
+        if (!string.IsNullOrWhiteSpace(catName))
+        {
+            parts.Add($"Danh mục: {catName.Trim()}");
+        }
+
+        // Biến thể / Options
+        var activeOptions = _options.Where(o => !o.IsDeleted).ToList();
+        foreach (var opt in activeOptions)
+        {
+            var values = opt.Values
+                .Where(v => !v.IsDeleted)
+                .Select(v => v.Value.Trim())
+                .Where(v => !string.IsNullOrEmpty(v))
+                .ToList();
+
+            if (values.Any())
+            {
+                parts.Add($"{opt.Name.Trim()}: {string.Join(", ", values)}");
+            }
+        }
+
+        // Thuộc tính từ AttributesJson
+        if (!string.IsNullOrWhiteSpace(AttributesJson))
+        {
+            try
+            {
+                using var doc = System.Text.Json.JsonDocument.Parse(AttributesJson);
+                if (doc.RootElement.ValueKind == System.Text.Json.JsonValueKind.Array)
+                {
+                    foreach (var elem in doc.RootElement.EnumerateArray())
+                    {
+                        string? key = null;
+                        string? val = null;
+
+                        if (elem.TryGetProperty("key", out var keyProp) || elem.TryGetProperty("name", out keyProp))
+                            key = keyProp.GetString();
+                        if (elem.TryGetProperty("value", out var valProp))
+                            val = valProp.GetString();
+
+                        if (!string.IsNullOrWhiteSpace(key) && !string.IsNullOrWhiteSpace(val))
+                        {
+                            parts.Add($"{key.Trim()}: {val.Trim()}");
+                        }
+                    }
+                }
+                else if (doc.RootElement.ValueKind == System.Text.Json.JsonValueKind.Object)
+                {
+                    foreach (var prop in doc.RootElement.EnumerateObject())
+                    {
+                        var val = prop.Value.GetString();
+                        if (!string.IsNullOrWhiteSpace(val))
+                        {
+                            parts.Add($"{prop.Name.Trim()}: {val.Trim()}");
+                        }
+                    }
+                }
+            }
+            catch
+            {
+                // Bỏ qua nếu json không đúng format
+            }
+        }
+
+        var rawDoc = string.Join(" | ", parts);
+        var unaccentedDoc = RemoveDiacritics(rawDoc);
+        SearchDocument = $"{rawDoc} || {unaccentedDoc}".ToLowerInvariant();
+    }
+
+    private static string RemoveDiacritics(string text)
+    {
+        if (string.IsNullOrWhiteSpace(text)) return string.Empty;
+
+        var normalizedString = text.Normalize(System.Text.NormalizationForm.FormD);
+        var stringBuilder = new System.Text.StringBuilder(capacity: normalizedString.Length);
+
+        for (int i = 0; i < normalizedString.Length; i++)
+        {
+            char c = normalizedString[i];
+            var unicodeCategory = System.Globalization.CharUnicodeInfo.GetUnicodeCategory(c);
+            if (unicodeCategory != System.Globalization.UnicodeCategory.NonSpacingMark)
+            {
+                if (c == 'đ' || c == 'Đ')
+                    stringBuilder.Append('d');
+                else
+                    stringBuilder.Append(c);
+            }
+        }
+
+        return stringBuilder.ToString().Normalize(System.Text.NormalizationForm.FormC);
     }
 }

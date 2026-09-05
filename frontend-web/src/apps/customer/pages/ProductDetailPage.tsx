@@ -368,7 +368,13 @@ export default function ProductDetailPage() {
 				<ChevronRight className="w-3.5 h-3.5" />
 				{product.parentCategoryName && (
 					<>
-						<span className="hover:text-brand-primary transition-colors cursor-pointer">
+						<span
+							onClick={() => {
+								const pId = product.parentCategoryId || "";
+								navigate(`/explore?parentCategoryId=${pId}`);
+							}}
+							className="hover:text-brand-primary transition-colors cursor-pointer"
+						>
 							{product.parentCategoryName}
 						</span>
 						<ChevronRight className="w-3.5 h-3.5" />
@@ -376,7 +382,14 @@ export default function ProductDetailPage() {
 				)}
 				{product.categoryName && (
 					<>
-						<span className="hover:text-brand-primary transition-colors cursor-pointer">
+						<span
+							onClick={() => {
+								const pId = product.parentCategoryId ? `parentCategoryId=${product.parentCategoryId}&` : "";
+								const cId = product.categoryId || "";
+								navigate(`/explore?${pId}subCategoryId=${cId}`);
+							}}
+							className="hover:text-brand-primary transition-colors cursor-pointer"
+						>
 							{product.categoryName}
 						</span>
 						<ChevronRight className="w-3.5 h-3.5" />

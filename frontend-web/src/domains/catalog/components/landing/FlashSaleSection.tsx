@@ -69,7 +69,7 @@ export function FlashSaleSection() {
 					</div>
 					<div>
 						<h2 className="text-xs font-black text-red-600 uppercase tracking-wide flex items-center gap-1.5">
-							Flash Sale Giá Sốc
+							Sale Giá Sốc
 						</h2>
 						<p className="text-[10px] text-brand-muted font-bold">
 							Sản phẩm giảm giá tốt nhất trong ngày

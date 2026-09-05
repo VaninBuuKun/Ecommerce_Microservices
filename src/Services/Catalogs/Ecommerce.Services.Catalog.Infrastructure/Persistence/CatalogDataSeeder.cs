@@ -261,6 +261,7 @@ public class CatalogDataSeeder(
 
                 product.Publish();
                 product.RecalculateCachedPrices();
+                product.RebuildSearchDocument();
 
                 result.Add(product);
                 count++;
