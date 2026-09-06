@@ -7,4 +7,5 @@ export * from "./components/chat/ChatRightSidebar";
 export * from "./components/NotificationsTab";
 export * from "./api/notificationApi";
 export * from "./hooks/useNotifications";
+export * from "./hooks/useChatMediaUpload";
 export { useChatStore } from "./stores/useChatStore";

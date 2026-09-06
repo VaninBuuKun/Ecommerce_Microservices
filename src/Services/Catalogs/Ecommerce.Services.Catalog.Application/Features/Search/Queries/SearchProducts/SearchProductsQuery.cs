@@ -8,6 +8,7 @@ public record SearchProductsQuery(
     int Page = 1,
     int PageSize = 36,
     long? CategoryId = null,
+    long? ParentCategoryId = null,
     double? MinRating = null,
     string SortBy = "relevance",
     long? ShopId = null,

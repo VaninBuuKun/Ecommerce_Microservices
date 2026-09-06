@@ -6,6 +6,9 @@ public enum ChatMessageType
 {
     Text,
     Image,
+    Video,
+    Sticker,
+    Gif,
     Icon
 }
 

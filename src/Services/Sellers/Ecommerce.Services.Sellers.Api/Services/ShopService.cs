@@ -210,7 +210,8 @@ public class ShopService(
             DistrictId = shop.PickUpAddress?.DistrictId ?? 0,
             ProvinceId = shop.PickUpAddress?.ProvinceId ?? 0,
             OwnerUserId = shop.OwnerUserId,
-            RecipientName = shop.PickUpAddress?.RecipientName ?? string.Empty
+            RecipientName = shop.PickUpAddress?.RecipientName ?? string.Empty,
+            LogoUrl = shop.LogoUrl ?? string.Empty
         });
     }
 
@@ -227,7 +228,8 @@ public class ShopService(
             DistrictId = shop.PickUpAddress?.DistrictId ?? 0,
             ProvinceId = shop.PickUpAddress?.ProvinceId ?? 0,
             OwnerUserId = shop.OwnerUserId,
-            RecipientName = shop.PickUpAddress?.RecipientName ?? string.Empty
+            RecipientName = shop.PickUpAddress?.RecipientName ?? string.Empty,
+            LogoUrl = shop.LogoUrl ?? string.Empty
         }).ToList();
 
         return Result<List<ShopShippingInfoDto>>.Success(dtos);

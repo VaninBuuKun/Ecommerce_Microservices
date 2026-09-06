@@ -5,3 +5,4 @@ export * from "./ProductPrice";
 export * from "./ProductReviewsSection";
 export * from "./QuantitySelector";
 export * from "./RelatedProduct";
+export * from "./ProductImageModal";

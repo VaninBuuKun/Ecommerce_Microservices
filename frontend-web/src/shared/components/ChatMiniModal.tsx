@@ -1,30 +1,83 @@
-import { useState, useEffect, useRef } from "react";
-import { useNavigate, useLocation } from "react-router-dom";
+import React, { useState, useEffect, useRef, useMemo, useCallback } from "react";
+import { useLocation } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import {
-	MessageOutlined,
-	CloseOutlined,
-	FullscreenOutlined,
-	PictureOutlined,
-	VideoCameraOutlined,
-	SmileOutlined,
-	SendOutlined,
-} from "@ant-design/icons";
-import { Search, Store, X } from "lucide-react";
 import * as signalR from "@microsoft/signalr";
-import { api } from "@/core";
 import { toast } from "react-toastify";
-import { useChatStore } from "@/domains/notification";
+import { api } from "@/core";
 import { useAuthStore } from "@/domains/auth";
-import type { Conversation, ChatMessageDto } from "@/domains/notification";
+import { useChatStore, getChatTheme, useChatMediaUpload, parseMediaUrls } from "@/domains/notification";
+import type { ChatMessageDto } from "@/domains/notification";
+import { ensureSignalRConnected } from "@/shared/hooks/useSignalR";
+import { ChatImageViewer } from "./ChatImageViewer";
+import {
+	ChatMiniHeader,
+	ChatMiniConversationList,
+	ChatMiniMessageThread,
+	ChatMiniInputBar,
+} from "./chat-mini";
 
-const QUICK_EMOJIS = ["👍", "❤️", "😂", "🔥", "🎉", "👏", "📦", "🛍️", "⭐", "💯", "🙏", "😍", "✨", "🎁"];
+// Helper định dạng mốc thời gian hội thoại
+const formatMessengerTime = (dateStr: string) => {
+	if (!dateStr) return "";
+	const date = new Date(dateStr);
+	const now = new Date();
 
-export function ChatMiniModal() {
-	const navigate = useNavigate();
+	const isToday =
+		date.getDate() === now.getDate() &&
+		date.getMonth() === now.getMonth() &&
+		date.getFullYear() === now.getFullYear();
+
+	const isYesterday =
+		new Date(now.setDate(now.getDate() - 1)).toDateString() ===
+		date.toDateString();
+
+	const timeStr = date.toLocaleTimeString("vi-VN", {
+		hour: "2-digit",
+		minute: "2-digit",
+	});
+
+	if (isToday) return `Hôm nay, ${timeStr}`;
+	if (isYesterday) return `Hôm qua, ${timeStr}`;
+
+	const sameYear = date.getFullYear() === new Date().getFullYear();
+	if (sameYear) {
+		const month = String(date.getMonth() + 1).padStart(2, "0");
+		const day = String(date.getDate()).padStart(2, "0");
+		return `${day} Th${month}, ${timeStr}`;
+	}
+
+	return date.toLocaleDateString("vi-VN", {
+		year: "numeric",
+		month: "2-digit",
+		day: "2-digit",
+		hour: "2-digit",
+		minute: "2-digit",
+	});
+};
+
+const shouldShowTimeSeparator = (currentDateStr: string, prevDateStr?: string) => {
+	if (!prevDateStr) return true;
+	const current = new Date(currentDateStr).getTime();
+	const prev = new Date(prevDateStr).getTime();
+	return current - prev > 15 * 60 * 1000;
+};
+
+const isPureEmoji = (text: string) => {
+	const emojiRegex = /^(\p{Extended_Pictographic}|\p{Emoji_Presentation}){1,3}$/u;
+	return emojiRegex.test(text.trim());
+};
+
+const isValidGuid = (id?: string) =>
+	Boolean(id && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id) && id !== "00000000-0000-0000-0000-000000000000");
+
+interface ChatMiniModalProps {
+	isSeller?: boolean;
+}
+
+export function ChatMiniModal({ isSeller: isSellerProp }: ChatMiniModalProps) {
 	const location = useLocation();
-	const { user } = useAuthStore();
-	const isSeller = location.pathname.startsWith("/seller");
+	const user = useAuthStore((s) => s.user);
+	const isSeller = isSellerProp !== undefined ? isSellerProp : location.pathname.startsWith("/seller");
 
 	const {
 		closeChat,
@@ -38,185 +91,278 @@ export function ChatMiniModal() {
 		clearUnread,
 		isLoadingConversations,
 		setLoadingConversations,
+		revokeMessage,
+		reactToMessage,
 	} = useChatStore();
 
 	const [inputText, setInputText] = useState("");
 	const [searchQuery, setSearchQuery] = useState("");
 	const [isSending, setIsSending] = useState(false);
-	const [pendingMedia, setPendingMedia] = useState<{ url: string; type: "Image" | "Video"; file?: File } | null>(null);
 	const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+	const [pickerTab, setPickerTab] = useState<"emoji" | "sticker" | "gif">("emoji");
 
 	const hubConnectionRef = useRef<signalR.HubConnection | null>(null);
+	const messagesContainerRef = useRef<HTMLDivElement>(null);
 	const messagesEndRef = useRef<HTMLDivElement>(null);
-	const imageInputRef = useRef<HTMLInputElement>(null);
-	const videoInputRef = useRef<HTMLInputElement>(null);
+	const activeRoomRef = useRef(activeRoom);
+	activeRoomRef.current = activeRoom;
 
-	// Scroll to bottom on new message
-	useEffect(() => {
-		messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-	}, [messages, pendingMedia]);
+	// Background S3 Media Uploader: Tải ngầm lên S3, hỗ trợ nhiều file, gom nhóm gửi tối đa 3 tin nhắn
+	const {
+		pendingMediaList,
+		handleSelectFiles,
+		removePendingMedia,
+		removePendingMediaList,
+		clearAllPendingMedia,
+		waitForPendingUploads,
+	} = useChatMediaUpload();
 
-	// Fetch conversations on mount
-	useEffect(() => {
-		const fetchConversations = async () => {
-			setLoadingConversations(true);
-			try {
-				const res = await api.get("/chat/conversations", { params: { isSeller } });
-				const list: Conversation[] = res.data?.value || res.data || [];
-				setConversations(list);
-				if (list.length > 0 && !activeRoom) {
-					setActiveRoom(list[0]);
-				}
-			} catch (err) {
-				console.error("Chat: error loading conversations", err);
-				setConversations([]);
-			} finally {
-				setLoadingConversations(false);
-			}
-		};
-		fetchConversations();
-	}, [isSeller]);
+	// Theme phối màu đồng bộ với ChatPage
+	const activePreset = useMemo(() => {
+		return getChatTheme(activeRoom?.themeColor, activeRoom?.backgroundColor);
+	}, [activeRoom?.themeColor, activeRoom?.backgroundColor]);
 
-	// SignalR connection
-	useEffect(() => {
-		const token = localStorage.getItem("accessToken") || localStorage.getItem("token");
-		const hubUrl = import.meta.env.VITE_API_URL
-			? `${import.meta.env.VITE_API_URL}/hubs/notification`
-			: "http://localhost:5075/hubs/notification";
+	// Media Viewer: Hỗ trợ toàn bộ ảnh (Image, Sticker, Gif), trích xuất chuẩn từng URL
+	const [lightboxIndex, setLightboxIndex] = useState(-1);
+	const [lightboxSlides, setLightboxSlides] = useState<{ src: string }[]>([]);
 
-		const connection = new signalR.HubConnectionBuilder()
-			.withUrl(hubUrl, {
-				accessTokenFactory: () => token || "",
-				skipNegotiation: false,
-				transport: signalR.HttpTransportType.WebSockets | signalR.HttpTransportType.LongPolling,
-			})
-			.withAutomaticReconnect()
-			.build();
-
-		connection.start()
-			.then(() => {
-				hubConnectionRef.current = connection;
-				connection.on("ReceiveChatMessage", (msg: any) => {
-					const newMsg: ChatMessageDto = {
-						id: msg.id || String(Date.now()),
-						roomId: msg.roomId,
-						senderId: msg.senderId,
-						content: msg.content,
-						messageType: msg.messageType || "Text",
-						sentAt: msg.sentAt || new Date().toISOString(),
-					};
-					appendMessage(newMsg);
+	const allMediaImages = useMemo(() => {
+		const urls: string[] = [];
+		const seen = new Set<string>();
+		messages.forEach((m) => {
+			const type = (m.messageType || "").toLowerCase();
+			if ((type === "image" || type === "sticker" || type === "gif") && m.content) {
+				const parsed = parseMediaUrls(m.content);
+				parsed.forEach((url) => {
+					if (!seen.has(url)) {
+						urls.push(url);
+						seen.add(url);
+					}
 				});
-			})
-			.catch(() => {
-				console.warn("Chat mini modal: SignalR offline mode");
-			});
+			}
+		});
+		return urls;
+	}, [messages]);
 
-		return () => { connection.stop(); };
+	const openImageInLightbox = useCallback((imgUrl: string) => {
+		if (!imgUrl) return;
+		let list = [...allMediaImages];
+		let index = list.indexOf(imgUrl);
+		if (index === -1) {
+			list.unshift(imgUrl);
+			index = 0;
+		}
+		setLightboxSlides(list.map((src) => ({ src })));
+		setLightboxIndex(index);
+	}, [allMediaImages]);
+
+	const scrollToBottom = (behavior: ScrollBehavior = "auto") => {
+		if (messagesContainerRef.current) {
+			messagesContainerRef.current.scrollTop = messagesContainerRef.current.scrollHeight;
+		}
+		messagesEndRef.current?.scrollIntoView({ behavior, block: "end" });
+	};
+
+	// Tự động cuộn và cố định tuyệt đối ở đáy khi đổi phòng hoặc có tin nhắn mới
+	useEffect(() => {
+		scrollToBottom("auto");
+		const t1 = setTimeout(() => scrollToBottom("auto"), 60);
+		const t2 = setTimeout(() => scrollToBottom("auto"), 200);
+		return () => {
+			clearTimeout(t1);
+			clearTimeout(t2);
+		};
+	}, [messages, pendingMediaList, activeRoom?.roomId]);
+
+	// Khởi tạo và lắng nghe kết nối SignalR Singleton dùng chung qua API Gateway
+	useEffect(() => {
+		let isMounted = true;
+
+		const setupConnection = async () => {
+			const connection = await ensureSignalRConnected();
+			if (!connection || !isMounted) return;
+			hubConnectionRef.current = connection;
+
+			if (activeRoomRef.current?.roomId && isValidGuid(activeRoomRef.current.roomId)) {
+				connection.invoke("JoinChatRoom", activeRoomRef.current.roomId).catch(() => {});
+			}
+
+			const handleReceiveChatMessage = (msg: any) => {
+				appendMessage({
+					id: msg.id,
+					roomId: msg.roomId,
+					senderId: msg.senderId,
+					content: msg.content,
+					messageType: msg.messageType || "Text",
+					sentAt: msg.sentAt || new Date().toISOString(),
+				});
+
+				const cur = activeRoomRef.current;
+				if (cur && !isValidGuid(cur.roomId) && (cur.shopId === msg.shopId || cur.roomId === msg.roomId)) {
+					setActiveRoom({ ...cur, roomId: msg.roomId });
+				}
+
+				setConversations((prev) =>
+					prev.map((c) => {
+						if (c.roomId === msg.roomId || (!isValidGuid(c.roomId) && c.shopId === msg.shopId)) {
+							let preview = msg.content;
+							const type = (msg.messageType || "").toLowerCase();
+							if (type === "sticker") preview = "[Sticker 3D]";
+							else if (type === "gif") preview = "[Ảnh GIF]";
+							else if (type === "image") {
+								const count = parseMediaUrls(msg.content).length;
+								preview = count > 1 ? `Đã gửi ${count} ảnh` : "Đã gửi 1 ảnh";
+							} else if (type === "video") {
+								const count = parseMediaUrls(msg.content).length;
+								preview = count > 1 ? `Đã gửi ${count} video` : "Đã gửi 1 video";
+							}
+
+							return {
+								...c,
+								roomId: msg.roomId,
+								lastMessage: preview,
+								lastActiveAt: msg.sentAt || new Date().toISOString(),
+							};
+						}
+						return c;
+					})
+				);
+			};
+
+			const handleReceiveMessageRevoked = (data: { id: string; roomId: string; content: string }) => {
+				if (data?.id) {
+					revokeMessage(data.id);
+					setConversations((prev) =>
+						prev.map((c) =>
+							c.roomId === data.roomId ? { ...c, lastMessage: "Tin nhắn đã được thu hồi" } : c
+						)
+					);
+				}
+			};
+
+			const handleReceiveMessageReaction = (data: { messageId: string; roomId: string; emoji: string; senderId: number }) => {
+				if (data?.messageId && data?.emoji) {
+					reactToMessage(data.messageId, data.emoji, data.senderId);
+				}
+			};
+
+			connection.on("ReceiveChatMessage", handleReceiveChatMessage);
+			connection.on("ReceiveMessageRevoked", handleReceiveMessageRevoked);
+			connection.on("ReceiveMessageReaction", handleReceiveMessageReaction);
+
+			return () => {
+				connection.off("ReceiveChatMessage", handleReceiveChatMessage);
+				connection.off("ReceiveMessageRevoked", handleReceiveMessageRevoked);
+				connection.off("ReceiveMessageReaction", handleReceiveMessageReaction);
+			};
+		};
+
+		let cleanup: (() => void) | undefined;
+		setupConnection().then((fn) => {
+			cleanup = fn;
+		});
+
+		return () => {
+			isMounted = false;
+			cleanup?.();
+		};
 	}, []);
 
-	// Load history when room changes
+	// Tải danh sách cuộc trò chuyện nếu chưa có
+	useEffect(() => {
+		if (conversations.length === 0) {
+			setLoadingConversations(true);
+			api.get("/chat/conversations", { params: { isSeller } })
+				.then((res) => {
+					const list = res.data?.value || res.data || [];
+					setConversations(list);
+				})
+				.catch((err) => {
+					console.warn("REST load conversations failed:", err);
+				})
+				.finally(() => {
+					setLoadingConversations(false);
+				});
+		}
+	}, [conversations.length, isSeller]);
+
+	// Tải lịch sử tin nhắn khi chọn phòng
 	useEffect(() => {
 		if (!activeRoom) return;
-		clearUnread();
 
-		const loadHistory = async () => {
-			if (hubConnectionRef.current?.state === signalR.HubConnectionState.Connected) {
-				try {
-					await hubConnectionRef.current.invoke("JoinChatRoom", activeRoom.roomId);
-					const history: ChatMessageDto[] = await hubConnectionRef.current.invoke(
-						"GetChatHistory",
-						activeRoom.roomId,
-						null,
-						30
-					);
-					setMessages(history || []);
-				} catch (e) {
-					console.error("ChatMiniModal: error loading history", e);
-					setMessages([]);
+		if (activeRoom.unreadCount && activeRoom.unreadCount > 0) {
+			clearUnread(activeRoom.roomId);
+		}
+
+		if (!isValidGuid(activeRoom.roomId)) {
+			setMessages([]);
+			return;
+		}
+
+		const roomId = activeRoom.roomId;
+
+		// 1. Tải lịch sử qua REST API
+		api.get(`/chat/rooms/${roomId}/messages`)
+			.then((res) => {
+				const list: ChatMessageDto[] = res.data?.value || res.data || [];
+				setMessages(list);
+			})
+			.catch(async (err) => {
+				console.warn("REST load messages failed, trying SignalR fallback:", err);
+				if (hubConnectionRef.current?.state === signalR.HubConnectionState.Connected) {
+					try {
+						const history: ChatMessageDto[] = await hubConnectionRef.current.invoke(
+							"GetChatHistory",
+							roomId,
+							null,
+							50
+						);
+						setMessages(history || []);
+					} catch (e) {
+						console.error("SignalR fallback history failed:", e);
+						setMessages([]);
+					}
 				}
-			} else {
-				setMessages([]);
-			}
-		};
+			});
 
-		loadHistory();
+		// 2. Join chat room trên SignalR nếu đã connected
+		if (hubConnectionRef.current?.state === signalR.HubConnectionState.Connected) {
+			hubConnectionRef.current.invoke("JoinChatRoom", roomId).catch(() => {});
+		}
 	}, [activeRoom?.roomId]);
 
-	const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-		const file = e.target.files?.[0];
-		if (!file) return;
-		if (file.size > 8 * 1024 * 1024) {
-			toast.warning("Vui lòng chọn ảnh dung lượng dưới 8MB");
-			return;
-		}
-		const reader = new FileReader();
-		reader.onload = () => {
-			setPendingMedia({ url: reader.result as string, type: "Image", file });
-		};
-		reader.readAsDataURL(file);
-	};
-
-	const handleVideoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-		const file = e.target.files?.[0];
-		if (!file) return;
-		if (file.size > 30 * 1024 * 1024) {
-			toast.warning("Vui lòng chọn video dung lượng dưới 30MB");
-			return;
-		}
-		const reader = new FileReader();
-		reader.onload = () => {
-			setPendingMedia({ url: reader.result as string, type: "Video", file });
-		};
-		reader.readAsDataURL(file);
-	};
-
 	const handleSend = async () => {
-		if ((!inputText.trim() && !pendingMedia) || !activeRoom) return;
+		if ((!inputText.trim() && pendingMediaList.length === 0) || !activeRoom) return;
 
 		const textContent = inputText.trim();
-		const media = pendingMedia;
-
 		setInputText("");
-		setPendingMedia(null);
 		setShowEmojiPicker(false);
 		setIsSending(true);
 
 		const recipientId = isSeller ? activeRoom.buyerUserId : activeRoom.shopId;
 		const senderRole = isSeller ? "Seller" : "Buyer";
+		const targetRoomId = isValidGuid(activeRoom.roomId) ? activeRoom.roomId : "00000000-0000-0000-0000-000000000000";
 
-		// 1. Gửi media nếu có
-		if (media) {
-			const mediaMsg: ChatMessageDto = {
-				id: String(Date.now()),
-				roomId: activeRoom.roomId,
-				senderId: user?.id || 1,
-				content: media.url,
-				messageType: media.type,
-				sentAt: new Date().toISOString(),
-			};
-			appendMessage(mediaMsg);
+		// 1. Chờ các tệp đang tải lên S3 hoàn tất (nếu có)
+		const allPending = await waitForPendingUploads();
+		const readyImages = allPending.filter((m) => m.status === "done" && m.uploadedUrl && m.type === "Image");
+		const readyVideos = allPending.filter((m) => m.status === "done" && m.uploadedUrl && m.type === "Video");
 
-			try {
-				if (hubConnectionRef.current?.state === signalR.HubConnectionState.Connected) {
-					await hubConnectionRef.current.invoke(
-						"SendChatMessage",
-						activeRoom.roomId,
-						media.url,
-						recipientId,
-						senderRole,
-						media.type
-					);
-				}
-			} catch {
-				toast.error("Không thể gửi file.");
-			}
+		const sentMediaIds = [...readyImages.map((m) => m.id), ...readyVideos.map((m) => m.id)];
+		if (sentMediaIds.length > 0) {
+			removePendingMediaList(sentMediaIds);
 		}
 
-		// 2. Gửi văn bản nếu có
+		const imageUrls = readyImages.map((m) => m.uploadedUrl!);
+		const videoUrls = readyVideos.map((m) => m.uploadedUrl!);
+
+		const conn = await ensureSignalRConnected();
+
+		// A. Gửi tin nhắn văn bản (Msg 1)
 		if (textContent) {
+			const tempTextId = `temp-${Date.now()}`;
 			const textMsg: ChatMessageDto = {
-				id: String(Date.now() + 1),
+				id: tempTextId,
 				roomId: activeRoom.roomId,
 				senderId: user?.id || 1,
 				content: textContent,
@@ -226,398 +372,237 @@ export function ChatMiniModal() {
 			appendMessage(textMsg);
 
 			try {
-				if (hubConnectionRef.current?.state === signalR.HubConnectionState.Connected) {
-					await hubConnectionRef.current.invoke(
+				if (conn?.state === signalR.HubConnectionState.Connected) {
+					const res = await conn.invoke(
 						"SendChatMessage",
-						activeRoom.roomId,
+						targetRoomId,
 						textContent,
-						recipientId,
+						Number(recipientId),
 						senderRole,
 						"Text"
 					);
+					if (res && res.roomId && !isValidGuid(activeRoom.roomId)) {
+						setActiveRoom({ ...activeRoom, roomId: res.roomId });
+					}
 				}
-			} catch {
-				toast.error("Không thể gửi tin nhắn.");
+			} catch (err: any) {
+				console.error("Gửi tin nhắn văn bản thất bại:", err);
+				toast.error("Không thể gửi tin nhắn. Vui lòng thử lại!");
+			}
+		}
+
+		// B. Gửi nhóm ảnh (Msg 2 - Tối đa gom toàn bộ ảnh thành 1 tin nhắn)
+		if (imageUrls.length > 0) {
+			const imageContent = imageUrls.length === 1 ? imageUrls[0] : JSON.stringify(imageUrls);
+			const tempImgId = `temp-${Date.now()}-img`;
+			const imgMsg: ChatMessageDto = {
+				id: tempImgId,
+				roomId: activeRoom.roomId,
+				senderId: user?.id || 1,
+				content: imageContent,
+				messageType: "Image",
+				sentAt: new Date().toISOString(),
+			};
+			appendMessage(imgMsg);
+
+			try {
+				if (conn?.state === signalR.HubConnectionState.Connected) {
+					const res = await conn.invoke(
+						"SendChatMessage",
+						targetRoomId,
+						imageContent,
+						Number(recipientId),
+						senderRole,
+						"Image"
+					);
+					if (res && res.roomId && !isValidGuid(activeRoom.roomId)) {
+						setActiveRoom({ ...activeRoom, roomId: res.roomId });
+					}
+				}
+			} catch (err: any) {
+				console.error("Gửi nhóm ảnh thất bại:", err);
+				toast.error("Không thể gửi ảnh đính kèm.");
+			}
+		}
+
+		// C. Gửi nhóm video (Msg 3 - Tối đa gom toàn bộ video thành 1 tin nhắn)
+		if (videoUrls.length > 0) {
+			const videoContent = videoUrls.length === 1 ? videoUrls[0] : JSON.stringify(videoUrls);
+			const tempVidId = `temp-${Date.now()}-vid`;
+			const vidMsg: ChatMessageDto = {
+				id: tempVidId,
+				roomId: activeRoom.roomId,
+				senderId: user?.id || 1,
+				content: videoContent,
+				messageType: "Video",
+				sentAt: new Date().toISOString(),
+			};
+			appendMessage(vidMsg);
+
+			try {
+				if (conn?.state === signalR.HubConnectionState.Connected) {
+					const res = await conn.invoke(
+						"SendChatMessage",
+						targetRoomId,
+						videoContent,
+						Number(recipientId),
+						senderRole,
+						"Video"
+					);
+					if (res && res.roomId && !isValidGuid(activeRoom.roomId)) {
+						setActiveRoom({ ...activeRoom, roomId: res.roomId });
+					}
+				}
+			} catch (err: any) {
+				console.error("Gửi nhóm video thất bại:", err);
+				toast.error("Không thể gửi video đính kèm.");
 			}
 		}
 
 		setIsSending(false);
 	};
 
-	const handleExpandToFullPage = () => {
-		closeChat();
-		const query = activeRoom
-			? `?shopId=${activeRoom.shopId}${isSeller ? "&seller=true" : ""}`
-			: isSeller ? "?seller=true" : "";
-		navigate(`/chat${query}`);
+	const handleRevokeMessage = async (messageId: string) => {
+		if (!isValidGuid(messageId) || !activeRoom?.roomId) return;
+		revokeMessage(messageId);
+		try {
+			const conn = await ensureSignalRConnected();
+			if (conn?.state === signalR.HubConnectionState.Connected) {
+				await conn.invoke("RevokeChatMessage", messageId, activeRoom.roomId);
+			}
+		} catch (err) {
+			console.error("Lỗi khi thu hồi tin nhắn:", err);
+		}
 	};
 
-	const filteredConversations = conversations.filter((c) =>
-		c.displayName.toLowerCase().includes(searchQuery.toLowerCase().trim())
-	);
+	const handleReactMessage = async (messageId: string, emoji: string) => {
+		if (!isValidGuid(messageId) || !activeRoom?.roomId) return;
+		reactToMessage(messageId, emoji, user?.id || 0);
+		try {
+			const conn = await ensureSignalRConnected();
+			if (conn?.state === signalR.HubConnectionState.Connected) {
+				await conn.invoke("ReactToChatMessage", messageId, activeRoom.roomId, emoji);
+			}
+		} catch (err) {
+			console.error("Lỗi khi thả cảm xúc:", err);
+		}
+	};
 
-	const currentUserId = user?.id || 0;
+	const handleSendSpecial = async (content: string, type: "Sticker" | "Gif") => {
+		if (!activeRoom) return;
+		const tempId = `temp-${Date.now()}`;
+		const specialMsg: ChatMessageDto = {
+			id: tempId,
+			roomId: activeRoom.roomId,
+			senderId: user?.id || 1,
+			content,
+			messageType: type,
+			sentAt: new Date().toISOString(),
+		};
+		appendMessage(specialMsg);
+
+		const recipientId = isSeller ? activeRoom.buyerUserId : activeRoom.shopId;
+		const senderRole = isSeller ? "Seller" : "Buyer";
+		const targetRoomId = isValidGuid(activeRoom.roomId) ? activeRoom.roomId : "00000000-0000-0000-0000-000000000000";
+
+		try {
+			const conn = await ensureSignalRConnected();
+			if (conn?.state === signalR.HubConnectionState.Connected) {
+				const res = await conn.invoke(
+					"SendChatMessage",
+					targetRoomId,
+					content,
+					Number(recipientId),
+					senderRole,
+					type
+				);
+				if (res && res.roomId && !isValidGuid(activeRoom.roomId)) {
+					setActiveRoom({ ...activeRoom, roomId: res.roomId });
+				}
+			}
+		} catch (err) {
+			console.error(`Gửi ${type} thất bại:`, err);
+		}
+	};
+
+	const filteredConversations = useMemo(() => {
+		if (!searchQuery.trim()) return conversations;
+		const q = searchQuery.toLowerCase();
+		return conversations.filter((c) => c.displayName?.toLowerCase().includes(q));
+	}, [conversations, searchQuery]);
 
 	return (
 		<motion.div
-			id="chat-mini-modal"
-			initial={{ opacity: 0, y: 20, scale: 0.96 }}
-			animate={{ opacity: 1, y: 0, scale: 1 }}
-			exit={{ opacity: 0, y: 16, scale: 0.96 }}
-			transition={{ type: "spring", stiffness: 360, damping: 28 }}
-			className="fixed bottom-2 right-18 z-[10000] w-[760px] max-w-[calc(100vw-20px)] h-[80vh] max-h-[580px] bg-white rounded-2xl shadow-2xl border border-brand-border flex flex-col overflow-hidden"
+			initial={{ opacity: 0, scale: 0.95, y: 20 }}
+			animate={{ opacity: 1, scale: 1, y: 0 }}
+			exit={{ opacity: 0, scale: 0.95, y: 20 }}
+			transition={{ duration: 0.18, ease: "easeOut" }}
+			className="fixed bottom-3 right-4 sm:right-20 z-[10000] w-[95vw] sm:w-[680px] h-[520px] max-h-[calc(100vh-24px)] bg-white rounded-2xl shadow-2xl border border-brand-border flex flex-col overflow-hidden font-sans"
 		>
-			{/* === HEADER 1: Thanh tiêu đề chính trên cùng === */}
-			<div className="px-4 py-2.5 border-b border-brand-border flex items-center justify-between bg-white shrink-0 select-none">
-				{/* Bên trái: icon chat Ant Design, chữ Chat */}
-				<div className="flex items-center gap-2.5">
-					<div className="w-7 h-7 rounded-lg bg-brand-primary/20 text-brand-dark flex items-center justify-center border border-brand-primary/40 shadow-2xs">
-						<MessageOutlined className="text-sm text-brand-dark" />
-					</div>
-					<div className="flex items-center gap-2">
-						<span className="text-sm font-black text-brand-dark tracking-wide">Chat</span>
-						<span className="text-[10px] px-1.5 py-0.5 rounded bg-brand-light-soft text-brand-muted font-bold border border-brand-border/60">
-							{isSeller ? "Người bán" : "Khách hàng"}
-						</span>
-					</div>
-				</div>
+			{/* Header Mini Chat */}
+			<ChatMiniHeader
+				activeRoom={activeRoom}
+				isSeller={isSeller}
+				onClose={closeChat}
+			/>
 
-				{/* Bên phải: nút phóng to (bên trái close), với close */}
-				<div className="flex items-center gap-1">
-					{/* Nút phóng to (icon mở rộng kiểu Chrome) */}
-					<button
-						type="button"
-						onClick={handleExpandToFullPage}
-						className="p-1.5 hover:bg-brand-light-soft text-brand-muted hover:text-brand-dark rounded-md transition-colors cursor-pointer border-none bg-transparent flex items-center justify-center"
-						title="Phóng to đoạn chat (Mở trang đầy đủ)"
-					>
-						<FullscreenOutlined className="text-sm" />
-					</button>
+			{/* Khung thân 2 cột: Danh sách hội thoại + Khung chat */}
+			<div className="flex-1 flex overflow-hidden min-h-0 bg-slate-50">
+				<ChatMiniConversationList
+					conversations={filteredConversations}
+					activeRoom={activeRoom}
+					onSelectRoom={setActiveRoom}
+					isLoading={isLoadingConversations}
+					searchQuery={searchQuery}
+					onSearchChange={setSearchQuery}
+				/>
 
-					{/* Nút close */}
-					<button
-						type="button"
-						onClick={closeChat}
-						className="p-1.5 hover:bg-red-50 text-brand-muted hover:text-red-500 rounded-md transition-colors cursor-pointer border-none bg-transparent flex items-center justify-center"
-						title="Đóng"
-					>
-						<CloseOutlined className="text-sm" />
-					</button>
-				</div>
-			</div>
-
-			{/* === BODY: Tiếp theo xuống dưới mới bọc thẻ div chứa list conversations & khung chat === */}
-			<div className="flex-1 flex overflow-hidden min-h-0">
-				{/* === CỘT TRÁI: Thẻ div chứa danh sách các cuộc hội thoại (list conversations) === */}
-				<div className="w-64 md:w-72 shrink-0 border-r border-brand-border flex flex-col bg-brand-light-soft/20">
-					{/* Thanh tìm kiếm */}
-					<div className="p-2 border-b border-brand-border/60 bg-white">
-						<div className="relative flex items-center">
-							<input
-								type="text"
-								placeholder={isSeller ? "Tìm khách hàng..." : "Tìm shop..."}
-								value={searchQuery}
-								onChange={(e) => setSearchQuery(e.target.value)}
-								className="w-full pl-8 pr-2.5 py-1.5 border border-brand-border rounded-md text-xs font-medium focus:outline-none focus:border-brand-primary bg-brand-light-soft/40 placeholder:text-brand-muted/70"
-							/>
-							<Search className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-brand-muted pointer-events-none" />
-						</div>
-					</div>
-
-					{/* Danh sách các cuộc hội thoại */}
-					<div className="flex-1 overflow-y-auto divide-y divide-brand-border/40">
-						{isLoadingConversations ? (
-							<div className="p-6 text-center text-xs text-brand-muted">Đang tải cuộc trò chuyện...</div>
-						) : filteredConversations.length === 0 ? (
-							<div className="p-6 text-center text-xs text-brand-muted">
-								Chưa có cuộc trò chuyện nào
-							</div>
-						) : (
-							filteredConversations.map((conv) => {
-								const isActive = activeRoom?.roomId === conv.roomId;
-								const initial = conv.displayName?.[0]?.toUpperCase() || "?";
-								return (
-									<button
-										key={conv.roomId}
-										onClick={() => setActiveRoom(conv)}
-										className={`w-full flex items-center gap-2.5 px-3 py-2.5 text-left transition-all border-none cursor-pointer ${
-											isActive
-												? "bg-brand-primary/10 border-l-4 border-brand-primary shadow-2xs"
-												: "hover:bg-brand-light-soft bg-transparent"
-										}`}
-									>
-										<div className="shrink-0 w-8 h-8 rounded-full bg-brand-dark text-brand-primary text-xs font-black flex items-center justify-center overflow-hidden border border-brand-border">
-											{conv.displayAvatar ? (
-												<img src={conv.displayAvatar} alt={conv.displayName} className="w-full h-full object-cover" />
-											) : (
-												initial
-											)}
-										</div>
-										<div className="flex-1 min-w-0">
-											<div className="flex items-center justify-between gap-1">
-												<p
-													className={`text-xs truncate ${
-														isActive ? "font-black text-brand-dark" : "font-bold text-slate-800"
-													}`}
-												>
-													{conv.displayName}
-												</p>
-												<span className="text-[10px] text-brand-muted font-normal shrink-0">
-													{conv.lastActiveAt
-														? new Date(conv.lastActiveAt).toLocaleTimeString("vi-VN", {
-																hour: "2-digit",
-																minute: "2-digit",
-															})
-														: ""}
-												</span>
-											</div>
-											<p
-												className={`text-[11px] truncate font-normal mt-0.5 ${
-													isActive ? "text-brand-dark/80" : "text-brand-muted"
-												}`}
-											>
-												{conv.lastMessage || "Chưa có tin nhắn"}
-											</p>
-										</div>
-									</button>
-								);
-							})
-						)}
-					</div>
-				</div>
-
-				{/* === CỘT PHẢI: Khung chat đối thoại chi tiết === */}
 				<div className="flex-1 flex flex-col overflow-hidden bg-white min-h-0">
-					{activeRoom ? (
-						<>
-							{/* Header thông tin đối tác chat (Đã bỏ chữ chính chủ) */}
-							<div className="px-4 py-2.5 border-b border-brand-border flex items-center justify-between bg-white shrink-0">
-								<div className="flex items-center gap-2.5 min-w-0">
-									<div className="w-8 h-8 rounded-full bg-brand-dark text-brand-primary text-xs font-black flex items-center justify-center shrink-0 border border-brand-border overflow-hidden">
-										{activeRoom.displayAvatar ? (
-											<img src={activeRoom.displayAvatar} alt={activeRoom.displayName} className="w-full h-full object-cover rounded-full" />
-										) : (
-											activeRoom.displayName?.[0]?.toUpperCase() || "?"
-										)}
-									</div>
-									<div className="min-w-0">
-										<p className="text-xs font-black text-brand-dark truncate max-w-[220px]">{activeRoom.displayName}</p>
-										<p className="text-[10px] text-emerald-600 font-semibold flex items-center gap-1 mt-0.5">
-											<span className="w-1.5 h-1.5 rounded-full bg-emerald-500 inline-block animate-pulse" />
-											Đang hoạt động
-										</p>
-									</div>
-								</div>
+					<ChatMiniMessageThread
+						activeRoom={activeRoom}
+						messages={messages}
+						currentUserId={user?.id}
+						activePreset={activePreset}
+						messagesContainerRef={messagesContainerRef}
+						messagesEndRef={messagesEndRef}
+						onImageClick={openImageInLightbox}
+						isSeller={isSeller}
+						formatMessengerTime={formatMessengerTime}
+						shouldShowTimeSeparator={shouldShowTimeSeparator}
+						isPureEmoji={isPureEmoji}
+						onRevokeMessage={handleRevokeMessage}
+						onReactMessage={handleReactMessage}
+					/>
 
-								{!isSeller && (
-									<a
-										href={`/shops/${activeRoom.shopId}`}
-										target="_blank"
-										rel="noreferrer"
-										className="flex items-center gap-1.5 px-2.5 py-1 bg-brand-light-soft hover:bg-brand-border/40 text-brand-dark rounded-md text-[11px] font-bold transition-colors border border-brand-border no-underline shrink-0"
-									>
-										<Store className="w-3.5 h-3.5" />
-										Xem shop
-									</a>
-								)}
-							</div>
-
-							{/* Messages area (Đã bỏ chữ bảo mật SignalR) */}
-							<div className="flex-1 overflow-y-auto px-4 py-3 space-y-2.5 bg-brand-light-soft/20">
-								{messages.map((msg, i) => {
-									const isMe = msg.senderId === currentUserId;
-
-									// Time separator logic (> 30 phút)
-									const prevMsg = messages[i - 1];
-									const showTimeSep = prevMsg
-										? (new Date(msg.sentAt).getTime() - new Date(prevMsg.sentAt).getTime()) > 30 * 60 * 1000
-										: false;
-
-									const timeLabel = new Date(msg.sentAt).toLocaleTimeString("vi-VN", {
-										hour: "2-digit",
-										minute: "2-digit",
-									});
-
-									return (
-										<div key={msg.id}>
-											{showTimeSep && (
-												<div className="flex items-center gap-2 my-2.5">
-													<div className="flex-1 h-px bg-brand-border/60" />
-													<span className="text-[9px] text-brand-muted font-semibold whitespace-nowrap">{timeLabel}</span>
-													<div className="flex-1 h-px bg-brand-border/60" />
-												</div>
-											)}
-											<div className={`flex ${isMe ? "justify-end" : "justify-start"}`}>
-												<div className="group relative">
-													<div
-														className={`max-w-[320px] rounded-md px-3 py-2 text-xs font-medium leading-relaxed shadow-2xs ${
-															isMe
-																? "bg-brand-dark text-white"
-																: "bg-white text-brand-dark border border-brand-border"
-														}`}
-													>
-														{msg.messageType === "Image" ? (
-															<img
-																src={msg.content}
-																alt="Ảnh đính kèm"
-																className="max-w-[240px] max-h-[220px] rounded-md object-cover cursor-pointer hover:opacity-95"
-																onClick={() => window.open(msg.content, "_blank")}
-															/>
-														) : msg.messageType === "Video" ? (
-															<video src={msg.content} controls className="max-w-[260px] rounded-md shadow-xs" />
-														) : (
-															<p className="break-words">{msg.content}</p>
-														)}
-													</div>
-													{/* Hover timestamp */}
-													<span
-														className={`absolute top-1/2 -translate-y-1/2 text-[9px] text-brand-muted font-semibold opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none ${
-															isMe ? "right-full mr-2" : "left-full ml-2"
-														}`}
-													>
-														{timeLabel}
-													</span>
-												</div>
-											</div>
-										</div>
-									);
-								})}
-								<div ref={messagesEndRef} />
-							</div>
-
-							{/* Input bar kèm chỗ gửi ảnh, video, sticker */}
-							<div className="p-2.5 border-t border-brand-border bg-white shrink-0 relative">
-								{/* Media preview nếu đang chọn */}
-								{pendingMedia && (
-									<div className="mb-2 flex items-center gap-2 p-1.5 bg-brand-light-soft rounded-lg border border-brand-border w-fit relative">
-										{pendingMedia.type === "Image" ? (
-											<img src={pendingMedia.url} alt="preview" className="w-12 h-12 rounded object-cover" />
-										) : (
-											<video src={pendingMedia.url} className="w-12 h-12 rounded object-cover" />
-										)}
-										<span className="text-[11px] font-semibold text-brand-dark pr-6 truncate max-w-[160px]">
-											{pendingMedia.file?.name || "Đính kèm"}
-										</span>
-										<button
-											type="button"
-											onClick={() => setPendingMedia(null)}
-											className="absolute top-1 right-1 p-0.5 hover:bg-gray-200 rounded-full text-brand-muted cursor-pointer border-none bg-transparent"
-										>
-											<X className="w-3.5 h-3.5" />
-										</button>
-									</div>
-								)}
-
-								{/* Emoji Quick Picker: Floating absolute không làm nhích khung chat */}
-								<AnimatePresence>
-									{showEmojiPicker && (
-										<motion.div
-											initial={{ opacity: 0, y: 5, scale: 0.95 }}
-											animate={{ opacity: 1, y: 0, scale: 1 }}
-											exit={{ opacity: 0, y: 5, scale: 0.95 }}
-											className="absolute bottom-full mb-2 left-2 z-50 p-2 bg-white rounded-xl border border-brand-border shadow-xl flex flex-wrap gap-1.5 max-w-[280px]"
-										>
-											{QUICK_EMOJIS.map((emoji) => (
-												<button
-													key={emoji}
-													type="button"
-													onClick={() => {
-														setInputText((prev) => prev + emoji);
-														setShowEmojiPicker(false);
-													}}
-													className="text-lg hover:scale-125 transition-transform p-1 cursor-pointer border-none bg-transparent rounded hover:bg-brand-light-soft"
-												>
-													{emoji}
-												</button>
-											))}
-										</motion.div>
-									)}
-								</AnimatePresence>
-
-								{/* Form gõ tin nhắn + nút gửi */}
-								<form
-									onSubmit={(e) => {
-										e.preventDefault();
-										handleSend();
-									}}
-									className="flex items-center gap-2"
-								>
-									{/* Hidden file inputs */}
-									<input
-										type="file"
-										ref={imageInputRef}
-										accept="image/*"
-										onChange={handleImageChange}
-										className="hidden"
-									/>
-									<input
-										type="file"
-										ref={videoInputRef}
-										accept="video/*"
-										onChange={handleVideoChange}
-										className="hidden"
-									/>
-
-									{/* Action buttons (Ảnh, Video, Sticker) */}
-									<div className="flex items-center gap-0.5 text-brand-muted shrink-0">
-										<button
-											type="button"
-											onClick={() => imageInputRef.current?.click()}
-											className="p-1.5 hover:bg-brand-light-soft hover:text-brand-dark rounded-md transition-colors cursor-pointer border-none bg-transparent"
-											title="Gửi hình ảnh"
-										>
-											<PictureOutlined className="text-base" />
-										</button>
-										<button
-											type="button"
-											onClick={() => videoInputRef.current?.click()}
-											className="p-1.5 hover:bg-brand-light-soft hover:text-brand-dark rounded-md transition-colors cursor-pointer border-none bg-transparent"
-											title="Gửi video"
-										>
-											<VideoCameraOutlined className="text-base" />
-										</button>
-										<button
-											type="button"
-											onClick={() => setShowEmojiPicker((s) => !s)}
-											className="p-1.5 hover:bg-brand-light-soft hover:text-brand-dark rounded-md transition-colors cursor-pointer border-none bg-transparent"
-											title="Biểu tượng cảm xúc / Sticker"
-										>
-											<SmileOutlined className="text-base" />
-										</button>
-									</div>
-
-									{/* Input box */}
-									<input
-										type="text"
-										placeholder="Nhập tin nhắn..."
-										value={inputText}
-										onChange={(e) => setInputText(e.target.value)}
-										className="flex-1 pl-3 pr-2.5 py-1.5 border border-brand-border rounded-md text-xs font-medium focus:outline-none focus:border-brand-primary bg-brand-light-soft/40"
-									/>
-
-									{/* Nút gửi */}
-									<button
-										type="submit"
-										disabled={(!inputText.trim() && !pendingMedia) || isSending}
-										className="p-2 bg-brand-dark text-brand-primary hover:bg-brand-dark/90 rounded-md transition-all disabled:opacity-50 disabled:cursor-not-allowed border-none cursor-pointer shrink-0 font-bold flex items-center justify-center"
-										title="Gửi tin nhắn"
-									>
-										<SendOutlined className="text-sm" />
-									</button>
-								</form>
-							</div>
-						</>
-					) : (
-						<div className="flex-1 flex flex-col items-center justify-center p-8 text-center text-brand-muted gap-2.5">
-							<div className="w-12 h-12 rounded-full bg-brand-light-soft flex items-center justify-center text-brand-muted/40 border border-brand-border">
-								<MessageOutlined className="text-xl" />
-							</div>
-							<p className="text-xs font-bold text-brand-dark">Chọn cuộc trò chuyện để bắt đầu</p>
-							<p className="text-[11px] text-brand-muted">Trao đổi trực tiếp, nhận hỗ trợ tức thì</p>
-						</div>
+					{activeRoom && (
+						<ChatMiniInputBar
+							inputText={inputText}
+							onInputTextChange={setInputText}
+							onSend={handleSend}
+							isSending={isSending}
+							pendingMediaList={pendingMediaList}
+							onSelectFiles={handleSelectFiles}
+							onRemovePendingMedia={removePendingMedia}
+							onSendSpecial={handleSendSpecial}
+							showEmojiPicker={showEmojiPicker}
+							onToggleEmojiPicker={() => setShowEmojiPicker((v) => !v)}
+							onCloseEmojiPicker={() => setShowEmojiPicker(false)}
+							pickerTab={pickerTab}
+							onPickerTabChange={setPickerTab}
+						/>
 					)}
 				</div>
 			</div>
+
+			{/* Trình xem ảnh toàn màn hình cao cấp */}
+			<ChatImageViewer
+				open={lightboxIndex >= 0 && lightboxSlides.length > 0}
+				close={() => setLightboxIndex(-1)}
+				index={lightboxIndex}
+				slides={lightboxSlides}
+			/>
 		</motion.div>
 	);
 }
+
+export default ChatMiniModal;

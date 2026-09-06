@@ -82,7 +82,8 @@ public class SellerGrpcServer(IShopService shopService, ILogger<SellerGrpcServer
             DistrictId = shop.DistrictId,
             ProvinceId = shop.ProvinceId,
             OwnerUserId = shop.OwnerUserId,
-            RecipientName = shop.RecipientName ?? string.Empty
+            RecipientName = shop.RecipientName ?? string.Empty,
+            LogoUrl = shop.LogoUrl ?? string.Empty
         };
     }
 
@@ -108,7 +109,8 @@ public class SellerGrpcServer(IShopService shopService, ILogger<SellerGrpcServer
                     DistrictId = shop.DistrictId,
                     ProvinceId = shop.ProvinceId,
                     OwnerUserId = shop.OwnerUserId,
-                    RecipientName = shop.RecipientName ?? string.Empty
+                    RecipientName = shop.RecipientName ?? string.Empty,
+                    LogoUrl = shop.LogoUrl ?? string.Empty
                 });
             }
         }

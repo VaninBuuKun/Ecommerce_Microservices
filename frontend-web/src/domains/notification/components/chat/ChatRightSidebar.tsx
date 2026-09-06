@@ -17,8 +17,8 @@ import {
 import { ChevronDown, ChevronUp } from "lucide-react";
 import { motion } from "framer-motion";
 import { toast } from "react-toastify";
-import type { Conversation, ChatItemTheme, ChatBgTheme } from "../../types/chat.types";
-import { CHAT_ITEM_THEMES, CHAT_BG_THEMES } from "./chat.constants";
+import type { Conversation, ChatItemTheme, ChatBgTheme, ChatThemePreset } from "../../types/chat.types";
+import { CHAT_ITEM_THEMES, CHAT_BG_THEMES, CHAT_THEME_PRESETS, getChatTheme } from "./chat.constants";
 
 interface ChatRightSidebarProps {
 	activeRoom: Conversation;
@@ -35,12 +35,15 @@ interface ChatRightSidebarProps {
 	onToggleThemeAccordion: () => void;
 	isResourceAccordionOpen: boolean;
 	onToggleResourceAccordion: () => void;
-	confirmedTheme: ChatItemTheme;
-	confirmedChatBg: ChatBgTheme;
-	previewTheme: ChatItemTheme;
-	onSetPreviewTheme: (t: ChatItemTheme) => void;
-	previewChatBg: ChatBgTheme;
-	onSetPreviewChatBg: (b: ChatBgTheme) => void;
+	themePreset?: ChatThemePreset;
+	previewThemePreset?: ChatThemePreset;
+	onSetPreviewThemePreset?: (preset: ChatThemePreset) => void;
+	confirmedTheme?: ChatItemTheme;
+	confirmedChatBg?: ChatBgTheme;
+	previewTheme?: ChatItemTheme;
+	onSetPreviewTheme?: (t: ChatItemTheme) => void;
+	previewChatBg?: ChatBgTheme;
+	onSetPreviewChatBg?: (b: ChatBgTheme) => void;
 	hasThemeChanged: boolean;
 	onApplyTheme: () => void;
 	onCancelTheme: () => void;
@@ -64,6 +67,9 @@ export const ChatRightSidebar: React.FC<ChatRightSidebarProps> = ({
 	onToggleThemeAccordion,
 	isResourceAccordionOpen,
 	onToggleResourceAccordion,
+	themePreset,
+	previewThemePreset,
+	onSetPreviewThemePreset,
 	confirmedTheme,
 	confirmedChatBg,
 	previewTheme,
@@ -77,6 +83,10 @@ export const ChatRightSidebar: React.FC<ChatRightSidebarProps> = ({
 	onImageClick,
 	isApplyingTheme = false,
 }) => {
+	const currentPreset =
+		previewThemePreset ||
+		themePreset ||
+		getChatTheme(activeRoom.themeColor, activeRoom.backgroundColor);
 	const initial = activeRoom.displayName?.[0]?.toUpperCase() || "?";
 
 	return (
@@ -189,17 +199,18 @@ export const ChatRightSidebar: React.FC<ChatRightSidebarProps> = ({
 									<div className="flex items-center gap-2.5 min-w-0">
 										<div className="flex items-center -space-x-1 shrink-0">
 											<span
-												style={{ backgroundColor: confirmedChatBg.hex }}
+												style={{ backgroundColor: currentPreset.previewHex }}
 												className="w-4 h-4 rounded-full border border-slate-300 shadow-2xs"
-												title={`Nền: ${confirmedChatBg.name}`}
+												title={currentPreset.name}
 											/>
 											<span
-												style={{ backgroundColor: confirmedTheme.hex }}
+												style={{ backgroundColor: currentPreset.secondaryPreviewHex }}
 												className="w-4 h-4 rounded-full border border-white shadow-2xs"
-												title={`Tin nhắn: ${confirmedTheme.name}`}
 											/>
 										</div>
-										<span className="text-xs font-semibold text-slate-700 truncate">Đổi màu nền & tin nhắn</span>
+										<span className="text-xs font-semibold text-slate-700 truncate">
+											Chủ đề: {currentPreset.name}
+										</span>
 									</div>
 									<RightOutlined className="text-xs text-slate-400 shrink-0" />
 								</button>
@@ -279,67 +290,88 @@ export const ChatRightSidebar: React.FC<ChatRightSidebarProps> = ({
 						>
 							<LeftOutlined className="text-sm" />
 						</button>
-						<h3 className="font-extrabold text-sm text-slate-900">
-							Màu sắc đoạn chat
-						</h3>
+						<div className="min-w-0">
+							<h3 className="font-extrabold text-sm text-slate-900 leading-tight">
+								Chủ đề & Phối màu
+							</h3>
+							<p className="text-[10px] text-slate-400 font-medium truncate">
+								Tự động phối nền và bong bóng cả 2 bên
+							</p>
+						</div>
 					</div>
 
-					{/* Nội dung chọn màu: Không cần tabs, hiển thị trực quan */}
-					<div className="flex-1 overflow-y-auto p-4 space-y-5">
-						{/* 1. Chọn Màu nền khung chat */}
-						<div>
-							<div className="flex items-center justify-between mb-2">
-								<p className="text-xs font-bold text-slate-800">Màu nền khung chat</p>
-								<span className="text-[10px] text-slate-400 font-semibold">{previewChatBg.name}</span>
-							</div>
-							<div className="grid grid-cols-5 gap-2">
-								{CHAT_BG_THEMES.map((theme) => {
-									const isSelected = previewChatBg.id === theme.id;
-									return (
-										<button
-											key={theme.id}
-											type="button"
-											onClick={() => onSetPreviewChatBg(theme)}
-											style={{ backgroundColor: theme.hex }}
-											className={`h-9 rounded-lg flex items-center justify-center transition-all cursor-pointer border ${theme.border} ${
-												isSelected ? "ring-2 ring-brand-primary scale-105 shadow-sm" : "hover:scale-102 opacity-80 hover:opacity-100"
-											}`}
-											title={theme.name}
-										>
+					{/* Danh sách chủ đề phối màu đồng bộ */}
+					<div className="flex-1 overflow-y-auto p-3.5 space-y-3">
+						<div className="grid grid-cols-1 gap-2.5">
+							{CHAT_THEME_PRESETS.map((preset) => {
+								const isSelected = currentPreset.id === preset.id;
+								return (
+									<div
+										key={preset.id}
+										onClick={() => {
+											if (onSetPreviewThemePreset) {
+												onSetPreviewThemePreset(preset);
+											}
+										}}
+										className={`p-2.5 rounded-xl border transition-all cursor-pointer relative ${
+											isSelected
+												? "border-brand-primary ring-2 ring-brand-primary/40 bg-brand-primary/5 shadow-xs"
+												: "border-slate-200 hover:border-slate-300 hover:bg-slate-50/60 bg-white"
+										}`}
+									>
+										{/* Tên & huy hiệu xem trước màu */}
+										<div className="flex items-center justify-between mb-2">
+											<div className="flex items-center gap-2">
+												<div className="flex items-center -space-x-1">
+													<span
+														style={{ backgroundColor: preset.previewHex }}
+														className="w-3.5 h-3.5 rounded-full border border-white shadow-2xs inline-block"
+													/>
+													<span
+														style={{ backgroundColor: preset.secondaryPreviewHex }}
+														className="w-3.5 h-3.5 rounded-full border border-white shadow-2xs inline-block"
+													/>
+												</div>
+												<span className="text-xs font-bold text-slate-800">{preset.name}</span>
+											</div>
 											{isSelected && (
-												<CheckOutlined className={`text-xs ${theme.id === "dark" ? "text-white" : "text-brand-dark"}`} />
+												<span className="w-5 h-5 rounded-full bg-brand-primary text-brand-dark flex items-center justify-center text-[10px] font-black shadow-2xs">
+													<CheckOutlined />
+												</span>
 											)}
-										</button>
-									);
-								})}
-							</div>
-						</div>
+										</div>
 
-						{/* 2. Chọn Màu bong bóng tin nhắn (Chat Item) */}
-						<div>
-							<div className="flex items-center justify-between mb-2">
-								<p className="text-xs font-bold text-slate-800">Màu bong bóng tin nhắn</p>
-								<span className="text-[10px] text-slate-400 font-semibold">{previewTheme.name}</span>
-							</div>
-							<div className="grid grid-cols-4 gap-2">
-								{CHAT_ITEM_THEMES.map((theme) => {
-									const isSelected = previewTheme.id === theme.id;
-									return (
-										<button
-											key={theme.id}
-											type="button"
-											onClick={() => onSetPreviewTheme(theme)}
-											style={{ backgroundColor: theme.hex }}
-											className={`h-9 rounded-lg flex items-center justify-center text-white text-xs transition-all cursor-pointer border border-black/10 ${
-												isSelected ? "ring-2 ring-offset-1 ring-slate-800 scale-105 shadow-sm" : "hover:scale-102 opacity-85 hover:opacity-100"
-											}`}
-											title={theme.name}
+										{/* Khung mô phỏng trực quan mini cả 2 bên hội thoại */}
+										<div
+											className={`p-2 rounded-lg ${preset.background} border border-black/5 flex flex-col space-y-1.5 transition-colors overflow-hidden`}
 										>
-											{isSelected && <CheckOutlined className="text-xs" />}
-										</button>
-									);
-								})}
-							</div>
+											{/* Tin nhắn đối phương (Bên trái) - Đã được đồng bộ màu sắc và viền phù hợp */}
+											<div className="flex justify-start">
+												<div
+													className={`text-[10px] font-medium px-2 py-1 rounded-xl rounded-tl-xs border max-w-[85%] ${preset.theirBubble.bg} ${preset.theirBubble.text} ${preset.theirBubble.border}`}
+												>
+													Xin chào bạn! 👋
+												</div>
+											</div>
+
+											{/* Tin nhắn cá nhân (Bên phải) */}
+											<div className="flex justify-end">
+												<div
+													className={`text-[10px] font-medium px-2 py-1 rounded-xl rounded-tr-xs max-w-[85%] ${preset.myBubble.bg} ${preset.myBubble.text} ${preset.myBubble.border || ""}`}
+												>
+													Shop tư vấn giúp mình nhé ✨
+												</div>
+											</div>
+										</div>
+
+										{preset.description && (
+											<p className="text-[10px] text-slate-500 mt-1.5 line-clamp-1">
+												{preset.description}
+											</p>
+										)}
+									</div>
+								);
+							})}
 						</div>
 
 						{/* Chú thích xem trước trực tiếp */}

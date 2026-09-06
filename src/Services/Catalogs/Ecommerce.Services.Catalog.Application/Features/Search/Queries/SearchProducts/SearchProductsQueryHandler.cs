@@ -113,25 +113,55 @@ public class SearchProductsQueryHandler(
                 }
             }
 
-            // 3. Tìm kiếm sản phẩm qua PostgreSQL GIN Trigram
+            // 3. Xác định Category / SubCategory Filter
+            List<long>? targetCategoryIds = null;
+            long? targetSingleCategoryId = null;
+
+            if (query.CategoryId.HasValue)
+            {
+                var isParent = categoryTree?.Any(p => p.Id == query.CategoryId.Value) ?? false;
+                if (isParent)
+                {
+                    targetCategoryIds = new List<long> { query.CategoryId.Value };
+                    var childIds = flatSubCategories
+                        .Where(pair => pair.Parent.Id == query.CategoryId.Value)
+                        .Select(pair => pair.Sub.Id);
+                    targetCategoryIds.AddRange(childIds);
+                }
+                else
+                {
+                    targetSingleCategoryId = query.CategoryId.Value;
+                }
+            }
+            else if (query.ParentCategoryId.HasValue)
+            {
+                targetCategoryIds = new List<long> { query.ParentCategoryId.Value };
+                var childIds = flatSubCategories
+                    .Where(pair => pair.Parent.Id == query.ParentCategoryId.Value)
+                    .Select(pair => pair.Sub.Id);
+                targetCategoryIds.AddRange(childIds);
+            }
+
+            // 4. Tìm kiếm sản phẩm qua PostgreSQL GIN Trigram
             var page = Math.Max(1, query.Page);
             var pageSize = query.PageSize > 0 ? query.PageSize : 36;
 
             var filterSpec = new ProductsFilterSpec(
                 cleanKeyword,
-                query.CategoryId,
+                targetSingleCategoryId,
                 effectiveMinRating,
                 query.ShopId,
                 query.HasDiscount,
                 effectiveMinPrice,
-                effectiveMaxPrice
+                effectiveMaxPrice,
+                targetCategoryIds
             );
 
             var totalCount = await _productRepository.CountAsync(filterSpec, cancellationToken);
 
             var pagingSpec = new ProductsPaginatedSpec(
                 cleanKeyword,
-                query.CategoryId,
+                targetSingleCategoryId,
                 effectiveMinRating,
                 page,
                 pageSize,
@@ -139,7 +169,8 @@ public class SearchProductsQueryHandler(
                 query.ShopId,
                 query.HasDiscount,
                 effectiveMinPrice,
-                effectiveMaxPrice
+                effectiveMaxPrice,
+                targetCategoryIds
             );
 
             var products = await _productRepository.GetListAsync(pagingSpec, cancellationToken);

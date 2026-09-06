@@ -1,5 +1,5 @@
 import React from "react";
-import { MessageOutlined } from "@ant-design/icons";
+import { CommentOutlined } from "@ant-design/icons";
 import { Search } from "lucide-react";
 import type { Conversation } from "../../types/chat.types";
 
@@ -48,7 +48,7 @@ export const ChatConversationList: React.FC<ChatConversationListProps> = ({
 					<div className="p-6 text-center text-xs text-slate-400 font-medium">Đang tải cuộc hội thoại...</div>
 				) : filteredConversations.length === 0 ? (
 					<div className="p-8 text-center text-slate-400 space-y-2">
-						<MessageOutlined className="text-2xl text-slate-300 mx-auto block" />
+						<CommentOutlined className="text-2xl text-slate-300 mx-auto block" />
 						<p className="text-xs font-bold text-slate-500">Chưa có cuộc trò chuyện nào</p>
 					</div>
 				) : (

@@ -222,6 +222,7 @@ GHN Delivered → ShipmentDeliveredEvent → Orders Service → SubOrder Deliver
 ### Real-time Messaging & Floating Chat
 * **SignalR Customer ↔ Shop Chat Page (`/chat`)**: Fullscreen real-time communication between buyers and seller shops with chat history.
 * **Floating Chat Bubble & Modal (`ChatBubbleButton` + `ChatMiniModal`)**: 2-column popup chat widget accessible across all customer and seller pages.
+* **Media Presentation & Actions**: Physical gray stacked cards behind multi-image/video with tilt and fan-out effect, action bar (smile icon with reaction popover, download, delete/revoke) positioned neatly next to message bubbles above timestamp on hover.
 * **Room Customization**: Custom theme colors and background styling per conversation (`ThemeColor`, `BackgroundColor`).
 
 ### Isolated HTML Email Template Engine

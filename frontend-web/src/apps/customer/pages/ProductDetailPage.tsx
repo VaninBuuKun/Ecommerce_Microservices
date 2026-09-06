@@ -21,12 +21,14 @@ import {
 	RelatedProducts,
 	ProductReviewsSection,
 	WishlistButton,
+	ProductImageModal,
 } from "@/domains/catalog";
 
-import { useSellerProfileQuery } from "@/domains/seller";
+import { useSellerProfileQuery, usePublicShopQuery } from "@/domains/seller";
 import { useAddItemToCartMutation, useBuyNowOrReorder } from "@/domains/cart";
 import { useChatStore } from "@/domains/notification";
 import { useAuthStore, useAuthModalStore } from "@/domains/auth";
+import { CommentOutlined } from "@ant-design/icons";
 import { toast } from "react-toastify";
 
 export default function ProductDetailPage() {
@@ -37,7 +39,21 @@ export default function ProductDetailPage() {
 	const accessToken = useAuthStore((s) => s.accessToken);
 	const { openAuthModal } = useAuthModalStore();
 	const { data: product, isLoading, isError } = useProductByIdQuery(id);
+	const { data: shop } = usePublicShopQuery(product?.shopId ? Number(product.shopId) : undefined);
 
+	const fullShopAddress = useMemo(() => {
+		if (shop) {
+			const parts = [
+				shop.addressLine,
+				shop.ward,
+				shop.district,
+				shop.province,
+			].filter(Boolean);
+			if (parts.length > 0) return parts.join(", ");
+		}
+		if (product?.shopAddress) return product.shopAddress;
+		return "Chưa cập nhật";
+	}, [shop, product?.shopAddress]);
 
 	const [activeMedia, setActiveMedia] = useState<{
 		type: "image" | "video";
@@ -60,6 +76,68 @@ export default function ProductDetailPage() {
 			""
 		);
 	}, [product]);
+
+	// Danh sách ảnh cho ProductImageModal (Thumbnail luôn ở đầu)
+	const modalImages = useMemo(() => {
+		if (!product) return [];
+		const list: { url: string; label: string; isThumbnail?: boolean }[] = [];
+		const seenUrls = new Set<string>();
+
+		if (product.thumbnailUrl) {
+			list.push({
+				url: product.thumbnailUrl,
+				label: "Ảnh đại diện",
+				isThumbnail: true,
+			});
+			seenUrls.add(product.thumbnailUrl);
+		}
+
+		if (product.imageUrls && Array.isArray(product.imageUrls)) {
+			product.imageUrls.forEach((url, idx) => {
+				if (url && !seenUrls.has(url)) {
+					list.push({
+						url,
+						label: `Ảnh chi tiết ${idx + 1}`,
+					});
+					seenUrls.add(url);
+				}
+			});
+		}
+
+		if (product.options && Array.isArray(product.options)) {
+			product.options.forEach((opt: any) => {
+				if (opt.values && Array.isArray(opt.values)) {
+					opt.values.forEach((val: any) => {
+						if (val.imageUrl && !seenUrls.has(val.imageUrl)) {
+							list.push({
+								url: val.imageUrl,
+								label: `${opt.name || "Phân loại"}: ${val.value || ""}`,
+							});
+							seenUrls.add(val.imageUrl);
+						}
+					});
+				}
+			});
+		}
+
+		return list;
+	}, [product]);
+
+	const [isImageViewerOpen, setIsImageViewerOpen] = useState(false);
+	const [imageViewerIndex, setImageViewerIndex] = useState(0);
+
+	const handleOpenImageViewer = (targetIdx?: number) => {
+		if (modalImages.length === 0) return;
+		let index = 0;
+		if (typeof targetIdx === "number" && targetIdx >= 0) {
+			index = Math.min(targetIdx, modalImages.length - 1);
+		} else if (activeMedia?.url) {
+			const found = modalImages.findIndex((img) => img.url === activeMedia.url);
+			if (found !== -1) index = found;
+		}
+		setImageViewerIndex(index);
+		setIsImageViewerOpen(true);
+	};
 
 	// Setup defaults
 	useEffect(() => {
@@ -346,7 +424,7 @@ export default function ProductDetailPage() {
 				</p>
 				<Link
 					to="/"
-					className="inline-block px-5 py-2 bg-brand-primary text-brand-dark rounded text-xs font-bold"
+					className="inline-block px-5 py-2 bg-brand-primary text-brand-dark rounded-md text-xs font-bold"
 				>
 					Quay lại Trang Chủ
 				</Link>
@@ -401,12 +479,13 @@ export default function ProductDetailPage() {
 			</div>
 
 			{/* Main Product Box */}
-			<div className="bg-white rounded-2xl border border-brand-border shadow-sm p-4 md:p-5 grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+			<div className="bg-white rounded-md border border-brand-border shadow-sm p-4 md:p-5 grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
 				{/* Left Column: Gallery */}
 				<ProductGallery
 					product={product}
 					activeMedia={activeMedia}
 					setActiveMedia={setActiveMedia}
+					onOpenImageViewer={handleOpenImageViewer}
 				/>
 
 				{/* Right Column: Information & Controls */}
@@ -532,7 +611,7 @@ export default function ProductDetailPage() {
 
 							if (checkIsAdmin()) {
 								return (
-									<div className="p-3 bg-amber-50 text-amber-800 border border-amber-200 rounded-xl text-[11px] font-bold">
+									<div className="p-3 bg-amber-50 text-amber-800 border border-amber-200 rounded-md text-[11px] font-bold">
 										Tài khoản quản trị viên đang trong chế độ quan sát sản phẩm. Không thể mua hàng.
 									</div>
 								);
@@ -542,7 +621,7 @@ export default function ProductDetailPage() {
 								return (
 									<Link
 										to={`/seller/${product.shopId}/dashboard/products/edit/${product.id}`}
-										className="h-10 px-6 bg-brand-dark hover:bg-black text-brand-primary rounded-lg text-xs font-extrabold transition-all cursor-pointer flex items-center gap-2 border border-brand-border"
+										className="h-10 px-6 bg-brand-dark hover:bg-black text-brand-primary rounded-md text-xs font-extrabold transition-all cursor-pointer flex items-center gap-2 border border-brand-border"
 									>
 										<Edit className="w-4 h-4" />
 										Chỉnh sửa sản phẩm của bạn
@@ -555,7 +634,7 @@ export default function ProductDetailPage() {
 									<button
 										type="button"
 										onClick={handleAddToCart}
-										className="h-10 px-4 border border-brand-primary text-brand-primary-deep bg-brand-primary/10 hover:bg-brand-primary/20 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5"
+										className="h-10 px-4 border border-brand-primary text-brand-primary-deep bg-brand-primary/10 hover:bg-brand-primary/20 rounded-md text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5"
 									>
 										<ShoppingBag className="w-4 h-4" />
 										Thêm vào giỏ hàng
@@ -563,11 +642,11 @@ export default function ProductDetailPage() {
 									<button
 										type="button"
 										onClick={handleBuyNow}
-										className="h-10 px-6 bg-brand-primary hover:bg-brand-primary-deep text-brand-dark rounded-lg text-xs font-extrabold transition-all cursor-pointer"
+										className="h-10 px-6 bg-brand-primary hover:bg-brand-primary-deep text-brand-dark rounded-md text-xs font-extrabold transition-all cursor-pointer"
 									>
 										Mua ngay
 									</button>
-									<WishlistButton productId={product.id} className="p-2 rounded-lg border border-brand-border" />
+									<WishlistButton productId={product.id} className="p-2 rounded-md border border-brand-border" />
 
 								</>
 							);
@@ -577,35 +656,35 @@ export default function ProductDetailPage() {
 			</div>
 
 			{/* Shop Information Card */}
-			<div className="bg-white rounded-2xl border border-brand-border shadow-sm p-5 mb-6 flex flex-col md:flex-row items-center justify-between gap-6 text-left">
+			<div className="bg-white rounded-md border border-brand-border shadow-sm p-5 mb-6 flex flex-col md:flex-row items-center justify-between gap-6 text-left">
 				<div className="flex items-center gap-4">
 					<div
 						onClick={() => navigate(`/shops/${product.shopId}`)}
-						className="w-16 h-16 rounded-full bg-brand-primary/10 flex items-center justify-center border border-brand-primary/20 shrink-0 cursor-pointer hover:opacity-80 transition-all"
+						className="w-16 h-16 rounded-md overflow-hidden bg-brand-light-soft border border-brand-border shrink-0 flex items-center justify-center cursor-pointer hover:opacity-85 transition-all shadow-2xs"
 					>
-						<Store className="w-8 h-8 text-brand-primary-deep" />
+						{shop?.logoUrl ? (
+							<img src={shop.logoUrl} alt={shop.name || product.shopName} className="w-full h-full object-cover" />
+						) : (
+							<div className="w-full h-full flex items-center justify-center font-black text-brand-primary-deep text-xl uppercase bg-brand-primary/10">
+								{(product.shopName || "S").charAt(0)}
+							</div>
+						)}
 					</div>
 					<div>
 						<h3
 							onClick={() => navigate(`/shops/${product.shopId}`)}
 							className="font-black text-brand-dark text-sm cursor-pointer hover:underline"
 						>
-							{product.shopName || `Cửa hàng #${product.shopId}`}
+							{shop?.name || product.shopName || `Cửa hàng #${product.shopId}`}
 						</h3>
-						{product.shopAddress && (
-							<p className="text-[10px] text-brand-muted mt-0.5 font-semibold">
-								Địa chỉ: <span className="text-brand-dark">{product.shopAddress}</span>
-							</p>
-						)}
-						{product.shopPhone && (
-							<p className="text-[10px] text-brand-muted mt-0.5 font-semibold">
-								Hotline: <span className="text-brand-dark">{product.shopPhone}</span>
-							</p>
-						)}
-						<div className="flex items-center gap-4 mt-2 text-[10px] text-brand-muted font-bold">
-							<span>Phản hồi chat: <strong className="text-brand-dark">99% (Rất Nhanh)</strong></span>
-							<span className="w-1.5 h-1.5 rounded-full bg-brand-border" />
-							<span>Người nhận: <strong className="text-brand-dark">{product.shopRecipient || "Đại diện Shop"}</strong></span>
+						<p className="text-[11px] text-brand-muted mt-1 font-semibold">
+							Địa chỉ: <span className="text-brand-dark font-medium">{fullShopAddress}</span>
+						</p>
+						<p className="text-[11px] text-brand-muted mt-0.5 font-semibold">
+							Số điện thoại liên hệ: <span className="text-brand-dark font-bold">{shop?.phone || product.shopPhone || "Chưa cập nhật"}</span>
+						</p>
+						<div className="flex items-center gap-2 mt-2 text-[11px] text-brand-muted font-bold">
+							<span>Người đại diện: <strong className="text-brand-dark">{shop?.recipientName || product.shopRecipient || "Đại diện Shop"}</strong></span>
 						</div>
 					</div>
 				</div>
@@ -613,7 +692,7 @@ export default function ProductDetailPage() {
 					{isOwnProduct ? (
 						<Link
 							to={`/seller/${product.shopId}/dashboard`}
-							className="flex-1 md:flex-initial h-9 px-4 border border-brand-dark text-white bg-brand-dark hover:bg-black rounded-xl text-xs font-black transition-all flex items-center justify-center gap-1.5"
+							className="flex-1 md:flex-initial h-9 px-4 border border-brand-dark text-white bg-brand-dark hover:bg-black rounded-md text-xs font-black transition-all flex items-center justify-center gap-1.5"
 						>
 							Bảng điều khiển
 						</Link>
@@ -629,17 +708,18 @@ export default function ProductDetailPage() {
 										});
 										return;
 									}
-									const storeName = product.shopName || `Shop #${product.shopId}`;
-									openChatWithShop(Number(product.shopId), storeName);
+									const storeName = shop?.name || product.shopName || `Shop #${product.shopId}`;
+									const storeAvatar = shop?.logoUrl || "";
+									openChatWithShop(Number(product.shopId), storeName, storeAvatar);
 								}}
-								className="flex-1 md:flex-initial h-9 px-4 border border-brand-primary text-brand-primary-deep bg-brand-primary/10 hover:bg-brand-primary/20 rounded-xl text-xs font-black transition-all cursor-pointer flex items-center justify-center gap-1.5"
+								className="flex-1 md:flex-initial h-9 px-4 border border-brand-primary text-brand-primary-deep bg-brand-primary/10 hover:bg-brand-primary/20 rounded-md text-xs font-black transition-all cursor-pointer flex items-center justify-center gap-1.5"
 							>
-								<MessageCircle className="w-4 h-4" />
+								<CommentOutlined className="text-sm" />
 								Chat với Người Bán
 							</button>
 							<Link
 								to={`/shops/${product.shopId}`}
-								className="flex-1 md:flex-initial h-9 px-4 border border-brand-border hover:bg-brand-light-soft text-brand-dark rounded-xl text-xs font-black transition-all flex items-center justify-center"
+								className="flex-1 md:flex-initial h-9 px-4 border border-brand-border hover:bg-brand-light-soft text-brand-dark rounded-md text-xs font-black transition-all flex items-center justify-center"
 							>
 								Xem Cửa Hàng
 							</Link>
@@ -658,6 +738,18 @@ export default function ProductDetailPage() {
 			<RelatedProducts
 				categoryId={product.categoryId}
 				currentProductId={product.id}
+			/>
+
+			{/* Custom Product Image Viewer Modal */}
+			<ProductImageModal
+				isOpen={isImageViewerOpen}
+				onClose={() => setIsImageViewerOpen(false)}
+				productTitle={product.name}
+				images={modalImages}
+				initialIndex={imageViewerIndex}
+				onSelectImage={(item) => {
+					setActiveMedia({ type: "image", url: item.url });
+				}}
 			/>
 		</div>
 	);

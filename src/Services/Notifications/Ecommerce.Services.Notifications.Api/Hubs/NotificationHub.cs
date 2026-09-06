@@ -28,13 +28,21 @@ public class NotificationHub(
     // Lifecycle
     // -----------------------------------------------------------
 
+    private long GetCurrentUserId()
+    {
+        var idStr = Context.UserIdentifier
+            ?? Context.User?.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value
+            ?? Context.User?.FindFirst("sub")?.Value;
+        return long.TryParse(idStr, out var id) ? id : 0;
+    }
+
     public override async Task OnConnectedAsync()
     {
-        var userId = Context.UserIdentifier;
-        if (!string.IsNullOrEmpty(userId))
+        var userId = GetCurrentUserId();
+        if (userId > 0)
         {
-            // Join group theo userId để nhận notification
-            await Groups.AddToGroupAsync(Context.ConnectionId, userId);
+            // Join group theo userId để nhận notification & chat
+            await Groups.AddToGroupAsync(Context.ConnectionId, userId.ToString());
             logger.LogInformation("User {UserId} connected to NotificationHub (ConnectionId: {ConnectionId})", userId, Context.ConnectionId);
         }
         await base.OnConnectedAsync();
@@ -42,10 +50,10 @@ public class NotificationHub(
 
     public override async Task OnDisconnectedAsync(Exception? exception)
     {
-        var userId = Context.UserIdentifier;
-        if (!string.IsNullOrEmpty(userId))
+        var userId = GetCurrentUserId();
+        if (userId > 0)
         {
-            await Groups.RemoveFromGroupAsync(Context.ConnectionId, userId);
+            await Groups.RemoveFromGroupAsync(Context.ConnectionId, userId.ToString());
         }
         await base.OnDisconnectedAsync(exception);
     }
@@ -60,6 +68,7 @@ public class NotificationHub(
     /// </summary>
     public async Task JoinChatRoom(Guid roomId)
     {
+        if (roomId == Guid.Empty) return;
         var groupName = $"chat-room-{roomId}";
         await Groups.AddToGroupAsync(Context.ConnectionId, groupName);
         logger.LogInformation("User {UserId} joined chat room {GroupName}", Context.UserIdentifier, groupName);
@@ -68,6 +77,7 @@ public class NotificationHub(
     /// <summary>Client gọi để rời chat room.</summary>
     public async Task LeaveChatRoom(Guid roomId)
     {
+        if (roomId == Guid.Empty) return;
         var groupName = $"chat-room-{roomId}";
         await Groups.RemoveFromGroupAsync(Context.ConnectionId, groupName);
     }
@@ -78,16 +88,22 @@ public class NotificationHub(
     /// </summary>
     public async Task JoinShopChannel(long shopId)
     {
+        if (shopId <= 0) return;
         var groupName = $"shop-channel-{shopId}";
         await Groups.AddToGroupAsync(Context.ConnectionId, groupName);
         logger.LogInformation("Staff {UserId} joined shop channel group {GroupName}", Context.UserIdentifier, groupName);
     }
 
     /// <summary>Client gửi tin nhắn chat. Tự động khởi tạo ChatRoom nếu roomId chưa tồn tại (Default/Empty).</summary>
-    public async Task SendChatMessage(Guid roomId, string content, long recipientId, string senderRole, string messageType = "Text")
+    public async Task<object?> SendChatMessage(Guid roomId, string content, long recipientId, string senderRole, string messageType = "Text")
     {
-        if (string.IsNullOrWhiteSpace(content)) return;
-        if (!long.TryParse(Context.UserIdentifier, out var senderId)) return;
+        if (string.IsNullOrWhiteSpace(content)) return null;
+        var senderId = GetCurrentUserId();
+        if (senderId <= 0)
+        {
+            logger.LogWarning("SendChatMessage: senderId is invalid from user claims.");
+            return null;
+        }
 
         ChatRoom? room = null;
 
@@ -118,7 +134,7 @@ public class NotificationHub(
             room = await dbContext.ChatRooms.FirstOrDefaultAsync(r => r.Id == roomId);
         }
 
-        if (room == null) return;
+        if (room == null) return null;
 
         var msgType = Enum.TryParse<ChatMessageType>(messageType, true, out var parsedType) ? parsedType : ChatMessageType.Text;
         var message = new ChatMessage
@@ -132,28 +148,78 @@ public class NotificationHub(
 
         dbContext.ChatMessages.Add(message);
 
-        // Update preview last message của phòng
-        room.LastMessage = message.Content.Length > 200 ? message.Content.Substring(0, 200) + "..." : message.Content;
+        // Update preview last message của phòng theo loại nội dung
+        if (message.MessageType == ChatMessageType.Image)
+        {
+            int count = 1;
+            var trimmed = message.Content.Trim();
+            if (trimmed.StartsWith("[") && trimmed.EndsWith("]"))
+            {
+                try
+                {
+                    var list = System.Text.Json.JsonSerializer.Deserialize<List<string>>(trimmed);
+                    count = list?.Count ?? 1;
+                }
+                catch { }
+            }
+            room.LastMessage = count > 1 ? $"Đã gửi {count} ảnh" : "Đã gửi 1 ảnh";
+        }
+        else if (message.MessageType == ChatMessageType.Video)
+        {
+            int count = 1;
+            var trimmed = message.Content.Trim();
+            if (trimmed.StartsWith("[") && trimmed.EndsWith("]"))
+            {
+                try
+                {
+                    var list = System.Text.Json.JsonSerializer.Deserialize<List<string>>(trimmed);
+                    count = list?.Count ?? 1;
+                }
+                catch { }
+            }
+            room.LastMessage = count > 1 ? $"Đã gửi {count} video" : "Đã gửi 1 video";
+        }
+        else if (message.MessageType == ChatMessageType.Sticker)
+        {
+            room.LastMessage = "[Sticker 3D]";
+        }
+        else if (message.MessageType == ChatMessageType.Gif)
+        {
+            room.LastMessage = "[Ảnh GIF]";
+        }
+        else
+        {
+            room.LastMessage = message.Content.Length > 200 ? message.Content.Substring(0, 200) + "..." : message.Content;
+        }
+
         room.LastActiveAt = message.SentAt;
 
         await dbContext.SaveChangesAsync();
 
-        // 1. Broadcast tin nhắn tới mọi người trong phòng chat
-        var groupName = $"chat-room-{roomId}";
-        await Clients.Group(groupName).SendAsync("ReceiveChatMessage", new
+        var chatPayload = new
         {
             id = message.Id,
             roomId = message.RoomId,
+            shopId = room.ShopId,
+            buyerUserId = room.BuyerUserId,
             senderId = message.SenderId,
             content = message.Content,
             messageType = message.MessageType.ToString(),
             sentAt = message.SentAt
-        });
+        };
 
-        // 2. Nếu là Khách hàng nhắn -> Gửi thông báo có tin nhắn mới cho các Staff online của Shop
+        // 1. Luôn thêm kết nối hiện tại vào room group
+        var groupName = $"chat-room-{roomId}";
+        await Groups.AddToGroupAsync(Context.ConnectionId, groupName);
+
+        // 2. Broadcast tin nhắn tới mọi người trong phòng chat
+        await Clients.Group(groupName).SendAsync("ReceiveChatMessage", chatPayload);
+
+        // 3. Multi-cast trực tiếp tới người nhận (kênh shop hoặc group cá nhân người mua) để đảm bảo không bị lỡ tin
         if (senderRole == "Buyer")
         {
             var shopChannelName = $"shop-channel-{room.ShopId}";
+            await Clients.Group(shopChannelName).SendAsync("ReceiveChatMessage", chatPayload);
             await Clients.Group(shopChannelName).SendAsync("NewChatNotification", new
             {
                 roomId = room.Id,
@@ -163,8 +229,80 @@ public class NotificationHub(
                 lastActiveAt = room.LastActiveAt
             });
         }
+        else
+        {
+            await Clients.Group(room.BuyerUserId.ToString()).SendAsync("ReceiveChatMessage", chatPayload);
+        }
 
         logger.LogInformation("Chat message sent in Room {RoomId} by User {SenderId}", roomId, senderId);
+        return chatPayload;
+    }
+
+    /// <summary>Thu hồi tin nhắn chat ở cả hai phía (Sender & Recipient).</summary>
+    public async Task<bool> RevokeChatMessage(Guid messageId, Guid roomId)
+    {
+        var senderId = GetCurrentUserId();
+        if (senderId <= 0) return false;
+
+        var message = await dbContext.ChatMessages.FirstOrDefaultAsync(m => m.Id == messageId && m.RoomId == roomId);
+        if (message == null) return false;
+
+        if (message.SenderId != senderId)
+        {
+            logger.LogWarning("User {UserId} unauthorized to revoke message {MessageId}", senderId, messageId);
+            return false;
+        }
+
+        message.Content = "Tin nhắn đã được thu hồi";
+        message.MessageType = ChatMessageType.Text;
+
+        var room = await dbContext.ChatRooms.FirstOrDefaultAsync(r => r.Id == roomId);
+        if (room != null)
+        {
+            room.LastMessage = "Tin nhắn đã được thu hồi";
+            room.LastActiveAt = DateTimeOffset.UtcNow;
+        }
+
+        await dbContext.SaveChangesAsync();
+
+        var revokePayload = new
+        {
+            id = message.Id,
+            roomId = message.RoomId,
+            content = "Tin nhắn đã được thu hồi"
+        };
+
+        var groupName = $"chat-room-{roomId}";
+        await Clients.Group(groupName).SendAsync("ReceiveMessageRevoked", revokePayload);
+
+        if (room != null)
+        {
+            var shopChannelName = $"shop-channel-{room.ShopId}";
+            await Clients.Group(shopChannelName).SendAsync("ReceiveMessageRevoked", revokePayload);
+            await Clients.Group(room.BuyerUserId.ToString()).SendAsync("ReceiveMessageRevoked", revokePayload);
+        }
+
+        logger.LogInformation("Message {MessageId} in Room {RoomId} revoked by User {SenderId}", messageId, roomId, senderId);
+        return true;
+    }
+
+    /// <summary>Thả biểu tượng cảm xúc (Reaction) vào tin nhắn.</summary>
+    public async Task<bool> ReactToChatMessage(Guid messageId, Guid roomId, string emoji)
+    {
+        var senderId = GetCurrentUserId();
+        if (senderId <= 0 || string.IsNullOrWhiteSpace(emoji)) return false;
+
+        var reactionPayload = new
+        {
+            messageId,
+            roomId,
+            senderId,
+            emoji = emoji.Trim()
+        };
+
+        var groupName = $"chat-room-{roomId}";
+        await Clients.Group(groupName).SendAsync("ReceiveMessageReaction", reactionPayload);
+        return true;
     }
 
     /// <summary>Lấy lịch sử chat của Room hỗ trợ scrolling (kéo lên để load tin nhắn cũ hơn).</summary>
@@ -177,7 +315,6 @@ public class NotificationHub(
             var beforeMessage = await dbContext.ChatMessages.FirstOrDefaultAsync(m => m.Id == beforeMessageId.Value);
             if (beforeMessage != null)
             {
-                // Chỉ lấy các tin nhắn cũ hơn tin nhắn trước đó
                 query = query.Where(m => m.SentAt < beforeMessage.SentAt);
             }
         }
@@ -196,7 +333,6 @@ public class NotificationHub(
             })
             .ToListAsync();
 
-        // Đảo ngược danh sách trước khi trả về để hiển thị từ cũ đến mới
         messages.Reverse();
         return messages;
     }

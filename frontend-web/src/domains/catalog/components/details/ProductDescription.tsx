@@ -30,7 +30,7 @@ export function ProductDescription({ description, attributesJson }: ProductDescr
 	}, [attributesJson]);
 
 	return (
-		<div className="bg-white rounded-2xl border border-brand-border shadow-sm p-4 md:p-5 mb-6 text-left space-y-6">
+		<div className="bg-white rounded-md border border-brand-border shadow-sm p-4 md:p-5 mb-6 text-left space-y-6">
 			{/* Product Specification Attributes Table */}
 			{attributes.length > 0 && (
 				<div>
@@ -38,7 +38,7 @@ export function ProductDescription({ description, attributesJson }: ProductDescr
 						<Layers className="w-4 h-4 text-brand-primary-deep" />
 						Thông số sản phẩm
 					</h2>
-					<div className="rounded-xl border border-brand-border/60 overflow-hidden text-xs">
+					<div className="rounded-md border border-brand-border/60 overflow-hidden text-xs">
 						<table className="w-full text-left border-collapse">
 							<tbody>
 								{attributes.map((attr, idx) => (

@@ -12,7 +12,8 @@ public class ProductsFilterSpec : Specification<Product>
         long? shopId = null,
         bool? hasDiscount = null,
         decimal? minPrice = null,
-        decimal? maxPrice = null)
+        decimal? maxPrice = null,
+        IReadOnlyList<long>? categoryIds = null)
     {
         // 1. Chỉ lấy sản phẩm đang hoạt động
         Query.Where(p => p.Status == ProductStatus.Active);
@@ -30,8 +31,12 @@ public class ProductsFilterSpec : Specification<Product>
             }
         }
 
-        // 3. Filter theo Category
-        if (categoryId.HasValue)
+        // 3. Filter theo Category hoặc CategoryIds
+        if (categoryIds != null && categoryIds.Any())
+        {
+            Query.Where(p => p.CategoryId.HasValue && categoryIds.Contains(p.CategoryId.Value));
+        }
+        else if (categoryId.HasValue)
         {
             Query.Where(p => p.CategoryId == categoryId.Value);
         }

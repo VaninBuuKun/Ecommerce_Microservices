@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { Zap, Star, ChevronLeft, ChevronRight, Clock } from "lucide-react";
 import { useOnSaleQuery } from "../../hooks/useCatalog";
+import { useSliderGesture } from "./useSliderGesture";
 
 export function FlashSaleSection() {
 	const navigate = useNavigate();
@@ -14,6 +15,12 @@ export function FlashSaleSection() {
 	const SLIDE_ITEMS = 6;
 	const totalSlides = Math.ceil(allProducts.length / SLIDE_ITEMS) || 1;
 	const currentItems = allProducts.slice(slide * SLIDE_ITEMS, (slide + 1) * SLIDE_ITEMS);
+
+	const { isDraggingRef, containerProps, dragMotionProps } = useSliderGesture({
+		slide,
+		totalSlides,
+		setSlide,
+	});
 
 	// Flash sale countdown timer (ví dụ 04:32:15)
 	const [timeLeft, setTimeLeft] = useState({ hours: 4, minutes: 32, seconds: 15 });
@@ -95,7 +102,7 @@ export function FlashSaleSection() {
 				</div>
 			</div>
 
-			<div className="relative">
+			<div className="relative" {...containerProps}>
 				{slide > 0 && (
 					<button
 						onClick={() => setSlide((prev) => prev - 1)}
@@ -108,11 +115,12 @@ export function FlashSaleSection() {
 				<AnimatePresence mode="wait">
 					<motion.div
 						key={slide}
+						{...dragMotionProps}
 						initial={{ opacity: 0, x: 10 }}
 						animate={{ opacity: 1, x: 0 }}
 						exit={{ opacity: 0, x: -10 }}
 						transition={{ duration: 0.25 }}
-						className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 text-left"
+						className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 text-left cursor-grab active:cursor-grabbing select-none touch-pan-y"
 					>
 						{currentItems.map((p: any) => {
 							const hasDiscount = p.discountPrice && p.discountPrice > 0 && p.discountPrice < p.price;
@@ -124,7 +132,7 @@ export function FlashSaleSection() {
 								<motion.div
 									whileHover={{ y: -3 }}
 									key={p.id}
-									onClick={() => navigate(`/products/${p.id}`)}
+									onClick={() => !isDraggingRef.current && navigate(`/products/${p.id}`)}
 									className="group flex flex-col bg-white border border-red-100 hover:border-red-500 rounded-lg overflow-hidden shadow-2xs hover:shadow-md transition-all duration-200 cursor-pointer justify-between relative"
 								>
 									{hasDiscount && (

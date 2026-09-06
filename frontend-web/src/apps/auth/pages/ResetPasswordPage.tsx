@@ -72,7 +72,19 @@ export function ResetPasswordPage() {
 						</button>
 					</div>
 				) : (
-					<form onSubmit={handleSubmit} className="space-y-4">
+					<form onSubmit={handleSubmit} className="space-y-4" autoComplete="off">
+						{/* Hidden email binding to prevent browser heuristic hijacking */}
+						<input
+							type="text"
+							name="username"
+							value={emailParam}
+							autoComplete="username"
+							className="sr-only"
+							tabIndex={-1}
+							aria-hidden="true"
+							readOnly
+						/>
+
 						<div className="space-y-1.5">
 							<label className="text-xs font-extrabold text-brand-dark uppercase tracking-wider block">
 								Mật Khẩu Mới
@@ -81,6 +93,8 @@ export function ResetPasswordPage() {
 								<Lock className="w-4 h-4 text-brand-muted absolute left-3.5 top-1/2 -translate-y-1/2" />
 								<input
 									type={showPassword ? "text" : "password"}
+									name="new-password"
+									autoComplete="new-password"
 									required
 									value={newPassword}
 									onChange={(e) => setNewPassword(e.target.value)}
@@ -105,6 +119,8 @@ export function ResetPasswordPage() {
 								<Lock className="w-4 h-4 text-brand-muted absolute left-3.5 top-1/2 -translate-y-1/2" />
 								<input
 									type={showPassword ? "text" : "password"}
+									name="confirm-password"
+									autoComplete="new-password"
 									required
 									value={confirmPassword}
 									onChange={(e) => setConfirmPassword(e.target.value)}

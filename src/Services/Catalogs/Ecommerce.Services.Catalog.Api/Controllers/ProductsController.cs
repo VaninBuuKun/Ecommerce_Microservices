@@ -76,6 +76,7 @@ public class ProductsController(ISender sender) : ControllerBase
         [FromQuery] string? q = null,
         [FromQuery] string? searchTerm = null,
         [FromQuery] long? categoryId = null,
+        [FromQuery] long? parentCategoryId = null,
         [FromQuery] double? minRating = null,
         [FromQuery] int page = 1,
         [FromQuery] int pageSize = 36,
@@ -86,7 +87,7 @@ public class ProductsController(ISender sender) : ControllerBase
         [FromQuery] decimal? maxPrice = null)
     {
         var keyword = !string.IsNullOrWhiteSpace(q) ? q : searchTerm;
-        var result = await sender.Send(new SearchProductsQuery(keyword, page, pageSize, categoryId, minRating, sortBy, shopId, hasDiscount, minPrice, maxPrice));
+        var result = await sender.Send(new SearchProductsQuery(keyword, page, pageSize, categoryId, parentCategoryId, minRating, sortBy, shopId, hasDiscount, minPrice, maxPrice));
 
         if (result.IsSuccess)
         {

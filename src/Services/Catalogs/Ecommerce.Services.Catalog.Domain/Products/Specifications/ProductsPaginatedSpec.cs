@@ -15,8 +15,9 @@ public class ProductsPaginatedSpec : ProductsFilterSpec
         long? shopId = null,
         bool? hasDiscount = null,
         decimal? minPrice = null,
-        decimal? maxPrice = null)
-        : base(searchTerm, categoryId, minRating, shopId, hasDiscount, minPrice, maxPrice)
+        decimal? maxPrice = null,
+        IReadOnlyList<long>? categoryIds = null)
+        : base(searchTerm, categoryId, minRating, shopId, hasDiscount, minPrice, maxPrice, categoryIds)
     {
         // 1. Include Category
         Query.Include(p => p.Category);

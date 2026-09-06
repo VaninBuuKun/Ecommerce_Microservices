@@ -88,7 +88,7 @@ export function ProductOptions({
 												tierIndex,
 											);
 										}}
-										className={`px-4 py-2 rounded-xl text-sm font-bold border transition-all flex items-center gap-2 ${
+										className={`px-4 py-2 rounded-md text-sm font-bold border transition-all flex items-center gap-2 ${
 											isOutOfStock
 												? "cursor-not-allowed bg-gray-100 text-gray-400 border-gray-200 line-through"
 												: "cursor-pointer bg-white text-brand-dark border-brand-border hover:border-gray-400"

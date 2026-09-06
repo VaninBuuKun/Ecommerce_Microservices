@@ -70,6 +70,7 @@ export function ExploreProductsPage() {
 	} = useSearchProductsQuery({
 		q: searchTermParam || undefined,
 		searchTerm: searchTermParam || undefined,
+		parentCategoryId: parentCategoryIdParam ? Number(parentCategoryIdParam) : undefined,
 		categoryId: selectedSubCategoryId || undefined,
 		minRating: minRating !== null ? minRating : undefined,
 		page,
@@ -419,7 +420,7 @@ export function ExploreProductsPage() {
 									setSortBy(e.target.value);
 									setPage(1);
 								}}
-								className="h-8.5 px-3 rounded-md text-xs font-extrabold border border-brand-border/80 bg-slate-50 text-brand-dark focus:outline-none focus:border-brand-primary cursor-pointer shadow-2xs hover:bg-slate-100 transition-colors"
+								className="appearance-none h-8.5 px-3 rounded-md text-xs font-extrabold border border-brand-border/80 bg-slate-50 text-brand-dark focus:outline-none focus:border-brand-primary cursor-pointer shadow-2xs hover:bg-slate-100 transition-colors bg-[url('data:image/svg+xml;charset=UTF-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22currentColor%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpolyline%20points%3D%226%209%2012%2015%2018%209%22%3E%3C%2Fpolyline%3E%3C%2Fsvg%3E')] bg-[length:1em_1em] bg-[right_0.65rem_center] bg-no-repeat"
 							>
 								{searchTermParam && <option value="relevance">Phù hợp nhất 🎯</option>}
 								<option value="newest">Mới nhất 🆕</option>

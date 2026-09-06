@@ -48,12 +48,12 @@ function CategoryTreeItem({
 						<span className="w-5 h-5 block shrink-0" />
 					)}
 
-					{/* ẢNH/ICON DANH MỤC: Cấp 1 có ảnh icon, Cấp con bỏ icon hoàn toàn */}
-					{isRoot && node.iconUrl ? (
+					{/* ẢNH/ICON DANH MỤC: Cả Cấp 1 & Cấp con đều hiển thị icon nếu có */}
+					{node.iconUrl ? (
 						<img
 							src={node.iconUrl}
 							alt={node.name}
-							className="w-7 h-7 object-cover rounded-md shrink-0 border border-slate-200"
+							className={`${isRoot ? "w-7 h-7" : "w-5 h-5"} object-cover rounded-md shrink-0 border border-slate-200`}
 						/>
 					) : isRoot ? (
 						<FolderOpen className="w-4 h-4 text-brand-muted shrink-0" />
@@ -177,12 +177,11 @@ export function AdminCategoriesView() {
 	const handleSaveCategory = async (e: React.FormEvent) => {
 		e.preventDefault();
 		try {
-			const isRoot = formParentId === "";
 			const payload = {
 				name: formName,
-				description: isRoot ? formDescription : null,
-				parentId: isRoot ? null : Number(formParentId),
-				iconUrl: isRoot ? (formIconUrl || null) : null,
+				description: formDescription || null,
+				parentId: formParentId === "" ? null : Number(formParentId),
+				iconUrl: formIconUrl || null,
 			};
 
 			if (modalMode === "create") {
@@ -360,12 +359,7 @@ export function AdminCategoriesView() {
 								<select
 									value={formParentId}
 									onChange={(e) => {
-										const val = e.target.value;
-										setFormParentId(val);
-										if (val !== "") {
-											setFormIconUrl("");
-											setFormDescription("");
-										}
+										setFormParentId(e.target.value);
 									}}
 									className="w-full px-3 py-2 border border-brand-border rounded-md bg-white focus:outline-none focus:border-brand-primary font-bold text-brand-dark"
 								>
@@ -397,34 +391,29 @@ export function AdminCategoriesView() {
 								/>
 							</div>
 
-							{/* CHỈ HIỂN THỊ UPLOAD ẢNH & MÔ TẢ KHI LÀ DANH MỤC CHA GỐC (formParentId === "") */}
-							{formParentId === "" && (
-								<>
-									<div className="space-y-1">
-										<label className="block text-[11px] font-bold text-brand-muted uppercase">
-											Ảnh Icon danh mục (Tải lên S3)
-										</label>
-										<UploadImage
-											value={formIconUrl}
-											onChange={setFormIconUrl}
-											className="w-24 h-24 rounded-md"
-										/>
-									</div>
+							<div className="space-y-1">
+								<label className="block text-[11px] font-bold text-brand-muted uppercase">
+									Ảnh Icon danh mục (Tải lên S3)
+								</label>
+								<UploadImage
+									value={formIconUrl}
+									onChange={setFormIconUrl}
+									className="w-24 h-24 rounded-md"
+								/>
+							</div>
 
-									<div className="space-y-1">
-										<label className="block text-[11px] font-bold text-brand-muted uppercase">
-											Mô tả danh mục
-										</label>
-										<textarea
-											value={formDescription}
-											onChange={(e) => setFormDescription(e.target.value)}
-											placeholder="Nhập mô tả giới thiệu ngành hàng..."
-											rows={3}
-											className="w-full px-3 py-2 border border-brand-border rounded-md focus:outline-none focus:border-brand-primary font-bold text-brand-dark"
-										/>
-									</div>
-								</>
-							)}
+							<div className="space-y-1">
+								<label className="block text-[11px] font-bold text-brand-muted uppercase">
+									Mô tả danh mục
+								</label>
+								<textarea
+									value={formDescription}
+									onChange={(e) => setFormDescription(e.target.value)}
+									placeholder="Nhập mô tả giới thiệu ngành hàng..."
+									rows={3}
+									className="w-full px-3 py-2 border border-brand-border rounded-md focus:outline-none focus:border-brand-primary font-bold text-brand-dark"
+								/>
+							</div>
 
 							<div className="flex items-center justify-end gap-2.5 pt-3 border-t border-brand-border">
 								<button

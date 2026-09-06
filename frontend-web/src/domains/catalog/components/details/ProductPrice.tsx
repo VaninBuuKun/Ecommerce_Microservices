@@ -26,7 +26,7 @@ export function ProductPrice({ priceCalculations }: ProductPriceProps) {
 	} = priceCalculations;
 
 	return (
-		<div className="p-3.5 bg-brand-light-soft/40 border border-brand-border rounded-xl flex items-center justify-between gap-2.5">
+		<div className="p-3.5 bg-brand-light-soft/40 border border-brand-border rounded-md flex items-center justify-between gap-2.5">
 			<div className="flex items-baseline gap-2.5 flex-wrap">
 				<span className="text-2xl md:text-3xl font-black text-red-600">
 					{hasMultiplePrices

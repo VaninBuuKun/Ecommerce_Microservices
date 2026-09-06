@@ -21,7 +21,7 @@ export function QuantitySelector({
 					type="button"
 					disabled={quantity <= 1}
 					onClick={() => setQuantity(quantity - 1)}
-					className="w-8 h-8 rounded-lg border border-brand-border bg-white flex items-center justify-center hover:bg-gray-50 cursor-pointer disabled:opacity-40"
+					className="w-8 h-8 rounded-md border border-brand-border bg-white flex items-center justify-center hover:bg-gray-50 cursor-pointer disabled:opacity-40"
 				>
 					<Minus className="w-3.5 h-3.5" />
 				</button>
@@ -34,14 +34,14 @@ export function QuantitySelector({
 					onChange={(e) =>
 						setQuantity(Math.max(1, Number(e.target.value)))
 					}
-					className="w-12 h-8 border border-brand-border rounded-lg text-center font-bold text-brand-dark text-xs focus:outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+					className="w-12 h-8 border border-brand-border rounded-md text-center font-bold text-brand-dark text-xs focus:outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
 				/>
 
 				<button
 					type="button"
 					disabled={quantity >= (currentStock || 99)}
 					onClick={() => setQuantity(quantity + 1)}
-					className="w-8 h-8 rounded-lg border border-brand-border bg-white flex items-center justify-center hover:bg-gray-50 cursor-pointer disabled:opacity-40"
+					className="w-8 h-8 rounded-md border border-brand-border bg-white flex items-center justify-center hover:bg-gray-50 cursor-pointer disabled:opacity-40"
 				>
 					<Plus className="w-3.5 h-3.5" />
 				</button>

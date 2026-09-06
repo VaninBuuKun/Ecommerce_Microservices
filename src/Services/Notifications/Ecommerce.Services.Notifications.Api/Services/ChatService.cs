@@ -105,7 +105,7 @@ public class ChatService(NotificationDbContext dbContext) : IChatService
                     LastMessage = room.LastMessage,
                     LastActiveAt = room.LastActiveAt,
                     DisplayName = displayName,
-                    DisplayAvatar = string.Empty,
+                    DisplayAvatar = shopInfo?.LogoUrl ?? string.Empty,
                     ThemeColor = room.ThemeColor,
                     BackgroundColor = room.BackgroundColor
                 });
@@ -128,5 +128,46 @@ public class ChatService(NotificationDbContext dbContext) : IChatService
         await dbContext.SaveChangesAsync();
 
         return Result<bool>.Success(true);
+    }
+
+    public async Task<Result<List<ChatMessageItemDto>>> GetMessagesAsync(
+        Guid roomId, 
+        long currentUserId, 
+        Guid? beforeMessageId = null, 
+        int limit = 50)
+    {
+        var room = await dbContext.ChatRooms.FirstOrDefaultAsync(r => r.Id == roomId);
+        if (room == null)
+        {
+            return Result<List<ChatMessageItemDto>>.Failure("Không tìm thấy phòng chat.", EErrorCode.NotFound);
+        }
+
+        var query = dbContext.ChatMessages.Where(m => m.RoomId == roomId);
+
+        if (beforeMessageId.HasValue && beforeMessageId != Guid.Empty)
+        {
+            var beforeMessage = await dbContext.ChatMessages.FirstOrDefaultAsync(m => m.Id == beforeMessageId.Value);
+            if (beforeMessage != null)
+            {
+                query = query.Where(m => m.SentAt < beforeMessage.SentAt);
+            }
+        }
+
+        var messages = await query
+            .OrderByDescending(m => m.SentAt)
+            .Take(limit)
+            .Select(m => new ChatMessageItemDto
+            {
+                Id = m.Id,
+                RoomId = m.RoomId,
+                SenderId = m.SenderId,
+                Content = m.Content,
+                MessageType = m.MessageType.ToString(),
+                SentAt = m.SentAt
+            })
+            .ToListAsync();
+
+        messages.Reverse();
+        return Result<List<ChatMessageItemDto>>.Success(messages);
     }
 }

@@ -26,6 +26,7 @@ export interface GetProductsParams {
 export interface SearchProductsParams {
 	q?: string;
 	searchTerm?: string;
+	parentCategoryId?: number;
 	categoryId?: number;
 	minRating?: number;
 	page?: number;

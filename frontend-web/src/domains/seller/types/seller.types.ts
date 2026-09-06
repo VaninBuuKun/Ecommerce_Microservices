@@ -4,6 +4,12 @@ export interface Shop {
 	description?: string;
 	logoUrl?: string;
 	status?: string;
+	recipientName?: string;
+	phone?: string;
+	addressLine?: string;
+	ward?: string;
+	district?: string;
+	province?: string;
 }
 
 export interface ShopDto {
@@ -12,6 +18,12 @@ export interface ShopDto {
 	description?: string;
 	logoUrl?: string;
 	status?: string;
+	recipientName?: string;
+	phone?: string;
+	addressLine?: string;
+	ward?: string;
+	district?: string;
+	province?: string;
 }
 
 export interface SellerProfileDto {

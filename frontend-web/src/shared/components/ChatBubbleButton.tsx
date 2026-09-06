@@ -1,17 +1,55 @@
 import { useEffect } from "react";
+import { useLocation } from "react-router-dom";
 import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { CommentOutlined, CloseOutlined } from "@ant-design/icons";
 import { BotMessageSquare } from "lucide-react";
 import { toast } from "react-toastify";
+import { api } from "@/core";
 import { useChatStore } from "@/domains/notification";
+import type { Conversation } from "@/domains/notification";
 import { useAuthStore, useAuthModalStore } from "@/domains/auth";
 import { ChatMiniModal } from "./ChatMiniModal";
 
 export function ChatBubbleButton() {
-    const { isOpen, toggleChat, unreadCount, openChatWithShop, openChat } = useChatStore();
+    const {
+        isOpen,
+        toggleChat,
+        unreadCount,
+        openChatWithShop,
+        openChat,
+        conversations,
+        setConversations,
+        activeRoom,
+        setActiveRoom,
+        setLoadingConversations,
+    } = useChatStore();
     const accessToken = useAuthStore((s) => s.accessToken);
     const { openAuthModal } = useAuthModalStore();
+    const location = useLocation();
+    const isSeller = location.pathname.startsWith("/seller");
+
+    // Preload trước danh sách conversations ngay khi user đã đăng nhập
+    useEffect(() => {
+        if (!accessToken) return;
+
+        const preloadConversations = async () => {
+            try {
+                if (conversations.length === 0) {
+                    setLoadingConversations(true);
+                }
+                const res = await api.get("/chat/conversations", { params: { isSeller } });
+                const list: Conversation[] = res.data?.value || res.data || [];
+                setConversations(list);
+            } catch (err) {
+                console.warn("[ChatBubble] Preload conversations failed:", err);
+            } finally {
+                setLoadingConversations(false);
+            }
+        };
+
+        preloadConversations();
+    }, [accessToken, isSeller]);
 
     // Lắng nghe sự kiện "open-shop-chat"
     useEffect(() => {
@@ -115,7 +153,7 @@ export function ChatBubbleButton() {
             {/* Mini Modal rendered into portal at body level */}
             {createPortal(
                 <AnimatePresence>
-                    {isOpen && <ChatMiniModal />}
+                    {isOpen && <ChatMiniModal isSeller={isSeller} />}
                 </AnimatePresence>,
                 document.body
             )}

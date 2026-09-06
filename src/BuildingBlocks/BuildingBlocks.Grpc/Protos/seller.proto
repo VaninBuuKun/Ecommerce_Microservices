@@ -50,6 +50,7 @@ message GetShopShippingInfoResponse {
   int64 province_id = 7;
   int64 owner_user_id = 8;
   string recipient_name = 9;
+  string logo_url = 10;
 }
 
 message GetShopsShippingInfoRequest {

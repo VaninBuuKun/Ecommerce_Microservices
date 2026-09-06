@@ -1,18 +1,21 @@
-import React, { useRef, useEffect } from "react";
+import React, { useRef, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import {
-	MessageOutlined,
+	CommentOutlined,
 	SendOutlined,
 	PictureOutlined,
 	VideoCameraOutlined,
 	SmileOutlined,
 	SearchOutlined,
 	InfoCircleOutlined,
+	SyncOutlined,
+	UndoOutlined,
 } from "@ant-design/icons";
 import { Store, X } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
-import type { Conversation, ChatMessageItem, ChatItemTheme, ChatBgTheme } from "../../types/chat.types";
-import { QUICK_EMOJIS } from "./chat.constants";
+import type { Conversation, ChatMessageItem, ChatPendingMedia, ChatItemTheme, ChatBgTheme, ChatThemePreset } from "../../types/chat.types";
+import { QUICK_EMOJIS, CHAT_STICKERS, CHAT_GIFS, formatMessengerTime, shouldShowTimeSeparator, getChatTheme, parseMediaUrls, downloadChatMedia } from "./chat.constants";
+import { ChatUploadingWidget, ChatMessageActionBar } from "@/shared/components/chat-mini";
 
 interface ChatMessageAreaProps {
 	activeRoom: Conversation | null;
@@ -25,20 +28,23 @@ interface ChatMessageAreaProps {
 	onCloseMessageSearch: () => void;
 	messageSearchQuery: string;
 	onMessageSearchChange: (q: string) => void;
-	activeTheme: ChatItemTheme;
-	activeChatBg: ChatBgTheme;
+	themePreset?: ChatThemePreset;
+	activeTheme?: ChatItemTheme;
+	activeChatBg?: ChatBgTheme;
 	onImageClick: (url: string) => void;
 	inputText: string;
 	onInputTextChange: (text: string) => void;
 	onSendMessage: () => void;
+	onSendSpecial?: (content: string, type: "Sticker" | "Gif") => void;
 	isSending: boolean;
-	pendingMedia: { url: string; type: "Image" | "Video"; file?: File } | null;
-	onClearPendingMedia: () => void;
-	onImageSelect: (file: File) => void;
-	onVideoSelect: (file: File) => void;
+	pendingMediaList: ChatPendingMedia[];
+	onSelectFiles: (files: FileList | File[]) => void;
+	onRemovePendingMedia: (id: string) => void;
 	showEmojiPicker: boolean;
 	onToggleEmojiPicker: () => void;
 	onCloseEmojiPicker: () => void;
+	onRevokeMessage?: (messageId: string) => void;
+	onReactMessage?: (messageId: string, emoji: string) => void;
 }
 
 export const ChatMessageArea: React.FC<ChatMessageAreaProps> = ({
@@ -52,30 +58,49 @@ export const ChatMessageArea: React.FC<ChatMessageAreaProps> = ({
 	onCloseMessageSearch,
 	messageSearchQuery,
 	onMessageSearchChange,
+	themePreset,
 	activeTheme,
 	activeChatBg,
 	onImageClick,
 	inputText,
 	onInputTextChange,
 	onSendMessage,
+	onSendSpecial,
 	isSending,
-	pendingMedia,
-	onClearPendingMedia,
-	onImageSelect,
-	onVideoSelect,
+	pendingMediaList,
+	onSelectFiles,
+	onRemovePendingMedia,
 	showEmojiPicker,
 	onToggleEmojiPicker,
 	onCloseEmojiPicker,
+	onRevokeMessage,
+	onReactMessage,
 }) => {
+	const currentTheme = themePreset || getChatTheme(activeTheme?.id, activeChatBg?.id);
+	const messagesContainerRef = useRef<HTMLDivElement>(null);
 	const messagesEndRef = useRef<HTMLDivElement>(null);
 	const imageInputRef = useRef<HTMLInputElement>(null);
 	const videoInputRef = useRef<HTMLInputElement>(null);
 	const emojiPickerRef = useRef<HTMLDivElement>(null);
+	const [pickerTab, setPickerTab] = useState<"emoji" | "sticker" | "gif">("emoji");
 
-	// Tự động cuộn xuống đáy khi có tin nhắn mới hoặc đính kèm
+	const scrollToBottom = (behavior: ScrollBehavior = "auto") => {
+		if (messagesContainerRef.current) {
+			messagesContainerRef.current.scrollTop = messagesContainerRef.current.scrollHeight;
+		}
+		messagesEndRef.current?.scrollIntoView({ behavior, block: "end" });
+	};
+
+	// Tự động cuộn và cố định tuyệt đối ở đáy khi đổi phòng hoặc có tin nhắn
 	useEffect(() => {
-		messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-	}, [messages, pendingMedia]);
+		scrollToBottom("auto");
+		const t1 = setTimeout(() => scrollToBottom("auto"), 60);
+		const t2 = setTimeout(() => scrollToBottom("auto"), 200);
+		return () => {
+			clearTimeout(t1);
+			clearTimeout(t2);
+		};
+	}, [messages, pendingMediaList, activeRoom?.roomId]);
 
 	// Đóng emoji picker khi click ra ngoài
 	useEffect(() => {
@@ -103,17 +128,15 @@ export const ChatMessageArea: React.FC<ChatMessageAreaProps> = ({
 	});
 
 	const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-		const file = e.target.files?.[0];
-		if (file) {
-			onImageSelect(file);
+		if (e.target.files && e.target.files.length > 0) {
+			onSelectFiles(e.target.files);
 			e.target.value = "";
 		}
 	};
 
 	const handleVideoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-		const file = e.target.files?.[0];
-		if (file) {
-			onVideoSelect(file);
+		if (e.target.files && e.target.files.length > 0) {
+			onSelectFiles(e.target.files);
 			e.target.value = "";
 		}
 	};
@@ -121,8 +144,8 @@ export const ChatMessageArea: React.FC<ChatMessageAreaProps> = ({
 	if (!activeRoom) {
 		return (
 			<div className="flex-1 min-w-0 bg-white border-r border-slate-200 flex flex-col items-center justify-center p-8 text-center text-slate-400 gap-3">
-				<div className="w-14 h-14 rounded-full bg-slate-100 flex items-center justify-center text-slate-300">
-					<MessageOutlined className="text-2xl" />
+				<div className="w-14 h-14 rounded-full bg-slate-100 flex items-center justify-center text-brand-primary">
+					<CommentOutlined className="text-2xl" />
 				</div>
 				<p className="text-sm font-bold text-slate-800">Chọn một cuộc trò chuyện để bắt đầu nhắn tin</p>
 			</div>
@@ -207,83 +230,301 @@ export const ChatMessageArea: React.FC<ChatMessageAreaProps> = ({
 			)}
 
 			{/* Messages Thread: Hiển thị từ dưới lên (mt-auto) & thời gian chỉ hiện khi hover */}
-			<div className={`flex-1 p-4 overflow-y-auto flex flex-col transition-colors duration-200 ${activeChatBg.bg}`}>
+			<div
+				ref={messagesContainerRef}
+				className={`flex-1 p-4 overflow-y-auto flex flex-col transition-colors duration-200 ${currentTheme.background}`}
+			>
 				<div className="mt-auto flex flex-col space-y-2.5">
 					{displayedMessages.map((msg, i) => {
 						const isMyMessage = msg.senderId === currentUserId;
 
-						// Phân tách thời gian nếu cách nhau > 30 phút
+						// Phân tách thời gian theo khoảng cách hội thoại (Messenger style)
 						const prevMsg = displayedMessages[i - 1];
-						const showTimeSep = prevMsg
-							? new Date(msg.sentAt).getTime() - new Date(prevMsg.sentAt).getTime() > 30 * 60 * 1000
-							: false;
-
-						const timeLabel = new Date(msg.sentAt).toLocaleTimeString("vi-VN", {
-							hour: "2-digit",
-							minute: "2-digit",
-						});
+						const showTimeSep = shouldShowTimeSeparator(msg.sentAt, prevMsg?.sentAt);
+						const timeLabel = formatMessengerTime(msg.sentAt);
 
 						const isEmoji = msg.messageType === "Text" && isPureEmoji(msg.content);
+						const isRevoked = msg.isRevoked || msg.content === "Tin nhắn đã được thu hồi";
+						const isMedia = msg.messageType === "Image" || msg.messageType === "Video";
+						const mediaUrls = parseMediaUrls(msg.content);
+						const mediaCount = mediaUrls.length;
 
 						return (
 							<div key={msg.id}>
 								{showTimeSep && (
-									<div className="flex items-center gap-2 my-3">
-										<div className="flex-1 h-px bg-slate-200" />
-										<span className="text-[10px] text-slate-400 font-semibold whitespace-nowrap px-2">
+									<div className="flex justify-center my-3.5 select-none">
+										<span className="text-[11px] font-medium text-slate-400 select-none">
 											{timeLabel}
 										</span>
-										<div className="flex-1 h-px bg-slate-200" />
 									</div>
 								)}
 
-								<div className={`flex ${isMyMessage ? "justify-end" : "justify-start"} items-center gap-2 group`}>
-									{/* Outgoing Message: Timestamp nổi ở BÊN TRÁI khi hover */}
-									{isMyMessage && !isEmoji && (
-										<span className="text-[10px] text-slate-400 font-semibold opacity-0 group-hover:opacity-100 transition-opacity duration-150 select-none whitespace-nowrap">
-											{timeLabel}
-										</span>
+								<div className={`flex ${isMyMessage ? "justify-end" : "justify-start"} items-end gap-1.5 group relative`}>
+									{/* Outgoing Message: Action Bar + Timestamp nổi ở BÊN TRÁI khi hover */}
+									{isMyMessage && !isRevoked && (
+										<div className="flex flex-col items-end gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity duration-150 select-none shrink-0 pb-1">
+											{!msg.isUploading && (
+												<ChatMessageActionBar
+													isMyMessage={isMyMessage}
+													isMedia={isMedia}
+													userReaction={msg.userReaction}
+													onReact={(emoji) => onReactMessage?.(msg.id, emoji)}
+													onRevoke={isMyMessage ? () => onRevokeMessage?.(msg.id) : undefined}
+													onDownload={
+														isMedia
+															? () => {
+																	mediaUrls.forEach((url) => downloadChatMedia(url));
+															  }
+															: undefined
+													}
+												/>
+											)}
+											<span className={`text-[10px] font-semibold whitespace-nowrap ${currentTheme.timestampText}`}>
+												{timeLabel}
+											</span>
+										</div>
 									)}
 
-									{/* Emoji đứng độc lập không viền */}
-									{isEmoji ? (
-										<div className="text-4xl py-1 select-none animate-in zoom-in-75 duration-150">
+									{/* Tin nhắn đã bị thu hồi */}
+									{isRevoked ? (
+										<div className="flex items-center gap-1.5 px-3 py-1.5 rounded-2xl bg-slate-100/90 text-slate-400 italic text-xs border border-slate-200/60 shadow-2xs select-none">
+											<UndoOutlined className="text-xs text-slate-400" />
+											<span>Tin nhắn đã được thu hồi</span>
+										</div>
+									) : isEmoji ? (
+										/* Emoji đứng độc lập không viền */
+										<div className="text-4xl py-1 select-none animate-in zoom-in-75 duration-150 relative">
 											{msg.content}
 										</div>
 									) : (
 										<div
-											className={`relative max-w-[70%] transition-all ${
-												isMyMessage
-													? `${activeTheme.bg} ${activeTheme.text} rounded-2xl rounded-tr-xs shadow-2xs`
-													: "bg-white text-slate-800 border border-slate-200/80 rounded-2xl rounded-tl-xs shadow-2xs"
+											className={`relative max-w-[82%] transition-all ${
+												msg.messageType === "Sticker"
+													? "bg-transparent border-none shadow-none"
+													: isMyMessage
+													? `${currentTheme.myBubble.bg} ${currentTheme.myBubble.text} ${currentTheme.myBubble.border || ""} rounded-2xl rounded-tr-xs shadow-2xs`
+													: `${currentTheme.theirBubble.bg} ${currentTheme.theirBubble.text} border ${currentTheme.theirBubble.border} rounded-2xl rounded-tl-xs shadow-2xs`
 											}`}
 										>
-											{msg.messageType === "Image" ? (
-												<div className="p-1">
+											{msg.messageType === "Sticker" ? (
+												<div className="p-1 select-none">
 													<img
 														src={msg.content}
-														alt="Ảnh đính kèm"
-														className="max-w-[320px] max-h-[280px] rounded-xl object-cover cursor-pointer hover:opacity-95 transition-opacity"
+														alt="Sticker 3D"
+														className="w-24 h-24 sm:w-28 sm:h-28 object-contain hover:scale-110 transition-transform duration-200 cursor-pointer drop-shadow-md"
 														onClick={() => onImageClick(msg.content)}
 													/>
 												</div>
-											) : msg.messageType === "Video" ? (
+											) : msg.messageType === "Gif" ? (
 												<div className="p-1">
-													<video src={msg.content} controls className="max-w-[340px] rounded-xl" />
+													<img
+														src={msg.content}
+														alt="Ảnh GIF"
+														className="max-w-[240px] max-h-[190px] rounded-xl object-contain cursor-pointer hover:opacity-95 transition-opacity shadow-xs"
+														onClick={() => onImageClick(msg.content)}
+													/>
 												</div>
+											) : msg.messageType === "Image" ? (
+												mediaCount > 1 ? (
+													/* Bộ sưu tập nhiều ảnh xếp lớp với thẻ div xám phía sau */
+													<div
+														className="p-1 pt-2 px-2 relative cursor-pointer group/stack select-none"
+														onClick={() => !msg.isUploading && onImageClick(mediaUrls[0])}
+													>
+														{/* Thẻ xám 2 phía sau (nếu >= 3 ảnh) */}
+														{mediaCount >= 3 && (
+															<div
+																className={`absolute inset-0.5 ${
+																	isMyMessage
+																		? "-translate-x-3 -translate-y-2 -rotate-3 group-hover/stack:-translate-x-4 group-hover/stack:-translate-y-3 group-hover/stack:-rotate-4"
+																		: "translate-x-3 -translate-y-2 rotate-3 group-hover/stack:translate-x-4 group-hover/stack:-translate-y-3 group-hover/stack:rotate-4"
+																} bg-slate-300/90 dark:bg-slate-700 rounded-2xl border-2 border-slate-400/80 dark:border-slate-600 shadow-xs transition-transform duration-200 pointer-events-none`}
+															/>
+														)}
+
+														{/* Thẻ xám 1 phía sau chính */}
+														<div
+															className={`absolute inset-0.5 ${
+																isMyMessage
+																	? "-translate-x-1.5 -translate-y-1 -rotate-1.5 group-hover/stack:-translate-x-2 group-hover/stack:-translate-y-1.5 group-hover/stack:-rotate-2"
+																	: "translate-x-1.5 -translate-y-1 rotate-1.5 group-hover/stack:translate-x-2 group-hover/stack:-translate-y-1.5 group-hover/stack:rotate-2"
+															} bg-slate-200 dark:bg-slate-800 rounded-2xl border-2 border-slate-300 dark:border-slate-700 shadow-sm transition-transform duration-200 pointer-events-none`}
+														/>
+
+														{/* Ảnh bìa chính ở phía trước */}
+														<div className="relative rounded-2xl overflow-hidden shadow-md border-2 border-white dark:border-slate-800 bg-slate-900">
+															<img
+																src={mediaUrls[0]}
+																alt="Ảnh đính kèm"
+																className="max-w-[220px] max-h-[180px] w-full object-cover block"
+															/>
+
+															{/* Badge thông tin số lượng ảnh */}
+															<div className="absolute top-2 left-2 px-2.5 py-0.5 rounded-full bg-black/65 backdrop-blur-md text-white text-[11px] font-bold flex items-center gap-1 shadow-sm">
+																<PictureOutlined className="text-xs text-brand-primary" />
+																<span>{isMyMessage ? `Bạn đã gửi ${mediaCount} ảnh` : `Đã gửi ${mediaCount} ảnh`}</span>
+															</div>
+
+															{/* Badge góc dưới phải: Xem thêm (+N ảnh) */}
+															<div className="absolute bottom-2 right-2 px-2.5 py-0.5 rounded-md bg-black/75 backdrop-blur-md text-white text-xs font-black tracking-wide">
+																+{mediaCount - 1} ảnh
+															</div>
+
+															{/* Mini thumbnail overlapping strip */}
+															<div className="absolute bottom-2 left-2 flex items-center -space-x-1.5 overflow-hidden py-0.5">
+																{mediaUrls.slice(1, 5).map((thumb, idx) => (
+																	<img
+																		key={idx}
+																		src={thumb}
+																		alt="thumb"
+																		className="w-6 h-6 rounded-full object-cover border-2 border-white shadow-xs"
+																	/>
+																))}
+															</div>
+
+															{msg.isUploading && (
+																<div className="absolute inset-0 bg-black/60 rounded-xl flex flex-col items-center justify-center text-white p-2 z-10 backdrop-blur-xs select-none">
+																	<SyncOutlined spin className="text-xl text-brand-primary mb-1.5" />
+																	<span className="text-xs font-bold">Đang tải {mediaCount} ảnh lên S3...</span>
+																</div>
+															)}
+														</div>
+													</div>
+												) : (
+													/* Ảnh đơn lẻ */
+													<div className="p-1 relative">
+														<img
+															src={mediaUrls[0] || msg.content}
+															alt="Ảnh đính kèm"
+															className="max-w-[230px] max-h-[190px] rounded-xl object-cover cursor-pointer hover:opacity-95 transition-opacity"
+															onClick={() => !msg.isUploading && onImageClick(mediaUrls[0] || msg.content)}
+														/>
+														{msg.isUploading && (
+															<div className="absolute inset-1 bg-black/60 rounded-xl flex flex-col items-center justify-center text-white p-2 z-10 backdrop-blur-xs select-none">
+																<SyncOutlined spin className="text-xl text-brand-primary mb-1.5" />
+																<span className="text-xs font-bold">Đang tải lên S3...</span>
+															</div>
+														)}
+													</div>
+												)
+											) : msg.messageType === "Video" ? (
+												mediaCount > 1 ? (
+													/* Nhiều video xếp lớp với thẻ div xám phía sau */
+													<div className="p-1 pt-2 px-2 relative group/stack select-none">
+														{/* Thẻ xám 2 phía sau (nếu >= 3 video) */}
+														{mediaCount >= 3 && (
+															<div
+																className={`absolute inset-0.5 ${
+																	isMyMessage
+																		? "-translate-x-3 -translate-y-2 -rotate-3 group-hover/stack:-translate-x-4 group-hover/stack:-translate-y-3 group-hover/stack:-rotate-4"
+																		: "translate-x-3 -translate-y-2 rotate-3 group-hover/stack:translate-x-4 group-hover/stack:-translate-y-3 group-hover/stack:rotate-4"
+																} bg-slate-300/90 dark:bg-slate-700 rounded-2xl border-2 border-slate-400/80 dark:border-slate-600 shadow-xs transition-transform duration-200 pointer-events-none`}
+															/>
+														)}
+
+														{/* Thẻ xám 1 phía sau */}
+														<div
+															className={`absolute inset-0.5 ${
+																isMyMessage
+																	? "-translate-x-1.5 -translate-y-1 -rotate-1.5 group-hover/stack:-translate-x-2 group-hover/stack:-translate-y-1.5 group-hover/stack:-rotate-2"
+																	: "translate-x-1.5 -translate-y-1 rotate-1.5 group-hover/stack:translate-x-2 group-hover/stack:-translate-y-1.5 group-hover/stack:rotate-2"
+															} bg-slate-200 dark:bg-slate-800 rounded-2xl border-2 border-slate-300 dark:border-slate-700 shadow-sm transition-transform duration-200 pointer-events-none`}
+														/>
+
+														{/* Video chính ở phía trước */}
+														<div className="relative rounded-2xl overflow-hidden shadow-md border-2 border-white dark:border-slate-800 bg-slate-900">
+															<video
+																src={mediaUrls[0]}
+																controls={!msg.isUploading}
+																className="max-w-[220px] max-h-[180px] w-full rounded-2xl block"
+															/>
+
+															{/* Badge thông tin số lượng video */}
+															<div className="absolute top-2 left-2 px-2.5 py-0.5 rounded-full bg-black/65 backdrop-blur-md text-white text-[11px] font-bold flex items-center gap-1 shadow-sm pointer-events-none">
+																<VideoCameraOutlined className="text-xs text-brand-primary" />
+																<span>{isMyMessage ? `Bạn đã gửi ${mediaCount} video` : `Đã gửi ${mediaCount} video`}</span>
+															</div>
+
+															<div className="absolute bottom-2 right-2 px-2.5 py-0.5 rounded-md bg-black/75 backdrop-blur-md text-white text-xs font-black tracking-wide pointer-events-none">
+																+{mediaCount - 1} video
+															</div>
+
+															{msg.isUploading && (
+																<div className="absolute inset-0 bg-black/60 rounded-xl flex flex-col items-center justify-center text-white p-2 z-10 backdrop-blur-xs select-none">
+																	<SyncOutlined spin className="text-xl text-brand-primary mb-1.5" />
+																	<span className="text-xs font-bold">Đang tải {mediaCount} video lên S3...</span>
+																</div>
+															)}
+														</div>
+													</div>
+												) : (
+													/* Video đơn lẻ */
+													<div className="p-1 relative">
+														<video src={mediaUrls[0] || msg.content} controls={!msg.isUploading} className="max-w-[230px] max-h-[190px] rounded-xl" />
+														{msg.isUploading && (
+															<div className="absolute inset-1 bg-black/60 rounded-xl flex flex-col items-center justify-center text-white p-2 z-10 backdrop-blur-xs select-none">
+																<SyncOutlined spin className="text-xl text-brand-primary mb-1.5" />
+																<span className="text-xs font-bold">Đang tải video lên S3...</span>
+															</div>
+														)}
+													</div>
+												)
 											) : (
 												<p className="px-3.5 py-2 text-xs font-medium leading-relaxed break-words whitespace-pre-wrap">
 													{msg.content}
 												</p>
 											)}
+
+											{/* Reaction Pills hiển thị bên dưới góc của bong bóng */}
+											{msg.reactions && Object.keys(msg.reactions).length > 0 && (
+												<div
+													className={`absolute -bottom-2.5 ${
+														isMyMessage ? "right-2" : "left-2"
+													} flex items-center gap-1 bg-white/95 backdrop-blur-md px-1.5 py-0.5 rounded-full border border-slate-200 shadow-xs z-10`}
+												>
+													{Object.entries(msg.reactions).map(([emoji, count]) => (
+														<button
+															key={emoji}
+															type="button"
+															onClick={(e) => {
+																e.stopPropagation();
+																onReactMessage?.(msg.id, emoji);
+															}}
+															className={`inline-flex items-center gap-0.5 text-[11px] cursor-pointer hover:scale-115 transition-transform bg-transparent border-none p-0 ${
+																msg.userReaction === emoji ? "font-bold text-brand-primary-deep" : ""
+															}`}
+														>
+															<span>{emoji}</span>
+															{count > 1 && <span className="text-[10px] text-slate-600 font-semibold">{count}</span>}
+														</button>
+													))}
+												</div>
+											)}
 										</div>
 									)}
 
-									{/* Incoming Message: Timestamp nổi ở BÊN PHẢI khi hover */}
-									{!isMyMessage && !isEmoji && (
-										<span className="text-[10px] text-slate-400 font-semibold opacity-0 group-hover:opacity-100 transition-opacity duration-150 select-none whitespace-nowrap">
-											{timeLabel}
-										</span>
+									{/* Incoming Message: Action Bar + Timestamp nổi ở BÊN PHẢI khi hover */}
+									{!isMyMessage && !isRevoked && (
+										<div className="flex flex-col items-start gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity duration-150 select-none shrink-0 pb-1">
+											{!msg.isUploading && (
+												<ChatMessageActionBar
+													isMyMessage={isMyMessage}
+													isMedia={isMedia}
+													userReaction={msg.userReaction}
+													onReact={(emoji) => onReactMessage?.(msg.id, emoji)}
+													onDownload={
+														isMedia
+															? () => {
+																	mediaUrls.forEach((url) => downloadChatMedia(url));
+															  }
+															: undefined
+													}
+												/>
+											)}
+											<span className={`text-[10px] font-semibold whitespace-nowrap ${currentTheme.timestampText}`}>
+												{timeLabel}
+											</span>
+										</div>
 									)}
 								</div>
 							</div>
@@ -293,32 +534,15 @@ export const ChatMessageArea: React.FC<ChatMessageAreaProps> = ({
 				<div ref={messagesEndRef} />
 			</div>
 
-			{/* Input Bar - Chứa nút gửi file, sticker (Fix triệt để không nhích đoạn chat lên) */}
+			{/* Input Bar - Chứa nút gửi file, sticker */}
 			<div className="p-2.5 border-t border-slate-200 bg-white shrink-0 relative">
-				{/* Media Preview nếu đang đính kèm */}
-				{pendingMedia && (
-					<div className="mb-2 flex items-center gap-2 p-1.5 bg-slate-100 rounded-lg border border-slate-200 w-fit relative">
-						{pendingMedia.type === "Image" ? (
-							<img src={pendingMedia.url} alt="preview" className="w-12 h-12 rounded object-cover" />
-						) : (
-							<video src={pendingMedia.url} className="w-12 h-12 rounded object-cover" />
-						)}
-						<span className="text-xs font-semibold text-slate-800 pr-6 truncate max-w-[180px]">
-							{pendingMedia.file?.name || "Đính kèm"}
-						</span>
-						<button
-							type="button"
-							onClick={onClearPendingMedia}
-							className="absolute top-1 right-1 p-0.5 hover:bg-gray-200 rounded-full text-slate-400 cursor-pointer border-none bg-transparent"
-						>
-							<X className="w-3.5 h-3.5" />
-						</button>
-					</div>
-				)}
+				{/* Widget tải lên ngầm S3 kèm Hover Popover hiển thị chi tiết */}
+				<ChatUploadingWidget
+					pendingMediaList={pendingMediaList}
+					onRemoveMedia={onRemovePendingMedia}
+				/>
 
-				{/* Emoji / Sticker Quick Picker:
-				    ĐẶT ABSOLUTE FLOATING BÊN TRÊN INPUT BAR
-				    -> KHÔNG LÀM TĂNG CHIỀU CAO INPUT BAR -> KHÔNG NHÍCH ĐOẠN CHAT LÊN! */}
+				{/* Emoji / Sticker / GIF Floating Popover */}
 				<AnimatePresence>
 					{showEmojiPicker && (
 						<motion.div
@@ -327,21 +551,109 @@ export const ChatMessageArea: React.FC<ChatMessageAreaProps> = ({
 							animate={{ opacity: 1, y: 0, scale: 1 }}
 							exit={{ opacity: 0, y: 8, scale: 0.95 }}
 							transition={{ duration: 0.15 }}
-							className="absolute bottom-full mb-3 left-3 z-50 p-2.5 bg-white rounded-xl border border-slate-200 shadow-xl flex flex-wrap gap-1.5 max-w-[320px]"
+							className="absolute bottom-full mb-3 left-3 z-50 p-2.5 bg-white rounded-2xl border border-slate-200 shadow-2xl flex flex-col gap-2 w-[340px] max-w-[92vw]"
 						>
-							{QUICK_EMOJIS.map((emoji) => (
+							{/* Tab Selector */}
+							<div className="flex items-center gap-1 p-1 bg-slate-100 rounded-xl">
 								<button
-									key={emoji}
 									type="button"
-									onClick={() => {
-										onInputTextChange(inputText + emoji);
-										onCloseEmojiPicker();
-									}}
-									className="text-lg hover:scale-125 transition-transform p-1.5 cursor-pointer border-none bg-transparent rounded-lg hover:bg-slate-100"
+									onClick={() => setPickerTab("emoji")}
+									className={`flex-1 py-1 text-xs font-bold rounded-lg transition-all border-none cursor-pointer ${
+										pickerTab === "emoji"
+											? "bg-white text-brand-dark shadow-xs"
+											: "text-slate-500 hover:text-slate-800 bg-transparent"
+									}`}
 								>
-									{emoji}
+									😀 Biểu tượng
 								</button>
-							))}
+								<button
+									type="button"
+									onClick={() => setPickerTab("sticker")}
+									className={`flex-1 py-1 text-xs font-bold rounded-lg transition-all border-none cursor-pointer ${
+										pickerTab === "sticker"
+											? "bg-white text-brand-dark shadow-xs"
+											: "text-slate-500 hover:text-slate-800 bg-transparent"
+									}`}
+								>
+									🐱 Sticker 3D
+								</button>
+								<button
+									type="button"
+									onClick={() => setPickerTab("gif")}
+									className={`flex-1 py-1 text-xs font-bold rounded-lg transition-all border-none cursor-pointer ${
+										pickerTab === "gif"
+											? "bg-white text-brand-dark shadow-xs"
+											: "text-slate-500 hover:text-slate-800 bg-transparent"
+									}`}
+								>
+									🎞️ Ảnh GIF
+								</button>
+							</div>
+
+							{/* Tab Content */}
+							<div className="max-h-[220px] overflow-y-auto pr-1">
+								{pickerTab === "emoji" && (
+									<div className="flex flex-wrap gap-1.5">
+										{QUICK_EMOJIS.map((emoji) => (
+											<button
+												key={emoji}
+												type="button"
+												onClick={() => {
+													onInputTextChange(inputText + emoji);
+													onCloseEmojiPicker();
+												}}
+												className="text-lg hover:scale-125 transition-transform p-1.5 cursor-pointer border-none bg-transparent rounded-lg hover:bg-slate-100"
+											>
+												{emoji}
+											</button>
+										))}
+									</div>
+								)}
+
+								{pickerTab === "sticker" && (
+									<div className="grid grid-cols-4 gap-2">
+										{CHAT_STICKERS.map((stk) => (
+											<button
+												key={stk.id}
+												type="button"
+												onClick={() => {
+													onSendSpecial?.(stk.url, "Sticker");
+													onCloseEmojiPicker();
+												}}
+												className="p-1.5 rounded-xl hover:bg-slate-100 transition-all hover:scale-110 cursor-pointer border-none bg-transparent flex flex-col items-center gap-1 group"
+												title={stk.name}
+											>
+												<img src={stk.url} alt={stk.name} className="w-12 h-12 object-contain" />
+												<span className="text-[10px] text-slate-500 truncate group-hover:text-brand-dark font-medium">
+													{stk.name}
+												</span>
+											</button>
+										))}
+									</div>
+								)}
+
+								{pickerTab === "gif" && (
+									<div className="grid grid-cols-2 gap-2">
+										{CHAT_GIFS.map((g) => (
+											<button
+												key={g.id}
+												type="button"
+												onClick={() => {
+													onSendSpecial?.(g.url, "Gif");
+													onCloseEmojiPicker();
+												}}
+												className="rounded-xl overflow-hidden hover:opacity-90 transition-opacity cursor-pointer border border-slate-200 relative group aspect-video bg-slate-100"
+												title={g.title}
+											>
+												<img src={g.url} alt={g.title} className="w-full h-full object-cover" />
+												<div className="absolute inset-x-0 bottom-0 bg-black/60 px-1.5 py-0.5 text-[9px] text-white truncate text-left font-medium opacity-0 group-hover:opacity-100 transition-opacity">
+													{g.title}
+												</div>
+											</button>
+										))}
+									</div>
+								)}
+							</div>
 						</motion.div>
 					)}
 				</AnimatePresence>
@@ -358,6 +670,7 @@ export const ChatMessageArea: React.FC<ChatMessageAreaProps> = ({
 						type="file"
 						ref={imageInputRef}
 						accept="image/*"
+						multiple
 						onChange={handleImageChange}
 						className="hidden"
 					/>
@@ -365,6 +678,7 @@ export const ChatMessageArea: React.FC<ChatMessageAreaProps> = ({
 						type="file"
 						ref={videoInputRef}
 						accept="video/*"
+						multiple
 						onChange={handleVideoChange}
 						className="hidden"
 					/>
@@ -375,7 +689,7 @@ export const ChatMessageArea: React.FC<ChatMessageAreaProps> = ({
 							type="button"
 							onClick={() => imageInputRef.current?.click()}
 							className="p-1.5 hover:bg-slate-100 hover:text-slate-800 rounded-md transition-colors cursor-pointer border-none bg-transparent"
-							title="Gửi hình ảnh"
+							title="Gửi hình ảnh (hỗ trợ nhiều tệp, tối đa 50MB)"
 						>
 							<PictureOutlined className="text-base" />
 						</button>
@@ -383,7 +697,7 @@ export const ChatMessageArea: React.FC<ChatMessageAreaProps> = ({
 							type="button"
 							onClick={() => videoInputRef.current?.click()}
 							className="p-1.5 hover:bg-slate-100 hover:text-slate-800 rounded-md transition-colors cursor-pointer border-none bg-transparent"
-							title="Gửi video"
+							title="Gửi video (hỗ trợ nhiều tệp, tối đa 50MB)"
 						>
 							<VideoCameraOutlined className="text-base" />
 						</button>
@@ -411,7 +725,7 @@ export const ChatMessageArea: React.FC<ChatMessageAreaProps> = ({
 
 					<button
 						type="submit"
-						disabled={(!inputText.trim() && !pendingMedia) || isSending}
+						disabled={(!inputText.trim() && pendingMediaList.length === 0) || isSending}
 						className="p-2 bg-brand-dark text-brand-primary hover:bg-black rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed border-none cursor-pointer font-bold shrink-0 shadow-2xs flex items-center justify-center"
 						title="Gửi tin nhắn"
 					>
