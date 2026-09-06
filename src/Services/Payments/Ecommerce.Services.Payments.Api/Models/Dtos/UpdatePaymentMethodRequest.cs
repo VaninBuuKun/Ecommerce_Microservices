@@ -7,4 +7,5 @@ public class UpdatePaymentMethodRequest
     public bool IsActive { get; set; }
     public string ProviderName { get; set; } = null!;
     public string IconUrl { get; set; } = null!;
+    public decimal? MinAmount { get; set; }
 }

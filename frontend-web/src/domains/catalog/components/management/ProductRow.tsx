@@ -79,13 +79,13 @@ export function ProductRow({
 							<img
 								src={thumbnail}
 								alt={product.name}
-								className="w-18 h-18 object-cover rounded border border-brand-border bg-gray-50"
+								className="w-18 h-18 object-cover rounded-md border border-brand-border bg-gray-50"
 							/>
 						</div>
 
 						<div className="flex flex-col items-start gap-1 text-left max-w-sm">
 							<span
-								className={`px-1.5 py-0.2 font-semibold text-[8px] uppercase tracking-wide inline-block opacity-80 ${isActive
+								className={`px-1.5 py-0.2 font-semibold text-[8px] uppercase tracking-wide inline-block opacity-80 rounded-md ${isActive
 										? "bg-green-50 text-green-700 border border-green-200/80"
 										: "bg-red-50 text-red-700 border border-red-200/80"
 									}`}
@@ -115,7 +115,7 @@ export function ProductRow({
 									onToggleStatus(product.id, product.status)
 								}
 								disabled={isUpdatingStatus}
-								className={`p-1.5 rounded-lg cursor-pointer transition-colors ${isActive
+								className={`p-1.5 rounded-md cursor-pointer transition-colors ${isActive
 										? "text-gray-400 hover:text-amber-600 hover:bg-amber-50"
 										: "text-green-600 bg-green-50 hover:bg-green-100"
 									}`}
@@ -138,8 +138,9 @@ export function ProductRow({
 						<button
 							type="button"
 							onClick={() => onEdit(product.id)}
-							className="p-1.5 text-gray-400 hover:text-brand-dark hover:bg-gray-100 rounded-lg cursor-pointer transition-colors"
-							title="Chỉnh sửa sản phẩm"
+							disabled={isUpdatingStatus}
+							className="p-1.5 text-gray-400 hover:text-brand-dark hover:bg-gray-100 rounded-md cursor-pointer transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+							title={isUpdatingStatus ? "Đang xử lý trạng thái..." : "Chỉnh sửa sản phẩm"}
 						>
 							<Edit className="w-4 h-4" />
 						</button>
@@ -147,9 +148,9 @@ export function ProductRow({
 						<button
 							type="button"
 							onClick={() => onDelete(product.id)}
-							disabled={isDeleting}
-							className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg cursor-pointer transition-colors disabled:opacity-50"
-							title="Xóa sản phẩm"
+							disabled={isDeleting || isUpdatingStatus}
+							className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-md cursor-pointer transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+							title={isUpdatingStatus ? "Đang xử lý trạng thái..." : "Xóa sản phẩm"}
 						>
 							{isDeleting ? (
 								<Loader2 className="w-4 h-4 animate-spin text-red-500" />

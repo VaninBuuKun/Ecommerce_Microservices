@@ -2,6 +2,7 @@ using System;
 using System.Linq;
 using System.Threading.Tasks;
 using BuildingBlocks.Grpc.Services;
+using Ecommerce.Services.Orders.Application.Features.Orders.Queries.CheckProductHasActiveSubOrders;
 using Ecommerce.Services.Orders.Application.Features.Orders.Queries.GetCompletedSubOrderCountForProduct;
 using Ecommerce.Services.Orders.Application.Features.Orders.Queries.GetSubOrderItemsForRebuy;
 using Grpc.Core;
@@ -78,5 +79,61 @@ public class OrderGrpcServer(
         }
 
         return response;
+    }
+
+    public override async Task<CheckProductHasActiveSubOrdersResponse> CheckProductHasActiveSubOrders(
+        CheckProductHasActiveSubOrdersRequest request,
+        ServerCallContext context)
+    {
+        logger.LogInformation("gRPC CheckProductHasActiveSubOrders: ProductId={ProductId}", request.ProductId);
+
+        var result = await sender.Send(new CheckProductHasActiveSubOrdersQuery(request.ProductId), context.CancellationToken);
+
+        if (!result.IsSuccess)
+        {
+            logger.LogWarning("gRPC CheckProductHasActiveSubOrders failed: {Message}", result.Message);
+            return new CheckProductHasActiveSubOrdersResponse
+            {
+                HasActiveSubOrders = true,
+                Message = result.Message ?? "Không thể kiểm tra trạng thái đơn hàng của sản phẩm."
+            };
+        }
+
+        return new CheckProductHasActiveSubOrdersResponse
+        {
+            HasActiveSubOrders = result.Value,
+            Message = result.Value
+                ? "Sản phẩm hiện có đơn hàng đang trong quá trình xử lý."
+                : "Sản phẩm không có đơn hàng nào đang hoạt động."
+        };
+    }
+
+    public override async Task<CheckVariantOrdersResponse> CheckVariantOrders(
+        CheckVariantOrdersRequest request,
+        ServerCallContext context)
+    {
+        logger.LogInformation("gRPC CheckVariantOrders: VariantId={VariantId}", request.VariantId);
+
+        var result = await sender.Send(new Ecommerce.Services.Orders.Application.Features.Orders.Queries.CheckVariantOrders.CheckVariantOrdersQuery(request.VariantId), context.CancellationToken);
+
+        if (!result.IsSuccess || result.Value == null)
+        {
+            logger.LogWarning("gRPC CheckVariantOrders failed: {Message}", result.Message);
+            return new CheckVariantOrdersResponse
+            {
+                HasAnyOrders = true,
+                HasActiveOrders = true,
+                Message = result.Message ?? "Không thể kiểm tra trạng thái đơn hàng của biến thể."
+            };
+        }
+
+        return new CheckVariantOrdersResponse
+        {
+            HasAnyOrders = result.Value.HasAnyOrders,
+            HasActiveOrders = result.Value.HasActiveOrders,
+            Message = result.Value.HasActiveOrders
+                ? "Biến thể hiện có đơn hàng đang trong quá trình xử lý."
+                : (result.Value.HasAnyOrders ? "Biến thể có lịch sử đơn hàng đã kết thúc." : "Biến thể chưa có đơn hàng nào.")
+        };
     }
 }

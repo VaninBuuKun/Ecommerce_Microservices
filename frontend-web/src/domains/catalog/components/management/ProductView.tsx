@@ -61,21 +61,32 @@ export function ProductsView() {
 	};
 
 	const handleEditProduct = (productId: string) => {
+		if (updatingStatusId) {
+			toast.info("Hệ thống đang kiểm tra và cập nhật trạng thái sản phẩm, vui lòng đợi hoàn tất...");
+			return;
+		}
 		navigate(
 			`/seller/${numericShopId || "default"}/dashboard/products/edit/${productId}`,
 		);
 	};
 
 	const handleDeleteProduct = (productId: string) => {
+		if (updatingStatusId) {
+			toast.info("Hệ thống đang kiểm tra và cập nhật trạng thái sản phẩm, vui lòng đợi hoàn tất...");
+			return;
+		}
 		if (window.confirm("Bạn có chắc chắn muốn xóa sản phẩm này?")) {
 			deleteProductMutation.mutate(productId, {
 				onSuccess: () => {
 					toast.success("Xóa sản phẩm thành công!");
 				},
 				onError: (err: any) => {
-					toast.error(
-						`Xóa sản phẩm thất bại: ${err?.message || "Lỗi hệ thống"}`,
-					);
+					const msg =
+						err.response?.data?.message ||
+						err.response?.data ||
+						err?.message ||
+						"Lỗi hệ thống";
+					toast.error(`Xóa sản phẩm thất bại: ${msg}`);
 				},
 			});
 		}
@@ -90,7 +101,7 @@ export function ProductsView() {
 	};
 
 	return (
-		<div className="space-y-4 text-left font-sans select-none">
+		<div className="space-y-4 text-left font-sans">
 			<div className="flex justify-between items-center pb-3 border-b border-brand-border">
 				<div>
 					<h2 className="text-sm font-bold text-brand-dark">
@@ -103,7 +114,7 @@ export function ProductsView() {
 				</div>
 				<button
 					onClick={() => setIsCreateOpen(true)}
-					className="px-3.5 py-1.5 bg-brand-primary hover:bg-brand-primary-deep text-white text-xs font-bold rounded flex items-center gap-1.5 cursor-pointer shadow-xs transition-all border-none"
+					className="px-3.5 py-1.5 bg-brand-primary hover:bg-brand-primary-deep text-white text-xs font-bold rounded-md flex items-center gap-1.5 cursor-pointer shadow-xs transition-all border-none"
 				>
 					<Plus className="w-3.5 h-3.5" />
 					Thêm sản phẩm mới
@@ -123,7 +134,7 @@ export function ProductsView() {
 			)}
 
 			{isError && (
-				<div className="p-4 bg-red-50 border border-red-200 rounded-xl text-xs text-red-800">
+				<div className="p-4 bg-red-50 border border-red-200 rounded-md text-xs text-red-800">
 					Có lỗi xảy ra:{" "}
 					{(error as any)?.message || "Không thể tải danh sách sản phẩm"}
 				</div>
@@ -182,7 +193,27 @@ export function ProductsView() {
 				onConfirm={() => {
 					if (confirmModal) {
 						setUpdatingStatusId(confirmModal.productId);
-						toggleStatusMutation.mutate(confirmModal.productId);
+						toggleStatusMutation.mutate(confirmModal.productId, {
+							onSuccess: () => {
+								toast.success(
+									confirmModal.currentStatus === "Active"
+										? "Đã gỡ/ẩn sản phẩm khỏi cửa hàng thành công!"
+										: "Đã đăng bán lại sản phẩm thành công!",
+								);
+								setConfirmModal(null);
+								setUpdatingStatusId(null);
+							},
+							onError: (err: any) => {
+								const msg =
+									err.response?.data?.message ||
+									err.response?.data ||
+									err?.message ||
+									"Lỗi hệ thống";
+								toast.error(`Thao tác thất bại: ${msg}`);
+								setConfirmModal(null);
+								setUpdatingStatusId(null);
+							},
+						});
 					}
 				}}
 				onCancel={() => setConfirmModal(null)}

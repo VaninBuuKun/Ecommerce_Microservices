@@ -5,6 +5,7 @@ namespace Ecommerce.Services.Orders.Application.Features.Orders.Dtos;
 
 public class CustomerOrderItemDto
 {
+    [JsonConverter(typeof(LongToStringJsonConverter))]
     public long OrderId { get; set; }
 
     [JsonConverter(typeof(LongToStringJsonConverter))]

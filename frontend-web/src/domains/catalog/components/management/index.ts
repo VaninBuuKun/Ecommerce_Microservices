@@ -7,4 +7,9 @@ export * from "./ProductTable";
 export * from "./ProductView";
 export * from "./CreateProductModal";
 export * from "./EditProductPage";
-
+export * from "./ShippingInfoCard";
+export * from "./VariantSwitchWarningModal";
+export * from "./DeleteEntityModal";
+export * from "./IdHighlightBadge";
+export * from "./DiscardChangesModal";
+export * from "./AddMissingVariantsModal";

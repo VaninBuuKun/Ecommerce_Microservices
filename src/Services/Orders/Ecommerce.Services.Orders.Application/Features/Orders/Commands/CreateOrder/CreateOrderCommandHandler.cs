@@ -204,7 +204,7 @@ public class CreateOrderCommandHandler(
                 var paymentResult = await paymentService.CreatePaymentAsync(orderId, order.GrandTotal, command.PaymentProvider, cancellationToken);
                 if (!paymentResult.IsSuccess)
                 {
-                    logger.LogWarning("Tạo thanh toán thất bại cho đơn {OrderId}. Giải phóng tồn kho và hủy phiên...", orderId);
+                    logger.LogWarning("Failed to create payment for order {OrderId}. Releasing stock and canceling session...", orderId);
                     await CompensateStockRelease(orderId, reserveItems, cancellationToken);
                     await CompensateVouchersRelease(allVoucherIds, cancellationToken);
                     return Result<CustomerOrderResponse>.Failure(paymentResult);

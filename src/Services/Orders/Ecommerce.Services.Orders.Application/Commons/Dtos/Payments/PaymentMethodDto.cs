@@ -8,4 +8,5 @@ public class PaymentMethodDto
     public string ProviderName  { get; set; }
     public string IconUrl { get; set; }
     public bool IsActive { get; set; }
+    public decimal? MinAmount { get; set; }
 }

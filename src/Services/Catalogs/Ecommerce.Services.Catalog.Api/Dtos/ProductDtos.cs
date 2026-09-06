@@ -14,7 +14,11 @@ public record UpdateProductRequest(
     string? VideoUrl,
     List<string> ImageUrls,
     long? CategoryId,
-    string? AttributesJson
+    string? AttributesJson,
+    double Weight = 0,
+    double Length = 0,
+    double Width = 0,
+    double Height = 0
 );
 
 public record UpdateSingleVariantRequest(
@@ -29,5 +33,9 @@ public record UpdateSingleVariantRequest(
 
 public record UpdateMultiVariantsRequest(
     List<MultiUpdateOptionDto> Options,
-    List<MultiUpdateVariantDto> Variants
+    List<MultiUpdateVariantDto> Variants,
+    double? Weight = null,
+    double? Length = null,
+    double? Width = null,
+    double? Height = null
 );

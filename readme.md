@@ -81,8 +81,23 @@ Saga State Machine + Transactional Outbox
 * Product variant matrix (options → variants with SKU/price/stock).
 * Bulk variant updates.
 * Sale price configuration.
-* Product activation/deactivation.
-* Shipping dimensions and weight configuration.
+* Product activation/deactivation & deletion with gRPC active orders validation (`CheckProductHasActiveSubOrders` from `Orders.Api`), preventing permanent deletion or deactivation while sub-orders are still in active/in-flight status.
+* Multi-tenant shop ownership validation: Strictly verifies seller ownership via `Sellers.Api` gRPC for all product commands and queries (`GetMyProducts`, `UpdateProduct`, `ToggleStatus`, `DeleteProduct`, variant updates).
+* Snowflake 64-bit ID serialization: All `long`/`long?` IDs are serialized to JSON strings in `Catalog.Api` to eliminate JavaScript floating-point precision loss ($2^{53} - 1$ limit) on the frontend.
+* Customer Product Detail UX: Interactive Modal Portal (`z-[10000]`) notifications when a product is non-existent/deleted or temporarily inactive, with warning banner for shop owners previewing their inactive products.
+* Shipping dimensions and weight configuration: Integrated into "Thông tin cơ bản" tab via `ShippingInfoCard` without extraneous icons or auto-formula boxes.
+* Granular Deletion Policies & Controlled Deletion Workflow:
+  * ProductVariant: Verified via gRPC `CheckVariantOrders` from `Orders.Api`. Hard-deleted if no orders exist, blocked with conflict error if active orders exist, and soft-deleted if only historical orders exist.
+  * ProductOption & ProductOptionValue: Guarded against deletion if referenced by any active variant. Endpoints: `DELETE /api/v1/catalog/products/{productId}/options/{optionId}` and `DELETE .../values/{valueId}`.
+  * Seller UX: `IdHighlightBadge` with emerald highlight, dotted underline, tooltip hover ID & copy button for DB-persisted variants/options/values; non-intrusive switch confirmation modal on save with "Do not show again" preference.
+* Tab Dirty Tracking & Safe Discard Modal:
+  * Independent dirty tracking across "Thông tin cơ bản" and "Biến thể" tabs with red `*` indicators.
+  * Save button dynamically disabled when the currently active tab has no unsaved modifications.
+  * Safety discard confirmation modal (`DiscardChangesModal`) rendered via Portal `z-[10000]` when attempting to cancel with unsaved changes.
+* Reordering Options & Option Values:
+  * Reorder options (Option 1 $\leftrightarrow$ Option 2) and values within each option.
+  * Automatic Cartesian product synchronization in variant table preserving all existing pricing, stock, SKU, and server IDs.
+* Specification Attribute Validation: Strict validation on both FE (inline error highlighting) and BE (`UpdateProductCommandHandler` & `UpdateProductAttributesCommandHandler`) ensuring every attribute contains non-empty key and value.
 * Price range indexing (`Price` & `MaxPrice`) for min/max price range filtering.
 * Native `jsonb` attributes storage with PostgreSQL GIN index (`jsonb_path_ops`).
 * PostgreSQL Trigram (`pg_trgm`) & `unaccent` for accent-insensitive typo-tolerant search.
@@ -159,9 +174,14 @@ A single checkout is automatically split into multiple SubOrders based on seller
 ### Payment Integration
 
 Supported payment methods:
-* MoMo QR Payment (Sandbox)
-* VNPay (Sandbox)
-* Cash On Delivery (COD)
+* MoMo QR Payment (Sandbox) - Hạn mức tối thiểu cấu hình động (`MinAmount` = 10.000 ₫).
+* VNPay (Sandbox) - Hạn mức tối thiểu cấu hình động (`MinAmount` = 10.000 ₫).
+* Cash On Delivery (COD) - Áp dụng linh hoạt không giới hạn (`MinAmount` = NULL).
+
+Kiến trúc Dữ liệu & Đặc tả UX:
+* **Database & Entity**: Cột `MinAmount` (`numeric(18,2)`, nullable) được tích hợp trực tiếp vào thực thể `PaymentMethod`. Cho phép Admin cấu hình hạn mức tối thiểu cho từng phương thức thanh toán qua `AdminPaymentMethodsView`.
+* **Frontend**: Không ẩn phương thức thanh toán. Kiểm tra động `method.minAmount`: nếu đơn hàng < `minAmount`, thẻ phương thức tự động disable/làm mờ (`opacity-55 cursor-not-allowed`) kèm badge và dòng cảnh báo đỏ: *"Chỉ áp dụng cho đơn hàng từ {minAmount} ₫ trở lên"*. Tự động chuyển về phương thức hợp lệ (hoặc COD) nếu đơn hàng không đạt hạn mức.
+* **Backend Validation**: `ProcessPayment` (`Payments.Api`) kiểm tra trực tiếp `existingMethod.MinAmount` từ cơ sở dữ liệu, chặn và báo lỗi tiếng Việt nếu không đủ hạn mức. `CreateOrderCommandHandler` tự động giải phóng tồn kho và voucher đã giữ nếu thanh toán thất bại.
 
 Payment webhooks automatically trigger status transitions via MassTransit events.
 

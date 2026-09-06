@@ -86,7 +86,8 @@ public class PaymentGrpcServer(
             SubTitle = method.SubTitle ?? string.Empty,
             ProviderName = method.ProviderName ?? string.Empty,
             IconUrl = method.IconUrl ?? string.Empty,
-            IsActive = method.IsActive
+            IsActive = method.IsActive,
+            MinAmount = method.MinAmount?.ToString(CultureInfo.InvariantCulture) ?? string.Empty
         };
     }
 

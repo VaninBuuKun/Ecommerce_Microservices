@@ -53,6 +53,25 @@ public class ProductMappings : IRegister
             .Map(dest => dest.CategoryName, src => src.Category != null ? src.Category.Name : null)
             .Map(dest => dest.ParentCategoryId, src => src.Category != null ? src.Category.ParentId : null)
             .Map(dest => dest.ParentCategoryName, src => src.Category != null && src.Category.Parent != null ? src.Category.Parent.Name : null)
+            .Map(dest => dest.Options, src => src.Options
+                .Where(o => !o.IsDeleted)
+                .OrderBy(o => o.SortOrder)
+                .Select(o => new ProductOptionDto
+                {
+                    Id = o.Id,
+                    Name = o.Name,
+                    SortOrder = o.SortOrder,
+                    Values = o.Values
+                        .Where(v => !v.IsDeleted)
+                        .OrderBy(v => v.SortOrder)
+                        .Select(v => new ProductOptionValueDto
+                        {
+                            Id = v.Id,
+                            Value = v.Value,
+                            ImageUrl = v.ImageUrl,
+                            SortOrder = v.SortOrder
+                        }).ToList()
+                }).ToList())
             .Map(dest => dest.Variants, src => src.Variants
                 .Where(v => !v.IsDeleted)
                 .OrderBy(v => v.VariantOptions

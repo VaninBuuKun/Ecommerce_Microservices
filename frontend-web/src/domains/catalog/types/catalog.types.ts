@@ -112,7 +112,7 @@ export interface SearchSuggestionsResponse {
 	suggestedCategories: CategorySuggestion[];
 	suggestions?: Array<{ text: string; targetUrl: string }>;
 	topProducts: Array<{
-		id: number | string;
+		id: string;
 		name: string;
 		price: number;
 		maxPrice?: number;

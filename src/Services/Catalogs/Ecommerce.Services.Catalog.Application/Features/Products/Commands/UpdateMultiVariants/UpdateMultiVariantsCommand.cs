@@ -7,7 +7,11 @@ namespace Ecommerce.Services.Catalog.Application.Features.Products.Commands.Upda
 public record UpdateMultiVariantsCommand(
     long ProductId,
     List<MultiUpdateOptionDto> Options,
-    List<MultiUpdateVariantDto> Variants
+    List<MultiUpdateVariantDto> Variants,
+    double? Weight = null,
+    double? Length = null,
+    double? Width = null,
+    double? Height = null
 ) : ICommand<ProductResponse>;
 
 public record MultiUpdateOptionDto(

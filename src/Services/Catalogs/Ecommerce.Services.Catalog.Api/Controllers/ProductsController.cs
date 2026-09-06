@@ -97,6 +97,7 @@ public class ProductsController(ISender sender) : ControllerBase
     }
 
     [HttpGet("my-shop/{ShopId:long}")]
+    [Authorize]
     public async Task<IActionResult> GetMyProducts(long ShopId, [FromServices] ICurrentUserService userService, [FromQuery] int page = 1, [FromQuery] int pageSize = 10, [FromQuery] string? searchTerm = null)
     {
         var result = await sender.Send(new GetMyProductsQuery(ShopId, userService.UserId, page, pageSize, searchTerm));
@@ -192,6 +193,7 @@ public class ProductsController(ISender sender) : ControllerBase
     }
 
     [HttpPut("{id:long}")]
+    [Authorize]
     public async Task<IActionResult> UpdateProduct(long id, [FromBody] UpdateProductRequest request)
     {
         var result = await sender.Send(new UpdateProductCommand(
@@ -202,7 +204,11 @@ public class ProductsController(ISender sender) : ControllerBase
             request.VideoUrl,
             request.ImageUrls,
             request.CategoryId,
-            request.AttributesJson
+            request.AttributesJson,
+            request.Weight,
+            request.Length,
+            request.Width,
+            request.Height
         ));
 
         if (result.IsSuccess)
@@ -214,6 +220,7 @@ public class ProductsController(ISender sender) : ControllerBase
     }
 
     [HttpPut("{id:long}/single-variant")]
+    [Authorize]
     public async Task<IActionResult> UpdateSingleVariant(long id, [FromBody] UpdateSingleVariantRequest request)
     {
         var result = await sender.Send(new UpdateSingleVariantCommand(
@@ -236,6 +243,7 @@ public class ProductsController(ISender sender) : ControllerBase
     }
 
     [HttpPut("{id:long}/toggle-status")]
+    [Authorize]
     public async Task<IActionResult> ToggleProductStatus(long id)
     {
         var result = await sender.Send(new ToggleProductStatusCommand(id));
@@ -249,9 +257,18 @@ public class ProductsController(ISender sender) : ControllerBase
     }
 
     [HttpPut("{id:long}/multi-variants")]
+    [Authorize]
     public async Task<IActionResult> UpdateMultiVariants(long id, [FromBody] UpdateMultiVariantsRequest request)
     {
-        var result = await sender.Send(new UpdateMultiVariantsCommand(id, request.Options, request.Variants));
+        var result = await sender.Send(new UpdateMultiVariantsCommand(
+            id, 
+            request.Options, 
+            request.Variants,
+            request.Weight,
+            request.Length,
+            request.Width,
+            request.Height
+        ));
 
         if (result.IsSuccess)
         {
@@ -262,6 +279,7 @@ public class ProductsController(ISender sender) : ControllerBase
     }
 
     [HttpPut("{id:long}/attributes")]
+    [Authorize]
     public async Task<IActionResult> UpdateAttributes(long id, [FromBody] UpdateAttributesRequest request)
     {
         var result = await sender.Send(new Ecommerce.Services.Catalog.Application.Features.Products.Commands.UpdateProductAttributes.UpdateProductAttributesCommand(id, request.AttributesJson));
@@ -275,6 +293,7 @@ public class ProductsController(ISender sender) : ControllerBase
     }
 
     [HttpDelete("{id:long}")]
+    [Authorize]
     public async Task<IActionResult> DeleteProduct(long id)
     {
         var result = await sender.Send(new DeleteProductCommand(id));
@@ -301,9 +320,38 @@ public class ProductsController(ISender sender) : ControllerBase
     }
 
     [HttpDelete("{productId:long}/variants/{variantId:long}")]
+    [Authorize]
     public async Task<IActionResult> DeleteProductVariant(long productId, long variantId)
     {
         var result = await sender.Send(new DeleteProductVariantCommand(productId, variantId));
+
+        if (result.IsSuccess)
+        {
+            return Ok(result.Value);
+        }
+
+        return StatusCode(result.GetHttpStatusCode(), result.Message);
+    }
+
+    [HttpDelete("{productId:long}/options/{optionId:long}")]
+    [Authorize]
+    public async Task<IActionResult> DeleteProductOption(long productId, long optionId)
+    {
+        var result = await sender.Send(new Ecommerce.Services.Catalog.Application.Features.Products.Commands.DeleteProductOption.DeleteProductOptionCommand(productId, optionId));
+
+        if (result.IsSuccess)
+        {
+            return Ok(result.Value);
+        }
+
+        return StatusCode(result.GetHttpStatusCode(), result.Message);
+    }
+
+    [HttpDelete("{productId:long}/options/{optionId:long}/values/{valueId:long}")]
+    [Authorize]
+    public async Task<IActionResult> DeleteProductOptionValue(long productId, long optionId, long valueId)
+    {
+        var result = await sender.Send(new Ecommerce.Services.Catalog.Application.Features.Products.Commands.DeleteProductOptionValue.DeleteProductOptionValueCommand(productId, optionId, valueId));
 
         if (result.IsSuccess)
         {

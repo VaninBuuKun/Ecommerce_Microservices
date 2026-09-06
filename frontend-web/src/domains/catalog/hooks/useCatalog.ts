@@ -110,6 +110,8 @@ export function useProductByIdQuery(id?: string) {
 		queryKey: catalogQueryKeys.productById(id),
 		queryFn: () => (id ? productApi.getProductById(id) : null),
 		enabled: !!id,
+		staleTime: 5 * 60 * 1000,
+		refetchOnWindowFocus: false,
 	});
 }
 
@@ -126,6 +128,7 @@ export function useCreateProductMutation() {
 		mutationFn: (payload: CreateProductRequest) => productApi.createProduct(payload),
 		onSuccess: () => {
 			queryClient.invalidateQueries({ queryKey: catalogQueryKeys.products });
+			queryClient.invalidateQueries({ queryKey: ["catalog", "myProducts"] });
 			queryClient.invalidateQueries({ queryKey: ["catalog"] });
 		},
 	});
@@ -136,9 +139,12 @@ export function useUpdateProductMutation() {
 	return useMutation({
 		mutationFn: ({ id, payload }: { id: string; payload: UpdateProductRequest }) =>
 			productApi.updateProduct(id, payload),
-		onSuccess: (_, variables) => {
-			queryClient.invalidateQueries({ queryKey: catalogQueryKeys.productById(variables.id) });
+		onSuccess: (data, variables) => {
+			if (data?.value || data) {
+				queryClient.setQueryData(catalogQueryKeys.productById(variables.id), data?.value || data);
+			}
 			queryClient.invalidateQueries({ queryKey: catalogQueryKeys.products });
+			queryClient.invalidateQueries({ queryKey: ["catalog", "myProducts"] });
 		},
 	});
 }
@@ -148,8 +154,12 @@ export function useUpdateSingleVariantMutation() {
 	return useMutation({
 		mutationFn: ({ id, payload }: { id: string; payload: UpdateSingleVariantRequest }) =>
 			productApi.updateSingleVariant(id, payload),
-		onSuccess: (_, variables) => {
-			queryClient.invalidateQueries({ queryKey: catalogQueryKeys.productById(variables.id) });
+		onSuccess: (data, variables) => {
+			if (data?.value || data) {
+				queryClient.setQueryData(catalogQueryKeys.productById(variables.id), data?.value || data);
+			}
+			queryClient.invalidateQueries({ queryKey: catalogQueryKeys.products });
+			queryClient.invalidateQueries({ queryKey: ["catalog", "myProducts"] });
 		},
 	});
 }
@@ -161,8 +171,12 @@ export function useUpdateMultiVariantsMutation() {
 	return useMutation({
 		mutationFn: ({ id, payload }: { id: string; payload: UpdateMultiVariantsRequest }) =>
 			productApi.updateMultiVariants(id, payload),
-		onSuccess: (_, variables) => {
-			queryClient.invalidateQueries({ queryKey: catalogQueryKeys.productById(variables.id) });
+		onSuccess: (data, variables) => {
+			if (data?.value || data) {
+				queryClient.setQueryData(catalogQueryKeys.productById(variables.id), data?.value || data);
+			}
+			queryClient.invalidateQueries({ queryKey: catalogQueryKeys.products });
+			queryClient.invalidateQueries({ queryKey: ["catalog", "myProducts"] });
 		},
 	});
 }
@@ -175,7 +189,44 @@ export function useDeleteProductMutation() {
 		mutationFn: (id: string) => productApi.deleteProduct(id),
 		onSuccess: () => {
 			queryClient.invalidateQueries({ queryKey: catalogQueryKeys.products });
+			queryClient.invalidateQueries({ queryKey: ["catalog", "myProducts"] });
 			queryClient.invalidateQueries({ queryKey: ["catalog"] });
+		},
+	});
+}
+
+export function useDeleteProductVariantMutation() {
+	const queryClient = useQueryClient();
+	return useMutation({
+		mutationFn: ({ productId, variantId }: { productId: string; variantId: string }) =>
+			productApi.deleteProductVariant(productId, variantId),
+		onSuccess: (_, variables) => {
+			queryClient.invalidateQueries({ queryKey: catalogQueryKeys.productById(variables.productId) });
+			queryClient.invalidateQueries({ queryKey: ["catalog", "myProducts"] });
+		},
+	});
+}
+
+export function useDeleteProductOptionMutation() {
+	const queryClient = useQueryClient();
+	return useMutation({
+		mutationFn: ({ productId, optionId }: { productId: string; optionId: string }) =>
+			productApi.deleteProductOption(productId, optionId),
+		onSuccess: (_, variables) => {
+			queryClient.invalidateQueries({ queryKey: catalogQueryKeys.productById(variables.productId) });
+			queryClient.invalidateQueries({ queryKey: ["catalog", "myProducts"] });
+		},
+	});
+}
+
+export function useDeleteProductOptionValueMutation() {
+	const queryClient = useQueryClient();
+	return useMutation({
+		mutationFn: ({ productId, optionId, valueId }: { productId: string; optionId: string; valueId: string }) =>
+			productApi.deleteProductOptionValue(productId, optionId, valueId),
+		onSuccess: (_, variables) => {
+			queryClient.invalidateQueries({ queryKey: catalogQueryKeys.productById(variables.productId) });
+			queryClient.invalidateQueries({ queryKey: ["catalog", "myProducts"] });
 		},
 	});
 }
@@ -186,6 +237,7 @@ export function useToggleProductStatusMutation() {
 		mutationFn: (id: string) => productApi.toggleProductStatus(id),
 		onSuccess: () => {
 			queryClient.invalidateQueries({ queryKey: catalogQueryKeys.products });
+			queryClient.invalidateQueries({ queryKey: ["catalog", "myProducts"] });
 			queryClient.invalidateQueries({ queryKey: ["catalog"] });
 		},
 	});

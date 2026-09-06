@@ -30,7 +30,8 @@ public class UpdateMultiVariantsCommandValidator : AbstractValidator<UpdateMulti
         });
 
         RuleFor(x => x.Variants)
-            .NotEmpty().WithMessage("Danh sách biến thể không được rỗng.");
+            .NotEmpty().WithMessage("Danh sách biến thể không được rỗng.")
+            .Must(v => v.Count <= 60).WithMessage("Một sản phẩm chỉ hỗ trợ tối đa 60 biến thể.");
 
         RuleForEach(x => x.Variants).ChildRules(variant =>
         {

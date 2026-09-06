@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
+import { createPortal } from "react-dom";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import {
 	Star,
@@ -10,6 +11,10 @@ import {
 	Store,
 	MessageCircle,
 	Edit,
+	PackageX,
+	EyeOff,
+	AlertCircle,
+	Compass,
 } from "lucide-react";
 import {
 	useProductByIdQuery,
@@ -412,29 +417,115 @@ export default function ProductDetailPage() {
 		);
 	}
 
-	// 2. CHẶN VĂNG LỖI KHI BỊ LỖI KẾT NỐI MÁY CHỦ HOẶC KHÔNG TÌM THẤY PRODUCT
+	// 2. CHẶN VĂNG LỖI KHI BỊ LỖI KẾT NỐI MÁY CHỦ HOẶC KHÔNG TÌM THẤY PRODUCT (ĐÃ BỊ XÓA)
 	if (isError || !product) {
-		return (
-			<div className="max-w-4xl mx-auto px-4 py-12 text-center space-y-4">
-				<h2 className="text-xl font-bold text-red-600">
-					Lỗi tải sản phẩm
-				</h2>
-				<p className="text-xs text-brand-muted">
-					Không tìm thấy sản phẩm này hoặc có lỗi kết nối đến máy chủ.
-				</p>
-				<Link
-					to="/"
-					className="inline-block px-5 py-2 bg-brand-primary text-brand-dark rounded-md text-xs font-bold"
-				>
-					Quay lại Trang Chủ
-				</Link>
-			</div>
+		return createPortal(
+			<div className="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 z-[10000] font-sans">
+				<div className="bg-white border border-brand-border rounded-2xl p-6 sm:p-8 max-w-md w-full shadow-2xl text-center space-y-4 animate-in fade-in zoom-in-95">
+					<div className="w-16 h-16 rounded-full bg-red-50 text-red-500 flex items-center justify-center mx-auto ring-8 ring-red-50/50">
+						<PackageX className="w-8 h-8" />
+					</div>
+					<div className="space-y-1.5">
+						<h2 className="text-lg font-bold text-slate-900 tracking-tight">
+							Sản phẩm không tồn tại
+						</h2>
+						<p className="text-xs text-slate-500 leading-relaxed max-w-xs mx-auto">
+							Sản phẩm bạn đang tìm kiếm không tồn tại hoặc đã được Người bán gỡ bỏ vĩnh viễn khỏi hệ thống BuuStore.
+						</p>
+					</div>
+					<div className="pt-2 flex flex-col sm:flex-row gap-2.5 justify-center">
+						<button
+							type="button"
+							onClick={() => navigate("/explore")}
+							className="px-5 py-2.5 bg-brand-primary text-brand-dark hover:bg-brand-primary-deep rounded-xl text-xs font-bold transition-all shadow-sm cursor-pointer border-none flex items-center justify-center gap-1.5"
+						>
+							<Compass className="w-4 h-4" />
+							Khám phá sản phẩm khác
+						</button>
+						<button
+							type="button"
+							onClick={() => navigate("/")}
+							className="px-5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-semibold transition-all cursor-pointer border border-slate-200"
+						>
+							Về trang chủ
+						</button>
+					</div>
+				</div>
+			</div>,
+			document.body
+		);
+	}
+
+	// 3. SẢN PHẨM BỊ ẨN / TẠM NGỪNG KINH DOANH VÀ NGƯỜI XEM KHÔNG PHẢI CHỦ SHOP
+	const isInactive = product.status === "Inactive" || String(product.status) === "2";
+	if (isInactive && !isOwnProduct) {
+		return createPortal(
+			<div className="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 z-[10000] font-sans">
+				<div className="bg-white border border-brand-border rounded-2xl p-6 sm:p-8 max-w-md w-full shadow-2xl text-center space-y-4 animate-in fade-in zoom-in-95">
+					<div className="w-16 h-16 rounded-full bg-amber-50 text-amber-500 flex items-center justify-center mx-auto ring-8 ring-amber-50/50">
+						<EyeOff className="w-8 h-8" />
+					</div>
+					<div className="space-y-1.5">
+						<h2 className="text-lg font-bold text-slate-900 tracking-tight">
+							Sản phẩm tạm ngừng kinh doanh
+						</h2>
+						<p className="text-xs text-slate-500 leading-relaxed max-w-xs mx-auto">
+							Sản phẩm <strong>"{product.name}"</strong> hiện đang được Người bán tạm ẩn hoặc tạm ngừng kinh doanh, hiện tại không còn hỗ trợ đặt hàng.
+						</p>
+					</div>
+					<div className="pt-2 flex flex-col sm:flex-row gap-2.5 justify-center">
+						{product.shopId && (
+							<button
+								type="button"
+								onClick={() => navigate(`/shops/${product.shopId}`)}
+								className="px-4 py-2.5 bg-brand-primary text-brand-dark hover:bg-brand-primary-deep rounded-xl text-xs font-bold transition-all shadow-sm cursor-pointer border-none flex items-center justify-center gap-1.5"
+							>
+								<Store className="w-4 h-4" />
+								Ghé thăm cửa hàng
+							</button>
+						)}
+						<button
+							type="button"
+							onClick={() => navigate("/explore")}
+							className="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-semibold transition-all cursor-pointer border border-slate-200 flex items-center justify-center gap-1.5"
+						>
+							<Compass className="w-4 h-4" />
+							Xem sản phẩm khác
+						</button>
+					</div>
+				</div>
+			</div>,
+			document.body
 		);
 	}
 
 	// Sau bước này product chắc chắn tồn tại (Non-null Assertion)
 	return (
 		<div className="max-w-5xl mx-auto px-2 md:px-4 py-4 text-left font-sans">
+			{/* Banner cảnh báo dành riêng cho Người bán khi sản phẩm đang bị Ẩn */}
+			{isInactive && isOwnProduct && (
+				<div className="mb-4 p-3.5 bg-amber-50 border border-amber-200 rounded-xl text-xs text-amber-900 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-xs">
+					<div className="flex items-start sm:items-center gap-2.5">
+						<AlertCircle className="w-5 h-5 text-amber-600 shrink-0 mt-0.5 sm:mt-0" />
+						<div>
+							<p className="font-bold text-slate-900">
+								Sản phẩm này hiện đang BỊ ẨN đối với người mua
+							</p>
+							<p className="text-amber-800 text-[11px] leading-relaxed">
+								Người mua sẽ nhận được thông báo tạm ngừng kinh doanh và không thể đặt hàng. Bạn có thể bật lại trạng thái Hoạt động trong Kênh Người Bán.
+							</p>
+						</div>
+					</div>
+					<Link
+						to={`/seller/${product.shopId}/dashboard/products`}
+						className="px-3 py-1.5 bg-amber-600 hover:bg-amber-700 text-white rounded-lg font-bold text-xs shrink-0 transition-colors inline-flex items-center gap-1.5 self-start sm:self-auto"
+					>
+						<Store className="w-3.5 h-3.5" />
+						Quản lý sản phẩm
+					</Link>
+				</div>
+			)}
+
 			{/* Breadcrumbs */}
 			<div className="flex items-center gap-1.5 text-xs text-brand-muted font-medium mb-4">
 				<Link

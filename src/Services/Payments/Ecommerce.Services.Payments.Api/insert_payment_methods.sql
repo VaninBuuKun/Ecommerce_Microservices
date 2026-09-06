@@ -9,6 +9,7 @@ INSERT INTO "PaymentMethods" (
     "IsActive", 
     "ProviderName", 
     "IconUrl", 
+    "MinAmount",
     "CreatedDate", 
     "LastModifiedDate"
 )
@@ -19,6 +20,7 @@ VALUES
     true, 
     'cod', 
     'https://cdn-icons-png.flaticon.com/512/2897/2897832.png', 
+    NULL,
     NOW(), 
     NOW()
   ),
@@ -28,6 +30,17 @@ VALUES
     true, 
     'momo', 
     'https://upload.wikimedia.org/wikipedia/vi/f/fe/MoMo_Logo.png', 
+    10000.00,
+    NOW(), 
+    NOW()
+  ),
+  (
+    'Cổng thanh toán VNPay', 
+    'Thanh toán qua quét mã QR hoặc thẻ ATM / Internet Banking', 
+    true, 
+    'vnpay', 
+    'https://vnpay.vn/s1/statics.vnpay.vn/2023/9/06ncktiwd6dc1694418196384.png', 
+    10000.00,
     NOW(), 
     NOW()
   );

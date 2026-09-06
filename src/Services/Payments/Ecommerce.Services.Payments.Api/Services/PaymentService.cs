@@ -25,6 +25,15 @@ public class PaymentService(IEfUnitOfWork unitOfWork, PaymentGatewayFactory fact
                 ErrorMessage = $"Payment method '{paymentRequest.MethodProvider}' is not available."
             });
         }
+
+        if (existingMethod.MinAmount.HasValue && existingMethod.MinAmount.Value > 0 && paymentRequest.Amount < existingMethod.MinAmount.Value)
+        {
+            return Result<CreatePaymentResult>.Success(new CreatePaymentResult
+            {
+                Success = false,
+                ErrorMessage = $"Phương thức thanh toán '{existingMethod.Title}' chỉ áp dụng cho đơn hàng từ {existingMethod.MinAmount.Value:N0} ₫ trở lên."
+            });
+        }
         
         var gateway = factory.GetPaymentGateway(paymentRequest.MethodProvider);
         if (gateway == null)

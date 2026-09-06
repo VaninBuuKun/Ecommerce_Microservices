@@ -4,11 +4,13 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using BuildingBlocks.Application.InMemoryBus;
+using BuildingBlocks.Auth;
 using BuildingBlocks.Shared.Commons;
 using BuildingBlocks.Shared.Enums;
 using BuildingBlocks.Shared.InfrastructureInterfaces.IdGenerator;
 using BuildingBlocks.Shared.InfrastructureInterfaces.Persistence.EFCore;
 using Ecommerce.Services.Catalog.Application.Commons.Dtos.Products;
+using Ecommerce.Services.Catalog.Application.Commons.Interfaces;
 using Ecommerce.Services.Catalog.Domain.Products;
 using Ecommerce.Services.Catalog.Domain.Products.Specifications;
 using MapsterMapper;
@@ -18,6 +20,8 @@ namespace Ecommerce.Services.Catalog.Application.Features.Products.Commands.Upda
 
 public class UpdateMultiVariantsCommandHandler(
     IEfUnitOfWork unitOfWork,
+    ISellerService sellerService,
+    ICurrentUserService currentUserService,
     ILogger<UpdateMultiVariantsCommandHandler> logger,
     IMapper mapper,
     ISnowflakeIdGenerator snowflakeIdGenerator
@@ -40,6 +44,28 @@ public class UpdateMultiVariantsCommandHandler(
                 return Result<ProductResponse>.Failure("Không tìm thấy sản phẩm trong hệ thống.", EErrorCode.NotFound);
             }
 
+            if (command.Variants.Count > 60)
+            {
+                return Result<ProductResponse>.Failure("Một sản phẩm chỉ hỗ trợ tối đa 60 biến thể.", EErrorCode.ValidationErrors);
+            }
+
+            // 0. Xác thực quyền sở hữu cửa hàng của sản phẩm (trừ Admin)
+            if (!currentUserService.IsAdmin)
+            {
+                var isOwnerResult = await sellerService.ValidateShopOwnerAsync(product.ShopId, currentUserService.UserId);
+                if (!isOwnerResult.IsSuccess)
+                {
+                    logger.LogWarning("UpdateMultiVariants: Lỗi khi kiểm tra Shop {ShopId}. Error: {Message}", product.ShopId, isOwnerResult.Message);
+                    return Result<ProductResponse>.Failure(isOwnerResult.Message ?? "Bạn không có quyền quản lý cửa hàng này.", isOwnerResult.ErrorCode);
+                }
+
+                if (!isOwnerResult.Value)
+                {
+                    logger.LogWarning("UpdateMultiVariants: User {UserId} không có quyền sở hữu Shop {ShopId}.", currentUserService.UserId, product.ShopId);
+                    return Result<ProductResponse>.Failure("Bạn không có quyền chỉnh sửa sản phẩm của cửa hàng này.", EErrorCode.Forbidden);
+                }
+            }
+
             // 1. Nếu trước đó là Single-variant -> Soft delete Default Variant đơn cũ
             var defaultSingleVariant = product.Variants.FirstOrDefault(v => !v.IsDeleted && !v.VariantOptions.Any());
             if (defaultSingleVariant != null)
@@ -48,21 +74,7 @@ public class UpdateMultiVariantsCommandHandler(
                 _variantRepository.Update(defaultSingleVariant);
             }
 
-            var existingOptions = product.Options.Where(o => !o.IsDeleted).ToList();
-            bool isStructureChanged = HasOptionStructureChanged(existingOptions, command.Options);
-
             var activeOptions = product.Options.Where(o => !o.IsDeleted).ToList();
-            var incomingOptionIds = command.Options.Where(o => o.Id.HasValue).Select(o => o.Id!.Value).ToHashSet();
-
-            foreach (var opt in activeOptions)
-            {
-                if (!incomingOptionIds.Contains(opt.Id))
-                {
-                    opt.SoftDelete();
-                    _optionRepository.Update(opt);
-                }
-            }
-
             var optionValueNameToIdMap = new Dictionary<(string OptionName, string ValueName), long>();
 
             for (int i = 0; i < command.Options.Count; i++)
@@ -84,16 +96,6 @@ public class UpdateMultiVariantsCommandHandler(
                 }
 
                 var existingValues = currentOpt.Values.Where(v => !v.IsDeleted).ToList();
-                var incomingValueIds = optReq.Values.Where(v => v.Id.HasValue).Select(v => v.Id!.Value).ToHashSet();
-
-                foreach (var val in existingValues)
-                {
-                    if (!incomingValueIds.Contains(val.Id))
-                    {
-                        val.SoftDelete();
-                        _optionValueRepository.Update(val);
-                    }
-                }
 
                 for (int j = 0; j < optReq.Values.Count; j++)
                 {
@@ -125,16 +127,20 @@ public class UpdateMultiVariantsCommandHandler(
             await unitOfWork.SaveChangesAsync(cancellationToken);
 
             var activeVariants = product.Variants.Where(v => !v.IsDeleted).ToList();
+            var activeVariantDict = activeVariants.ToDictionary(v => v.Id);
 
-            if (isStructureChanged)
+            foreach (var varReq in command.Variants)
             {
-                foreach (var oldVariant in activeVariants)
+                if (varReq.Id.HasValue && activeVariantDict.TryGetValue(varReq.Id.Value, out var existingVariant))
                 {
-                    oldVariant.SoftDelete();
-                    _variantRepository.Update(oldVariant);
-                }
+                    existingVariant.UpdateDetails(
+                        varReq.Price,
+                        varReq.AvailableStock,
+                        varReq.DiscountPrice);
 
-                foreach (var varReq in command.Variants)
+                    _variantRepository.Update(existingVariant);
+                }
+                else
                 {
                     var createdVariant = product.AddVariant(
                         varReq.Price,
@@ -160,57 +166,10 @@ public class UpdateMultiVariantsCommandHandler(
                     }
                 }
             }
-            else
+
+            if (command.Weight.HasValue && command.Length.HasValue && command.Width.HasValue && command.Height.HasValue)
             {
-                var activeVariantDict = activeVariants.ToDictionary(v => v.Id);
-                var processedVariantIds = new HashSet<long>();
-
-                foreach (var varReq in command.Variants)
-                {
-                    if (varReq.Id.HasValue && activeVariantDict.TryGetValue(varReq.Id.Value, out var existingVariant))
-                    {
-                        existingVariant.UpdateDetails(
-                            varReq.Price,
-                            varReq.AvailableStock,
-                            varReq.DiscountPrice);
-
-                        _variantRepository.Update(existingVariant);
-                        processedVariantIds.Add(existingVariant.Id);
-                    }
-                    else
-                    {
-                        var createdVariant = product.AddVariant(
-                            varReq.Price,
-                            varReq.AvailableStock,
-                            varReq.DiscountPrice
-                        );
-                        createdVariant.Id = snowflakeIdGenerator.NewId();
-                        createdVariant.UpdateDetails(
-                            varReq.Price,
-                            varReq.AvailableStock,
-                            varReq.DiscountPrice);
-
-                        _variantRepository.Add(createdVariant);
-                        processedVariantIds.Add(createdVariant.Id);
-
-                        foreach (var ovReq in varReq.OptionValues)
-                        {
-                            var key = GetMapKey(ovReq.OptionName, ovReq.ValueName);
-                            if (optionValueNameToIdMap.TryGetValue(key, out var valId))
-                            {
-                                var varOpt = new ProductVariantOption(createdVariant.Id, valId);
-                                createdVariant.AddOption(varOpt);
-                            }
-                        }
-                    }
-                }
-                
-                var variantsToDelete = activeVariantDict.Values.Where(v => !processedVariantIds.Contains(v.Id));
-                foreach (var variant in variantsToDelete)
-                {
-                    variant.SoftDelete();
-                    _variantRepository.Update(variant);
-                }
+                product.UpdateShippingDimensions(command.Weight.Value, command.Length.Value, command.Width.Value, command.Height.Value);
             }
             
             product.RecalculateCachedPrices();
@@ -221,6 +180,17 @@ public class UpdateMultiVariantsCommandHandler(
             await unitOfWork.SaveChangesAsync(cancellationToken);
 
             var response = mapper.Map<ProductResponse>(product);
+            if (response.Options != null && response.Options.Count > 0)
+            {
+                response.Options = response.Options.OrderBy(o => o.SortOrder).ToList();
+                foreach (var opt in response.Options)
+                {
+                    if (opt.Values != null && opt.Values.Count > 0)
+                    {
+                        opt.Values = opt.Values.OrderBy(v => v.SortOrder).ToList();
+                    }
+                }
+            }
             return Result<ProductResponse>.Success(response);
         }
         catch (Exception ex)
@@ -230,28 +200,6 @@ public class UpdateMultiVariantsCommandHandler(
         }
     }
 
-    private static bool HasOptionStructureChanged(
-        IReadOnlyCollection<ProductOption> existingOptions,
-        List<MultiUpdateOptionDto> incomingOptions)
-    {
-        var activeOptions = existingOptions.Where(o => !o.IsDeleted).ToList();
-
-        if (activeOptions.Count != incomingOptions.Count)
-        {
-            return true;
-        }
-
-        foreach (var activeOpt in activeOptions)
-        {
-            bool isStillPresent = incomingOptions.Any(inc => inc.Id.HasValue && inc.Id.Value == activeOpt.Id);
-            if (!isStillPresent)
-            {
-                return true;
-            }
-        }
-
-        return false;
-    }
 
     private static (string OptionName, string ValueName) GetMapKey(string optionName, string valueName)
     {

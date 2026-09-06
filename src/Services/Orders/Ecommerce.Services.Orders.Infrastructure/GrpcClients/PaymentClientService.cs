@@ -53,7 +53,8 @@ public class PaymentClientService(PaymentGrpc.PaymentGrpcClient client) : IPayme
                 SubTitle = response.SubTitle,
                 ProviderName = response.ProviderName,
                 IconUrl = response.IconUrl,
-                IsActive = response.IsActive
+                IsActive = response.IsActive,
+                MinAmount = decimal.TryParse(response.MinAmount, NumberStyles.Any, CultureInfo.InvariantCulture, out var ma) ? ma : null
             });
         }
         catch (Exception ex)

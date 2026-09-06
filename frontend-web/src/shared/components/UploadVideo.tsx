@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
-import { Loader2, Video } from "lucide-react";
+import { Loader2 } from "lucide-react";
+import { VideoCameraOutlined } from "@ant-design/icons";
 import { storageService } from "../services/storageService";
 
 interface UploadVideoProps {
@@ -59,7 +60,7 @@ export default function UploadVideo({
 
 			<div
 				onClick={() => inputRef.current?.click()}
-				className={`relative border-2 border-dashed border-brand-border rounded-lg bg-brand-light-soft hover:bg-gray-100 flex flex-col items-center justify-center cursor-pointer overflow-hidden transition-colors ${className ?? ""}`}
+				className={`relative border-2 border-dashed border-brand-border rounded-md bg-brand-light-soft hover:bg-gray-100 flex flex-col items-center justify-center cursor-pointer overflow-hidden transition-colors ${className ?? ""}`}
 			>
 				{preview ? (
 					<div className="relative w-full h-full">
@@ -86,8 +87,8 @@ export default function UploadVideo({
 						</button>
 					</div>
 				) : (
-					<div className="flex flex-col items-center gap-1 text-brand-muted">
-						<Video className="w-6 h-6 text-brand-primary" />
+					<div className="flex flex-col items-center gap-1.5 text-brand-muted">
+						<VideoCameraOutlined className="text-2xl text-brand-primary" />
 						<span className="text-[10px] font-medium">
 							Tải video lên
 						</span>

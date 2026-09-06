@@ -11,7 +11,7 @@ public class ProductWithVariantsAndOptionsSpec : Specification<Product>, ISingle
             .Include(product => product.Variants.Where(v => !v.IsDeleted))
             .ThenInclude(variant => variant.VariantOptions)
             .Include(product => product.Options.Where(option => !option.IsDeleted))
-            .ThenInclude(option => option.Values)
+            .ThenInclude(option => option.Values.Where(value => !value.IsDeleted))
             .Include(product => product.Category)
             .ThenInclude(category => category!.Parent);
     }

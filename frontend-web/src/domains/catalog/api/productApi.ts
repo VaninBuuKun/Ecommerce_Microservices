@@ -62,20 +62,24 @@ export interface UpdateProductRequest {
 	imageUrls: string[];
 	categoryId?: number;
 	attributesJson?: string;
+	weight?: number;
+	length?: number;
+	width?: number;
+	height?: number;
 }
 
 export interface UpdateMultiVariantsRequest {
 	options: Array<{
-		id?: number | null;
+		id?: string | null;
 		name: string;
 		values: Array<{
-			id?: number | null;
+			id?: string | null;
 			value: string;
 			imageUrl?: string | null;
 		}>;
 	}>;
 	variants: Array<{
-		id?: number | null;
+		id?: string | null;
 		price: number;
 		availableStock: number;
 		discountPrice?: number | null;
@@ -84,6 +88,10 @@ export interface UpdateMultiVariantsRequest {
 			valueName: string;
 		}>;
 	}>;
+	weight?: number;
+	length?: number;
+	width?: number;
+	height?: number;
 	[key: string]: any;
 }
 
@@ -211,6 +219,21 @@ export const productApi = {
 
 	deleteProduct: async (id: string): Promise<void> => {
 		await api.delete(`/products/${id}`);
+	},
+
+	deleteProductVariant: async (productId: string, variantId: string): Promise<any> => {
+		const response = await api.delete(`/products/${productId}/variants/${variantId}`);
+		return response.data;
+	},
+
+	deleteProductOption: async (productId: string, optionId: string): Promise<any> => {
+		const response = await api.delete(`/products/${productId}/options/${optionId}`);
+		return response.data;
+	},
+
+	deleteProductOptionValue: async (productId: string, optionId: string, valueId: string): Promise<any> => {
+		const response = await api.delete(`/products/${productId}/options/${optionId}/values/${valueId}`);
+		return response.data;
 	},
 
 	toggleProductStatus: async (id: string): Promise<any> => {

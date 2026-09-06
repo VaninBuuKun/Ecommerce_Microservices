@@ -37,14 +37,14 @@ export function ProductTable({
 
 	if (products.length === 0) {
 		return (
-			<div className="text-center py-12 border border-dashed border-brand-border rounded-xl text-brand-muted text-xs">
+			<div className="text-center py-12 border border-dashed border-brand-border rounded-md text-brand-muted text-xs">
 				Không tìm thấy sản phẩm nào.
 			</div>
 		);
 	}
 
 	return (
-		<div className="overflow-x-auto border border-brand-border rounded-lg bg-white shadow-xs">
+		<div className="overflow-x-auto border border-brand-border rounded-md bg-white shadow-xs">
 			<table className="w-full text-xs text-left border-collapse">
 				<thead>
 					<tr className="border-b border-brand-border bg-brand-light-soft/50 text-brand-muted font-bold">
