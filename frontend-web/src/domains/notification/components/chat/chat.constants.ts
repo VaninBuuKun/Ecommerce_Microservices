@@ -193,31 +193,69 @@ export const DEFAULT_CHAT_BG_THEME: ChatBgTheme = CHAT_BG_THEMES[0]; // white
  * Tự động phối màu nền, bong bóng bên mình, bong bóng bên đối phương (không còn màu trắng cứng nhắc),
  * màu mốc thời gian và chữ phù hợp cho cả 2 bên.
  */
+export interface ChatReplyQuote {
+	messageId?: string;
+	senderName: string;
+	content: string;
+	messageType?: string;
+	mediaUrl?: string;
+}
+
+export function formatReplyMessage(replyQuote: ChatReplyQuote, actualText: string): string {
+	const safeQuote: ChatReplyQuote = {
+		messageId: replyQuote.messageId,
+		senderName: (replyQuote.senderName || "").slice(0, 60),
+		content: (replyQuote.content || "").slice(0, 160),
+		messageType: replyQuote.messageType,
+		mediaUrl: replyQuote.mediaUrl?.startsWith("data:") ? undefined : replyQuote.mediaUrl?.slice(0, 300),
+	};
+	const header = `[reply:${JSON.stringify(safeQuote)}]\n`;
+	return header + actualText;
+}
+
+export function parseReplyMessage(rawContent?: string): { replyQuote: ChatReplyQuote | null; text: string } {
+	if (!rawContent) return { replyQuote: null, text: "" };
+	let trimmed = rawContent.trim();
+
+	if (trimmed.startsWith("[reply:")) {
+		// Quét tìm chuỗi JSON đóng bằng "}]" hợp lệ
+		let searchIdx = 7;
+		let foundQuote: ChatReplyQuote | null = null;
+		let actualText = trimmed;
+
+		while (true) {
+			const closeIdx = trimmed.indexOf("}]", searchIdx);
+			if (closeIdx === -1) break;
+			const jsonStr = trimmed.slice(7, closeIdx + 1);
+			try {
+				const quote = JSON.parse(jsonStr) as ChatReplyQuote;
+				foundQuote = quote;
+				actualText = trimmed.slice(closeIdx + 2).trim();
+				if (actualText.startsWith("\n")) actualText = actualText.slice(1).trim();
+				break;
+			} catch {
+				searchIdx = closeIdx + 2;
+			}
+		}
+
+		if (foundQuote) {
+			return { replyQuote: foundQuote, text: actualText };
+		}
+	}
+
+	// Sanitizer tự động dọn sạch các vết nứt dữ liệu cũ bị rò rỉ dạng '","messageType":...}] text'
+	if (trimmed.includes("\"}]")) {
+		const corruptedEndIdx = trimmed.indexOf("\"}]");
+		const cleaned = trimmed.slice(corruptedEndIdx + 3).trim();
+		if (cleaned) {
+			return { replyQuote: null, text: cleaned };
+		}
+	}
+
+	return { replyQuote: null, text: rawContent };
+}
+
 export const CHAT_THEME_PRESETS: ChatThemePreset[] = [
-	{
-		id: "rose",
-		name: "Hồng Dịu Dàng",
-		description: "Tông hồng phấn ngọt ngào, ấm áp và thân thiện",
-		previewHex: "#f43f5e",
-		secondaryPreviewHex: "#ffe4e6",
-		isDark: false,
-		background: "bg-rose-50/30",
-		myBubble: {
-			bg: "bg-rose-500",
-			text: "text-white",
-		},
-		theirBubble: {
-			bg: "bg-white",
-			text: "text-slate-800",
-			border: "border-rose-200/70 shadow-rose-100/40",
-		},
-		timePill: {
-			bg: "bg-rose-100/90",
-			text: "text-rose-700",
-			border: "border-rose-200/80",
-		},
-		timestampText: "text-rose-400",
-	},
 	{
 		id: "emerald",
 		name: "Xanh Lục Bảo",
@@ -227,13 +265,14 @@ export const CHAT_THEME_PRESETS: ChatThemePreset[] = [
 		isDark: false,
 		background: "bg-emerald-50/35",
 		myBubble: {
-			bg: "bg-emerald-600",
-			text: "text-white",
+			bg: "bg-white",
+			text: "text-slate-800",
+			border: "border-emerald-200/80 shadow-emerald-100/40",
 		},
 		theirBubble: {
 			bg: "bg-white",
-			text: "text-emerald-950",
-			border: "border-emerald-200/70 shadow-emerald-100/40",
+			text: "text-slate-800",
+			border: "border-emerald-200/80 shadow-emerald-100/40",
 		},
 		timePill: {
 			bg: "bg-emerald-100/90",
@@ -241,6 +280,31 @@ export const CHAT_THEME_PRESETS: ChatThemePreset[] = [
 			border: "border-emerald-200/80",
 		},
 		timestampText: "text-emerald-600/70",
+	},
+	{
+		id: "rose",
+		name: "Hồng Dịu Dàng",
+		description: "Tông hồng phấn ngọt ngào, ấm áp và thân thiện",
+		previewHex: "#f43f5e",
+		secondaryPreviewHex: "#ffe4e6",
+		isDark: false,
+		background: "bg-rose-50/30",
+		myBubble: {
+			bg: "bg-white",
+			text: "text-slate-800",
+			border: "border-rose-200/80 shadow-rose-100/40",
+		},
+		theirBubble: {
+			bg: "bg-white",
+			text: "text-slate-800",
+			border: "border-rose-200/80 shadow-rose-100/40",
+		},
+		timePill: {
+			bg: "bg-rose-100/90",
+			text: "text-rose-700",
+			border: "border-rose-200/80",
+		},
+		timestampText: "text-rose-400",
 	},
 	{
 		id: "dark",
@@ -251,8 +315,9 @@ export const CHAT_THEME_PRESETS: ChatThemePreset[] = [
 		isDark: true,
 		background: "bg-slate-950",
 		myBubble: {
-			bg: "bg-blue-600",
-			text: "text-white",
+			bg: "bg-slate-800/95",
+			text: "text-slate-100",
+			border: "border-slate-700/80 shadow-slate-900/50",
 		},
 		theirBubble: {
 			bg: "bg-slate-800/95",
@@ -275,13 +340,14 @@ export const CHAT_THEME_PRESETS: ChatThemePreset[] = [
 		isDark: false,
 		background: "bg-blue-50/35",
 		myBubble: {
-			bg: "bg-blue-600",
-			text: "text-white",
+			bg: "bg-white",
+			text: "text-slate-800",
+			border: "border-blue-200/80 shadow-blue-100/40",
 		},
 		theirBubble: {
 			bg: "bg-white",
-			text: "text-blue-950",
-			border: "border-blue-200/70 shadow-blue-100/40",
+			text: "text-slate-800",
+			border: "border-blue-200/80 shadow-blue-100/40",
 		},
 		timePill: {
 			bg: "bg-blue-100/90",
@@ -299,13 +365,14 @@ export const CHAT_THEME_PRESETS: ChatThemePreset[] = [
 		isDark: false,
 		background: "bg-orange-50/35",
 		myBubble: {
-			bg: "bg-gradient-to-r from-orange-500 to-amber-500",
-			text: "text-white",
+			bg: "bg-white",
+			text: "text-slate-800",
+			border: "border-orange-200/80 shadow-orange-100/40",
 		},
 		theirBubble: {
 			bg: "bg-white",
-			text: "text-amber-950",
-			border: "border-orange-200/70 shadow-orange-100/40",
+			text: "text-slate-800",
+			border: "border-orange-200/80 shadow-orange-100/40",
 		},
 		timePill: {
 			bg: "bg-orange-100/90",
@@ -323,13 +390,14 @@ export const CHAT_THEME_PRESETS: ChatThemePreset[] = [
 		isDark: false,
 		background: "bg-indigo-50/35",
 		myBubble: {
-			bg: "bg-indigo-600",
-			text: "text-white",
+			bg: "bg-white",
+			text: "text-slate-800",
+			border: "border-indigo-200/80 shadow-indigo-100/40",
 		},
 		theirBubble: {
 			bg: "bg-white",
-			text: "text-indigo-950",
-			border: "border-indigo-200/70 shadow-indigo-100/40",
+			text: "text-slate-800",
+			border: "border-indigo-200/80 shadow-indigo-100/40",
 		},
 		timePill: {
 			bg: "bg-indigo-100/90",
@@ -347,8 +415,9 @@ export const CHAT_THEME_PRESETS: ChatThemePreset[] = [
 		isDark: true,
 		background: "bg-[#0b0f19]",
 		myBubble: {
-			bg: "bg-gradient-to-r from-cyan-500 to-blue-600",
-			text: "text-white",
+			bg: "bg-[#161f30]",
+			text: "text-cyan-50",
+			border: "border-cyan-900/60 shadow-slate-950/60",
 		},
 		theirBubble: {
 			bg: "bg-[#161f30]",
@@ -371,8 +440,9 @@ export const CHAT_THEME_PRESETS: ChatThemePreset[] = [
 		isDark: false,
 		background: "bg-[#fafafa]",
 		myBubble: {
-			bg: "bg-zinc-900",
-			text: "text-white",
+			bg: "bg-white",
+			text: "text-zinc-800",
+			border: "border-zinc-200 shadow-xs",
 		},
 		theirBubble: {
 			bg: "bg-white",
@@ -520,7 +590,9 @@ export function formatConversationLastMessage(
 	if (type === "sticker") return "[Sticker 3D]";
 	if (type === "gif") return "[Ảnh GIF]";
 
-	return lastMessage;
+	// Bóc tách trích dẫn reply nếu có để chỉ hiển thị nội dung tin nhắn mới gửi
+	const { text } = parseReplyMessage(lastMessage);
+	return text || "Tin nhắn trả lời";
 }
 
 /**
@@ -551,5 +623,41 @@ export async function downloadChatMedia(url: string, defaultName = "media") {
 		a.click();
 		document.body.removeChild(a);
 	}
+}
+
+/**
+ * Tính toán chính xác RecipientId và SenderRole dựa trên vai trò và ngữ cảnh phòng chat.
+ * Đảm bảo 100% không bao giờ gửi tin nhắn với RecipientId = 0 hoặc nhầm lẫn vai trò Người mua / Người bán.
+ */
+export function getChatParticipantInfo(
+	activeRoom?: { shopId?: number; buyerUserId?: number } | null,
+	currentUserId?: number,
+	isSellerMode?: boolean
+): { recipientId: number; senderRole: "Buyer" | "Seller" } {
+	const myId = Number(currentUserId || 0);
+	const buyerId = Number(activeRoom?.buyerUserId || 0);
+	const shopId = Number(activeRoom?.shopId || 0);
+
+	// 1. Nếu người dùng hiện tại chính là người mua của phòng chat này
+	if (myId > 0 && buyerId > 0 && buyerId === myId) {
+		return { recipientId: shopId, senderRole: "Buyer" };
+	}
+
+	// 2. Nếu buyerId chưa được gán (0 hoặc trống), đây là người mua đang khởi tạo chat với shop
+	if (shopId > 0 && buyerId === 0) {
+		return { recipientId: shopId, senderRole: "Buyer" };
+	}
+
+	// 3. Nếu đang ở chế độ Người bán và phòng có thông tin người mua
+	if (isSellerMode && buyerId > 0) {
+		return { recipientId: buyerId, senderRole: "Seller" };
+	}
+
+	// 4. Mặc định dựa trên vai trò hiện tại
+	if (isSellerMode) {
+		return { recipientId: buyerId, senderRole: "Seller" };
+	}
+
+	return { recipientId: shopId, senderRole: "Buyer" };
 }
 

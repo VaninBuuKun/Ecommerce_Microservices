@@ -211,7 +211,7 @@ export default function SellerLayout() {
 						<img
 							src="/ecommerce-icon.png"
 							alt="Logo"
-							className="w-7 h-7 object-contain"
+							className="w-32 h-16 object-contain"
 							onError={(e) => {
 								(e.target as HTMLImageElement).src =
 									"https://cdn-icons-png.flaticon.com/512/3081/3081986.png";

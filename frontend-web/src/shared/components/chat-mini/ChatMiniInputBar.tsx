@@ -1,14 +1,15 @@
-import React, { useRef } from "react";
+import React, { useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
 	SendOutlined,
-	PictureOutlined,
+	PaperClipOutlined,
 	VideoCameraOutlined,
 	SmileOutlined,
 	CloseOutlined,
+	RollbackOutlined,
 } from "@ant-design/icons";
-import type { ChatPendingMedia } from "@/domains/notification";
-import { QUICK_EMOJIS, CHAT_STICKERS, CHAT_GIFS } from "@/domains/notification";
+import type { ChatPendingMedia, ChatMessageDto } from "@/domains/notification";
+import { QUICK_EMOJIS, CHAT_STICKERS, CHAT_GIFS, parseReplyMessage } from "@/domains/notification";
 import { ChatUploadingWidget } from "./ChatUploadingWidget";
 
 interface ChatMiniInputBarProps {
@@ -25,6 +26,10 @@ interface ChatMiniInputBarProps {
 	onCloseEmojiPicker: () => void;
 	pickerTab: "emoji" | "sticker" | "gif";
 	onPickerTabChange: (tab: "emoji" | "sticker" | "gif") => void;
+	replyingToMessage?: ChatMessageDto | null;
+	onCancelReply?: () => void;
+	partnerName?: string;
+	currentUserId?: number;
 }
 
 export function ChatMiniInputBar({
@@ -41,11 +46,16 @@ export function ChatMiniInputBar({
 	onCloseEmojiPicker,
 	pickerTab,
 	onPickerTabChange,
+	replyingToMessage,
+	onCancelReply,
+	partnerName,
+	currentUserId,
 }: ChatMiniInputBarProps) {
-	const imageInputRef = useRef<HTMLInputElement>(null);
+	const textareaRef = useRef<HTMLTextAreaElement>(null);
+	const fileInputRef = useRef<HTMLInputElement>(null);
 	const videoInputRef = useRef<HTMLInputElement>(null);
 
-	const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+	const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
 		if (e.target.files && e.target.files.length > 0) {
 			onSelectFiles(e.target.files);
 			e.target.value = "";
@@ -59,13 +69,90 @@ export function ChatMiniInputBar({
 		}
 	};
 
+	const handleTextareaChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+		const val = e.target.value;
+		onInputTextChange(val);
+		if (!val.trim() && !val.includes("\n")) {
+			e.target.style.height = "38px";
+			e.target.style.overflowY = "hidden";
+			return;
+		}
+		e.target.style.height = "auto";
+		const scrollH = e.target.scrollHeight;
+		if (!val.includes("\n") && scrollH <= 40) {
+			e.target.style.height = "38px";
+			e.target.style.overflowY = "hidden";
+		} else {
+			const nextHeight = Math.min(scrollH, 96);
+			e.target.style.height = `${nextHeight}px`;
+			e.target.style.overflowY = scrollH > 96 ? "auto" : "hidden";
+		}
+	};
+
+	useEffect(() => {
+		if (!inputText && textareaRef.current) {
+			textareaRef.current.style.height = "38px";
+			textareaRef.current.style.overflowY = "hidden";
+		}
+	}, [inputText]);
+
+	useEffect(() => {
+		if (replyingToMessage && textareaRef.current) {
+			textareaRef.current.focus();
+		}
+	}, [replyingToMessage]);
+
+	const getReplyPreviewText = (msg: ChatMessageDto) => {
+		if (msg.messageType === "Image") return "[Hình ảnh]";
+		if (msg.messageType === "Video") return "[Video]";
+		if (msg.messageType === "Sticker") return "[Nhãn dán]";
+		if (msg.messageType === "Gif") return "[Ảnh GIF]";
+		const { text } = parseReplyMessage(msg.content);
+		return text || msg.content;
+	};
+
+	const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+		if (e.key === "Enter" && !e.shiftKey) {
+			e.preventDefault();
+			if ((inputText.trim() || pendingMediaList.length > 0) && !isSending) {
+				onSend();
+			}
+		}
+	};
+
 	return (
-		<div className="p-2.5 border-t border-brand-border bg-white shrink-0 relative">
-			{/* Widget hiển thị tiến trình tải lên S3 ngầm kèm Hover Popover danh sách & dải thumbnail */}
-			<ChatUploadingWidget
-				pendingMediaList={pendingMediaList}
-				onRemoveMedia={onRemovePendingMedia}
-			/>
+		<div className="border-t border-brand-border bg-white shrink-0 relative flex flex-col">
+			{/* Thanh xem trước tin nhắn đang trả lời phong cách Facebook Messenger: nằm trên cùng của hộp chat cuối */}
+			{replyingToMessage && (
+				<div className="flex items-center justify-between px-3.5 py-1.5 bg-slate-50 border-b border-brand-border/60 text-xs select-none">
+					<div className="flex items-center gap-2 min-w-0">
+						<div className="w-1 h-7 rounded-full bg-brand-primary shrink-0" />
+						<div className="min-w-0">
+							<div className="text-[11px] font-bold text-slate-800 leading-tight">
+								Đang trả lời <span className="text-brand-primary">{replyingToMessage.senderId === currentUserId ? "chính mình" : (partnerName || "Đối phương")}</span>
+							</div>
+							<div className="text-[11px] text-slate-500 truncate max-w-[260px] sm:max-w-[380px]">
+								{getReplyPreviewText(replyingToMessage)}
+							</div>
+						</div>
+					</div>
+					<button
+						type="button"
+						onClick={onCancelReply}
+						className="p-1 text-slate-400 hover:text-red-500 rounded-full hover:bg-slate-200/60 transition-colors border-none bg-transparent cursor-pointer flex items-center justify-center shrink-0"
+						title="Hủy trả lời"
+					>
+						<CloseOutlined className="text-xs" />
+					</button>
+				</div>
+			)}
+
+			<div className="p-2.5 relative">
+				{/* Widget hiển thị tiến trình tải lên S3 ngầm kèm Hover Popover danh sách & dải thumbnail */}
+				<ChatUploadingWidget
+					pendingMediaList={pendingMediaList}
+					onRemoveMedia={onRemovePendingMedia}
+				/>
 
 			{/* Emoji & Sticker 3D Popover */}
 			<AnimatePresence>
@@ -145,15 +232,15 @@ export function ChatMiniInputBar({
 													onCloseEmojiPicker();
 												}}
 												className="p-1 rounded-xl hover:bg-brand-light-soft transition-colors cursor-pointer border-none bg-transparent flex flex-col items-center group"
-												title={s.title}
+												title={s.name}
 											>
 												<img
 													src={s.url}
-													alt={s.title}
+													alt={s.name}
 													className="w-12 h-12 object-contain group-hover:scale-110 transition-transform"
 												/>
 												<span className="text-[9px] text-brand-muted truncate w-full text-center mt-0.5">
-													{s.title}
+													{s.name}
 												</span>
 											</button>
 										))}
@@ -190,15 +277,15 @@ export function ChatMiniInputBar({
 					e.preventDefault();
 					onSend();
 				}}
-				className="flex items-center gap-2"
+				className="flex items-end gap-2"
 			>
 				{/* Hidden file inputs */}
 				<input
 					type="file"
-					ref={imageInputRef}
-					accept="image/*"
+					ref={fileInputRef}
+					accept="image/*,video/*,application/pdf,.doc,.docx,.xls,.xlsx,.txt,.zip,.rar"
 					multiple
-					onChange={handleImageChange}
+					onChange={handleFileChange}
 					className="hidden"
 				/>
 				<input
@@ -210,20 +297,20 @@ export function ChatMiniInputBar({
 					className="hidden"
 				/>
 
-				<div className="flex items-center gap-0.5 shrink-0 text-brand-muted">
+				<div className="flex items-center gap-0.5 shrink-0 text-brand-muted pb-1">
 					<button
 						type="button"
-						onClick={() => imageInputRef.current?.click()}
+						onClick={() => fileInputRef.current?.click()}
 						className="p-1.5 hover:bg-brand-light-soft hover:text-brand-dark rounded-md transition-colors border-none bg-transparent cursor-pointer flex items-center justify-center"
-						title="Gửi hình ảnh (hỗ trợ nhiều tệp, tối đa 50MB)"
+						title="Đính kèm tệp / hình ảnh (tối đa 50MB)"
 					>
-						<PictureOutlined className="text-base" />
+						<PaperClipOutlined className="text-base" />
 					</button>
 					<button
 						type="button"
 						onClick={() => videoInputRef.current?.click()}
 						className="p-1.5 hover:bg-brand-light-soft hover:text-brand-dark rounded-md transition-colors border-none bg-transparent cursor-pointer flex items-center justify-center"
-						title="Gửi video (hỗ trợ nhiều tệp, tối đa 50MB)"
+						title="Gửi video (tối đa 50MB)"
 					>
 						<VideoCameraOutlined className="text-base" />
 					</button>
@@ -241,24 +328,27 @@ export function ChatMiniInputBar({
 					</button>
 				</div>
 
-				<input
-					type="text"
+				<textarea
+					ref={textareaRef}
+					rows={1}
 					value={inputText}
-					onChange={(e) => onInputTextChange(e.target.value)}
-					placeholder="Nhập tin nhắn..."
-					className="flex-1 px-3 py-1.5 border border-brand-border rounded-md text-xs focus:outline-none focus:border-brand-primary bg-brand-light-soft/20 text-brand-dark placeholder:text-brand-muted/70"
+					onChange={handleTextareaChange}
+					onKeyDown={handleKeyDown}
+					style={{ height: "38px", overflowY: "hidden" }}
+					className="flex-1 px-3 py-2 border border-brand-border rounded-md text-xs focus:outline-none focus:border-brand-primary bg-brand-light-soft/20 text-brand-dark resize-none max-h-[96px] h-[38px] overflow-hidden leading-relaxed [scrollbar-width:thin] [&::-webkit-scrollbar]:w-1 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-slate-300"
 				/>
 
 				<button
 					type="submit"
 					disabled={(!inputText.trim() && pendingMediaList.length === 0) || isSending}
-					className="p-2 bg-brand-dark text-brand-primary hover:bg-brand-dark/90 rounded-md transition-all disabled:opacity-50 disabled:cursor-not-allowed border-none cursor-pointer shrink-0 font-bold flex items-center justify-center"
-					title="Gửi tin nhắn"
+					className="w-8 h-8 rounded-full bg-brand-primary text-brand-dark hover:opacity-90 transition-all flex items-center justify-center disabled:opacity-40 disabled:cursor-not-allowed border-none cursor-pointer shrink-0 shadow-2xs"
+					title="Gửi tin nhắn (Enter)"
 				>
 					<SendOutlined className="text-sm" />
 				</button>
 			</form>
 		</div>
+	</div>
 	);
 }
 

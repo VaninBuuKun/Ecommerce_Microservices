@@ -30,4 +30,13 @@ public class ChatMessage
     public ChatMessageType MessageType { get; set; } = ChatMessageType.Text;
 
     public DateTimeOffset SentAt { get; set; } = DateTimeOffset.UtcNow;
+
+    /// <summary>ID tin nhắn gốc được trích dẫn trả lời (nếu có)</summary>
+    public Guid? ReplyToMessageId { get; set; }
+
+    /// <summary>Nội dung tóm tắt của tin nhắn được trả lời</summary>
+    public string? ReplyToContent { get; set; }
+
+    /// <summary>Tên người gửi của tin nhắn được trả lời</summary>
+    public string? ReplyToSenderName { get; set; }
 }

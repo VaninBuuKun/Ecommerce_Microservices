@@ -1,9 +1,10 @@
 import React from "react";
 import { Link } from "react-router-dom";
 import { Store } from "lucide-react";
-import { CommentOutlined, SyncOutlined, PictureOutlined, VideoCameraOutlined, UndoOutlined } from "@ant-design/icons";
+import { CommentOutlined, SyncOutlined, PictureOutlined, VideoCameraOutlined, UndoOutlined, RollbackOutlined } from "@ant-design/icons";
+import { toast } from "react-toastify";
 import type { ChatMessageDto, ChatThemePreset } from "@/domains/notification";
-import { parseMediaUrls, downloadChatMedia } from "@/domains/notification";
+import { parseMediaUrls, downloadChatMedia, parseReplyMessage } from "@/domains/notification";
 import { ChatMessageActionBar } from "./ChatMessageActionBar";
 
 interface ChatMiniMessageThreadProps {
@@ -12,14 +13,15 @@ interface ChatMiniMessageThreadProps {
 	currentUserId?: number;
 	activePreset: ChatThemePreset;
 	messagesContainerRef: React.RefObject<HTMLDivElement | null>;
-	messagesEndRef: React.RefObject<HTMLDivElement | null>;
 	onImageClick: (url: string) => void;
+	onVideoClick?: (url: string) => void;
 	isSeller: boolean;
 	formatMessengerTime: (dateStr: string) => string;
 	shouldShowTimeSeparator: (currentDateStr: string, prevDateStr?: string) => boolean;
 	isPureEmoji: (text: string) => boolean;
 	onRevokeMessage?: (messageId: string) => void;
 	onReactMessage?: (messageId: string, emoji: string) => void;
+	onReplyMessage?: (msg: ChatMessageDto) => void;
 }
 
 export function ChatMiniMessageThread({
@@ -30,13 +32,39 @@ export function ChatMiniMessageThread({
 	messagesContainerRef,
 	messagesEndRef,
 	onImageClick,
+	onVideoClick,
 	isSeller,
 	formatMessengerTime,
 	shouldShowTimeSeparator,
 	isPureEmoji,
 	onRevokeMessage,
 	onReactMessage,
+	onReplyMessage,
 }: ChatMiniMessageThreadProps) {
+	const scrollToOriginalMessage = (targetId?: string) => {
+		if (!targetId) return;
+		const targetRow = document.getElementById(`chat-msg-${targetId}`);
+		const targetBubble = document.getElementById(`chat-msg-bubble-${targetId}`);
+		if (targetRow) {
+			targetRow.scrollIntoView({ behavior: "smooth", block: "center" });
+			if (targetBubble) {
+				targetBubble.classList.add("ring-4", "ring-emerald-500", "ring-offset-2", "shadow-xl", "scale-[1.03]", "transition-all", "duration-300");
+				setTimeout(() => {
+					targetBubble.classList.remove("ring-4", "ring-emerald-500", "ring-offset-2", "shadow-xl", "scale-[1.03]");
+				}, 1800);
+			} else {
+				targetRow.classList.add("ring-2", "ring-brand-primary", "bg-brand-primary/10", "rounded-2xl", "transition-all");
+				setTimeout(() => {
+					targetRow.classList.remove("ring-2", "ring-brand-primary", "bg-brand-primary/10", "rounded-2xl");
+				}, 1800);
+			}
+		} else {
+			toast.info("Tin nhắn gốc ở phía trên cuộc trò chuyện.", { autoClose: 1500 });
+		}
+	};
+
+
+
 	if (!activeRoom) {
 		return (
 			<div className="flex-1 flex flex-col items-center justify-center p-6 text-center text-brand-muted bg-white select-none">
@@ -113,20 +141,21 @@ export function ChatMiniMessageThread({
 				ref={messagesContainerRef}
 				className={`flex-1 p-3 overflow-y-auto flex flex-col transition-colors duration-200 ${activePreset.background}`}
 			>
-				<div className="mt-auto flex flex-col space-y-2.5">
+				<div className="mt-auto flex flex-col space-y-1">
 					{messages.map((msg, i) => {
 						const isMyMessage = msg.senderId === currentUserId;
 						const prevMsg = messages[i - 1];
 						const showTimeSep = shouldShowTimeSeparator(msg.sentAt, prevMsg?.sentAt);
 						const timeLabel = formatMessengerTime(msg.sentAt);
-						const isEmoji = msg.messageType === "Text" && isPureEmoji(msg.content);
+						const { replyQuote, text: parsedText } = parseReplyMessage(msg.content);
+						const isEmoji = msg.messageType === "Text" && !replyQuote && isPureEmoji(parsedText);
 						const isRevoked = msg.isRevoked || msg.content === "Tin nhắn đã được thu hồi";
 						const isMedia = msg.messageType === "Image" || msg.messageType === "Video";
 						const mediaUrls = parseMediaUrls(msg.content);
 						const mediaCount = mediaUrls.length;
 
 						return (
-							<div key={msg.id || i}>
+							<div key={msg.id || i} id={`chat-msg-${msg.id}`} className="transition-all duration-300">
 								{/* Cột mốc thời gian ngắt quãng phong cách Messenger */}
 								{showTimeSep && (
 									<div className="flex justify-center my-3 select-none">
@@ -136,16 +165,15 @@ export function ChatMiniMessageThread({
 									</div>
 								)}
 
-								<div className={`flex ${isMyMessage ? "justify-end" : "justify-start"} items-end gap-1.5 group relative`}>
-									{/* Khu vực Action Bar + Thời gian bên trái khi hover (tin nhắn gửi đi) */}
+								<div className={`flex ${isMyMessage ? "justify-end" : "justify-start"} items-end gap-1.5 group relative mb-3.5`}>
+									{/* Khu vực Action Bar bên trái khi hover (tin nhắn gửi đi) */}
 									{isMyMessage && !isRevoked && (
-										<div className="flex flex-col items-end gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity duration-150 select-none shrink-0 pb-1">
+										<div className="flex flex-col items-end o	pacity-0 group-hover:opacity-100 transition-opacity duration-150 select-none shrink-0 pb-1">
 											{!msg.isUploading && (
 												<ChatMessageActionBar
 													isMyMessage={isMyMessage}
 													isMedia={isMedia}
-													userReaction={msg.userReaction}
-													onReact={(emoji) => onReactMessage?.(msg.id, emoji)}
+													onReply={() => onReplyMessage?.(msg)}
 													onRevoke={isMyMessage ? () => onRevokeMessage?.(msg.id) : undefined}
 													onDownload={
 														isMedia
@@ -156,32 +184,35 @@ export function ChatMiniMessageThread({
 													}
 												/>
 											)}
-											<span
-												className={`text-[10px] font-semibold whitespace-nowrap ${activePreset.timestampText}`}
-											>
-												{timeLabel}
-											</span>
 										</div>
 									)}
 
 									{/* Tin nhắn đã bị thu hồi */}
 									{isRevoked ? (
-										<div className="flex items-center gap-1.5 px-3 py-1.5 rounded-2xl bg-slate-100/90 text-slate-400 italic text-xs border border-slate-200/60 shadow-2xs select-none">
+										<div id={`chat-msg-bubble-${msg.id}`} className="flex items-center gap-1.5 px-3 py-1.5 rounded-2xl bg-slate-100/90 text-slate-400 italic text-xs border border-slate-200/60 shadow-2xs select-none">
 											<UndoOutlined className="text-xs text-slate-400" />
 											<span>Tin nhắn đã được thu hồi</span>
 										</div>
 									) : isEmoji ? (
 										/* Emoji độc lập */
-										<div className="text-3xl py-1 select-none animate-in zoom-in-75 duration-150 relative">
-											{msg.content}
+										<div id={`chat-msg-bubble-${msg.id}`} className="text-3xl py-1 select-none animate-in zoom-in-75 duration-150 relative">
+											{parsedText}
+											<div
+												className={`absolute ${
+													isMyMessage ? "right-1 text-right" : "left-1 text-left"
+												} -bottom-3.5 opacity-0 group-hover:opacity-100 transition-opacity duration-150 pointer-events-none whitespace-nowrap text-[10px] text-slate-400 font-medium z-10 select-none`}
+											>
+												{timeLabel}
+											</div>
 										</div>
 									) : (
 										<div
+											id={`chat-msg-bubble-${msg.id}`}
 											className={`relative max-w-[86%] transition-all ${
 												msg.messageType === "Sticker"
 													? "bg-transparent border-none shadow-none"
 													: isMyMessage
-													? `${activePreset.myBubble.bg} ${activePreset.myBubble.text} ${activePreset.myBubble.border || ""} rounded-2xl rounded-tr-xs shadow-2xs`
+													? `${activePreset.myBubble.bg} ${activePreset.myBubble.text} border ${activePreset.myBubble.border || ""} rounded-2xl rounded-tr-xs shadow-2xs`
 													: `${activePreset.theirBubble.bg} ${activePreset.theirBubble.text} border ${activePreset.theirBubble.border} rounded-2xl rounded-tl-xs shadow-2xs`
 											}`}
 										>
@@ -289,7 +320,10 @@ export function ChatMiniMessageThread({
 											) : msg.messageType === "Video" ? (
 												mediaCount > 1 ? (
 													/* Nhiều video xếp lớp với thẻ div xám phía sau */
-													<div className="p-1 pt-2 px-2 relative group/stack select-none">
+													<div
+														className="p-1 pt-2 px-2 relative group/stack select-none"
+														onClick={() => !msg.isUploading && (onVideoClick ? onVideoClick(mediaUrls[0]) : onImageClick(mediaUrls[0]))}
+													>
 														{/* Thẻ xám 2 phía sau (nếu >= 3 video) */}
 														{mediaCount >= 3 && (
 															<div
@@ -311,8 +345,13 @@ export function ChatMiniMessageThread({
 														/>
 
 														{/* Video chính ở phía trước */}
-														<div className="relative rounded-2xl overflow-hidden shadow-md border-2 border-white dark:border-slate-800 bg-slate-900">
-															<video src={mediaUrls[0]} controls={!msg.isUploading} className="max-w-[185px] max-h-[145px] rounded-xl block" />
+														<div className="relative rounded-2xl overflow-hidden shadow-md border-2 border-white dark:border-slate-800 bg-slate-900 group">
+															<video src={mediaUrls[0]} controls={false} className="max-w-[185px] max-h-[145px] rounded-xl block pointer-events-none" />
+															<div className="absolute inset-0 flex items-center justify-center bg-black/20 group-hover:bg-black/35 transition-colors">
+																<div className="w-9 h-9 rounded-full bg-black/60 backdrop-blur-md flex items-center justify-center text-white text-xs shadow-md group-hover:scale-110 transition-transform">
+																	▶
+																</div>
+															</div>
 															<div className="absolute top-1.5 left-1.5 px-2 py-0.5 rounded-full bg-black/65 backdrop-blur-md text-white text-[10px] font-bold flex items-center gap-1 shadow-sm pointer-events-none">
 																<VideoCameraOutlined className="text-[10px] text-brand-primary" />
 																<span>{isMyMessage ? `Bạn đã gửi ${mediaCount} video` : `Đã gửi ${mediaCount} video`}</span>
@@ -330,8 +369,18 @@ export function ChatMiniMessageThread({
 													</div>
 												) : (
 													/* 1 video duy nhất */
-													<div className="p-1 relative">
-														<video src={mediaUrls[0] || msg.content} controls={!msg.isUploading} className="max-w-[195px] max-h-[155px] rounded-xl" />
+													<div 
+														className="p-1 relative group cursor-pointer select-none"
+														onClick={() => !msg.isUploading && (onVideoClick ? onVideoClick(mediaUrls[0] || msg.content) : onImageClick(mediaUrls[0] || msg.content))}
+													>
+														<div className="relative rounded-xl overflow-hidden bg-slate-900 shadow-sm border border-slate-200 dark:border-slate-700">
+															<video src={mediaUrls[0] || msg.content} controls={false} className="max-w-[195px] max-h-[155px] rounded-xl block pointer-events-none" />
+															<div className="absolute inset-0 flex items-center justify-center bg-black/20 group-hover:bg-black/35 transition-colors">
+																<div className="w-10 h-10 rounded-full bg-black/65 backdrop-blur-md flex items-center justify-center text-white text-sm shadow-md group-hover:scale-110 transition-transform">
+																	▶
+																</div>
+															</div>
+														</div>
 														{msg.isUploading && (
 															<div className="absolute inset-1 bg-black/60 rounded-xl flex flex-col items-center justify-center text-white p-2 z-10 backdrop-blur-xs select-none">
 																<SyncOutlined spin className="text-lg text-brand-primary mb-1" />
@@ -341,43 +390,117 @@ export function ChatMiniMessageThread({
 													</div>
 												)
 											) : (
-												<p className="px-3 py-1.5 text-xs font-medium leading-relaxed break-words whitespace-pre-wrap">
-													{msg.content}
-												</p>
-											)}
+												<div className="flex flex-col">
+													{/* Trả lời tin nhắn đa phương tiện hoặc văn bản */}
+													{(() => {
+														const quoteTargetId = msg.replyToMessageId || replyQuote?.messageId;
+														const quoteSenderName = msg.replyToSenderName || replyQuote?.senderName || "Tin nhắn";
+														let quoteMediaUrl = replyQuote?.mediaUrl;
+														let quoteMediaType = replyQuote?.messageType;
 
-											{/* Reaction badges hiển thị ở góc dưới */}
-											{msg.reactions && Object.keys(msg.reactions).length > 0 && (
-												<div className="absolute -bottom-2.5 right-2 flex items-center gap-0.5 z-20">
-													{Object.entries(msg.reactions).map(([emoji, count]) => (
-														<button
-															key={emoji}
-															type="button"
-															onClick={() => onReactMessage?.(msg.id, emoji)}
-															className={`flex items-center gap-0.5 px-1.5 py-0.2 rounded-full text-[10px] shadow-xs border transition-transform hover:scale-110 cursor-pointer ${
-																msg.userReaction === emoji
-																	? "bg-brand-primary/20 border-brand-primary text-brand-dark font-bold"
-																	: "bg-white border-slate-200 text-slate-700 font-medium"
-															}`}
-														>
-															<span>{emoji}</span>
-															{count > 1 && <span>{count}</span>}
-														</button>
-													))}
+														if (!quoteMediaUrl && quoteTargetId) {
+															const targetMsg = messages.find((m) => m.id === quoteTargetId);
+															if (
+																targetMsg &&
+																(targetMsg.messageType === "Image" ||
+																	targetMsg.messageType === "Video" ||
+																	targetMsg.messageType === "Sticker" ||
+																	targetMsg.messageType === "Gif")
+															) {
+																quoteMediaType = targetMsg.messageType;
+																const urls = parseMediaUrls(targetMsg.content);
+																quoteMediaUrl = urls[0] || targetMsg.content;
+															}
+														}
+
+														if (quoteMediaUrl) {
+															return (
+																<div
+																	onClick={(e) => {
+																		e.stopPropagation();
+																		scrollToOriginalMessage(quoteTargetId);
+																	}}
+																	className="mx-2 mt-1.5 mb-1 relative cursor-pointer select-none overflow-hidden rounded-xl border border-slate-300/80 dark:border-slate-700 bg-slate-900/10 shadow-2xs hover:opacity-90 transition-opacity max-w-[130px]"
+																	title="Bấm để di chuyển đến tin nhắn gốc"
+																>
+																	<div className="relative w-28 h-28 bg-slate-900/10 flex items-center justify-center overflow-hidden">
+																		{quoteMediaType === "Video" ? (
+																			<video
+																				src={quoteMediaUrl}
+																				className="w-full h-full object-cover opacity-60 filter brightness-90 pointer-events-none"
+																			/>
+																		) : (
+																			<img
+																				src={quoteMediaUrl}
+																				alt="replied-media"
+																				className="w-full h-full object-cover opacity-60 filter brightness-90 pointer-events-none"
+																			/>
+																		)}
+																		<div className="absolute inset-0 flex flex-col justify-between p-1.5 pointer-events-none bg-gradient-to-t from-black/60 via-transparent to-black/35">
+																			<span className="text-[9px] font-bold text-white/95 truncate drop-shadow-xs">
+																				{quoteSenderName}
+																			</span>
+																			<span className="text-[9px] text-white/90 font-semibold flex items-center gap-0.5">
+																				<RollbackOutlined className="text-[8px]" /> Tin gốc
+																			</span>
+																		</div>
+																	</div>
+																</div>
+															);
+														}
+
+														if (msg.replyToContent || replyQuote) {
+															return (
+																<div
+																	onClick={(e) => {
+																		e.stopPropagation();
+																		scrollToOriginalMessage(quoteTargetId);
+																	}}
+																	className={`mx-2 mt-1.5 mb-0.5 px-2.5 py-1 rounded-md border-l-2 text-left select-none cursor-pointer hover:opacity-85 transition-opacity ${
+																		isMyMessage
+																			? "bg-slate-100/90 border-brand-primary text-slate-700"
+																			: "bg-brand-light-soft border-brand-primary text-slate-700"
+																	}`}
+																	title="Bấm để di chuyển đến tin nhắn gốc"
+																>
+																	<div className="font-bold text-[9px] text-brand-primary opacity-90 flex items-center gap-1">
+																		<RollbackOutlined className="text-[8px]" />
+																		<span>{quoteSenderName}</span>
+																	</div>
+																	<div className="truncate max-w-[220px] text-[10px] text-slate-600">
+																		{msg.replyToContent || replyQuote?.content}
+																	</div>
+																</div>
+															);
+														}
+
+														return null;
+													})()}
+													<p className="px-3 py-1.5 text-xs font-medium leading-relaxed break-words whitespace-pre-wrap">
+														{parsedText}
+													</p>
 												</div>
 											)}
+
+											{/* Mốc thời gian khi hover phong cách hiện dưới tin nhắn, thụt vô một đoạn nhỏ so với mép đầu tin nhắn */}
+											<div
+												className={`absolute ${
+													isMyMessage ? "right-2.5 text-right" : "left-2.5 text-left"
+												} -bottom-4 opacity-0 group-hover:opacity-100 transition-opacity duration-150 pointer-events-none whitespace-nowrap text-[10px] text-slate-400 font-medium z-10 select-none`}
+											>
+												{timeLabel}
+											</div>
 										</div>
 									)}
 
-									{/* Khu vực Action Bar + Thời gian bên phải khi hover (tin nhắn nhận được) */}
+									{/* Khu vực Action Bar bên phải khi hover (tin nhắn nhận được) */}
 									{!isMyMessage && !isRevoked && (
-										<div className="flex flex-col items-start gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity duration-150 select-none shrink-0 pb-1">
+										<div className="flex flex-col items-start opacity-0 group-hover:opacity-100 transition-opacity duration-150 select-none shrink-0 pb-1">
 											{!msg.isUploading && (
 												<ChatMessageActionBar
 													isMyMessage={isMyMessage}
 													isMedia={isMedia}
-													userReaction={msg.userReaction}
-													onReact={(emoji) => onReactMessage?.(msg.id, emoji)}
+													onReply={() => onReplyMessage?.(msg)}
 													onDownload={
 														isMedia
 															? () => {
@@ -387,11 +510,6 @@ export function ChatMiniMessageThread({
 													}
 												/>
 											)}
-											<span
-												className={`text-[10px] font-semibold whitespace-nowrap ${activePreset.timestampText}`}
-											>
-												{timeLabel}
-											</span>
 										</div>
 									)}
 								</div>

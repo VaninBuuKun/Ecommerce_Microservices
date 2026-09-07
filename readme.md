@@ -78,26 +78,27 @@ Saga State Machine + Transactional Outbox
 ### Product Management
 
 * Product creation with rich description.
-* Product variant matrix (options → variants with SKU/price/stock).
-* Bulk variant updates.
-* Sale price configuration.
+* **Multi-tier product variant matrix**:
+  * Visual matrix table with Shopee/TikTok Shop-style grouping (vertical row merging and clear classification dividers).
+  * Smooth HTML5 drag-and-drop reordering for option values and specification attributes with real-time Cartesian variant sync.
+  * Missing variant generation: Auto-detects omitted combinations with 1-click batch restoration modal.
+  * Variant capacity limit: Strict 60-variant cap enforced across frontend and backend.
+  * Bulk updates with quick-apply controls (price, stock, SKU) and promotional sale pricing.
 * Product activation/deactivation & deletion with gRPC active orders validation (`CheckProductHasActiveSubOrders` from `Orders.Api`), preventing permanent deletion or deactivation while sub-orders are still in active/in-flight status.
 * Multi-tenant shop ownership validation: Strictly verifies seller ownership via `Sellers.Api` gRPC for all product commands and queries (`GetMyProducts`, `UpdateProduct`, `ToggleStatus`, `DeleteProduct`, variant updates).
 * Snowflake 64-bit ID serialization: All `long`/`long?` IDs are serialized to JSON strings in `Catalog.Api` to eliminate JavaScript floating-point precision loss ($2^{53} - 1$ limit) on the frontend.
 * Customer Product Detail UX: Interactive Modal Portal (`z-[10000]`) notifications when a product is non-existent/deleted or temporarily inactive, with warning banner for shop owners previewing their inactive products.
-* Shipping dimensions and weight configuration: Integrated into "Thông tin cơ bản" tab via `ShippingInfoCard` without extraneous icons or auto-formula boxes.
-* Granular Deletion Policies & Controlled Deletion Workflow:
+* Shipping dimensions and weight configuration: Integrated into basic info management with standard parcel measurements (weight, length, width, height).
+* Granular deletion policies & controlled deletion workflow:
+  * Zero silent soft-deletes: Variant updates strictly add or edit combinations without accidental cascade deletions.
   * ProductVariant: Verified via gRPC `CheckVariantOrders` from `Orders.Api`. Hard-deleted if no orders exist, blocked with conflict error if active orders exist, and soft-deleted if only historical orders exist.
   * ProductOption & ProductOptionValue: Guarded against deletion if referenced by any active variant. Endpoints: `DELETE /api/v1/catalog/products/{productId}/options/{optionId}` and `DELETE .../values/{valueId}`.
   * Seller UX: `IdHighlightBadge` with emerald highlight, dotted underline, tooltip hover ID & copy button for DB-persisted variants/options/values; non-intrusive switch confirmation modal on save with "Do not show again" preference.
-* Tab Dirty Tracking & Safe Discard Modal:
+* Tab dirty tracking & safe discard modal:
   * Independent dirty tracking across "Thông tin cơ bản" and "Biến thể" tabs with red `*` indicators.
   * Save button dynamically disabled when the currently active tab has no unsaved modifications.
   * Safety discard confirmation modal (`DiscardChangesModal`) rendered via Portal `z-[10000]` when attempting to cancel with unsaved changes.
-* Reordering Options & Option Values:
-  * Reorder options (Option 1 $\leftrightarrow$ Option 2) and values within each option.
-  * Automatic Cartesian product synchronization in variant table preserving all existing pricing, stock, SKU, and server IDs.
-* Specification Attribute Validation: Strict validation on both FE (inline error highlighting) and BE (`UpdateProductCommandHandler` & `UpdateProductAttributesCommandHandler`) ensuring every attribute contains non-empty key and value.
+* Specification attribute validation: Strict validation on both FE and BE ensuring every specification attribute contains non-empty key and value.
 * Price range indexing (`Price` & `MaxPrice`) for min/max price range filtering.
 * Native `jsonb` attributes storage with PostgreSQL GIN index (`jsonb_path_ops`).
 * PostgreSQL Trigram (`pg_trgm`) & `unaccent` for accent-insensitive typo-tolerant search.
@@ -174,16 +175,15 @@ A single checkout is automatically split into multiple SubOrders based on seller
 ### Payment Integration
 
 Supported payment methods:
-* MoMo QR Payment (Sandbox) - Hạn mức tối thiểu cấu hình động (`MinAmount` = 10.000 ₫).
-* VNPay (Sandbox) - Hạn mức tối thiểu cấu hình động (`MinAmount` = 10.000 ₫).
-* Cash On Delivery (COD) - Áp dụng linh hoạt không giới hạn (`MinAmount` = NULL).
+* MoMo QR Payment (Sandbox) - Configurable minimum order threshold (`MinAmount`).
+* VNPay (Sandbox) - Configurable minimum order threshold (`MinAmount`).
+* Cash On Delivery (COD) - Flexible zero-threshold payment.
 
-Kiến trúc Dữ liệu & Đặc tả UX:
-* **Database & Entity**: Cột `MinAmount` (`numeric(18,2)`, nullable) được tích hợp trực tiếp vào thực thể `PaymentMethod`. Cho phép Admin cấu hình hạn mức tối thiểu cho từng phương thức thanh toán qua `AdminPaymentMethodsView`.
-* **Frontend**: Không ẩn phương thức thanh toán. Kiểm tra động `method.minAmount`: nếu đơn hàng < `minAmount`, thẻ phương thức tự động disable/làm mờ (`opacity-55 cursor-not-allowed`) kèm badge và dòng cảnh báo đỏ: *"Chỉ áp dụng cho đơn hàng từ {minAmount} ₫ trở lên"*. Tự động chuyển về phương thức hợp lệ (hoặc COD) nếu đơn hàng không đạt hạn mức.
-* **Backend Validation**: `ProcessPayment` (`Payments.Api`) kiểm tra trực tiếp `existingMethod.MinAmount` từ cơ sở dữ liệu, chặn và báo lỗi tiếng Việt nếu không đủ hạn mức. `CreateOrderCommandHandler` tự động giải phóng tồn kho và voucher đã giữ nếu thanh toán thất bại.
-
-Payment webhooks automatically trigger status transitions via MassTransit events.
+Data Architecture & Dynamic Thresholds:
+* **Configurable Minimum Order Amount**: `MinAmount` integrated into `PaymentMethod` entity, configurable per payment method in Admin Dashboard.
+* **Smart Frontend Feedback**: Methods below the order threshold are gracefully dimmed with clear badges and alerts, automatically falling back to eligible methods.
+* **Backend Validation**: Dynamic order amount verification in `Payments.Api` before gateway dispatch, with instant stock and voucher compensation on payment failure.
+* Payment webhooks automatically trigger status transitions via MassTransit events.
 
 ### Refund Workflow
 
@@ -198,6 +198,7 @@ Payment webhooks automatically trigger status transitions via MassTransit events
 ### GHN Integration
 
 * Province/District/Ward synchronization (cron job).
+* Multi-tier location caching: L1 in-memory + L2 Redis (24-hour TTL) with resilient database fallback.
 * Shipping fee calculation (batch support).
 * Automatic shipment creation (waybill).
 * Shipment tracking via webhooks.
@@ -242,8 +243,10 @@ GHN Delivered → ShipmentDeliveredEvent → Orders Service → SubOrder Deliver
 ### Real-time Messaging & Floating Chat
 * **SignalR Customer ↔ Shop Chat Page (`/chat`)**: Fullscreen real-time communication between buyers and seller shops with chat history.
 * **Floating Chat Bubble & Modal (`ChatBubbleButton` + `ChatMiniModal`)**: 2-column popup chat widget accessible across all customer and seller pages.
-* **Media Presentation & Actions**: Physical gray stacked cards behind multi-image/video with tilt and fan-out effect, action bar (smile icon with reaction popover, download, delete/revoke) positioned neatly next to message bubbles above timestamp on hover.
-* **Room Customization**: Custom theme colors and background styling per conversation (`ThemeColor`, `BackgroundColor`).
+* **Media Presentation & Actions**: Physical gray stacked cards behind multi-image/video with tilt and fan-out effect, action bar (reply quote, download, delete/revoke) on hover. Mốc thời gian khi hover được hiển thị bên dưới tin nhắn thụt nhẹ từ mép đầu.
+* **Facebook Messenger-Style Reply**: Hỗ trợ trả lời (Reply) tin nhắn với thanh xem trước trích dẫn nằm ở mép trên cùng của khung nhập liệu, thẻ quote hiển thị trực quan trong bong bóng tin nhắn và lưu trữ PostgreSQL (`ReplyToMessageId`, `ReplyToContent`, `ReplyToSenderName`).
+* **Input Box & Attachments UX**: Ô nhập `textarea` tự động co giãn từ 1 đến 4 dòng không giật thanh cuộn, widget đính kèm tệp tin đa dạng (ảnh, video, tài liệu PDF/DOCX/ZIP) với thẻ ngang hiển thị tên tệp tin dài trước khi rút gọn.
+* **Room Customization**: Custom theme colors and background styling per conversation (`ThemeColor`, `BackgroundColor`), đồng bộ màu sắc thẻ tin nhắn gửi và nhận.
 
 ### Isolated HTML Email Template Engine
 * **Dynamic Template Renderer**: Decoupled HTML templates in `Templates/Emails/` (`OtpEmail.html`, `WelcomeEmail.html`, `WithdrawalSuccessEmail.html`, `NewDeviceAlertEmail.html`, `PasswordChangedSuccessEmail.html`) rendered dynamically via `ITemplateRenderer`.

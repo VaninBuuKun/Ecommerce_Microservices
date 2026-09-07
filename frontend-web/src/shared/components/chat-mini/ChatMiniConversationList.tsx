@@ -47,7 +47,9 @@ export function ChatMiniConversationList({
 					</div>
 				) : (
 					safeConversations.map((conv) => {
-						const isActive = activeRoom?.roomId === conv.roomId;
+						const isActive =
+							(activeRoom?.roomId && conv.roomId && activeRoom.roomId.toLowerCase() === conv.roomId.toLowerCase()) ||
+							(activeRoom?.shopId && conv.shopId && Number(activeRoom.shopId) === Number(conv.shopId) && Number(conv.shopId) > 0);
 						return (
 							<button
 								key={conv.roomId}
@@ -55,10 +57,10 @@ export function ChatMiniConversationList({
 									if (activeRoom?.roomId === conv.roomId) return;
 									onSelectRoom(conv);
 								}}
-								className={`w-full flex items-center gap-2.5 px-3 py-2.5 text-left transition-all border-none cursor-pointer ${
+								className={`w-full flex items-center gap-2.5 px-3 py-2.5 text-left transition-colors border-l-4 cursor-pointer ${
 									isActive
-										? "bg-brand-primary/10 border-l-4 border-brand-primary shadow-2xs"
-										: "hover:bg-brand-light-soft bg-transparent"
+										? "bg-brand-primary/10 border-brand-primary shadow-2xs"
+										: "border-transparent hover:bg-brand-light-soft bg-transparent"
 								}`}
 							>
 								<div className="shrink-0 w-8 h-8 rounded-full bg-brand-primary/10 text-brand-primary-deep text-xs font-black flex items-center justify-center overflow-hidden border border-brand-border shadow-2xs relative">

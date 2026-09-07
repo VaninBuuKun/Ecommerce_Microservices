@@ -22,11 +22,12 @@ public class ChatController(IChatService chatService, ICurrentUserService curren
     [ProducesResponseType(typeof(List<ConversationDto>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetConversations(
         [FromQuery] bool isSeller,
+        [FromQuery] long? shopId,
         [FromServices] BuildingBlocks.Grpc.Services.IdentityGrpc.IdentityGrpcClient identityClient,
         [FromServices] BuildingBlocks.Grpc.Services.SellerGrpc.SellerGrpcClient sellerClient)
     {
         var currentUserId = currentUserService.UserId;
-        var result = await chatService.GetConversationsAsync(currentUserId, isSeller, identityClient, sellerClient);
+        var result = await chatService.GetConversationsAsync(currentUserId, isSeller, shopId, identityClient, sellerClient);
         
         if (result.IsSuccess)
         {
@@ -83,6 +84,9 @@ public class ChatMessageItemDto
     public string Content { get; set; } = string.Empty;
     public string MessageType { get; set; } = "Text";
     public DateTimeOffset SentAt { get; set; }
+    public Guid? ReplyToMessageId { get; set; }
+    public string? ReplyToContent { get; set; }
+    public string? ReplyToSenderName { get; set; }
 }
 
 public class ConversationDto

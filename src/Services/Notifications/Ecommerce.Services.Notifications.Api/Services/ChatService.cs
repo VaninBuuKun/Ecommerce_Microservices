@@ -7,6 +7,7 @@ using BuildingBlocks.Shared.Enums;
 using Ecommerce.Services.Notifications.Api.Controllers;
 using Ecommerce.Services.Notifications.Api.Persistances;
 using Ecommerce.Services.Notifications.Api.Models.Interfaces;
+using Ecommerce.Services.Notifications.Api.Models.Entities;
 using Microsoft.EntityFrameworkCore;
 
 namespace Ecommerce.Services.Notifications.Api.Services;
@@ -16,6 +17,7 @@ public class ChatService(NotificationDbContext dbContext) : IChatService
     public async Task<Result<List<ConversationDto>>> GetConversationsAsync(
         long currentUserId, 
         bool isSeller, 
+        long? shopId,
         BuildingBlocks.Grpc.Services.IdentityGrpc.IdentityGrpcClient identityClient,
         BuildingBlocks.Grpc.Services.SellerGrpc.SellerGrpcClient sellerClient)
     {
@@ -24,7 +26,13 @@ public class ChatService(NotificationDbContext dbContext) : IChatService
         if (isSeller)
         {
             // 1. Dành cho Người bán (Seller): Lấy các phòng chat của Shop thuộc quyền sở hữu/quản lý
-            var rooms = await dbContext.ChatRooms
+            var query = dbContext.ChatRooms.AsQueryable();
+            if (shopId.HasValue && shopId.Value > 0)
+            {
+                query = query.Where(r => r.ShopId == shopId.Value);
+            }
+
+            var rooms = await query
                 .OrderByDescending(r => r.LastActiveAt)
                 .ToListAsync();
 
@@ -153,19 +161,35 @@ public class ChatService(NotificationDbContext dbContext) : IChatService
             }
         }
 
-        var messages = await query
+        var rawMessages = await query
             .OrderByDescending(m => m.SentAt)
             .Take(limit)
-            .Select(m => new ChatMessageItemDto
+            .Select(m => new
             {
-                Id = m.Id,
-                RoomId = m.RoomId,
-                SenderId = m.SenderId,
-                Content = m.Content,
+                m.Id,
+                m.RoomId,
+                m.SenderId,
+                m.Content,
                 MessageType = m.MessageType.ToString(),
-                SentAt = m.SentAt
+                m.SentAt,
+                m.ReplyToMessageId,
+                m.ReplyToContent,
+                m.ReplyToSenderName
             })
             .ToListAsync();
+
+        var messages = rawMessages.Select(m => new ChatMessageItemDto
+        {
+            Id = m.Id,
+            RoomId = m.RoomId,
+            SenderId = m.SenderId,
+            Content = m.Content,
+            MessageType = m.MessageType,
+            SentAt = m.SentAt,
+            ReplyToMessageId = m.ReplyToMessageId,
+            ReplyToContent = m.ReplyToContent,
+            ReplyToSenderName = m.ReplyToSenderName
+        }).ToList();
 
         messages.Reverse();
         return Result<List<ChatMessageItemDto>>.Success(messages);

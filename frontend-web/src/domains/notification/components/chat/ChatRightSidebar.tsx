@@ -17,8 +17,8 @@ import {
 import { ChevronDown, ChevronUp } from "lucide-react";
 import { motion } from "framer-motion";
 import { toast } from "react-toastify";
-import type { Conversation, ChatItemTheme, ChatBgTheme, ChatThemePreset } from "../../types/chat.types";
-import { CHAT_ITEM_THEMES, CHAT_BG_THEMES, CHAT_THEME_PRESETS, getChatTheme } from "./chat.constants";
+import type { Conversation, ChatItemTheme, ChatBgTheme, ChatThemePreset, ChatMessageItem } from "../../types/chat.types";
+import { CHAT_ITEM_THEMES, CHAT_BG_THEMES, CHAT_THEME_PRESETS, getChatTheme, parseMediaUrls, downloadChatMedia } from "./chat.constants";
 
 interface ChatRightSidebarProps {
 	activeRoom: Conversation;
@@ -50,6 +50,7 @@ interface ChatRightSidebarProps {
 	allMediaImages: string[];
 	onImageClick: (url: string) => void;
 	isApplyingTheme?: boolean;
+	messages?: ChatMessageItem[];
 }
 
 export const ChatRightSidebar: React.FC<ChatRightSidebarProps> = ({
@@ -82,12 +83,41 @@ export const ChatRightSidebar: React.FC<ChatRightSidebarProps> = ({
 	allMediaImages,
 	onImageClick,
 	isApplyingTheme = false,
+	messages = [],
 }) => {
 	const currentPreset =
 		previewThemePreset ||
 		themePreset ||
 		getChatTheme(activeRoom.themeColor, activeRoom.backgroundColor);
 	const initial = activeRoom.displayName?.[0]?.toUpperCase() || "?";
+
+	const allFiles = React.useMemo(() => {
+		if (!messages || messages.length === 0) return [];
+		const fileList: { url: string; name: string; date: string; ext: string }[] = [];
+		const seen = new Set<string>();
+
+		messages.forEach((m) => {
+			if (!m.content) return;
+			const urls = parseMediaUrls(m.content);
+			urls.forEach((url) => {
+				if (seen.has(url)) return;
+				const cleanUrl = url.split("?")[0];
+				const ext = cleanUrl.split(".").pop()?.toLowerCase() || "";
+				const isDoc = ["pdf", "doc", "docx", "xls", "xlsx", "txt", "zip", "rar", "csv", "ppt", "pptx"].includes(ext);
+				if (isDoc) {
+					seen.add(url);
+					const rawName = cleanUrl.split("/").pop() || `Tai_lieu.${ext}`;
+					fileList.push({
+						url,
+						name: decodeURIComponent(rawName),
+						date: new Date(m.sentAt).toLocaleDateString("vi-VN"),
+						ext,
+					});
+				}
+			});
+		});
+		return fileList;
+	}, [messages]);
 
 	return (
 		<div className="w-[320px] xl:w-[340px] bg-white flex flex-col overflow-hidden shrink-0 border-l border-slate-200">
@@ -504,45 +534,40 @@ export const ChatRightSidebar: React.FC<ChatRightSidebarProps> = ({
 						</div>
 					) : (
 						<div className="flex-1 overflow-y-auto p-3 space-y-2">
-							<div className="p-2.5 bg-slate-50 hover:bg-slate-100 transition-colors rounded-xl border border-slate-200 flex items-center justify-between cursor-pointer">
-								<div className="flex items-center gap-2.5 min-w-0">
-									<div className="w-8 h-8 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center shrink-0">
-										<FileTextOutlined className="text-base" />
-									</div>
-									<div className="min-w-0">
-										<p className="text-xs font-bold text-slate-800 truncate">Hoa_don_dien_tu.pdf</p>
-										<p className="text-[10px] text-slate-400 font-medium">1.2 MB • 02/09/2026</p>
-									</div>
+							{allFiles.length === 0 ? (
+								<div className="py-12 text-center text-xs text-slate-400 font-medium">
+									Chưa có tệp tài liệu nào trong cuộc trò chuyện này.
 								</div>
-								<button
-									type="button"
-									onClick={() => toast.success("Đang tải file...")}
-									className="p-1 text-slate-400 hover:text-slate-800 border-none bg-transparent cursor-pointer"
-									title="Tải xuống"
-								>
-									<DownloadOutlined className="text-sm" />
-								</button>
-							</div>
-
-							<div className="p-2.5 bg-slate-50 hover:bg-slate-100 transition-colors rounded-xl border border-slate-200 flex items-center justify-between cursor-pointer">
-								<div className="flex items-center gap-2.5 min-w-0">
-									<div className="w-8 h-8 rounded-lg bg-amber-50 text-amber-600 flex items-center justify-center shrink-0">
-										<FileTextOutlined className="text-base" />
+							) : (
+								allFiles.map((file, idx) => (
+									<div
+										key={idx}
+										className="p-2.5 bg-slate-50 hover:bg-slate-100 transition-colors rounded-xl border border-slate-200 flex items-center justify-between"
+									>
+										<div className="flex items-center gap-2.5 min-w-0">
+											<div className="w-8 h-8 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center shrink-0">
+												<FileTextOutlined className="text-base" />
+											</div>
+											<div className="min-w-0">
+												<p className="text-xs font-bold text-slate-800 truncate" title={file.name}>
+													{file.name}
+												</p>
+												<p className="text-[10px] text-slate-400 font-medium">
+													{file.ext.toUpperCase()} • {file.date}
+												</p>
+											</div>
+										</div>
+										<button
+											type="button"
+											onClick={() => downloadChatMedia(file.url, file.name)}
+											className="p-1.5 text-slate-400 hover:text-brand-dark rounded-md hover:bg-white transition-colors border-none bg-transparent cursor-pointer shrink-0"
+											title="Tải xuống"
+										>
+											<DownloadOutlined className="text-sm" />
+										</button>
 									</div>
-									<div className="min-w-0">
-										<p className="text-xs font-bold text-slate-800 truncate">Bang_thong_so_ky_thuat.xlsx</p>
-										<p className="text-[10px] text-slate-400 font-medium">450 KB • 01/09/2026</p>
-									</div>
-								</div>
-								<button
-									type="button"
-									onClick={() => toast.success("Đang tải file...")}
-									className="p-1 text-slate-400 hover:text-slate-800 border-none bg-transparent cursor-pointer"
-									title="Tải xuống"
-								>
-									<DownloadOutlined className="text-sm" />
-								</button>
-							</div>
+								))
+							)}
 						</div>
 					)}
 				</div>

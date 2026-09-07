@@ -15,9 +15,23 @@ export function parseJwt(token: string): any {
 	}
 }
 
+export function isAuthenticated(token?: string | null): boolean {
+	const activeToken = token ?? localStorage.getItem("accessToken");
+	if (!activeToken) return false;
+	const payload = parseJwt(activeToken);
+	if (!payload) return false;
+	if (payload.exp && typeof payload.exp === "number") {
+		const currentTime = Math.floor(Date.now() / 1000);
+		if (payload.exp < currentTime) {
+			return false;
+		}
+	}
+	return true;
+}
+
 export function checkIsAdmin(): boolean {
 	const token = localStorage.getItem("accessToken");
-	if (!token) return false;
+	if (!token || !isAuthenticated(token)) return false;
 	const payload = parseJwt(token);
 	if (!payload) return false;
 	const roles =
@@ -32,3 +46,4 @@ export function checkIsAdmin(): boolean {
 		payload.email === "admin@system.com"
 	);
 }
+

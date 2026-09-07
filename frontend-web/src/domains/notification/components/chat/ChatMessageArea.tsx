@@ -1,20 +1,24 @@
-import React, { useRef, useEffect, useState } from "react";
+import React, { useRef, useEffect, useState, useCallback } from "react";
 import { Link } from "react-router-dom";
 import {
 	CommentOutlined,
 	SendOutlined,
-	PictureOutlined,
+	PaperClipOutlined,
 	VideoCameraOutlined,
 	SmileOutlined,
 	SearchOutlined,
 	InfoCircleOutlined,
 	SyncOutlined,
 	UndoOutlined,
+	RollbackOutlined,
+	CloseOutlined,
+	PictureOutlined,
 } from "@ant-design/icons";
 import { Store, X } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
-import type { Conversation, ChatMessageItem, ChatPendingMedia, ChatItemTheme, ChatBgTheme, ChatThemePreset } from "../../types/chat.types";
-import { QUICK_EMOJIS, CHAT_STICKERS, CHAT_GIFS, formatMessengerTime, shouldShowTimeSeparator, getChatTheme, parseMediaUrls, downloadChatMedia } from "./chat.constants";
+import { toast } from "react-toastify";
+import type { Conversation, ChatMessageItem, ChatPendingMedia, ChatItemTheme, ChatBgTheme, ChatThemePreset, ChatMessageDto } from "../../types/chat.types";
+import { QUICK_EMOJIS, CHAT_STICKERS, CHAT_GIFS, formatMessengerTime, shouldShowTimeSeparator, getChatTheme, parseMediaUrls, downloadChatMedia, parseReplyMessage } from "./chat.constants";
 import { ChatUploadingWidget, ChatMessageActionBar } from "@/shared/components/chat-mini";
 
 interface ChatMessageAreaProps {
@@ -32,6 +36,7 @@ interface ChatMessageAreaProps {
 	activeTheme?: ChatItemTheme;
 	activeChatBg?: ChatBgTheme;
 	onImageClick: (url: string) => void;
+	onVideoClick?: (url: string) => void;
 	inputText: string;
 	onInputTextChange: (text: string) => void;
 	onSendMessage: () => void;
@@ -45,6 +50,9 @@ interface ChatMessageAreaProps {
 	onCloseEmojiPicker: () => void;
 	onRevokeMessage?: (messageId: string) => void;
 	onReactMessage?: (messageId: string, emoji: string) => void;
+	replyingToMessage?: ChatMessageItem | null;
+	onReplyMessage?: (msg: ChatMessageItem) => void;
+	onCancelReply?: () => void;
 }
 
 export const ChatMessageArea: React.FC<ChatMessageAreaProps> = ({
@@ -62,6 +70,7 @@ export const ChatMessageArea: React.FC<ChatMessageAreaProps> = ({
 	activeTheme,
 	activeChatBg,
 	onImageClick,
+	onVideoClick,
 	inputText,
 	onInputTextChange,
 	onSendMessage,
@@ -75,32 +84,101 @@ export const ChatMessageArea: React.FC<ChatMessageAreaProps> = ({
 	onCloseEmojiPicker,
 	onRevokeMessage,
 	onReactMessage,
+	replyingToMessage,
+	onReplyMessage,
+	onCancelReply,
 }) => {
 	const currentTheme = themePreset || getChatTheme(activeTheme?.id, activeChatBg?.id);
 	const messagesContainerRef = useRef<HTMLDivElement>(null);
 	const messagesEndRef = useRef<HTMLDivElement>(null);
-	const imageInputRef = useRef<HTMLInputElement>(null);
+	const fileInputRef = useRef<HTMLInputElement>(null);
 	const videoInputRef = useRef<HTMLInputElement>(null);
 	const emojiPickerRef = useRef<HTMLDivElement>(null);
+	const textareaRef = useRef<HTMLTextAreaElement>(null);
 	const [pickerTab, setPickerTab] = useState<"emoji" | "sticker" | "gif">("emoji");
 
-	const scrollToBottom = (behavior: ScrollBehavior = "auto") => {
+	const scrollToBottom = useCallback(() => {
 		if (messagesContainerRef.current) {
 			messagesContainerRef.current.scrollTop = messagesContainerRef.current.scrollHeight;
 		}
-		messagesEndRef.current?.scrollIntoView({ behavior, block: "end" });
+	}, []);
+
+	const messageCount = messages.length;
+	const lastMessageId = messages[messages.length - 1]?.id;
+
+	// Tự động cuộn ở đáy khi có tin nhắn mới hoặc đổi phòng (loại bỏ giật màn hình)
+	useEffect(() => {
+		scrollToBottom();
+	}, [messageCount, lastMessageId, pendingMediaList.length, activeRoom?.roomId, scrollToBottom]);
+
+	const handleTextareaChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+		const val = e.target.value;
+		onInputTextChange(val);
+		if (!val.trim() && !val.includes("\n")) {
+			e.target.style.height = "38px";
+			e.target.style.overflowY = "hidden";
+			return;
+		}
+		e.target.style.height = "auto";
+		const scrollH = e.target.scrollHeight;
+		if (!val.includes("\n") && scrollH <= 40) {
+			e.target.style.height = "38px";
+			e.target.style.overflowY = "hidden";
+		} else {
+			const nextHeight = Math.min(scrollH, 96);
+			e.target.style.height = `${nextHeight}px`;
+			e.target.style.overflowY = scrollH > 96 ? "auto" : "hidden";
+		}
 	};
 
-	// Tự động cuộn và cố định tuyệt đối ở đáy khi đổi phòng hoặc có tin nhắn
 	useEffect(() => {
-		scrollToBottom("auto");
-		const t1 = setTimeout(() => scrollToBottom("auto"), 60);
-		const t2 = setTimeout(() => scrollToBottom("auto"), 200);
-		return () => {
-			clearTimeout(t1);
-			clearTimeout(t2);
-		};
-	}, [messages, pendingMediaList, activeRoom?.roomId]);
+		if (!inputText && textareaRef.current) {
+			textareaRef.current.style.height = "38px";
+			textareaRef.current.style.overflowY = "hidden";
+		}
+	}, [inputText]);
+
+	const scrollToOriginalMessage = (targetId?: string) => {
+		if (!targetId) return;
+		const targetRow = document.getElementById(`chat-msg-${targetId}`);
+		const targetBubble = document.getElementById(`chat-msg-bubble-${targetId}`);
+		if (targetRow) {
+			targetRow.scrollIntoView({ behavior: "smooth", block: "center" });
+			if (targetBubble) {
+				targetBubble.classList.add("ring-4", "ring-emerald-500", "ring-offset-2", "shadow-xl", "scale-[1.03]", "transition-all", "duration-300");
+				setTimeout(() => {
+					targetBubble.classList.remove("ring-4", "ring-emerald-500", "ring-offset-2", "shadow-xl", "scale-[1.03]");
+				}, 1800);
+			} else {
+				targetRow.classList.add("ring-2", "ring-brand-primary", "bg-brand-primary/10", "rounded-2xl", "transition-all");
+				setTimeout(() => {
+					targetRow.classList.remove("ring-2", "ring-brand-primary", "bg-brand-primary/10", "rounded-2xl");
+				}, 1800);
+			}
+		} else {
+			toast.info("Tin nhắn gốc ở phía trên cuộc trò chuyện.", { autoClose: 1500 });
+		}
+	};
+
+
+
+	const getReplyPreviewText = (msg: ChatMessageDto) => {
+		if (msg.messageType === "Image") return "[Hình ảnh]";
+		if (msg.messageType === "Video") return "[Video]";
+		if (msg.messageType === "Sticker") return "[Nhãn dán]";
+		if (msg.messageType === "Gif") return "[Ảnh GIF]";
+		const { text } = parseReplyMessage(msg.content);
+		return text || msg.content;
+	};
+
+	const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+		if (e.key === "Enter" && !e.shiftKey) {
+			e.preventDefault();
+			if ((inputText.trim() || pendingMediaList.length > 0) && !isSending) {
+				onSendMessage();
+			}
+		}
+	};
 
 	// Đóng emoji picker khi click ra ngoài
 	useEffect(() => {
@@ -127,7 +205,7 @@ export const ChatMessageArea: React.FC<ChatMessageAreaProps> = ({
 		return m.content.toLowerCase().includes(messageSearchQuery.toLowerCase());
 	});
 
-	const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+	const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
 		if (e.target.files && e.target.files.length > 0) {
 			onSelectFiles(e.target.files);
 			e.target.value = "";
@@ -243,14 +321,15 @@ export const ChatMessageArea: React.FC<ChatMessageAreaProps> = ({
 						const showTimeSep = shouldShowTimeSeparator(msg.sentAt, prevMsg?.sentAt);
 						const timeLabel = formatMessengerTime(msg.sentAt);
 
-						const isEmoji = msg.messageType === "Text" && isPureEmoji(msg.content);
+						const { replyQuote, text: parsedText } = parseReplyMessage(msg.content);
+						const isEmoji = msg.messageType === "Text" && !replyQuote && isPureEmoji(parsedText);
 						const isRevoked = msg.isRevoked || msg.content === "Tin nhắn đã được thu hồi";
 						const isMedia = msg.messageType === "Image" || msg.messageType === "Video";
 						const mediaUrls = parseMediaUrls(msg.content);
 						const mediaCount = mediaUrls.length;
 
 						return (
-							<div key={msg.id}>
+							<div key={msg.id} id={`chat-msg-${msg.id}`}>
 								{showTimeSep && (
 									<div className="flex justify-center my-3.5 select-none">
 										<span className="text-[11px] font-medium text-slate-400 select-none">
@@ -259,16 +338,15 @@ export const ChatMessageArea: React.FC<ChatMessageAreaProps> = ({
 									</div>
 								)}
 
-								<div className={`flex ${isMyMessage ? "justify-end" : "justify-start"} items-end gap-1.5 group relative`}>
-									{/* Outgoing Message: Action Bar + Timestamp nổi ở BÊN TRÁI khi hover */}
+								<div className={`flex ${isMyMessage ? "justify-end" : "justify-start"} items-end gap-1.5 group relative mb-3.5`}>
+									{/* Outgoing Message: Action Bar nổi ở BÊN TRÁI khi hover */}
 									{isMyMessage && !isRevoked && (
-										<div className="flex flex-col items-end gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity duration-150 select-none shrink-0 pb-1">
+										<div className="flex flex-col items-end opacity-0 group-hover:opacity-100 transition-opacity duration-150 select-none shrink-0 pb-1">
 											{!msg.isUploading && (
 												<ChatMessageActionBar
 													isMyMessage={isMyMessage}
 													isMedia={isMedia}
-													userReaction={msg.userReaction}
-													onReact={(emoji) => onReactMessage?.(msg.id, emoji)}
+													onReply={() => onReplyMessage?.(msg)}
 													onRevoke={isMyMessage ? () => onRevokeMessage?.(msg.id) : undefined}
 													onDownload={
 														isMedia
@@ -279,30 +357,35 @@ export const ChatMessageArea: React.FC<ChatMessageAreaProps> = ({
 													}
 												/>
 											)}
-											<span className={`text-[10px] font-semibold whitespace-nowrap ${currentTheme.timestampText}`}>
-												{timeLabel}
-											</span>
 										</div>
 									)}
 
 									{/* Tin nhắn đã bị thu hồi */}
 									{isRevoked ? (
-										<div className="flex items-center gap-1.5 px-3 py-1.5 rounded-2xl bg-slate-100/90 text-slate-400 italic text-xs border border-slate-200/60 shadow-2xs select-none">
+										<div id={`chat-msg-bubble-${msg.id}`} className="flex items-center gap-1.5 px-3 py-1.5 rounded-2xl bg-slate-100/90 text-slate-400 italic text-xs border border-slate-200/60 shadow-2xs select-none">
 											<UndoOutlined className="text-xs text-slate-400" />
 											<span>Tin nhắn đã được thu hồi</span>
 										</div>
 									) : isEmoji ? (
 										/* Emoji đứng độc lập không viền */
-										<div className="text-4xl py-1 select-none animate-in zoom-in-75 duration-150 relative">
-											{msg.content}
+										<div id={`chat-msg-bubble-${msg.id}`} className="text-4xl py-1 select-none animate-in zoom-in-75 duration-150 relative">
+											{parsedText}
+											<div
+												className={`absolute ${
+													isMyMessage ? "right-1 text-right" : "left-1 text-left"
+												} -bottom-3.5 opacity-0 group-hover:opacity-100 transition-opacity duration-150 pointer-events-none whitespace-nowrap text-[10px] text-slate-400 font-medium z-10 select-none`}
+											>
+												{timeLabel}
+											</div>
 										</div>
 									) : (
 										<div
+											id={`chat-msg-bubble-${msg.id}`}
 											className={`relative max-w-[82%] transition-all ${
 												msg.messageType === "Sticker"
 													? "bg-transparent border-none shadow-none"
 													: isMyMessage
-													? `${currentTheme.myBubble.bg} ${currentTheme.myBubble.text} ${currentTheme.myBubble.border || ""} rounded-2xl rounded-tr-xs shadow-2xs`
+													? `${currentTheme.myBubble.bg} ${currentTheme.myBubble.text} border ${currentTheme.myBubble.border || ""} rounded-2xl rounded-tr-xs shadow-2xs`
 													: `${currentTheme.theirBubble.bg} ${currentTheme.theirBubble.text} border ${currentTheme.theirBubble.border} rounded-2xl rounded-tl-xs shadow-2xs`
 											}`}
 										>
@@ -432,12 +515,21 @@ export const ChatMessageArea: React.FC<ChatMessageAreaProps> = ({
 														/>
 
 														{/* Video chính ở phía trước */}
-														<div className="relative rounded-2xl overflow-hidden shadow-md border-2 border-white dark:border-slate-800 bg-slate-900">
+														<div 
+															className="relative rounded-2xl overflow-hidden shadow-md border-2 border-white dark:border-slate-800 bg-slate-900 group cursor-pointer"
+															onClick={() => !msg.isUploading && (onVideoClick ? onVideoClick(mediaUrls[0]) : onImageClick(mediaUrls[0]))}
+														>
 															<video
 																src={mediaUrls[0]}
-																controls={!msg.isUploading}
-																className="max-w-[220px] max-h-[180px] w-full rounded-2xl block"
+																controls={false}
+																className="max-w-[220px] max-h-[180px] w-full rounded-2xl block pointer-events-none"
 															/>
+
+															<div className="absolute inset-0 flex items-center justify-center bg-black/20 group-hover:bg-black/35 transition-colors">
+																<div className="w-10 h-10 rounded-full bg-black/65 backdrop-blur-md flex items-center justify-center text-white text-sm shadow-md group-hover:scale-110 transition-transform">
+																	▶
+																</div>
+															</div>
 
 															{/* Badge thông tin số lượng video */}
 															<div className="absolute top-2 left-2 px-2.5 py-0.5 rounded-full bg-black/65 backdrop-blur-md text-white text-[11px] font-bold flex items-center gap-1 shadow-sm pointer-events-none">
@@ -459,8 +551,18 @@ export const ChatMessageArea: React.FC<ChatMessageAreaProps> = ({
 													</div>
 												) : (
 													/* Video đơn lẻ */
-													<div className="p-1 relative">
-														<video src={mediaUrls[0] || msg.content} controls={!msg.isUploading} className="max-w-[230px] max-h-[190px] rounded-xl" />
+													<div 
+														className="p-1 relative group cursor-pointer select-none"
+														onClick={() => !msg.isUploading && (onVideoClick ? onVideoClick(mediaUrls[0] || msg.content) : onImageClick(mediaUrls[0] || msg.content))}
+													>
+														<div className="relative rounded-xl overflow-hidden bg-slate-900 shadow-sm border border-slate-200 dark:border-slate-700">
+															<video src={mediaUrls[0] || msg.content} controls={false} className="max-w-[230px] max-h-[190px] rounded-xl block pointer-events-none" />
+															<div className="absolute inset-0 flex items-center justify-center bg-black/20 group-hover:bg-black/35 transition-colors">
+																<div className="w-11 h-11 rounded-full bg-black/65 backdrop-blur-md flex items-center justify-center text-white text-sm shadow-md group-hover:scale-110 transition-transform">
+																	▶
+																</div>
+															</div>
+														</div>
 														{msg.isUploading && (
 															<div className="absolute inset-1 bg-black/60 rounded-xl flex flex-col items-center justify-center text-white p-2 z-10 backdrop-blur-xs select-none">
 																<SyncOutlined spin className="text-xl text-brand-primary mb-1.5" />
@@ -470,48 +572,117 @@ export const ChatMessageArea: React.FC<ChatMessageAreaProps> = ({
 													</div>
 												)
 											) : (
-												<p className="px-3.5 py-2 text-xs font-medium leading-relaxed break-words whitespace-pre-wrap">
-													{msg.content}
-												</p>
-											)}
+												<div className="flex flex-col">
+													{/* Trả lời tin nhắn đa phương tiện hoặc văn bản */}
+													{(() => {
+														const quoteTargetId = msg.replyToMessageId || replyQuote?.messageId;
+														const quoteSenderName = msg.replyToSenderName || replyQuote?.senderName || "Tin nhắn";
+														let quoteMediaUrl = replyQuote?.mediaUrl;
+														let quoteMediaType = replyQuote?.messageType;
 
-											{/* Reaction Pills hiển thị bên dưới góc của bong bóng */}
-											{msg.reactions && Object.keys(msg.reactions).length > 0 && (
-												<div
-													className={`absolute -bottom-2.5 ${
-														isMyMessage ? "right-2" : "left-2"
-													} flex items-center gap-1 bg-white/95 backdrop-blur-md px-1.5 py-0.5 rounded-full border border-slate-200 shadow-xs z-10`}
-												>
-													{Object.entries(msg.reactions).map(([emoji, count]) => (
-														<button
-															key={emoji}
-															type="button"
-															onClick={(e) => {
-																e.stopPropagation();
-																onReactMessage?.(msg.id, emoji);
-															}}
-															className={`inline-flex items-center gap-0.5 text-[11px] cursor-pointer hover:scale-115 transition-transform bg-transparent border-none p-0 ${
-																msg.userReaction === emoji ? "font-bold text-brand-primary-deep" : ""
-															}`}
-														>
-															<span>{emoji}</span>
-															{count > 1 && <span className="text-[10px] text-slate-600 font-semibold">{count}</span>}
-														</button>
-													))}
+														if (!quoteMediaUrl && quoteTargetId) {
+															const targetMsg = messages.find((m) => m.id === quoteTargetId);
+															if (
+																targetMsg &&
+																(targetMsg.messageType === "Image" ||
+																	targetMsg.messageType === "Video" ||
+																	targetMsg.messageType === "Sticker" ||
+																	targetMsg.messageType === "Gif")
+															) {
+																quoteMediaType = targetMsg.messageType;
+																const urls = parseMediaUrls(targetMsg.content);
+																quoteMediaUrl = urls[0] || targetMsg.content;
+															}
+														}
+
+														if (quoteMediaUrl) {
+															return (
+																<div
+																	onClick={(e) => {
+																		e.stopPropagation();
+																		scrollToOriginalMessage(quoteTargetId);
+																	}}
+																	className="mx-3 mt-2 mb-1 relative cursor-pointer select-none overflow-hidden rounded-xl border border-slate-300/80 dark:border-slate-700 bg-slate-900/10 shadow-2xs hover:opacity-90 transition-opacity max-w-[140px]"
+																	title="Bấm để di chuyển đến tin nhắn gốc"
+																>
+																	<div className="relative w-32 h-32 bg-slate-900/10 flex items-center justify-center overflow-hidden">
+																		{quoteMediaType === "Video" ? (
+																			<video
+																				src={quoteMediaUrl}
+																				className="w-full h-full object-cover opacity-60 filter brightness-90 pointer-events-none"
+																			/>
+																		) : (
+																			<img
+																				src={quoteMediaUrl}
+																				alt="replied-media"
+																				className="w-full h-full object-cover opacity-60 filter brightness-90 pointer-events-none"
+																			/>
+																		)}
+																		<div className="absolute inset-0 flex flex-col justify-between p-2 pointer-events-none bg-gradient-to-t from-black/60 via-transparent to-black/35">
+																			<span className="text-[10px] font-bold text-white/95 truncate drop-shadow-xs">
+																				{quoteSenderName}
+																			</span>
+																			<span className="text-[10px] text-white/90 font-semibold flex items-center gap-1">
+																				<RollbackOutlined className="text-[9px]" /> Tin gốc
+																			</span>
+																		</div>
+																	</div>
+																</div>
+															);
+														}
+
+														if (msg.replyToContent || replyQuote) {
+															return (
+																<div
+																	onClick={(e) => {
+																		e.stopPropagation();
+																		scrollToOriginalMessage(quoteTargetId);
+																	}}
+																	className={`mx-3 mt-2 mb-0.5 px-3 py-1.5 rounded-lg border-l-3 text-left select-none cursor-pointer hover:opacity-85 transition-opacity ${
+																		isMyMessage
+																			? "bg-slate-100/90 border-brand-primary text-slate-700"
+																			: "bg-slate-100 border-brand-primary text-slate-700"
+																	}`}
+																	title="Bấm để di chuyển đến tin nhắn gốc"
+																>
+																	<div className="font-bold text-[10px] text-brand-primary opacity-90 flex items-center gap-1">
+																		<RollbackOutlined className="text-[9px]" />
+																		<span>{quoteSenderName}</span>
+																	</div>
+																	<div className="truncate max-w-[260px] text-xs text-slate-600">
+																		{msg.replyToContent || replyQuote?.content}
+																	</div>
+																</div>
+															);
+														}
+
+														return null;
+													})()}
+													<p className="px-3.5 py-2 text-xs font-medium leading-relaxed break-words whitespace-pre-wrap">
+														{parsedText}
+													</p>
 												</div>
 											)}
+
+											{/* Mốc thời gian khi hover phong cách hiện dưới tin nhắn, thụt vô một đoạn nhỏ so với mép đầu tin nhắn */}
+											<div
+												className={`absolute ${
+													isMyMessage ? "right-2.5 text-right" : "left-2.5 text-left"
+												} -bottom-4 opacity-0 group-hover:opacity-100 transition-opacity duration-150 pointer-events-none whitespace-nowrap text-[10px] text-slate-400 font-medium z-10 select-none`}
+											>
+												{timeLabel}
+											</div>
 										</div>
 									)}
 
-									{/* Incoming Message: Action Bar + Timestamp nổi ở BÊN PHẢI khi hover */}
+									{/* Incoming Message: Action Bar nổi ở BÊN PHẢI khi hover */}
 									{!isMyMessage && !isRevoked && (
-										<div className="flex flex-col items-start gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity duration-150 select-none shrink-0 pb-1">
+										<div className="flex flex-col items-start opacity-0 group-hover:opacity-100 transition-opacity duration-150 select-none shrink-0 pb-1">
 											{!msg.isUploading && (
 												<ChatMessageActionBar
 													isMyMessage={isMyMessage}
 													isMedia={isMedia}
-													userReaction={msg.userReaction}
-													onReact={(emoji) => onReactMessage?.(msg.id, emoji)}
+													onReply={() => onReplyMessage?.(msg)}
 													onDownload={
 														isMedia
 															? () => {
@@ -521,9 +692,6 @@ export const ChatMessageArea: React.FC<ChatMessageAreaProps> = ({
 													}
 												/>
 											)}
-											<span className={`text-[10px] font-semibold whitespace-nowrap ${currentTheme.timestampText}`}>
-												{timeLabel}
-											</span>
 										</div>
 									)}
 								</div>
@@ -535,12 +703,38 @@ export const ChatMessageArea: React.FC<ChatMessageAreaProps> = ({
 			</div>
 
 			{/* Input Bar - Chứa nút gửi file, sticker */}
-			<div className="p-2.5 border-t border-slate-200 bg-white shrink-0 relative">
-				{/* Widget tải lên ngầm S3 kèm Hover Popover hiển thị chi tiết */}
-				<ChatUploadingWidget
-					pendingMediaList={pendingMediaList}
-					onRemoveMedia={onRemovePendingMedia}
-				/>
+			<div className="border-t border-slate-200 bg-white shrink-0 relative flex flex-col">
+				{/* Thanh xem trước tin nhắn đang trả lời phong cách Facebook Messenger: nằm trên cùng của hộp chat cuối */}
+				{replyingToMessage && (
+					<div className="flex items-center justify-between px-4 py-1.5 bg-slate-50 border-b border-slate-200 text-xs select-none">
+						<div className="flex items-center gap-2 min-w-0">
+							<div className="w-1 h-7 rounded-full bg-brand-primary shrink-0" />
+							<div className="min-w-0">
+								<div className="text-[11px] font-bold text-slate-800 leading-tight">
+									Đang trả lời <span className="text-brand-primary">{replyingToMessage.senderId === currentUserId ? "chính mình" : (activeRoom.displayName || "Đối phương")}</span>
+								</div>
+								<div className="text-[11px] text-slate-500 truncate max-w-[320px] sm:max-w-[480px]">
+									{getReplyPreviewText(replyingToMessage)}
+								</div>
+							</div>
+						</div>
+						<button
+							type="button"
+							onClick={onCancelReply}
+							className="p-1 text-slate-400 hover:text-red-500 rounded-full hover:bg-slate-200/60 transition-colors border-none bg-transparent cursor-pointer flex items-center justify-center shrink-0"
+							title="Hủy trả lời"
+						>
+							<CloseOutlined className="text-xs" />
+						</button>
+					</div>
+				)}
+
+				<div className="p-2.5 relative">
+					{/* Widget tải lên ngầm S3 kèm Hover Popover hiển thị chi tiết */}
+					<ChatUploadingWidget
+						pendingMediaList={pendingMediaList}
+						onRemoveMedia={onRemovePendingMedia}
+					/>
 
 				{/* Emoji / Sticker / GIF Floating Popover */}
 				<AnimatePresence>
@@ -658,20 +852,22 @@ export const ChatMessageArea: React.FC<ChatMessageAreaProps> = ({
 					)}
 				</AnimatePresence>
 
+
+
 				<form
 					onSubmit={(e) => {
 						e.preventDefault();
 						onSendMessage();
 					}}
-					className="flex items-center gap-2"
+					className="flex items-end gap-2"
 				>
 					{/* Hidden file inputs */}
 					<input
 						type="file"
-						ref={imageInputRef}
-						accept="image/*"
+						ref={fileInputRef}
+						accept="image/*,video/*,application/pdf,.doc,.docx,.xls,.xlsx,.txt,.zip,.rar"
 						multiple
-						onChange={handleImageChange}
+						onChange={handleFileChange}
 						className="hidden"
 					/>
 					<input
@@ -683,21 +879,21 @@ export const ChatMessageArea: React.FC<ChatMessageAreaProps> = ({
 						className="hidden"
 					/>
 
-					{/* Action buttons (Ảnh, Video, Sticker) */}
-					<div className="flex items-center gap-0.5 text-slate-400 shrink-0">
+					{/* Action buttons (File đính kèm, Video, Sticker) */}
+					<div className="flex items-center gap-0.5 text-slate-400 shrink-0 pb-1">
 						<button
 							type="button"
-							onClick={() => imageInputRef.current?.click()}
+							onClick={() => fileInputRef.current?.click()}
 							className="p-1.5 hover:bg-slate-100 hover:text-slate-800 rounded-md transition-colors cursor-pointer border-none bg-transparent"
-							title="Gửi hình ảnh (hỗ trợ nhiều tệp, tối đa 50MB)"
+							title="Đính kèm tệp / hình ảnh (tối đa 50MB)"
 						>
-							<PictureOutlined className="text-base" />
+							<PaperClipOutlined className="text-base" />
 						</button>
 						<button
 							type="button"
 							onClick={() => videoInputRef.current?.click()}
 							className="p-1.5 hover:bg-slate-100 hover:text-slate-800 rounded-md transition-colors cursor-pointer border-none bg-transparent"
-							title="Gửi video (hỗ trợ nhiều tệp, tối đa 50MB)"
+							title="Gửi video (tối đa 50MB)"
 						>
 							<VideoCameraOutlined className="text-base" />
 						</button>
@@ -714,19 +910,21 @@ export const ChatMessageArea: React.FC<ChatMessageAreaProps> = ({
 					</div>
 
 					<div className="flex-1 relative flex items-center">
-						<input
-							type="text"
-							placeholder="Nhập tin nhắn..."
+						<textarea
+							ref={textareaRef}
+							rows={1}
 							value={inputText}
-							onChange={(e) => onInputTextChange(e.target.value)}
-							className="w-full pl-3 pr-3 py-2 border border-slate-200 rounded-xl text-xs font-medium focus:outline-none focus:border-brand-primary bg-slate-50 focus:bg-white transition-colors"
+							onChange={handleTextareaChange}
+							onKeyDown={handleKeyDown}
+							style={{ height: "38px", overflowY: "hidden" }}
+							className="w-full pl-3 pr-3 py-2 border border-slate-200 rounded-xl text-xs font-medium focus:outline-none focus:border-brand-primary bg-slate-50 focus:bg-white transition-colors resize-none max-h-[96px] h-[38px] overflow-hidden leading-relaxed [scrollbar-width:thin] [&::-webkit-scrollbar]:w-1 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-slate-300"
 						/>
 					</div>
 
 					<button
 						type="submit"
 						disabled={(!inputText.trim() && pendingMediaList.length === 0) || isSending}
-						className="p-2 bg-brand-dark text-brand-primary hover:bg-black rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed border-none cursor-pointer font-bold shrink-0 shadow-2xs flex items-center justify-center"
+						className="p-2.5 bg-brand-dark text-brand-primary hover:bg-black rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed border-none cursor-pointer font-bold shrink-0 shadow-2xs flex items-center justify-center mb-0.5"
 						title="Gửi tin nhắn"
 					>
 						<SendOutlined className="text-sm" />
@@ -734,5 +932,6 @@ export const ChatMessageArea: React.FC<ChatMessageAreaProps> = ({
 				</form>
 			</div>
 		</div>
+	</div>
 	);
 };

@@ -6,7 +6,6 @@ import {
 	useMyProductsQuery, 
 	useDeleteProductMutation, 
 	useToggleProductStatusMutation,
-	productApi 
 } from "@/domains/catalog";
 import { useSellerStore, useSellerProfileQuery } from "@/domains/seller";
 import { CreateProductModal } from "./CreateProductModal";

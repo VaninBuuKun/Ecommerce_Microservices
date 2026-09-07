@@ -61,7 +61,7 @@ export function CategorySidebar() {
 			</div> */}
 
 			{/* Left Card 2: Category List */}
-			<div className="bg-white border border-brand-border/70 rounded-xl p-3 shadow-2xs space-y-2 text-left">
+			<div className="bg-white border border-brand-border/70 rounded-xl p-4 pr-1 shadow-2xs space-y-2 text-left">
 				<h3 className="text-xs font-bold text-gray-500 uppercase tracking-wider px-1">
 					Danh mục
 				</h3>
@@ -96,7 +96,7 @@ export function CategorySidebar() {
 									<img
 										src={c.iconUrl}
 										alt={c.name}
-										className="w-4 h-4 object-cover rounded-md shrink-0 group-hover:scale-110 transition-transform"
+										className="w-6 h-6 object-cover rounded-md shrink-0 group-hover:scale-110 transition-transform"
 									/>
 								) : (
 									getCategoryIcon(c.name, index)

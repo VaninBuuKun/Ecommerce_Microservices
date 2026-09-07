@@ -48,10 +48,10 @@ export function ProductTable({
 			<table className="w-full text-xs text-left border-collapse">
 				<thead>
 					<tr className="border-b border-brand-border bg-brand-light-soft/50 text-brand-muted font-bold">
-						<th className="p-3 w-2/5">Tên sản phẩm</th>
-						<th className="p-3">Đã bán</th>
-						<th className="p-3">Giá bán</th>
-						<th className="p-3">Kho hàng</th>
+						<th className="p-3 w-45/100 pr-10">Tên sản phẩm</th>
+						<th className="p-3 text-center">Đã bán</th>
+						<th className="p-3 text-center">Giá bán</th>
+						<th className="p-3 text-center">Kho hàng</th>
 						<th className="p-3 text-right">Thao tác</th>
 					</tr>
 				</thead>

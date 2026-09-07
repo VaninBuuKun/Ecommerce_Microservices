@@ -83,7 +83,7 @@ export function ProductRow({
 							/>
 						</div>
 
-						<div className="flex flex-col items-start gap-1 text-left max-w-sm">
+						<div className="flex flex-col items-start gap-1 text-left max-w-170">
 							<span
 								className={`px-1.5 py-0.2 font-semibold text-[8px] uppercase tracking-wide inline-block opacity-80 rounded-md ${isActive
 										? "bg-green-50 text-green-700 border border-green-200/80"
@@ -93,17 +93,17 @@ export function ProductRow({
 								{isActive ? "Đang hoạt động" : "Đã ẩn"}
 							</span>
 
-							<h4 className="font-extrabold text-brand-dark text-sm leading-snug hover:text-brand-primary-deep cursor-pointer truncate w-full">
+							<h4 className="font-extrabold text-brand-dark text-sm leading-snug hover:text-brand-primary-deep cursor-pointer line-clamp-3 break-words w-full">
 								{product.name}
 							</h4>
 						</div>
 					</div>
 				</td>
-				<td className="p-3 pt-4 text-brand-dark font-medium">0</td>
-				<td className="p-3 pt-4 text-brand-dark">
-					{formatPrice(minPrice)}
-				</td>
-				<td className="p-3 pt-4 text-brand-muted">
+				<td className="p-3 pt-4 text-brand-dark font-medium text-center">{product.sold ?? 0}</td>
+				<td className="p-3 pt-4 text-brand-dark text-center">
+						{formatPrice(minPrice)}
+				</td>	
+				<td className="p-3 pt-4 text-brand-muted text-center">
 					{formatStock(totalStock)}
 				</td>
 				<td className="p-3 pt-4 text-right">

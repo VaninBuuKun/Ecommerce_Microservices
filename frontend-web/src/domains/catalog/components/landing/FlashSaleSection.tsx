@@ -85,21 +85,21 @@ export function FlashSaleSection() {
 				</div>
 
 				{/* Countdown block */}
-				<div className="flex items-center gap-1.5 text-xs font-bold text-red-600 bg-red-50 px-2.5 py-1 rounded-md border border-red-200">
-					<Clock className="w-3.5 h-3.5" />
-					<span className="text-[10px] font-semibold text-gray-600">Kết thúc sau:</span>
-					<span className="bg-red-600 text-white px-1.5 py-0.5 rounded text-[10px] font-mono font-black">
-						{formatNumber(timeLeft.hours)}
-					</span>
-					<span>:</span>
-					<span className="bg-red-600 text-white px-1.5 py-0.5 rounded text-[10px] font-mono font-black">
-						{formatNumber(timeLeft.minutes)}
-					</span>
-					<span>:</span>
-					<span className="bg-red-600 text-white px-1.5 py-0.5 rounded text-[10px] font-mono font-black">
-						{formatNumber(timeLeft.seconds)}
-					</span>
-				</div>
+				{/*<div className="flex items-center gap-1.5 text-xs font-bold text-red-600 bg-red-50 px-2.5 py-1 rounded-md border border-red-200">*/}
+				{/*	<Clock className="w-3.5 h-3.5" />*/}
+				{/*	<span className="text-[10px] font-semibold text-gray-600">Kết thúc sau:</span>*/}
+				{/*	<span className="bg-red-600 text-white px-1.5 py-0.5 rounded text-[10px] font-mono font-black">*/}
+				{/*		{formatNumber(timeLeft.hours)}*/}
+				{/*	</span>*/}
+				{/*	<span>:</span>*/}
+				{/*	<span className="bg-red-600 text-white px-1.5 py-0.5 rounded text-[10px] font-mono font-black">*/}
+				{/*		{formatNumber(timeLeft.minutes)}*/}
+				{/*	</span>*/}
+				{/*	<span>:</span>*/}
+				{/*	<span className="bg-red-600 text-white px-1.5 py-0.5 rounded text-[10px] font-mono font-black">*/}
+				{/*		{formatNumber(timeLeft.seconds)}*/}
+				{/*	</span>*/}
+				{/*</div>*/}
 			</div>
 
 			<div className="relative" {...containerProps}>

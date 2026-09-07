@@ -90,8 +90,8 @@ export function useChatMediaUpload(options?: UseChatMediaUploadOptions) {
 					});
 				})
 				.catch((err) => {
-					console.error("Upload S3 failed:", err);
-					toast.error(`Tải lên tệp "${file.name}" thất bại!`);
+					const detail = err?.response?.data?.message || err?.message || "Lỗi kết nối hoặc tệp quá lớn";
+					toast.error(`Tải lên tệp "${file.name}" thất bại: ${detail}`);
 					setPendingMediaList((prev) =>
 						prev.map((m) => (m.id === id ? { ...m, status: "error", error: "Tải lên thất bại" } : m))
 					);

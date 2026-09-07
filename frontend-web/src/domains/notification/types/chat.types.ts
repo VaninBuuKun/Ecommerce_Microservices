@@ -19,8 +19,12 @@ export interface ChatMessageItem {
 	sentAt: string;
 	isUploading?: boolean;
 	isRevoked?: boolean;
+	replyToMessageId?: string;
+	replyToContent?: string;
+	replyToSenderName?: string;
 	reactions?: Record<string, number>;
 	userReaction?: string;
+	lastReaction?: string;
 }
 
 export interface ChatPendingMedia {

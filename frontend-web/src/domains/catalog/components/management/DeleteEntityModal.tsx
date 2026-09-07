@@ -59,12 +59,12 @@ export const DeleteEntityModal: React.FC<DeleteEntityModalProps> = ({
 						)}
 					</div>
 
-					<div className="p-3 bg-amber-50/70 border border-amber-200/80 rounded-xl flex items-start gap-2 text-amber-900 leading-relaxed">
+					{/* <div className="p-3 bg-amber-50/70 border border-amber-200/80 rounded-xl flex items-start gap-2 text-amber-900 leading-relaxed">
 						<AlertTriangle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
 						<span>
 							{warningNote || "Mục này đã được lưu trong cơ sở dữ liệu. Hệ thống sẽ kiểm tra các đơn hàng đang xử lý và ràng buộc dữ liệu liên quan trước khi xóa."}
 						</span>
-					</div>
+					</div> */}
 				</div>
 
 				{/* Actions */}

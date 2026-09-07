@@ -12,11 +12,11 @@ namespace Ecommerce.Services.Notifications.Api.Hubs;
 /// <summary>
 /// SignalR Hub phục vụ hai mục đích:
 /// 1. Real-time push notification hệ thống đến user (ReceiveNotification).
-/// 2. Chat peer-to-peer giữa buyer và seller trong context của một SubOrder (ReceiveChatMessage).
+/// 2. Chat 1v1 giữa Buyer và Seller (ReceiveChatMessage, ReceiveMessageRevoked).
 ///
 /// Groups:
-///   - Notification: "{userId}" — mỗi user join group theo userId của mình.
-///   - Chat: "chat-suborder-{subOrderId}" — buyer và seller cùng join group này.
+///   - User / Notification: "{userId}" — mỗi user join group theo userId của mình.
+///   - Chat Room: "chat-room-{roomId}" — hai bên cùng join group theo phòng chat cụ thể.
 /// </summary>
 [Authorize]
 public class NotificationHub(
@@ -41,7 +41,7 @@ public class NotificationHub(
         var userId = GetCurrentUserId();
         if (userId > 0)
         {
-            // Join group theo userId để nhận notification & chat
+            // Join group theo userId để nhận notification & chat 1v1
             await Groups.AddToGroupAsync(Context.ConnectionId, userId.ToString());
             logger.LogInformation("User {UserId} connected to NotificationHub (ConnectionId: {ConnectionId})", userId, Context.ConnectionId);
         }
@@ -59,7 +59,7 @@ public class NotificationHub(
     }
 
     // -----------------------------------------------------------
-    // Chat: buyer ↔ Shop
+    // Chat 1v1: Buyer ↔ Seller
     // -----------------------------------------------------------
 
     /// <summary>
@@ -82,20 +82,16 @@ public class NotificationHub(
         await Groups.RemoveFromGroupAsync(Context.ConnectionId, groupName);
     }
 
-    /// <summary>
-    /// Join vào kênh thông báo chung của Shop (dành cho Staff Portal nhận thông báo tin nhắn mới).
-    /// Group pattern: "shop-channel-{shopId}"
-    /// </summary>
-    public async Task JoinShopChannel(long shopId)
-    {
-        if (shopId <= 0) return;
-        var groupName = $"shop-channel-{shopId}";
-        await Groups.AddToGroupAsync(Context.ConnectionId, groupName);
-        logger.LogInformation("Staff {UserId} joined shop channel group {GroupName}", Context.UserIdentifier, groupName);
-    }
-
-    /// <summary>Client gửi tin nhắn chat. Tự động khởi tạo ChatRoom nếu roomId chưa tồn tại (Default/Empty).</summary>
-    public async Task<object?> SendChatMessage(Guid roomId, string content, long recipientId, string senderRole, string messageType = "Text")
+    /// <summary>Client gửi tin nhắn chat 1v1.</summary>
+    public async Task<object?> SendChatMessage(
+        string? roomId, 
+        string content, 
+        long recipientId, 
+        string senderRole, 
+        string messageType = "Text",
+        string? replyToMessageId = null,
+        string? replyToContent = null,
+        string? replyToSenderName = null)
     {
         if (string.IsNullOrWhiteSpace(content)) return null;
         var senderId = GetCurrentUserId();
@@ -105,20 +101,35 @@ public class NotificationHub(
             return null;
         }
 
+        Guid parsedRoomId = Guid.Empty;
+        if (!string.IsNullOrWhiteSpace(roomId))
+        {
+            Guid.TryParse(roomId, out parsedRoomId);
+        }
+
         ChatRoom? room = null;
 
-        if (roomId == Guid.Empty)
+        if (parsedRoomId != Guid.Empty)
         {
-            // Chat với Shop: gom ShopId và BuyerUserId
+            room = await dbContext.ChatRooms.FirstOrDefaultAsync(r => r.Id == parsedRoomId);
+        }
+
+        if (room == null)
+        {
+            // Chat 1v1: gom ShopId và BuyerUserId
             long shopId = senderRole == "Buyer" ? recipientId : senderId;
             long buyerUserId = senderRole == "Buyer" ? senderId : recipientId;
 
-            room = await dbContext.ChatRooms.FirstOrDefaultAsync(r => r.ShopId == shopId && r.BuyerUserId == buyerUserId);
+            if (shopId > 0 && buyerUserId > 0)
+            {
+                room = await dbContext.ChatRooms.FirstOrDefaultAsync(r => r.ShopId == shopId && r.BuyerUserId == buyerUserId);
+            }
+
             if (room == null)
             {
                 room = new ChatRoom
                 {
-                    Id = Guid.NewGuid(),
+                    Id = parsedRoomId != Guid.Empty ? parsedRoomId : Guid.NewGuid(),
                     ShopId = shopId,
                     BuyerUserId = buyerUserId,
                     LastMessage = string.Empty,
@@ -127,23 +138,44 @@ public class NotificationHub(
                 dbContext.ChatRooms.Add(room);
             }
 
-            roomId = room.Id;
-        }
-        else
-        {
-            room = await dbContext.ChatRooms.FirstOrDefaultAsync(r => r.Id == roomId);
+            parsedRoomId = room.Id;
         }
 
-        if (room == null) return null;
+        Guid? parsedReplyToMessageId = null;
+        if (!string.IsNullOrWhiteSpace(replyToMessageId) && Guid.TryParse(replyToMessageId, out var parsedGuid))
+        {
+            parsedReplyToMessageId = parsedGuid;
+        }
+
+        var trimmedContent = content.Trim();
+        if (trimmedContent.Length > 2000)
+        {
+            trimmedContent = trimmedContent.Substring(0, 2000);
+        }
+
+        var safeReplyContent = replyToContent;
+        if (!string.IsNullOrEmpty(safeReplyContent) && safeReplyContent.Length > 950)
+        {
+            safeReplyContent = safeReplyContent.Substring(0, 950) + "...";
+        }
+
+        var safeReplySenderName = replyToSenderName;
+        if (!string.IsNullOrEmpty(safeReplySenderName) && safeReplySenderName.Length > 90)
+        {
+            safeReplySenderName = safeReplySenderName.Substring(0, 90);
+        }
 
         var msgType = Enum.TryParse<ChatMessageType>(messageType, true, out var parsedType) ? parsedType : ChatMessageType.Text;
         var message = new ChatMessage
         {
-            RoomId = roomId,
+            RoomId = parsedRoomId,
             SenderId = senderId,
-            Content = content.Trim(),
+            Content = trimmedContent,
             MessageType = msgType,
-            SentAt = DateTimeOffset.UtcNow
+            SentAt = DateTimeOffset.UtcNow,
+            ReplyToMessageId = parsedReplyToMessageId,
+            ReplyToContent = safeReplyContent,
+            ReplyToSenderName = safeReplySenderName
         };
 
         dbContext.ChatMessages.Add(message);
@@ -189,7 +221,29 @@ public class NotificationHub(
         }
         else
         {
-            room.LastMessage = message.Content.Length > 200 ? message.Content.Substring(0, 200) + "..." : message.Content;
+            var text = message.Content;
+            if (text.StartsWith("[reply:"))
+            {
+                var closeIdx = text.IndexOf("}]\n");
+                if (closeIdx != -1)
+                {
+                    text = text.Substring(closeIdx + 3).Trim();
+                }
+                else
+                {
+                    closeIdx = text.IndexOf("}]");
+                    if (closeIdx != -1)
+                    {
+                        text = text.Substring(closeIdx + 2).Trim();
+                    }
+                }
+            }
+            if (text.Contains("\"}]"))
+            {
+                var leakedIdx = text.IndexOf("\"}]");
+                text = text.Substring(leakedIdx + 3).Trim();
+            }
+            room.LastMessage = text.Length > 200 ? text.Substring(0, 200) + "..." : text;
         }
 
         room.LastActiveAt = message.SentAt;
@@ -205,40 +259,41 @@ public class NotificationHub(
             senderId = message.SenderId,
             content = message.Content,
             messageType = message.MessageType.ToString(),
-            sentAt = message.SentAt
+            sentAt = message.SentAt,
+            replyToMessageId = message.ReplyToMessageId,
+            replyToContent = message.ReplyToContent,
+            replyToSenderName = message.ReplyToSenderName
         };
 
         // 1. Luôn thêm kết nối hiện tại vào room group
-        var groupName = $"chat-room-{roomId}";
+        var groupName = $"chat-room-{message.RoomId}";
         await Groups.AddToGroupAsync(Context.ConnectionId, groupName);
 
         // 2. Broadcast tin nhắn tới mọi người trong phòng chat
         await Clients.Group(groupName).SendAsync("ReceiveChatMessage", chatPayload);
 
-        // 3. Multi-cast trực tiếp tới người nhận (kênh shop hoặc group cá nhân người mua) để đảm bảo không bị lỡ tin
-        if (senderRole == "Buyer")
+        // 3. Gửi trực tiếp 1v1 tới tài khoản cá nhân người nhận (nếu họ chưa mở phòng chat)
+        try
         {
-            var shopChannelName = $"shop-channel-{room.ShopId}";
-            await Clients.Group(shopChannelName).SendAsync("ReceiveChatMessage", chatPayload);
-            await Clients.Group(shopChannelName).SendAsync("NewChatNotification", new
+            if (recipientId > 0 && recipientId != senderId)
             {
-                roomId = room.Id,
-                shopId = room.ShopId,
-                buyerUserId = room.BuyerUserId,
-                lastMessage = room.LastMessage,
-                lastActiveAt = room.LastActiveAt
-            });
+                await Clients.Group(recipientId.ToString()).SendAsync("ReceiveChatMessage", chatPayload);
+            }
+            if (room.BuyerUserId > 0 && room.BuyerUserId != senderId && room.BuyerUserId != recipientId)
+            {
+                await Clients.Group(room.BuyerUserId.ToString()).SendAsync("ReceiveChatMessage", chatPayload);
+            }
         }
-        else
+        catch (Exception ex)
         {
-            await Clients.Group(room.BuyerUserId.ToString()).SendAsync("ReceiveChatMessage", chatPayload);
+            logger.LogWarning(ex, "Could not send direct notification to recipient {RecipientId}", recipientId);
         }
 
-        logger.LogInformation("Chat message sent in Room {RoomId} by User {SenderId}", roomId, senderId);
+        logger.LogInformation("Chat message sent in Room {RoomId} by User {SenderId}", message.RoomId, senderId);
         return chatPayload;
     }
 
-    /// <summary>Thu hồi tin nhắn chat ở cả hai phía (Sender & Recipient).</summary>
+    /// <summary>Thu hồi tin nhắn chat 1v1 ở cả hai phía.</summary>
     public async Task<bool> RevokeChatMessage(Guid messageId, Guid roomId)
     {
         var senderId = GetCurrentUserId();
@@ -275,33 +330,17 @@ public class NotificationHub(
         var groupName = $"chat-room-{roomId}";
         await Clients.Group(groupName).SendAsync("ReceiveMessageRevoked", revokePayload);
 
+        // Gửi thông báo thu hồi trực tiếp 1v1 tới người còn lại
         if (room != null)
         {
-            var shopChannelName = $"shop-channel-{room.ShopId}";
-            await Clients.Group(shopChannelName).SendAsync("ReceiveMessageRevoked", revokePayload);
-            await Clients.Group(room.BuyerUserId.ToString()).SendAsync("ReceiveMessageRevoked", revokePayload);
+            var otherUserId = senderId == room.BuyerUserId ? 0 : room.BuyerUserId;
+            if (otherUserId > 0)
+            {
+                await Clients.Group(otherUserId.ToString()).SendAsync("ReceiveMessageRevoked", revokePayload);
+            }
         }
 
         logger.LogInformation("Message {MessageId} in Room {RoomId} revoked by User {SenderId}", messageId, roomId, senderId);
-        return true;
-    }
-
-    /// <summary>Thả biểu tượng cảm xúc (Reaction) vào tin nhắn.</summary>
-    public async Task<bool> ReactToChatMessage(Guid messageId, Guid roomId, string emoji)
-    {
-        var senderId = GetCurrentUserId();
-        if (senderId <= 0 || string.IsNullOrWhiteSpace(emoji)) return false;
-
-        var reactionPayload = new
-        {
-            messageId,
-            roomId,
-            senderId,
-            emoji = emoji.Trim()
-        };
-
-        var groupName = $"chat-room-{roomId}";
-        await Clients.Group(groupName).SendAsync("ReceiveMessageReaction", reactionPayload);
         return true;
     }
 
@@ -319,19 +358,35 @@ public class NotificationHub(
             }
         }
 
-        var messages = await query
+        var rawMessages = await query
             .OrderByDescending(m => m.SentAt)
             .Take(limit)
-            .Select(m => (object)new
+            .Select(m => new
             {
                 id = m.Id,
                 roomId = m.RoomId,
                 senderId = m.SenderId,
                 content = m.Content,
                 messageType = m.MessageType.ToString(),
-                sentAt = m.SentAt
+                sentAt = m.SentAt,
+                replyToMessageId = m.ReplyToMessageId,
+                replyToContent = m.ReplyToContent,
+                replyToSenderName = m.ReplyToSenderName
             })
             .ToListAsync();
+
+        var messages = rawMessages.Select(m => (object)new
+        {
+            id = m.id,
+            roomId = m.roomId,
+            senderId = m.senderId,
+            content = m.content,
+            messageType = m.messageType,
+            sentAt = m.sentAt,
+            replyToMessageId = m.replyToMessageId,
+            replyToContent = m.replyToContent,
+            replyToSenderName = m.replyToSenderName
+        }).ToList();
 
         messages.Reverse();
         return messages;

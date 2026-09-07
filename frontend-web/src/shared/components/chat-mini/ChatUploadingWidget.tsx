@@ -35,16 +35,16 @@ export function ChatUploadingWidget({
 					</div>
 
 					{/* Hover Tooltip/Popover hiển thị chi tiết danh sách tài nguyên đang tải lên */}
-					<div className="absolute bottom-16 left-0 z-50 w-72 bg-white rounded-md border border-brand-border shadow-2xl p-2.5 space-y-2 opacity-0 group-hover:opacity-100 pointer-events-none group-hover:pointer-events-auto transition-opacity duration-150 select-none">
+					<div className="absolute bottom-16 left-0 z-50 w-96 sm:w-[420px] bg-white rounded-md border border-brand-border shadow-2xl p-2.5 space-y-2 opacity-0 group-hover:opacity-100 pointer-events-none group-hover:pointer-events-auto transition-opacity duration-150 select-none">
 						<div className="flex items-center justify-between pb-1.5 border-b border-brand-border/60">
 							<span className="text-xs font-bold text-brand-dark flex items-center gap-1.5">
 								<CloudUploadOutlined className="text-brand-primary" />
 								Đang tải lên ({uploadingCount})
 							</span>
-							<span className="text-[10px] text-brand-muted font-medium">Tối đa 50MB/video</span>
+							<span className="text-[10px] text-brand-muted font-medium">Tối đa 50MB/tệp</span>
 						</div>
 
-						<div className="max-h-48 overflow-y-auto space-y-2 pr-0.5">
+						<div className="max-h-52 overflow-y-auto space-y-2 pr-0.5">
 							{uploadingList.map((item) => (
 								<div key={item.id} className="space-y-1 bg-slate-50 p-1.5 rounded-md border border-brand-border/40">
 									<div className="flex items-center gap-1.5 min-w-0">
@@ -53,7 +53,7 @@ export function ChatUploadingWidget({
 										) : (
 											<FileImageOutlined className="text-xs text-blue-500 shrink-0" />
 										)}
-										<span className="text-xs font-bold text-brand-dark truncate flex-1">
+										<span className="text-xs font-bold text-brand-dark truncate flex-1" title={item.fileName}>
 											{item.fileName}
 										</span>
 										<span className="text-[10px] text-brand-muted font-medium shrink-0">
@@ -80,11 +80,63 @@ export function ChatUploadingWidget({
 				</div>
 			)}
 
-			{/* Dải thumbnail xem trước từng tệp trong hàng đợi */}
+			{/* Dải xem trước từng tệp trong hàng đợi: Hỗ trợ cả Media (ảnh/video) và Dạng tệp tin với tên dài hơn */}
 			{pendingMediaList.map((item) => {
 				const isUploading = item.status === "uploading";
 				const isDone = item.status === "done";
 				const isError = item.status === "error";
+				const isVideo = item.type === "Video" || (item.file && item.file.type.startsWith("video/"));
+				const isImage = item.type === "Image" || (item.file && item.file.type.startsWith("image/"));
+
+				// Dạng tệp tin thông thường (PDF, DOCX, ZIP, v.v.): Hiển thị card ngang rộng rãi với tên dài hơn
+				if (!isImage && !isVideo) {
+					return (
+						<div
+							key={item.id}
+							className="h-14 px-3 py-1.5 rounded-md border border-brand-border relative overflow-hidden bg-slate-100/90 shrink-0 shadow-2xs group flex items-center gap-2.5 max-w-[260px] sm:max-w-[320px]"
+							title={item.fileName}
+						>
+							<div className="w-8 h-8 rounded-md bg-blue-100 text-blue-600 flex items-center justify-center shrink-0">
+								<CloudUploadOutlined className="text-base" />
+							</div>
+							<div className="min-w-0 flex-1">
+								<div className="text-xs font-semibold text-brand-dark truncate max-w-[170px] sm:max-w-[220px]" title={item.fileName}>
+									{item.fileName}
+								</div>
+								<div className="text-[10px] text-brand-muted">
+									{item.fileSize > 1024 * 1024
+										? `${(item.fileSize / (1024 * 1024)).toFixed(1)} MB`
+										: `${Math.round(item.fileSize / 1024)} KB`}
+								</div>
+							</div>
+
+							{/* Overlay khi đang tải lên */}
+							{isUploading && (
+								<div className="absolute inset-0 bg-black/60 flex flex-col items-center justify-center text-white p-0.5">
+									<SyncOutlined spin className="text-xs" />
+									<span className="text-[9px] font-black mt-0.5">{item.progress}%</span>
+								</div>
+							)}
+
+							{/* Badge hoàn tất tải lên S3 */}
+							{isDone && (
+								<span className="absolute bottom-1 right-1 bg-emerald-500 text-white rounded-full p-0.5 shadow-2xs flex items-center justify-center">
+									<CheckOutlined className="text-[7px]" />
+								</span>
+							)}
+
+							{/* Nút xóa/hủy tệp */}
+							<button
+								type="button"
+								onClick={() => onRemoveMedia(item.id)}
+								className="absolute top-1 right-1 w-4 h-4 bg-black/65 hover:bg-red-600 text-white rounded-full transition-colors cursor-pointer border-none flex items-center justify-center shadow-xs"
+								title="Hủy bỏ"
+							>
+								<CloseOutlined className="text-[8px]" />
+							</button>
+						</div>
+					);
+				}
 
 				return (
 					<div
@@ -92,7 +144,7 @@ export function ChatUploadingWidget({
 						className="w-14 h-14 rounded-md border border-brand-border relative overflow-hidden bg-slate-100 shrink-0 shadow-2xs group"
 						title={item.fileName}
 					>
-						{item.type === "Video" ? (
+						{isVideo ? (
 							<video src={item.previewUrl} className="w-full h-full object-cover" />
 						) : (
 							<img src={item.previewUrl} alt={item.fileName} className="w-full h-full object-cover" />

@@ -77,13 +77,10 @@ export const AddMissingVariantsModal: React.FC<AddMissingVariantsModalProps> = (
 
 	const modalContent = (
 		<div className="fixed inset-0 z-[10000] flex items-center justify-center bg-black/50 backdrop-blur-xs p-4 font-sans text-left animate-in fade-in duration-200">
-			<div className="bg-white border border-brand-border rounded-xl w-full max-w-2xl max-h-[85vh] flex flex-col shadow-2xl relative overflow-hidden">
+			<div className="bg-white border border-brand-border rounded-md w-full max-w-2xl max-h-[85vh] flex flex-col shadow-2xl relative overflow-hidden">
 				{/* Modal Header */}
 				<div className="px-6 py-4 border-b border-brand-border/60 flex items-center justify-between shrink-0 bg-white">
 					<div className="flex items-center gap-2.5">
-						<div className="w-8 h-8 rounded-lg bg-brand-primary/10 text-brand-primary-deep flex items-center justify-center">
-							<Layers className="w-4 h-4" />
-						</div>
 						<div>
 							<h3 className="text-sm font-bold text-brand-dark">
 								Thêm biến thể còn thiếu

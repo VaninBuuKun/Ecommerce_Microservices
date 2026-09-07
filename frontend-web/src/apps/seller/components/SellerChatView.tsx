@@ -86,8 +86,16 @@ export function SellerChatView() {
 					createdAt: new Date().toISOString(),
 				},
 			]);
+			setConversations((prev) =>
+				prev.map((c) =>
+					c.partnerId === activePartnerId
+						? { ...c, lastMessage: textToSend, lastMessageAt: new Date().toISOString() }
+						: c
+				)
+			);
 		} catch (err: any) {
-			toast.error("Gửi tin nhắn thất bại.");
+			const detail = err?.response?.data?.message || err?.message || "Lỗi kết nối máy chủ";
+			toast.error(`Không thể gửi tin nhắn cho khách hàng: ${detail}`);
 		} finally {
 			setIsSending(false);
 		}
@@ -196,7 +204,6 @@ export function SellerChatView() {
 								type="text"
 								value={inputText}
 								onChange={(e) => setInputText(e.target.value)}
-								placeholder="Nhập tin nhắn trả lời khách hàng..."
 								className="flex-1 h-10 px-4 bg-slate-50 border border-brand-border rounded-xl text-xs font-semibold focus:outline-none focus:border-brand-primary"
 							/>
 							<button

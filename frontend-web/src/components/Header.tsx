@@ -201,18 +201,12 @@ export default function Header() {
 					<img
 						src="/ecommerce-icon.png"
 						alt="Buu Store"
-						className="w-7 h-7 object-contain"
+						className="w-32 h-16 object-contain"
 						onError={(e) => {
 							(e.target as HTMLImageElement).src =
 								"https://cdn-icons-png.flaticon.com/512/3081/3081986.png";
 						}}
 					/>
-					<span className="font-extrabold text-brand-dark tracking-tighter leading-none">
-						BUU
-						<span className="text-brand-primary font-medium">
-							STORE
-						</span>
-					</span>
 					{isSystemAdmin && (
 						<span className="px-2 py-0.5 bg-amber-100 text-amber-800 border border-amber-200 text-[8px] font-black uppercase rounded animate-pulse">
 							Admin Mode
@@ -708,11 +702,11 @@ export default function Header() {
 						onMouseEnter={() => setShowUserDropdown(true)}
 						onMouseLeave={() => setShowUserDropdown(false)}
 					>
-						<button className="w-8 h-8 hover:bg-brand-primary/10 rounded-full transition-colors cursor-pointer flex items-center justify-center p-0.5">
+						<button className="w-8 h-8 hover:bg-brand-primary/10 rounded-full transition-colors cursor-pointer flex items-center justify-center">
 							<img
 								src={user.avatarUrl}
 								alt="Avatar"
-								className="w-7 h-7 rounded-full object-cover border border-brand-border"
+								className="w-8 h-8 rounded-full object-cover ring-2 ring-brand-primary/20 ring-offset-1 ring-offset-white shadow-sm transition-all duration-200 hover:ring-brand-primary hover:scale-105"
 								onError={(e) => {
 									(e.target as HTMLImageElement).src =
 										"https://cdn-icons-png.flaticon.com/512/149/149071.png";

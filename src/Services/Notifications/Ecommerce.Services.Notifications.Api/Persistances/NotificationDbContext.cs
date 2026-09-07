@@ -57,6 +57,9 @@ public class NotificationDbContext(DbContextOptions<NotificationDbContext> optio
             entity.Property(c => c.SenderId).IsRequired();
             entity.Property(c => c.Content).IsRequired().HasMaxLength(2000);
             entity.Property(c => c.MessageType).HasConversion<string>().HasMaxLength(50);
+            entity.Property(c => c.ReplyToMessageId).IsRequired(false);
+            entity.Property(c => c.ReplyToContent).HasMaxLength(1000).IsRequired(false);
+            entity.Property(c => c.ReplyToSenderName).HasMaxLength(100).IsRequired(false);
 
             entity.HasIndex(c => c.RoomId);
             entity.HasIndex(c => c.SentAt);

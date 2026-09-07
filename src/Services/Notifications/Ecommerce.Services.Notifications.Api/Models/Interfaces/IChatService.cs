@@ -11,6 +11,7 @@ public interface IChatService
     Task<Result<List<ConversationDto>>> GetConversationsAsync(
         long currentUserId, 
         bool isSeller, 
+        long? shopId,
         BuildingBlocks.Grpc.Services.IdentityGrpc.IdentityGrpcClient identityClient,
         BuildingBlocks.Grpc.Services.SellerGrpc.SellerGrpcClient sellerClient);
 

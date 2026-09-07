@@ -11,3 +11,5 @@ export * from "./ChatMiniModal";
 export * from "./chat-mini";
 export * from "./ChatImageViewer";
 export * from "./AuthRequiredModal";
+export * from "./guards";
+

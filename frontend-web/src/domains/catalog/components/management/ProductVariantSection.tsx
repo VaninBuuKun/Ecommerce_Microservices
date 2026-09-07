@@ -95,6 +95,8 @@ export const VariantsSection: React.FC<VariantsSectionProps> = ({
 	setSimpleStock,
 }) => {
 	const [simpleErrors, setSimpleErrors] = useState<Record<string, string>>({});
+	const [bulkScope, setBulkScope] = useState<string>("all");
+	const [bulkCondition, setBulkCondition] = useState<"empty" | "all">("empty");
 	const [bulkField, setBulkField] = useState<"price" | "discountPrice" | "stock">("price");
 	const [bulkValue, setBulkValue] = useState<number>(0);
 
@@ -142,9 +144,9 @@ export const VariantsSection: React.FC<VariantsSectionProps> = ({
 	const handleAddMissingVariants = (selectedItems: MissingVariantItem[]) => {
 		const newVariantsToAdd: GeneratedVariantType[] = selectedItems.map((item) => ({
 			sku: "",
-			price: simplePrice || 0,
-			discountPrice: simpleDiscountPrice > 0 ? simpleDiscountPrice : undefined,
-			stock: simpleStock || 0,
+			price: 0,
+			discountPrice: undefined,
+			stock: 0,
 			optionValues: item.optionValues.map((ov) => ({
 				optionName: ov.optionName,
 				valueName: ov.valueName,
@@ -180,8 +182,36 @@ export const VariantsSection: React.FC<VariantsSectionProps> = ({
 	const [dragOverVal, setDragOverVal] = useState<{ optIdx: number; valIdx: number } | null>(null);
 
 	const handleApplyBulk = () => {
+		if (bulkValue < 0) return;
 		setGeneratedVariants((prev) =>
 			prev.map((v) => {
+				// 1. Kiểm tra Phạm vi (Scope)
+				if (bulkScope !== "all") {
+					if (bulkScope === "opt_0") {
+						if (!v.optionValues[0]) return v;
+					} else if (bulkScope === "opt_1") {
+						if (!v.optionValues[1]) return v;
+					} else if (bulkScope.startsWith("opt_0_")) {
+						const targetVal = bulkScope.replace("opt_0_", "");
+						if (v.optionValues[0]?.valueName?.trim().toLowerCase() !== targetVal.trim().toLowerCase()) {
+							return v;
+						}
+					} else if (bulkScope.startsWith("opt_1_")) {
+						const targetVal = bulkScope.replace("opt_1_", "");
+						if (v.optionValues[1]?.valueName?.trim().toLowerCase() !== targetVal.trim().toLowerCase()) {
+							return v;
+						}
+					}
+				}
+
+				// 2. Kiểm tra Mức độ (Condition)
+				if (bulkCondition === "empty") {
+					if (bulkField === "price" && v.price && v.price > 0) return v;
+					if (bulkField === "discountPrice" && v.discountPrice && v.discountPrice > 0) return v;
+					if (bulkField === "stock" && v.stock && v.stock > 0) return v;
+				}
+
+				// 3. Cập nhật thông số
 				const next = { ...v };
 				if (bulkField === "price") {
 					next.price = bulkValue;
@@ -193,6 +223,7 @@ export const VariantsSection: React.FC<VariantsSectionProps> = ({
 				return next;
 			}),
 		);
+		toast.success("Áp dụng thông số thành công.");
 	};
 
 	const isTwoOptions =
@@ -447,18 +478,66 @@ export const VariantsSection: React.FC<VariantsSectionProps> = ({
 					{/* Bulk Update Controls & Add Missing Variants */}
 					<div className="flex flex-wrap items-center justify-between gap-3">
 						{generatedVariants.length > 0 && (
-							<div className="p-3 bg-brand-light-soft/50 border border-brand-border rounded-md flex flex-wrap items-center gap-3 flex-1 min-w-[320px]">
-								<span className="font-bold text-brand-dark text-xs">Nhập nhanh thông số:</span>
+							<div className="p-3 bg-brand-light-soft/50 border border-brand-border rounded-md flex flex-wrap items-center gap-2.5 flex-1 min-w-[320px]">
+								<span className="font-bold text-brand-dark text-xs shrink-0">Nhập nhanh thông số:</span>
+
+								{/* 1. Phạm vi */}
+								<div className="flex items-center gap-1 shrink-0">
+									<span className="text-[11px] text-brand-muted font-medium">Phạm vi:</span>
+									<select
+										value={bulkScope}
+										onChange={(e) => setBulkScope(e.target.value)}
+										className="h-8 px-2 border border-brand-border rounded-md bg-white font-semibold focus:outline-none text-xs"
+									>
+										<option value="all">Tất cả</option>
+										{options[0]?.name && (
+											<optgroup label={options[0].name}>
+												<option value="opt_0">{options[0].name} (Tất cả)</option>
+												{options[0].values.map((v) => (
+													<option key={v.value} value={`opt_0_${v.value}`}>
+														↳ {options[0].name}: {v.value}
+													</option>
+												))}
+											</optgroup>
+										)}
+										{options[1]?.name && (
+											<optgroup label={options[1].name}>
+												<option value="opt_1">{options[1].name} (Tất cả)</option>
+												{options[1].values.map((v) => (
+													<option key={v.value} value={`opt_1_${v.value}`}>
+														↳ {options[1].name}: {v.value}
+													</option>
+												))}
+											</optgroup>
+										)}
+									</select>
+								</div>
+
+								{/* 2. Mức độ */}
+								<div className="flex items-center gap-1 shrink-0">
+									<span className="text-[11px] text-brand-muted font-medium">Mức độ:</span>
+									<select
+										value={bulkCondition}
+										onChange={(e) => setBulkCondition(e.target.value as any)}
+										className="h-8 px-2 border border-brand-border rounded-md bg-white font-semibold focus:outline-none text-xs"
+									>
+										<option value="empty">Chưa có giá trị</option>
+										<option value="all">Tất cả</option>
+									</select>
+								</div>
+
+								{/* 3. Thông số */}
 								<select
 									value={bulkField}
 									onChange={(e) => setBulkField(e.target.value as any)}
-									className="h-8 px-2 border border-brand-border rounded-md bg-white font-semibold focus:outline-none text-xs"
+									className="h-8 px-2 border border-brand-border rounded-md bg-white font-semibold focus:outline-none text-xs shrink-0"
 								>
 									<option value="price">Giá bán (đ)</option>
 									<option value="discountPrice">Giá giảm (đ)</option>
 									<option value="stock">Kho hàng</option>
 								</select>
 
+								{/* 4. Giá trị */}
 								<NumberInput
 									value={bulkValue}
 									onChange={setBulkValue}
@@ -466,10 +545,11 @@ export const VariantsSection: React.FC<VariantsSectionProps> = ({
 									placeholder="Nhập giá trị..."
 								/>
 
+								{/* 5. Nút Áp dụng */}
 								<button
 									type="button"
 									onClick={handleApplyBulk}
-									className="h-8 px-3.5 bg-brand-primary text-brand-dark font-bold text-xs rounded-md hover:bg-brand-primary-deep cursor-pointer transition-colors border-none shadow-xs"
+									className="h-8 px-3.5 bg-brand-primary text-brand-dark font-bold text-xs rounded-md hover:bg-brand-primary-deep cursor-pointer transition-colors border-none shadow-xs shrink-0"
 								>
 									Áp dụng
 								</button>

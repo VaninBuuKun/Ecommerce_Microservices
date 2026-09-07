@@ -1,67 +1,61 @@
 import React, { useState, useRef, useEffect } from "react";
-import { SmileOutlined, DownloadOutlined, DeleteOutlined } from "@ant-design/icons";
-import { REACTION_EMOJIS } from "@/domains/notification";
+import { DownloadOutlined, DeleteOutlined, RollbackOutlined } from "@ant-design/icons";
 
 interface ChatMessageActionBarProps {
 	isMyMessage: boolean;
 	isMedia: boolean;
-	onReact: (emoji: string) => void;
+	onReply?: () => void;
 	onRevoke?: () => void;
 	onDownload?: () => void;
-	userReaction?: string;
 }
 
 export const ChatMessageActionBar: React.FC<ChatMessageActionBarProps> = ({
 	isMyMessage,
 	isMedia,
-	onReact,
+	onReply,
 	onRevoke,
 	onDownload,
-	userReaction,
 }) => {
-	const [showEmojiPicker, setShowEmojiPicker] = useState(false);
 	const [showConfirmRevoke, setShowConfirmRevoke] = useState(false);
-	const emojiPickerRef = useRef<HTMLDivElement>(null);
+	const barRef = useRef<HTMLDivElement>(null);
 
-	// Tự động đóng popover emoji khi click ra ngoài
+	// Tự động đóng popover xác nhận khi click ra ngoài
 	useEffect(() => {
 		const handleClickOutside = (e: MouseEvent) => {
-			if (emojiPickerRef.current && !emojiPickerRef.current.contains(e.target as Node)) {
-				setShowEmojiPicker(false);
+			if (barRef.current && !barRef.current.contains(e.target as Node)) {
+				setShowConfirmRevoke(false);
 			}
 		};
-		if (showEmojiPicker) {
+		if (showConfirmRevoke) {
 			document.addEventListener("mousedown", handleClickOutside);
 		}
 		return () => {
 			document.removeEventListener("mousedown", handleClickOutside);
 		};
-	}, [showEmojiPicker]);
+	}, [showConfirmRevoke]);
 
 	return (
 		<div
-			ref={emojiPickerRef}
+			ref={barRef}
 			className="relative flex items-center gap-0.5 bg-white/95 backdrop-blur-md px-1 py-0.5 rounded-full border border-slate-200 shadow-xs z-20 select-none"
 		>
-			{/* 1. Nút Icon Cảm Xúc (Mặt cười) - Click mới mở danh sách biểu tượng cảm xúc */}
-			<button
-				type="button"
-				onClick={(e) => {
-					e.stopPropagation();
-					setShowEmojiPicker((v) => !v);
-					setShowConfirmRevoke(false);
-				}}
-				className={`w-5 h-5 flex items-center justify-center rounded-full transition-colors cursor-pointer border-none ${
-					showEmojiPicker || userReaction
-						? "bg-amber-100/80 text-amber-600 font-bold"
-						: "text-slate-500 hover:text-amber-500 hover:bg-slate-100 bg-transparent"
-				}`}
-				title="Thả cảm xúc"
-			>
-				<SmileOutlined className="text-xs" />
-			</button>
+			{/* 1. Nút Trả lời (Reply) tin nhắn */}
+			{onReply && (
+				<button
+					type="button"
+					onClick={(e) => {
+						e.stopPropagation();
+						setShowConfirmRevoke(false);
+						onReply();
+					}}
+					className="w-5 h-5 flex items-center justify-center rounded-full text-slate-500 hover:text-brand-dark hover:bg-slate-100 transition-colors border-none bg-transparent cursor-pointer"
+					title="Trả lời tin nhắn"
+				>
+					<RollbackOutlined className="text-xs" />
+				</button>
+			)}
 
-			{/* 2. Nút Tải ảnh / video về máy (chỉ hiện khi là media) */}
+			{/* 2. Nút Tải ảnh / video / file về máy (chỉ hiện khi là media/file) */}
 			{isMedia && onDownload && (
 				<button
 					type="button"
@@ -70,7 +64,7 @@ export const ChatMessageActionBar: React.FC<ChatMessageActionBarProps> = ({
 						onDownload();
 					}}
 					className="w-5 h-5 flex items-center justify-center rounded-full text-slate-500 hover:text-blue-600 hover:bg-blue-50 transition-colors border-none bg-transparent cursor-pointer"
-					title="Tải về thiết bị"
+					title="Tải xuống thiết bị"
 				>
 					<DownloadOutlined className="text-xs" />
 				</button>
@@ -83,7 +77,6 @@ export const ChatMessageActionBar: React.FC<ChatMessageActionBarProps> = ({
 					onClick={(e) => {
 						e.stopPropagation();
 						setShowConfirmRevoke((v) => !v);
-						setShowEmojiPicker(false);
 					}}
 					className={`w-5 h-5 flex items-center justify-center rounded-full transition-colors border-none cursor-pointer ${
 						showConfirmRevoke
@@ -94,35 +87,6 @@ export const ChatMessageActionBar: React.FC<ChatMessageActionBarProps> = ({
 				>
 					<DeleteOutlined className="text-xs" />
 				</button>
-			)}
-
-			{/* Floating Popover Emoji List khi nhấn nút (Căn giữa cân đối 2 bên) */}
-			{showEmojiPicker && (
-				<div
-					className="absolute bottom-full mb-1.5 left-1/2 -translate-x-1/2 z-50 flex items-center gap-1 bg-white/95 backdrop-blur-md px-2 py-1 rounded-full shadow-xl border border-slate-200 animate-in zoom-in-90 duration-150 whitespace-nowrap"
-					onClick={(e) => e.stopPropagation()}
-				>
-					{REACTION_EMOJIS.map((emoji) => {
-						const isSelected = userReaction === emoji;
-						return (
-							<button
-								key={emoji}
-								type="button"
-								onClick={(e) => {
-									e.stopPropagation();
-									setShowEmojiPicker(false);
-									onReact(emoji);
-								}}
-								className={`w-7 h-7 flex items-center justify-center text-base rounded-full transition-transform hover:scale-135 active:scale-95 cursor-pointer border-none ${
-									isSelected ? "bg-brand-primary/20 scale-115" : "bg-transparent hover:bg-slate-100"
-								}`}
-								title={emoji}
-							>
-								{emoji}
-							</button>
-						);
-					})}
-				</div>
 			)}
 
 			{/* Popover xác nhận thu hồi (Căn giữa cân đối) */}
