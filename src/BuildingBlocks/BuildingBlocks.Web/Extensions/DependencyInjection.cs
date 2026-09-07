@@ -1,4 +1,5 @@
 using System.Reflection;
+using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Configuration;
 using Microsoft.OpenApi.Models;
@@ -74,5 +75,11 @@ public static class DependencyInjection
 
 
         return services;
+    }
+
+    public static IApplicationBuilder UseBuildingBlocksMiddlewares(this IApplicationBuilder app)
+    {
+        app.UseMiddleware<Middlewares.GlobalExceptionMiddleware>();
+        return app;
     }
 }

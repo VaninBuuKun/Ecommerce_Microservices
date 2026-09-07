@@ -2,12 +2,10 @@ namespace Ecommerce.Services.Shippings.Api.Models.Enums;
 
 public enum ShipmentStatus
 {
-    Created = 1,
-    ReadyToPick = 2,
-    Picking = 3,
-    InTransit = 4,
-    Delivered = 5,
-    Cancelled = 6,
-    Returned = 7,
-    Failed = 8
+    ReadyToPick = 1, // Gom Created + ReadyToPick + Picking: Đã tạo đơn thành công, chờ/đang lấy hàng
+    InTransit = 2,   // Đang vận chuyển (Đã rời kho/đang trên đường)
+    Delivered = 3,   // Giao thành công
+    Returned = 4,    // Hoàn trả thành công về Shop
+    Cancelled = 5,   // Hủy đơn
+    Failed = 6       // Lỗi (Tạo đơn đơn vị vận chuyển thất bại / Lỗi hệ thống)
 }

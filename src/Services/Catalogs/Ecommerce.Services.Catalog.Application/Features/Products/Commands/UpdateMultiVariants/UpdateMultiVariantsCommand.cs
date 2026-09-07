@@ -8,10 +8,10 @@ public record UpdateMultiVariantsCommand(
     long ProductId,
     List<MultiUpdateOptionDto> Options,
     List<MultiUpdateVariantDto> Variants,
-    double? Weight = null,
-    double? Length = null,
-    double? Width = null,
-    double? Height = null
+    int? Weight = null,
+    int? Length = null,
+    int? Width = null,
+    int? Height = null
 ) : ICommand<ProductResponse>;
 
 public record MultiUpdateOptionDto(

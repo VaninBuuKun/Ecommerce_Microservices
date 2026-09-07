@@ -12,10 +12,10 @@ public class Product : AggregateRoot<long>
     public string Name { get; private set; }
     public string Description { get; private set; }
     public ProductStatus Status { get; private set; }
-    public double Weight { get; private set; }
-    public double Length { get; private set; }
-    public double Width { get; private set; }
-    public double Height { get; private set; }
+    public int Weight { get; private set; }
+    public int Length { get; private set; }
+    public int Width { get; private set; }
+    public int Height { get; private set; }
     public string? ThumbnailUrl { get; private set; }
     public string? VideoUrl { get; private set; }
     public List<string> ImageUrls { get; private set; } = new();
@@ -55,7 +55,7 @@ public class Product : AggregateRoot<long>
 
     public Product() { Name = null!; Description = null!; } // EF Core
 
-    public Product(long shopId, string name, string description, string? thumbnailUrl = null, double weight = 0, double length = 0, double width = 0, double height = 0)
+    public Product(long shopId, string name, string description, string? thumbnailUrl = null, int weight = 0, int length = 0, int width = 0, int height = 0)
     {
         Check(new ProductNameCannotBeEmptyRule(name));
 
@@ -74,7 +74,7 @@ public class Product : AggregateRoot<long>
         RebuildSearchDocument();
     }
 
-    public static Product Create(long shopId, string name, string description, string thumbnailUrl, double weight, double length, double width, double height)
+    public static Product Create(long shopId, string name, string description, string thumbnailUrl, int weight, int length, int width, int height)
     {
         return new Product(shopId, name, description, thumbnailUrl, weight, length, width, height);
     }
@@ -125,7 +125,7 @@ public class Product : AggregateRoot<long>
         }
     }
 
-    public void UpdateInfo(string name, string description, long? categoryId, double weight, double length, double width, double height, string? thumbnailUrl = null, string? videoUrl = null, List<string>? imageUrls = null)
+    public void UpdateInfo(string name, string description, long? categoryId, int weight, int length, int width, int height, string? thumbnailUrl = null, string? videoUrl = null, List<string>? imageUrls = null)
     {
         Check(new ProductNameCannotBeEmptyRule(name));
         Name = name;
@@ -147,7 +147,7 @@ public class Product : AggregateRoot<long>
         RecalculateCachedPrices();
     }
 
-    public void UpdatePricingAndShipping(double weight, double length, double width, double height, decimal price, decimal discountPrice)
+    public void UpdatePricingAndShipping(int weight, int length, int width, int height, decimal price, decimal discountPrice)
     {
         Weight = weight;
         Length = length;
@@ -158,7 +158,7 @@ public class Product : AggregateRoot<long>
         DiscountPrice = discountPrice;
     }
 
-    public void UpdateShippingDimensions(double weight, double length, double width, double height)
+    public void UpdateShippingDimensions(int weight, int length, int width, int height)
     {
         Weight = weight;
         Length = length;

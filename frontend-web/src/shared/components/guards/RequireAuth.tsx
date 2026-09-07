@@ -13,6 +13,9 @@ export const RequireAuth: React.FC<RequireAuthProps> = ({ children }) => {
 	const authed = !!accessToken && isAuthenticated(accessToken);
 
 	if (!authed) {
+		if (accessToken) {
+			useAuthStore.getState().clearState();
+		}
 		const redirectUrl = encodeURIComponent(location.pathname + location.search);
 		return <Navigate to={`/login?redirect=${redirectUrl}`} replace state={{ from: location }} />;
 	}

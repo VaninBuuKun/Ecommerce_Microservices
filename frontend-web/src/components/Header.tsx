@@ -731,9 +731,9 @@ export default function Header() {
 										/>
 										<div className="min-w-0">
 											<h4 className="text-sm font-bold text-brand-dark truncate leading-tight text-left">
-												{user.firstName +
+												{user.lastName +
 													" " +
-													user.lastName}
+													user.firstName}
 											</h4>
 											<span className="text-xs text-brand-muted truncate block text-left">
 												{user.email}

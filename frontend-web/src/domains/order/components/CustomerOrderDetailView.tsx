@@ -22,6 +22,7 @@ import {
 	useConfirmSubOrderMutation,
 	useRejectSubOrderMutation,
 	getOrderStatusBadge,
+	getShipmentStatusBadge,
 	getPaymentStatusLabel,
 } from "@/domains/order";
 import { useResolveLocationsQuery, useShipmentBySubOrderQuery } from "@/domains/shipping";
@@ -107,19 +108,19 @@ export function CustomerOrderDetailView({
 			const itemW = item.weightInGrams > 0 ? item.weightInGrams : 500;
 			return acc + itemW * (item.quantity || 1);
 		}, 0);
-		return sum > 0 ? sum : 500;
+		return Math.round(sum > 0 ? sum : 500);
 	}, [detail?.orderItems]);
 
 	const maxSnapshotLength = useMemo(() => {
 		if (!detail?.orderItems) return 20;
 		const maxL = detail.orderItems.reduce((max: number, item: any) => Math.max(max, item.length || 0), 0);
-		return maxL > 0 ? maxL : 20;
+		return Math.round(maxL > 0 ? maxL : 20);
 	}, [detail?.orderItems]);
 
 	const maxSnapshotWidth = useMemo(() => {
 		if (!detail?.orderItems) return 15;
 		const maxW = detail.orderItems.reduce((max: number, item: any) => Math.max(max, item.width || 0), 0);
-		return maxW > 0 ? maxW : 15;
+		return Math.round(maxW > 0 ? maxW : 15);
 	}, [detail?.orderItems]);
 
 	const totalSnapshotHeight = useMemo(() => {
@@ -128,18 +129,16 @@ export function CustomerOrderDetailView({
 			const itemH = item.height > 0 ? item.height : 5;
 			return acc + itemH * (item.quantity || 1);
 		}, 0);
-		return sumH > 0 ? sumH : 10;
+		return Math.round(sumH > 0 ? sumH : 10);
 	}, [detail?.orderItems]);
 
 	const handleOpenPackagingModal = () => {
 		setPkgWeight(totalSnapshotWeight);
 		setPkgLength(maxSnapshotLength);
-		setWidth(maxSnapshotWidth);
+		setPkgWidth(maxSnapshotWidth);
 		setPkgHeight(totalSnapshotHeight);
 		setShowPackageModal(true);
 	};
-
-	const setWidth = (w: number) => setPkgWidth(w);
 
 	// 2. CONDITIONAL RENDERING AFTER ALL HOOKS
 	if (isLoading) {
@@ -293,7 +292,7 @@ export function CustomerOrderDetailView({
 
 	// Actions Availability Checks
 	const canCustomerCancel = !isSeller && !isAdmin && ["AwaitingPayment", "AwaitingConfirmation", "Processing"].includes(detail.status);
-	const canCustomerCompleteOrRefund = !isSeller && !isAdmin && ["Delivered", "Shipping"].includes(detail.status);
+	const canCustomerCompleteOrRefund = !isSeller && !isAdmin && ["Delivered"].includes(detail.status);
 
 	const canSellerConfirmOrReject = isSeller && !isAdmin && detail.status === "AwaitingConfirmation";
 	const canSellerPackage = isSeller && !isAdmin && detail.status === "Processing";
@@ -343,8 +342,10 @@ export function CustomerOrderDetailView({
 			{/* Top Header */}
 			<div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 pb-3 border-b border-brand-border">
 				<div>
-					<h2 className="text-sm font-black text-brand-dark uppercase tracking-wide flex items-center gap-1.5 flex-wrap">
-						Chi tiết đơn hàng #{String(detail.id).split("-")[0]} - <span>{getOrderStatusBadge(detail.status)}</span>
+					<h2 className="text-sm font-black text-brand-dark uppercase tracking-wide flex items-center gap-2 flex-wrap">
+						<span>Chi tiết đơn hàng #{String(detail.id).split("-")[0]}</span>
+						<span className="text-brand-muted font-normal">-</span>
+						{getOrderStatusBadge(detail.status)}
 					</h2>
 				</div>
 				<span className="text-[11px] text-brand-muted font-bold flex items-center gap-1">
@@ -395,7 +396,7 @@ export function CustomerOrderDetailView({
 						{shipment?.waybillCode && (
 							<div className="pt-1">
 								<span className="text-[10px] text-brand-muted font-bold">Mã vận đơn: </span>
-								<span className="font-mono text-[11px] font-black text-brand-primary bg-brand-primary/10 px-1.5 py-0.5 rounded">
+								<span className="text-[11px] font-black text-brand-primary bg-brand-primary/10 px-1.5 py-0.5 rounded">
 									{shipment.waybillCode}
 								</span>
 							</div>
@@ -425,7 +426,7 @@ export function CustomerOrderDetailView({
 						<Truck className="w-4 h-4 text-brand-primary" />
 						Hành trình vận chuyển đơn hàng
 						{shipment.waybillCode && (
-							<span className="font-mono text-[10px] font-black text-brand-muted lowercase">
+							<span className="text-[10px] font-black text-brand-muted lowercase">
 								(mã vận đơn: {shipment.waybillCode})
 							</span>
 						)}
@@ -433,12 +434,13 @@ export function CustomerOrderDetailView({
 
 					<div className="space-y-2 pt-1 border-t border-brand-border/60">
 						<div className="flex items-start gap-2.5 text-xs font-semibold">
-							<div className="w-2 h-2 rounded-full bg-emerald-500 mt-1.5 shrink-0" />
+							<div className="w-2 h-2 rounded-full bg-emerald-500 mt-1 shrink-0" />
 							<div className="space-y-0.5">
-								<p className="text-brand-dark font-extrabold">
-									Trạng thái kiện hàng: {shipment.status || "Đang xử lý"}
+								<p className="text-brand-dark font-extrabold flex items-center gap-2">
+									<span>Trạng thái kiện hàng:</span>
+									{getShipmentStatusBadge(shipment.status)}
 								</p>
-								<p className="text-[11px] text-brand-muted font-normal">
+								<p className="text-[12px] text-brand-muted font-normal whitespace-pre-line">
 									{shipment.trackingLogs || `Vận đơn đã được tạo thành công bởi hãng vận chuyển ${shipment.carrierName || "GHN"}.`}
 								</p>
 							</div>
@@ -476,7 +478,6 @@ export function CustomerOrderDetailView({
 										<div className="flex gap-3">
 											<img
 												src={item.thumbnailUrl || "https://images.unsplash.com/photo-1556821840-3a63f95609a7?auto=format&fit=crop&q=80&w=150"}
-												alt={item.productName}
 												className="w-16 h-16 object-cover rounded-md border border-brand-border shrink-0"
 											/>
 											<div className="space-y-1">
@@ -499,7 +500,7 @@ export function CustomerOrderDetailView({
 
 												{!isSeller && (
 													<div className="flex flex-wrap gap-2 pt-1">
-														{(detail.status === "Completed" || detail.status === "Delivered") && (
+														{(detail.status === "Completed") && (
 															<button
 																type="button"
 																onClick={() =>
@@ -592,7 +593,7 @@ export function CustomerOrderDetailView({
 						<div className="flex justify-between text-emerald-600">
 							<span className="flex items-center gap-1">
 								<span className="px-1.5 py-0.5 bg-emerald-100 text-emerald-800 text-[9px] rounded font-black uppercase">Shop Voucher</span>
-								<span className="font-mono text-[10px]">[{detail.shopVoucherCode}]</span>
+								<span className="text-[10px]">[{detail.shopVoucherCode}]</span>
 							</span>
 							<span>-{Number(detail.sellerDiscount).toLocaleString("vi-VN")}đ</span>
 						</div>
@@ -601,7 +602,7 @@ export function CustomerOrderDetailView({
 						<div className="flex justify-between text-emerald-600">
 							<span className="flex items-center gap-1">
 								<span className="px-1.5 py-0.5 bg-orange-100 text-orange-800 text-[9px] rounded font-black uppercase">Platform Voucher</span>
-								<span className="font-mono text-[10px]">[{detail.platformVoucherCode}]</span>
+								<span className="text-[10px]">[{detail.platformVoucherCode}]</span>
 							</span>
 							<span>-{Number(detail.platformDiscount).toLocaleString("vi-VN")}đ</span>
 						</div>

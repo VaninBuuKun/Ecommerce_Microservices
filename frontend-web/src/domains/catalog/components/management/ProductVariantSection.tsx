@@ -183,6 +183,7 @@ export const VariantsSection: React.FC<VariantsSectionProps> = ({
 
 	const handleApplyBulk = () => {
 		if (bulkValue < 0) return;
+		let hasSkippedDiscount = false;
 		setGeneratedVariants((prev) =>
 			prev.map((v) => {
 				// 1. Kiểm tra Phạm vi (Scope)
@@ -216,6 +217,10 @@ export const VariantsSection: React.FC<VariantsSectionProps> = ({
 				if (bulkField === "price") {
 					next.price = bulkValue;
 				} else if (bulkField === "discountPrice") {
+					if (bulkValue > 0 && bulkValue >= next.price) {
+						hasSkippedDiscount = true;
+						return v;
+					}
 					next.discountPrice = bulkValue > 0 ? bulkValue : undefined;
 				} else if (bulkField === "stock") {
 					next.stock = bulkValue;
@@ -223,7 +228,11 @@ export const VariantsSection: React.FC<VariantsSectionProps> = ({
 				return next;
 			}),
 		);
-		toast.success("Áp dụng thông số thành công.");
+		if (hasSkippedDiscount) {
+			toast.warn("Một số biến thể có giá bán nhỏ hơn hoặc bằng giá giảm nên đã được bỏ qua (giá giảm phải nhỏ hơn giá bán).");
+		} else {
+			toast.success("Áp dụng thông số thành công.");
+		}
 	};
 
 	const isTwoOptions =
@@ -750,9 +759,19 @@ export const VariantsSection: React.FC<VariantsSectionProps> = ({
 														onChange={(val) =>
 															handleUpdateVariantField(idx, "discountPrice", val)
 														}
-														className="h-8 px-2 border border-brand-border rounded-md text-xs w-32 focus:outline-none"
+														className={`h-8 px-2 border rounded-md text-xs w-32 focus:outline-none ${
+															v.discountPrice && v.discountPrice >= v.price
+																? "border-red-500 bg-red-50 text-red-600 focus:border-red-500"
+																: "border-brand-border focus:border-brand-primary"
+														}`}
 														placeholder="Giá giảm..."
 													/>
+													{v.discountPrice && v.discountPrice >= v.price ? (
+														<p className="flex items-center gap-0.5 text-[10px] text-red-500 mt-1 whitespace-nowrap">
+															<AlertCircle className="w-2.5 h-2.5 shrink-0" />
+															Phải nhỏ hơn giá bán
+														</p>
+													) : null}
 												</td>
 
 												{/* Stock Input */}

@@ -275,37 +275,37 @@ public class CatalogDataSeeder(
         return result;
     }
 
-    private static (double weight, double length, double width, double height) GenerateCategoryDimensions(string catKey)
+    private static (int weight, int length, int width, int height) GenerateCategoryDimensions(string catKey)
     {
         return catKey switch
         {
             // Giày dép: Thường 600g - 1100g, hộp 30-34cm x 18-22cm x 11-14cm
             "shoes" => (
-                weight: Math.Round(Rnd.Next(600, 1100) + Rnd.NextDouble(), 0),
-                length: Math.Round(Rnd.Next(30, 35) + Rnd.NextDouble(), 1),
-                width: Math.Round(Rnd.Next(18, 23) + Rnd.NextDouble(), 1),
-                height: Math.Round(Rnd.Next(11, 15) + Rnd.NextDouble(), 1)
+                weight: Rnd.Next(600, 1100),
+                length: Rnd.Next(30, 35),
+                width: Rnd.Next(18, 23),
+                height: Rnd.Next(11, 15)
             ),
             // Balo, Túi xách: Thường 300g - 850g, 25-42cm x 15-32cm x 8-18cm
             "bags" => (
-                weight: Math.Round(Rnd.Next(300, 850) + Rnd.NextDouble(), 0),
-                length: Math.Round(Rnd.Next(25, 42) + Rnd.NextDouble(), 1),
-                width: Math.Round(Rnd.Next(15, 32) + Rnd.NextDouble(), 1),
-                height: Math.Round(Rnd.Next(8, 18) + Rnd.NextDouble(), 1)
+                weight: Rnd.Next(300, 850),
+                length: Rnd.Next(25, 42),
+                width: Rnd.Next(15, 32),
+                height: Rnd.Next(8, 18)
             ),
             // Quần áo / Thời trang: Thường 180g - 400g, gấp gọn 26-32cm x 18-24cm x 2-4cm
             "fashion" => (
-                weight: Math.Round(Rnd.Next(180, 400) + Rnd.NextDouble(), 0),
-                length: Math.Round(Rnd.Next(26, 33) + Rnd.NextDouble(), 1),
-                width: Math.Round(Rnd.Next(18, 25) + Rnd.NextDouble(), 1),
-                height: Math.Round(Rnd.Next(2, 5) + Rnd.NextDouble(), 1)
+                weight: Rnd.Next(180, 400),
+                length: Rnd.Next(26, 33),
+                width: Rnd.Next(18, 25),
+                height: Rnd.Next(2, 5)
             ),
             // Phụ kiện: Thường 50g - 200g, 10-18cm x 8-14cm x 2-6cm
             _ => (
-                weight: Math.Round(Rnd.Next(50, 200) + Rnd.NextDouble(), 0),
-                length: Math.Round(Rnd.Next(10, 19) + Rnd.NextDouble(), 1),
-                width: Math.Round(Rnd.Next(8, 15) + Rnd.NextDouble(), 1),
-                height: Math.Round(Rnd.Next(2, 7) + Rnd.NextDouble(), 1)
+                weight: Rnd.Next(50, 200),
+                length: Rnd.Next(10, 19),
+                width: Rnd.Next(8, 15),
+                height: Rnd.Next(2, 7)
             )
         };
     }

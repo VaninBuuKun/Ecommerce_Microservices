@@ -38,7 +38,7 @@ public class WebhooksController(
 
             if (string.IsNullOrEmpty(waybillCode))
             {
-                return BadRequest("Missing waybill_code or OrderCode");
+                return BadRequest("Thiếu mã vận đơn (waybill_code hoặc OrderCode).");
             }
 
             var shipmentRepo = unitOfWork.Repository<Shipment, Guid>();
@@ -47,7 +47,7 @@ public class WebhooksController(
             if (shipment == null)
             {
                 logger.LogWarning("Shipment not found for waybill: {WaybillCode}", waybillCode);
-                return NotFound($"Shipment not found for waybill: {waybillCode}");
+                return NotFound($"Không tìm thấy thông tin vận chuyển cho mã vận đơn: {waybillCode}");
             }
 
             string? status = null;
@@ -62,24 +62,30 @@ public class WebhooksController(
 
             if (string.IsNullOrEmpty(status))
             {
-                return BadRequest("Missing status");
+                return BadRequest("Thiếu trạng thái đơn hàng (status).");
             }
 
             ShipmentStatus targetStatus;
             string logMessage;
-            IIntegrationEvent ? eventToPublish = null;
+            IIntegrationEvent? eventToPublish = null;
             string? failureReason = null;
 
             switch (status)
             {
+                case "ready_to_pick":
+                case "readytopick":
                 case "storing":
-                    targetStatus = ShipmentStatus.Picking;
-                    logMessage = "Shipper đang đến lấy hàng.";
+                case "picking":
+                    targetStatus = ShipmentStatus.ReadyToPick;
+                    logMessage = "Shipper đang lấy hàng từ Shop.";
                     break;
-                
+
                 case "delivering":
+                case "in_transit":
+                case "intransit":
+                case "transporting":
                     targetStatus = ShipmentStatus.InTransit;
-                    logMessage = "Hàng đang được vận chuyển.";
+                    logMessage = "Kiện hàng đang được vận chuyển.";
                     eventToPublish = new SubOrderShippedEvent 
                     { 
                         SubOrderId = shipment.SubOrderId,
@@ -94,43 +100,60 @@ public class WebhooksController(
                     eventToPublish = new SubOrderDeliveredEvent { SubOrderId = shipment.SubOrderId };
                     break;
 
-                // case "cancelled":
-                // case "returned":
-                //     targetStatus = status == "cancelled" ? ShipmentStatus.Cancelled : ShipmentStatus.Returned;
-                //     failureReason = ghnData.TryGetValue("reason", out var reasonObj) ? reasonObj?.ToString() : "Cancelled by carrier/user";
-                //     logMessage = $"Package rejected/returned. Reason: {failureReason}";
-                //     eventToPublish = new SubOrderRejectedEvent { SubOrderId = shipment.SubOrderId, Reason = failureReason };
-                //     break;
+                case "cancel":
+                case "cancelled":
+                    targetStatus = ShipmentStatus.Cancelled;
+                    failureReason = ghnData.TryGetValue("reason", out var cancelReasonObj) ? cancelReasonObj?.ToString() : "Đơn hàng bị hủy";
+                    logMessage = $"Đơn hàng đã bị hủy. Lý do: {failureReason}";
+                    eventToPublish = new SubOrderRejectedEvent { SubOrderId = shipment.SubOrderId, Reason = failureReason };
+                    break;
+
+                case "return":
+                case "returned":
+                case "return_transporting":
+                    targetStatus = ShipmentStatus.Returned;
+                    failureReason = ghnData.TryGetValue("reason", out var returnReasonObj) ? returnReasonObj?.ToString() : "Hàng trả về cho cửa hàng";
+                    logMessage = $"Bưu kiện bị hoàn trả. Lý do: {failureReason}";
+                    eventToPublish = new SubOrderRejectedEvent { SubOrderId = shipment.SubOrderId, Reason = failureReason };
+                    break;
 
                 default:
                     logger.LogWarning("Unknown GHN webhook status: {Status}", status);
                     return Ok();
             }
 
-            // 1. Kiểm tra trạng thái kết thúc: Nếu đơn đã hoàn thành/hủy/hoàn hàng thì chặn mọi thay đổi phía sau
+            // 1. Kiểm tra trạng thái kết thúc (Terminal states): Đã giao thành công / Đã hủy / Hoàn trả / Thất bại
             if (shipment.Status == ShipmentStatus.Delivered || 
                 shipment.Status == ShipmentStatus.Cancelled || 
-                shipment.Status == ShipmentStatus.Returned)
+                shipment.Status == ShipmentStatus.Returned ||
+                shipment.Status == ShipmentStatus.Failed)
             {
                 logger.LogWarning("Shipment {WaybillCode} is already in terminal status {CurrentStatus}. Ignoring incoming status {TargetStatus}", 
                     waybillCode, shipment.Status, targetStatus);
-                return NoContent();
+                return BadRequest($"Vận đơn {waybillCode} đã ở trạng thái kết thúc ({shipment.Status}), không thể cập nhật thêm.");
             }
 
-            // 2. Chặn trường hợp trạng thái bị lùi ngược thời gian (Out-of-order backward)
-            if (shipment.Status == ShipmentStatus.InTransit && targetStatus == ShipmentStatus.Picking)
-            {
-                logger.LogWarning("Received backward status {TargetStatus} for shipment {WaybillCode} which is already {CurrentStatus}. Ignoring.", 
-                    targetStatus, waybillCode, shipment.Status);
-                return NoContent();
-            }
-
-            // 3. Kiểm tra trùng lặp: Nếu status hiện tại đã giống hệt targetStatus thì bỏ qua
+            // 2. Bỏ qua nếu trùng trạng thái hiện tại
             if (shipment.Status == targetStatus)
             {
                 logger.LogInformation("Webhook status {Status} is identical to current shipment status. Skipping update for waybill: {WaybillCode}", 
                     status, waybillCode);
                 return NoContent();
+            }
+
+            // 3. Thứ tự chuyển đổi bắt buộc: ReadyToPick (Chờ lấy hàng) -> InTransit (Đang vận chuyển) -> Delivered (Giao thành công)
+            if (targetStatus == ShipmentStatus.InTransit && shipment.Status != ShipmentStatus.ReadyToPick)
+            {
+                logger.LogWarning("Invalid transition: Cannot move to InTransit from {CurrentStatus} for shipment {WaybillCode}", 
+                    shipment.Status, waybillCode);
+                return BadRequest($"Chỉ có thể chuyển sang 'Đang vận chuyển' khi đơn hàng ở trạng thái 'Chờ lấy hàng'.");
+            }
+
+            if (targetStatus == ShipmentStatus.Delivered && shipment.Status != ShipmentStatus.InTransit)
+            {
+                logger.LogWarning("Invalid transition: Cannot move to Delivered from {CurrentStatus} for shipment {WaybillCode}", 
+                    shipment.Status, waybillCode);
+                return BadRequest($"Chỉ có thể chuyển sang 'Giao hàng thành công' khi đơn hàng ở trạng thái 'Đang vận chuyển'.");
             }
 
             logger.LogInformation("Updating shipment {WaybillCode} status from {OldStatus} to {NewStatus}", waybillCode, shipment.Status, targetStatus);
@@ -156,7 +179,7 @@ public class WebhooksController(
         catch (Exception ex)
         {
             logger.LogError(ex, "Error processing GHN webhook");
-            return StatusCode(500, $"Internal server error: {ex.Message}");
+            return StatusCode(500, $"Lỗi hệ thống nội bộ: {ex.Message}");
         }
     }
 }

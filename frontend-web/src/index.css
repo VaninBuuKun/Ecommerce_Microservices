@@ -27,6 +27,16 @@
   color: var(--color-brand-dark);
 }
 
+html {
+  scrollbar-gutter: stable;
+}
+
+@supports not (scrollbar-gutter: stable) {
+  html {
+    overflow-y: scroll;
+  }
+}
+
 body {
   margin: 0;
   font-family: var(--font-sans);
@@ -59,9 +69,23 @@ h1, h2, h3, h4, h5, h6 {
   background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: #d4d4d8;
+  background: var(--color-brand-border-strong);
   border-radius: 9999px;
 }
 ::-webkit-scrollbar-thumb:hover {
   background: #a1a1aa;
+}
+
+/* Hide scrollbar utility */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* Đảm bảo Toast Notification luôn hiển thị trên cùng (trên cả Modal chat và Lightbox) */
+.Toastify__toast-container {
+  z-index: 999999 !important;
 }

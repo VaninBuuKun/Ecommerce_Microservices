@@ -4,7 +4,7 @@ import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { authService, useAuthStore } from "@/domains/auth";
 import { Terminal, Eye, EyeOff } from "lucide-react";
 import { toast } from "react-toastify";
-import { checkIsAdmin } from "@/shared/utils/authHelper";
+import { checkIsAdmin, isAuthenticated } from "@/shared/utils/authHelper";
 
 interface FormValues {
 	username: string;
@@ -37,22 +37,41 @@ export default function LoginPage() {
 		if (emailParam) {
 			setValue("username", emailParam);
 		}
+	}, [emailParam, setValue]);
 
-		if (accessToken) {
-			if (!emailParam || (user?.email && user.email.toLowerCase() === emailParam.toLowerCase())) {
-				if (checkIsAdmin()) {
-					navigate("/admin", { replace: true });
-				} else {
-					navigate(redirectParam, { replace: true });
-				}
-				return;
-			}
+	useEffect(() => {
+		if (!accessToken) return;
 
-			// Nếu đang login tài khoản khác với email trong link
+		// Nếu token đã hết hạn hoặc không hợp lệ -> xóa sạch để người dùng đăng nhập lại an toàn
+		if (!isAuthenticated(accessToken)) {
+			clearState();
+			return;
+		}
+
+		// Nếu đang login tài khoản khác với email trong link
+		if (emailParam && user?.email && user.email.toLowerCase() !== emailParam.toLowerCase()) {
 			clearState();
 			toast.info(`Chuyển sang đăng nhập tài khoản ${emailParam}`);
+			return;
 		}
-	}, [accessToken, user, emailParam, redirectParam, navigate, clearState, setValue]);
+
+		// Xử lý chuyển hướng an toàn, ngăn chặn hoàn toàn vòng lặp vô hạn
+		const isCleanRedirect =
+			redirectParam &&
+			!redirectParam.startsWith("/login") &&
+			!redirectParam.startsWith("/register") &&
+			!redirectParam.startsWith("/forgot-password");
+
+		let target = isCleanRedirect ? redirectParam : "/";
+
+		if (target.startsWith("/admin") && !checkIsAdmin()) {
+			target = "/";
+		} else if (checkIsAdmin() && target === "/") {
+			target = "/admin";
+		}
+
+		navigate(target, { replace: true });
+	}, [accessToken, user, emailParam, redirectParam, navigate, clearState]);
 
 	const onSubmit = async (data: FormValues) => {
 		setErrorMsg(null);
@@ -65,15 +84,27 @@ export default function LoginPage() {
 				);
 				return;
 			}
-			if (checkIsAdmin()) {
-				navigate("/admin");
-			} else {
-				navigate(redirectParam);
+
+			const isCleanRedirect =
+				redirectParam &&
+				!redirectParam.startsWith("/login") &&
+				!redirectParam.startsWith("/register") &&
+				!redirectParam.startsWith("/forgot-password");
+
+			let target = isCleanRedirect ? redirectParam : "/";
+
+			if (target.startsWith("/admin") && !checkIsAdmin()) {
+				target = "/";
+			} else if (checkIsAdmin() && target === "/") {
+				target = "/admin";
 			}
+
+			navigate(target, { replace: true });
 		} catch (err: any) {
 			setErrorMsg(
+				err.response?.data?.message ||
 				err.response?.data ||
-					"Đăng nhập không thành công. Vui lòng kiểm tra lại tài khoản.",
+				"Đăng nhập không thành công. Vui lòng kiểm tra lại tài khoản.",
 			);
 		}
 	};

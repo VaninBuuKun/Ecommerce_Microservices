@@ -15,27 +15,27 @@ public record UpdateProductRequest(
     List<string> ImageUrls,
     long? CategoryId,
     string? AttributesJson,
-    double Weight = 0,
-    double Length = 0,
-    double Width = 0,
-    double Height = 0
+    int Weight = 0,
+    int Length = 0,
+    int Width = 0,
+    int Height = 0
 );
 
 public record UpdateSingleVariantRequest(
     decimal Price,
     int AvailableStock,
-    double Weight,
-    double Length,
-    double Width,
-    double Height,
+    int Weight,
+    int Length,
+    int Width,
+    int Height,
     decimal? DiscountPrice
 );
 
 public record UpdateMultiVariantsRequest(
     List<MultiUpdateOptionDto> Options,
     List<MultiUpdateVariantDto> Variants,
-    double? Weight = null,
-    double? Length = null,
-    double? Width = null,
-    double? Height = null
+    int? Weight = null,
+    int? Length = null,
+    int? Width = null,
+    int? Height = null
 );

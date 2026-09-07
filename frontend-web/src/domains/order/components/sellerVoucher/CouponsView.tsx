@@ -118,6 +118,7 @@ export default function CouponsView() {
 
 	const handleSave = (e: React.FormEvent) => {
 		e.preventDefault();
+		if (createVoucherMutation.isPending || updateVoucherMutation.isPending) return;
 		setFormErrors({});
 
 		const isPercent = formDiscountType === "Percentage";

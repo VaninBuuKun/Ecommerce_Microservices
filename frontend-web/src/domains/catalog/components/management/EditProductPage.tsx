@@ -126,6 +126,11 @@ export function EditProductPage() {
 	const generatedVariantsRef = useRef(generatedVariants);
 	generatedVariantsRef.current = generatedVariants;
 	const isLoadedFromDb = useRef(false);
+	const hasInitializedRef = useRef(false);
+
+	useEffect(() => {
+		hasInitializedRef.current = false;
+	}, [targetProductId]);
 
 	// Snapshots for Dirty State Tracking
 	const basicBaseline = useRef<BasicSnapshot | null>(null);
@@ -146,7 +151,8 @@ export function EditProductPage() {
 	} | null>(null);
 
 	useEffect(() => {
-		if (loadedProduct && !isNew) {
+		if (loadedProduct && !isNew && !hasInitializedRef.current) {
+			hasInitializedRef.current = true;
 			setName(loadedProduct.name);
 			setDescription(loadedProduct.description || "");
 			setCategoryId(loadedProduct.categoryId ? Number(loadedProduct.categoryId) : null);
@@ -865,6 +871,10 @@ export function EditProductPage() {
 
 		try {
 			if (!enableVariants) {
+				if (simpleDiscountPrice > 0 && simpleDiscountPrice >= simplePrice) {
+					toast.error("Giá giảm phải nhỏ hơn giá bán.");
+					return;
+				}
 				await updateSingleVariantMutation.mutateAsync({
 					id: targetProductId,
 					payload: {
@@ -891,6 +901,19 @@ export function EditProductPage() {
 
 				if (generatedVariants.length > 60) {
 					toast.error("Một sản phẩm chỉ hỗ trợ tối đa 60 biến thể. Vui lòng giảm bớt biến thể trước khi lưu.");
+					return;
+				}
+
+				const invalidVariant = generatedVariants.find(
+					(v) => v.discountPrice && v.discountPrice > 0 && v.discountPrice >= v.price
+				);
+				if (invalidVariant) {
+					const variantName =
+						invalidVariant.optionValues.map((ov) => ov.valueName).join(" - ") ||
+						"Biến thể";
+					toast.error(
+						`Biến thể "${variantName}" có giá giảm (${invalidVariant.discountPrice.toLocaleString()}đ) không hợp lệ. Giá giảm phải nhỏ hơn giá bán (${invalidVariant.price.toLocaleString()}đ)!`,
+					);
 					return;
 				}
 

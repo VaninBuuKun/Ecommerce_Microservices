@@ -15,16 +15,16 @@ public class Shipment : EntityTrackingBase<Guid>
     public string? WaybillCode { get; set; }
     public string CarrierName { get; set; } = "GHN";
     public decimal ShippingFee { get; set; }
-    public ShipmentStatus Status { get; set; } = ShipmentStatus.Created;
+    public ShipmentStatus Status { get; set; } = ShipmentStatus.ReadyToPick;
 
     
     public string SenderAddress { get; set; } = string.Empty;
     public string RecipientAddress { get; set; } = string.Empty;
     
-    public double Weight { get; set; } // in grams
-    public double Height { get; set; } // in cm
-    public double Width { get; set; }  // in cm
-    public double Length { get; set; } // in cm
+    public int Weight { get; set; } // in grams
+    public int Height { get; set; } // in cm
+    public int Width { get; set; }  // in cm
+    public int Length { get; set; } // in cm
 
     public string RecipientName { get; set; } = string.Empty;
     public string RecipientPhone { get; set; } = string.Empty;

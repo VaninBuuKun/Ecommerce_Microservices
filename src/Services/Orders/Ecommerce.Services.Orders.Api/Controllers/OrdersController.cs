@@ -248,10 +248,10 @@ public class OrdersController(ICurrentUserService currentUserService, IInMemoryB
 }
 
 public record SellerPackageReadyRequest(
-    double Weight,
-    double Length,
-    double Width,
-    double Height
+    int Weight,
+    int Length,
+    int Width,
+    int Height
 );
 
 public class CalculateOrderTotalRequest

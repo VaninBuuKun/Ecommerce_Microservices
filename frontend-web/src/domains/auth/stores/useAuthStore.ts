@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import { isAuthenticated } from "@/shared/utils/authHelper";
 
 export interface UserDto {
 	id: number;
@@ -25,8 +26,19 @@ interface AuthState {
 	clearState: () => void;
 }
 
+const getInitialAccessToken = (): string | null => {
+	const token = localStorage.getItem("accessToken");
+	if (!token) return null;
+	if (!isAuthenticated(token)) {
+		localStorage.removeItem("accessToken");
+		localStorage.removeItem("refreshToken");
+		return null;
+	}
+	return token;
+};
+
 export const useAuthStore = create<AuthState>((set) => ({
-	accessToken: localStorage.getItem("accessToken"),
+	accessToken: getInitialAccessToken(),
 	refreshToken: localStorage.getItem("refreshToken"),
 	user: null,
 	isInitializing: false,

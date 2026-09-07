@@ -104,6 +104,8 @@ export function AdminOrdersView() {
 					<option value="Shipping">Đang vận chuyển</option>
 					<option value="Delivered">Đã giao hàng</option>
 					<option value="Completed">Đã hoàn thành</option>
+					<option value="Returning">Đang trả hàng</option>
+					<option value="Refunded">Đã hoàn tiền</option>
 					<option value="Cancelled">Đã hủy</option>
 				</select>
 			</div>

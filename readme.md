@@ -87,8 +87,12 @@ Saga State Machine + Transactional Outbox
 * Product activation/deactivation & deletion with gRPC active orders validation (`CheckProductHasActiveSubOrders` from `Orders.Api`), preventing permanent deletion or deactivation while sub-orders are still in active/in-flight status.
 * Multi-tenant shop ownership validation: Strictly verifies seller ownership via `Sellers.Api` gRPC for all product commands and queries (`GetMyProducts`, `UpdateProduct`, `ToggleStatus`, `DeleteProduct`, variant updates).
 * Snowflake 64-bit ID serialization: All `long`/`long?` IDs are serialized to JSON strings in `Catalog.Api` to eliminate JavaScript floating-point precision loss ($2^{53} - 1$ limit) on the frontend.
-* Customer Product Detail UX: Interactive Modal Portal (`z-[10000]`) notifications when a product is non-existent/deleted or temporarily inactive, with warning banner for shop owners previewing their inactive products.
-* Shipping dimensions and weight configuration: Integrated into basic info management with standard parcel measurements (weight, length, width, height).
+* Customer Product Detail UX:
+  * Interactive Modal Portal (`z-[10000]`) notifications when a product is non-existent/deleted or temporarily inactive, with warning banner for shop owners previewing their inactive products.
+  * Single-line responsive price display (`whitespace-nowrap`) showing min-max discount price and percentage range (`-min% ~ -max%`) without layout shifting.
+  * Real-time multi-tier combination availability checking: dynamically dims, strikes through, and disables options (`opacity-40 cursor-not-allowed pointer-events-none line-through`) that have zero stock or no matching combination.
+  * Option 2 (tierIndex > 0) thumbnail suppression: excludes image tags for tier 2 values to ensure a clean layout.
+* Shipping dimensions and weight configuration: Integrated into basic info management with standard parcel measurements in whole integers (`int`: weight in grams, length, width, height in cm) complying with GHN logistics requirements and eliminating floating-point precision artifacts.
 * Granular deletion policies & controlled deletion workflow:
   * Zero silent soft-deletes: Variant updates strictly add or edit combinations without accidental cascade deletions.
   * ProductVariant: Verified via gRPC `CheckVariantOrders` from `Orders.Api`. Hard-deleted if no orders exist, blocked with conflict error if active orders exist, and soft-deleted if only historical orders exist.
@@ -151,6 +155,12 @@ Saga State Machine + Transactional Outbox
 
 A single checkout is automatically split into multiple SubOrders based on seller shop ownership.
 
+### Vouchers & Promotion Management
+
+* **Voucher Code Uniqueness**: Enforced with PostgreSQL unique constraint `IX_Vouchers_Code` on `Voucher.Code` in `OrderDb`.
+* **Double-Submission Protection**: Frontend request debouncing and button disablement preventing accidental duplicate voucher creation.
+* **Scope-based Vouchers**: Platform-wide and shop-specific vouchers with minimum order value and usage limits.
+
 ### Order & Saga State Machine Lifecycle
 
 ```text
@@ -201,13 +211,19 @@ Data Architecture & Dynamic Thresholds:
 * Multi-tier location caching: L1 in-memory + L2 Redis (24-hour TTL) with resilient database fallback.
 * Shipping fee calculation (batch support).
 * Automatic shipment creation (waybill).
-* Shipment tracking via webhooks.
+* Shipment tracking via webhooks with sequential transition enforcement (`ReadyToPick` → `InTransit` → `Delivered`).
+* Streamlined 6-status lifecycle: `ReadyToPick` (1), `InTransit` (2), `Delivered` (3), `Returned` (4), `Cancelled` (5), `Failed` (6).
 
 ### Delivery Workflow
 
 ```text
-GHN Delivered → ShipmentDeliveredEvent → Orders Service → SubOrder Delivered
-                                                        → SellerRevenueConsumer → Seller Wallet Credit
+ReadyToPick (Chờ lấy hàng) → InTransit (Đang vận chuyển) → Delivered (Giao hàng thành công)
+                                                                 ↓
+                                                       ShipmentDeliveredEvent
+                                                                 ↓
+                                             Orders Service (SubOrder Delivered)
+                                                                 ↓
+                                             SellerRevenueConsumer (Wallet Credit)
 ```
 
 ---

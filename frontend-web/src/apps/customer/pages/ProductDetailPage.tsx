@@ -200,6 +200,7 @@ export default function ProductDetailPage() {
 				maxPrice: 0,
 				minDiscountPrice: 0,
 				maxDiscountPrice: 0,
+				minDiscountPercent: 0,
 				maxDiscountPercent: 0,
 				hasMultiplePrices: false,
 			};
@@ -211,6 +212,7 @@ export default function ProductDetailPage() {
 		let maxPrice = displayPrice;
 		let minDiscountPrice = displayDiscountPrice;
 		let maxDiscountPrice = displayDiscountPrice;
+		let minDiscountPercent = 0;
 		let maxDiscountPercent = 0;
 
 		if (product.variants && product.variants.length > 0) {
@@ -231,7 +233,8 @@ export default function ProductDetailPage() {
 					? Math.round(((orig - disc) / orig) * 100)
 					: 0;
 			});
-			maxDiscountPercent = Math.max(...discountPercentages, 0);
+			minDiscountPercent = Math.min(...discountPercentages);
+			maxDiscountPercent = Math.max(...discountPercentages);
 
 			if (selectedVariant) {
 				displayPrice = selectedVariant.price || 0;
@@ -242,9 +245,18 @@ export default function ProductDetailPage() {
 						((displayPrice - displayDiscountPrice) / displayPrice) *
 						100,
 					);
+					minDiscountPercent = maxDiscountPercent;
 				} else {
 					maxDiscountPercent = 0;
+					minDiscountPercent = 0;
 				}
+			}
+		} else {
+			if (displayPrice > displayDiscountPrice) {
+				maxDiscountPercent = Math.round(
+					((displayPrice - displayDiscountPrice) / displayPrice) * 100,
+				);
+				minDiscountPercent = maxDiscountPercent;
 			}
 		}
 
@@ -258,6 +270,7 @@ export default function ProductDetailPage() {
 			maxPrice,
 			minDiscountPrice,
 			maxDiscountPrice,
+			minDiscountPercent,
 			maxDiscountPercent,
 			hasMultiplePrices,
 		};
