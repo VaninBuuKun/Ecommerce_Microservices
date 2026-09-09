@@ -103,10 +103,10 @@ public class CalOrderGrandTotalCommandHandler(
                 shopNames[shopId] = shopShippingInfo.ShopName;
 
                 // Tính toán trọng lượng/kích thước gói hàng lũy kế thực tế từ sản phẩm
-                double totalWeight = shopItems.Sum(x => (x.Weight > 0 ? x.Weight : 500) * x.Quantity); // default 500g
-                double maxLength = shopItems.Max(x => x.Length > 0 ? x.Length : 20); // default 20cm
-                double maxWidth = shopItems.Max(x => x.Width > 0 ? x.Width : 15); // default 15cm
-                double totalHeight = shopItems.Sum(x => (x.Height > 0 ? x.Height : 5) * x.Quantity); // default 5cm
+                int totalWeight = shopItems.Sum(x => (x.Weight > 0 ? x.Weight : 500) * x.Quantity); // default 500g
+                int maxLength = shopItems.Max(x => x.Length > 0 ? x.Length : 20); // default 20cm
+                int maxWidth = shopItems.Max(x => x.Width > 0 ? x.Width : 15); // default 15cm
+                int totalHeight = shopItems.Sum(x => (x.Height > 0 ? x.Height : 5) * x.Quantity); // default 5cm
 
                 batchRequests.Add(new ShippingFeeRequestItem(
                     shopId,

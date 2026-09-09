@@ -20,6 +20,8 @@ export default function App() {
 					pauseOnFocusLoss
 					draggable
 					pauseOnHover
+					style={{ zIndex: 999999 }}
+					className="!z-[999999]"
 				/>
 			</AuthProvider>
 		</AppProviders>

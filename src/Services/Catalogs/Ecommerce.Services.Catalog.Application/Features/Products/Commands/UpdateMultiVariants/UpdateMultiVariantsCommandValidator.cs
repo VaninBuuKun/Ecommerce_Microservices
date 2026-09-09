@@ -30,7 +30,8 @@ public class UpdateMultiVariantsCommandValidator : AbstractValidator<UpdateMulti
         });
 
         RuleFor(x => x.Variants)
-            .NotEmpty().WithMessage("Danh sách biến thể không được rỗng.");
+            .NotEmpty().WithMessage("Danh sách biến thể không được rỗng.")
+            .Must(v => v.Count <= 60).WithMessage("Một sản phẩm chỉ hỗ trợ tối đa 60 biến thể.");
 
         RuleForEach(x => x.Variants).ChildRules(variant =>
         {
@@ -42,7 +43,7 @@ public class UpdateMultiVariantsCommandValidator : AbstractValidator<UpdateMulti
 
             variant.RuleFor(v => v.DiscountPrice)
                 .GreaterThanOrEqualTo(0).When(v => v.DiscountPrice.HasValue).WithMessage("Giá giảm phải lớn hơn hoặc bằng 0.")
-                .LessThanOrEqualTo(v => v.Price).When(v => v.DiscountPrice.HasValue).WithMessage("Giá giảm không được lớn hơn giá gốc.");
+                .LessThan(v => v.Price).When(v => v.DiscountPrice.HasValue && v.DiscountPrice.Value > 0).WithMessage("Giá giảm phải nhỏ hơn giá bán.");
 
             variant.RuleFor(v => v.OptionValues)
                 .NotEmpty().WithMessage("Mỗi biến thể phải liên kết với ít nhất một giá trị phân loại.");

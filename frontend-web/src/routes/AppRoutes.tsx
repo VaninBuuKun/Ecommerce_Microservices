@@ -1,8 +1,8 @@
-import { Routes, Route, Link, Navigate } from "react-router-dom";
+import { Routes, Route, Link } from "react-router-dom";
 import MainLayout from "../layouts/MainLayout";
 import SellerLayout from "../layouts/SellerLayout";
 import AdminLayout from "../layouts/AdminLayout";
-import { checkIsAdmin } from "../shared/utils/authHelper";
+import { RequireAuth, RequireAdmin } from "@/shared/components";
 
 // Customer Apps Pages
 import LandingPage from "@/apps/customer/pages/LandingPage";
@@ -34,22 +34,28 @@ import ResetPasswordPage from "@/apps/auth/pages/ResetPasswordPage";
 export default function AppRoutes() {
 	return (
 		<Routes>
-			{/* Các trang hiển thị đầy đủ Header & Footer */}
+			{/* Layout chính: Header & Footer */}
 			<Route path="/" element={<MainLayout />}>
+				{/* 1. Public Routes (Ai cũng có thể xem) */}
 				<Route index element={<LandingPage />} />
-				<Route path="cart" element={<CartPage />} />
-				<Route path="checkout" element={<CheckoutPage />} />
 				<Route path="products/:id" element={<ProductDetailPage />} />
 				<Route path="products" element={<ExploreProductsPage />} />
 				<Route path="explore" element={<ExploreProductsPage />} />
-				<Route path="wishlist" element={<WishlistPage />} />
-				<Route path="chat" element={<ChatPage />} />
-
-				<Route path="profile" element={<UserProfilePage />} />
-				<Route path="orders" element={<UserProfilePage />} />
-				<Route path="orders/:subOrderId" element={<OrderDetailPage />} />
 				<Route path="users/:userId" element={<UserProfilePublicPage />} />
 				<Route path="shops/:shopId" element={<ShopProfilePublicPage />} />
+
+				{/* 2. Customer Protected Routes (Bắt buộc đăng nhập -> Chưa login thì redirect sang /login) */}
+				<Route element={<RequireAuth />}>
+					<Route path="cart" element={<CartPage />} />
+					<Route path="checkout" element={<CheckoutPage />} />
+					<Route path="wishlist" element={<WishlistPage />} />
+					<Route path="chat" element={<ChatPage />} />
+					<Route path="profile" element={<UserProfilePage />} />
+					<Route path="orders" element={<UserProfilePage />} />
+					<Route path="orders/:subOrderId" element={<OrderDetailPage />} />
+				</Route>
+
+				{/* 3. Trang 404 Not Found */}
 				<Route
 					path="*"
 					element={
@@ -58,8 +64,7 @@ export default function AppRoutes() {
 								404
 							</h1>
 							<p className="text-brand-muted mb-6">
-								Trang bạn yêu cầu không tồn tại hoặc đã bị di
-								dời.
+								Trang bạn yêu cầu không tồn tại hoặc đã bị di dời.
 							</p>
 							<Link
 								to="/"
@@ -72,43 +77,33 @@ export default function AppRoutes() {
 				/>
 			</Route>
 
-			{/* Các trang người bán */}
-			<Route path="/seller" element={<SelectShopPage />} />
-			<Route path="/seller/register" element={<RegisterShopPage />} />
-			<Route
-				path="/seller/:shopId/dashboard/*"
-				element={<SellerLayout />}
-			>
-				<Route path="*" element={<SellerDashboardPage />} />
-			</Route>
-			<Route path="/seller/dashboard/*" element={<SellerLayout />}>
-				<Route path="*" element={<SellerDashboardPage />} />
-			</Route>
-
-			{/* Các trang Admin hệ thống */}
-			<Route
-				path="/admin/*"
-				element={
-					<AdminGuard>
-						<AdminLayout />
-					</AdminGuard>
-				}
-			>
-				<Route path="*" element={<AdminDashboardPage />} />
+			{/* 4. Seller Protected Routes (Bắt buộc đăng nhập tài khoản) */}
+			<Route element={<RequireAuth />}>
+				<Route path="/seller" element={<SelectShopPage />} />
+				<Route path="/seller/register" element={<RegisterShopPage />} />
+				<Route
+					path="/seller/:shopId/dashboard/*"
+					element={<SellerLayout />}
+				>
+					<Route path="*" element={<SellerDashboardPage />} />
+				</Route>
+				<Route path="/seller/dashboard/*" element={<SellerLayout />}>
+					<Route path="*" element={<SellerDashboardPage />} />
+				</Route>
 			</Route>
 
-			{/* Các trang Login & Register standalone (Không có Header / Footer) */}
+			{/* 5. Admin Protected Routes (Bắt buộc đăng nhập + Quyền Admin) */}
+			<Route element={<RequireAdmin />}>
+				<Route path="/admin/*" element={<AdminLayout />}>
+					<Route path="*" element={<AdminDashboardPage />} />
+				</Route>
+			</Route>
+
+			{/* 6. Auth Guest Routes */}
 			<Route path="/login" element={<LoginPage />} />
 			<Route path="/register" element={<RegisterPage />} />
 			<Route path="/forgot-password" element={<ForgotPasswordPage />} />
 			<Route path="/reset-password" element={<ResetPasswordPage />} />
 		</Routes>
 	);
-}
-
-function AdminGuard({ children }: { children: React.ReactNode }) {
-	if (!checkIsAdmin()) {
-		return <Navigate to="/" replace />;
-	}
-	return <>{children}</>;
 }

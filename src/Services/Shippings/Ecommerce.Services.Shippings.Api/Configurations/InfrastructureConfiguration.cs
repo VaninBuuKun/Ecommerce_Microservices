@@ -1,4 +1,5 @@
 using System.Reflection;
+using BuildingBlocks.Caching;
 using BuildingBlocks.Messaging;
 using Ecommerce.Services.Shippings.Api.Persistances;
 using MassTransit;
@@ -29,6 +30,9 @@ public static class InfrastructureConfiguration
         services.AddGrpcConfigurations(configuration);
         services.AddServiceConfigurations(configuration);
         
+        services.AddMemoryCache();
+        var redisConn = configuration.GetConnectionString("Redis") ?? "localhost:6379";
+        services.AddCustomCaching(redisConn);
         
         services.AddHttpContextAccessor();
         services.AddHttpClient();

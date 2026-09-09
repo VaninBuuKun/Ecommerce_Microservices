@@ -15,8 +15,33 @@ export interface ChatMessageItem {
 	roomId: string;
 	senderId: number;
 	content: string;
-	messageType: "Text" | "Image" | "Icon" | "Video";
+	messageType: "Text" | "Image" | "Icon" | "Video" | "Sticker" | "Gif";
 	sentAt: string;
+	isUploading?: boolean;
+	isRevoked?: boolean;
+	replyToMessageId?: string;
+	replyToContent?: string;
+	replyToSenderName?: string;
+	reactions?: Record<string, number>;
+	userReaction?: string;
+	lastReaction?: string;
+}
+
+export interface ChatPendingMedia {
+	id: string;
+	file: File;
+	type: "Image" | "Video";
+	fileName: string;
+	fileSize: number;
+	previewUrl: string;
+	status: "uploading" | "done" | "error";
+	progress: number;
+	uploadedUrl?: string;
+	error?: string;
+	autoSendWhenDone?: boolean;
+	targetRoomId?: string;
+	recipientId?: number | string;
+	senderRole?: string;
 }
 
 export type ChatMessageDto = ChatMessageItem;
@@ -35,4 +60,30 @@ export interface ChatBgTheme {
 	bg: string;
 	hex: string;
 	border: string;
+}
+
+export interface ChatThemePreset {
+	id: string;
+	name: string;
+	description?: string;
+	isDark?: boolean;
+	previewHex: string;
+	secondaryPreviewHex: string;
+	background: string;
+	myBubble: {
+		bg: string;
+		text: string;
+		border?: string;
+	};
+	theirBubble: {
+		bg: string;
+		text: string;
+		border: string;
+	};
+	timePill: {
+		bg: string;
+		text: string;
+		border: string;
+	};
+	timestampText: string;
 }

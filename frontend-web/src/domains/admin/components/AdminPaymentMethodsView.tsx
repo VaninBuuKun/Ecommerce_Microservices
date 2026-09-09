@@ -25,6 +25,7 @@ interface PaymentMethodItem {
 	isActive: boolean;
 	providerName: string;
 	iconUrl: string;
+	minAmount?: number | null;
 	createdDate?: string;
 	lastModifiedDate?: string;
 }
@@ -47,6 +48,7 @@ export function AdminPaymentMethodsView() {
 	const [subTitle, setSubTitle] = useState("");
 	const [providerName, setProviderName] = useState("");
 	const [iconUrl, setIconUrl] = useState("");
+	const [minAmount, setMinAmount] = useState<string>("");
 	const [isActive, setIsActive] = useState(true);
 
 	const handleOpenCreate = () => {
@@ -55,6 +57,7 @@ export function AdminPaymentMethodsView() {
 		setSubTitle("");
 		setProviderName("");
 		setIconUrl("");
+		setMinAmount("");
 		setIsActive(true);
 		setIsModalOpen(true);
 	};
@@ -65,6 +68,7 @@ export function AdminPaymentMethodsView() {
 		setSubTitle(item.subTitle || "");
 		setProviderName(item.providerName || "");
 		setIconUrl(item.iconUrl || "");
+		setMinAmount(item.minAmount != null ? String(item.minAmount) : "");
 		setIsActive(item.isActive);
 		setIsModalOpen(true);
 	};
@@ -76,11 +80,14 @@ export function AdminPaymentMethodsView() {
 			return;
 		}
 
+		const parsedMin = minAmount.trim() ? parseFloat(minAmount) : null;
+
 		const payload = {
 			title: title.trim(),
 			subTitle: subTitle.trim() || undefined,
 			providerName: providerName.trim().toLowerCase(),
 			iconUrl: iconUrl.trim(),
+			minAmount: parsedMin !== null && !isNaN(parsedMin) ? parsedMin : null,
 			isActive,
 		};
 
@@ -178,6 +185,7 @@ export function AdminPaymentMethodsView() {
 										<th className="py-2.5 px-4">Icon & Tên hiển thị</th>
 										<th className="py-2.5 px-4">Provider Code</th>
 										<th className="py-2.5 px-4">Mô tả phụ</th>
+										<th className="py-2.5 px-4 text-center">Đơn tối thiểu</th>
 										<th className="py-2.5 px-4 text-center">Trạng thái</th>
 										<th className="py-2.5 px-4 text-right">Thao tác</th>
 									</tr>
@@ -216,6 +224,16 @@ export function AdminPaymentMethodsView() {
 
 											<td className="py-2.5 px-4 text-brand-muted font-medium max-w-xs truncate">
 												{item.subTitle || "—"}
+											</td>
+
+											<td className="py-2.5 px-4 text-center font-medium text-xs">
+												{item.minAmount != null && item.minAmount > 0 ? (
+													<span className="font-bold text-red-500 bg-red-50 px-2 py-0.5 rounded border border-red-200 text-[11px]">
+														{Number(item.minAmount).toLocaleString("vi-VN")} ₫
+													</span>
+												) : (
+													<span className="text-brand-muted text-[10px]">Không giới hạn</span>
+												)}
 											</td>
 
 											<td className="py-2.5 px-4 text-center">
@@ -369,6 +387,24 @@ export function AdminPaymentMethodsView() {
 											</button>
 										))}
 									</div>
+								</div>
+
+								<div>
+									<label className="block text-[11px] font-bold text-brand-dark mb-1">
+										Hạn mức đơn hàng tối thiểu (VNĐ)
+									</label>
+									<input
+										type="number"
+										min="0"
+										step="1000"
+										placeholder="Ví dụ: 10000 (Để trống nếu không giới hạn)"
+										value={minAmount}
+										onChange={(e) => setMinAmount(e.target.value)}
+										className="w-full h-9 px-3 text-xs bg-white border border-brand-border rounded-md focus:outline-none focus:border-brand-primary"
+									/>
+									<p className="text-[10px] text-brand-muted mt-1 font-medium">
+										Khách hàng chỉ có thể sử dụng phương thức này nếu tổng thanh toán đạt từ số tiền này trở lên.
+									</p>
 								</div>
 
 								<label className="flex items-center gap-2 py-1 select-none cursor-pointer">

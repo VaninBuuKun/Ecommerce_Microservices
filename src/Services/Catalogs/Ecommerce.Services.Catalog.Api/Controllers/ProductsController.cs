@@ -8,11 +8,18 @@ using Ecommerce.Services.Catalog.Application.Features.Products.Commands.UpdateMu
 using Ecommerce.Services.Catalog.Application.Features.Products.Commands.UpdateProduct;
 using Ecommerce.Services.Catalog.Application.Features.Products.Commands.UpdateSingleVariant;
 using Ecommerce.Services.Catalog.Application.Features.Products.Queries.GetAdminProducts;
+using Ecommerce.Services.Catalog.Application.Features.Search.Queries.SearchProducts;
 using Ecommerce.Services.Catalog.Application.Features.Products.Queries.GetMyProducts;
 using Ecommerce.Services.Catalog.Application.Features.Products.Queries.GetProductById;
 using Ecommerce.Services.Catalog.Application.Features.Products.Queries.GetProducts;
 using Ecommerce.Services.Catalog.Application.Features.Products.Queries.GetVariantById;
 using Ecommerce.Services.Catalog.Application.Features.Reviews.Commands.CreateProductReview;
+using Ecommerce.Services.Catalog.Application.Features.Search.Commands.ClearSearchHistory;
+using Ecommerce.Services.Catalog.Application.Features.Search.Commands.RemoveSearchHistoryItem;
+using Ecommerce.Services.Catalog.Application.Features.Search.Commands.SaveSearchKeyword;
+using Ecommerce.Services.Catalog.Application.Features.Search.Commands.SyncSearchHistory;
+using Ecommerce.Services.Catalog.Application.Features.Search.Queries.GetSearchHistory;
+using Ecommerce.Services.Catalog.Application.Features.Search.Queries.GetSearchSuggestions;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -51,9 +58,36 @@ public class ProductsController(ISender sender) : ControllerBase
         [FromQuery] int limit = 10,
         [FromQuery] string sortBy = "name",
         [FromQuery] long? shopId = null,
-        [FromQuery] bool? hasDiscount = null)
+        [FromQuery] bool? hasDiscount = null,
+        [FromQuery] decimal? minPrice = null,
+        [FromQuery] decimal? maxPrice = null)
     {
-        var result = await sender.Send(new GetProductsQuery(searchTerm, categoryId, minRating, cursor, limit, sortBy, shopId, hasDiscount));
+        var result = await sender.Send(new GetProductsQuery(searchTerm, categoryId, minRating, cursor, limit, sortBy, shopId, hasDiscount, minPrice, maxPrice));
+
+        if (result.IsSuccess)
+        {
+            return Ok(result.Value);
+        }
+        return StatusCode(result.GetHttpStatusCode(), result.Message);
+    }
+
+    [HttpGet("search")]
+    public async Task<IActionResult> SearchProducts(
+        [FromQuery] string? q = null,
+        [FromQuery] string? searchTerm = null,
+        [FromQuery] long? categoryId = null,
+        [FromQuery] long? parentCategoryId = null,
+        [FromQuery] double? minRating = null,
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 36,
+        [FromQuery] string sortBy = "relevance",
+        [FromQuery] long? shopId = null,
+        [FromQuery] bool? hasDiscount = null,
+        [FromQuery] decimal? minPrice = null,
+        [FromQuery] decimal? maxPrice = null)
+    {
+        var keyword = !string.IsNullOrWhiteSpace(q) ? q : searchTerm;
+        var result = await sender.Send(new SearchProductsQuery(keyword, page, pageSize, categoryId, parentCategoryId, minRating, sortBy, shopId, hasDiscount, minPrice, maxPrice));
 
         if (result.IsSuccess)
         {
@@ -63,6 +97,7 @@ public class ProductsController(ISender sender) : ControllerBase
     }
 
     [HttpGet("my-shop/{ShopId:long}")]
+    [Authorize]
     public async Task<IActionResult> GetMyProducts(long ShopId, [FromServices] ICurrentUserService userService, [FromQuery] int page = 1, [FromQuery] int pageSize = 10, [FromQuery] string? searchTerm = null)
     {
         var result = await sender.Send(new GetMyProductsQuery(ShopId, userService.UserId, page, pageSize, searchTerm));
@@ -158,6 +193,7 @@ public class ProductsController(ISender sender) : ControllerBase
     }
 
     [HttpPut("{id:long}")]
+    [Authorize]
     public async Task<IActionResult> UpdateProduct(long id, [FromBody] UpdateProductRequest request)
     {
         var result = await sender.Send(new UpdateProductCommand(
@@ -168,7 +204,11 @@ public class ProductsController(ISender sender) : ControllerBase
             request.VideoUrl,
             request.ImageUrls,
             request.CategoryId,
-            request.AttributesJson
+            request.AttributesJson,
+            request.Weight,
+            request.Length,
+            request.Width,
+            request.Height
         ));
 
         if (result.IsSuccess)
@@ -180,6 +220,7 @@ public class ProductsController(ISender sender) : ControllerBase
     }
 
     [HttpPut("{id:long}/single-variant")]
+    [Authorize]
     public async Task<IActionResult> UpdateSingleVariant(long id, [FromBody] UpdateSingleVariantRequest request)
     {
         var result = await sender.Send(new UpdateSingleVariantCommand(
@@ -202,6 +243,7 @@ public class ProductsController(ISender sender) : ControllerBase
     }
 
     [HttpPut("{id:long}/toggle-status")]
+    [Authorize]
     public async Task<IActionResult> ToggleProductStatus(long id)
     {
         var result = await sender.Send(new ToggleProductStatusCommand(id));
@@ -215,9 +257,18 @@ public class ProductsController(ISender sender) : ControllerBase
     }
 
     [HttpPut("{id:long}/multi-variants")]
+    [Authorize]
     public async Task<IActionResult> UpdateMultiVariants(long id, [FromBody] UpdateMultiVariantsRequest request)
     {
-        var result = await sender.Send(new UpdateMultiVariantsCommand(id, request.Options, request.Variants));
+        var result = await sender.Send(new UpdateMultiVariantsCommand(
+            id, 
+            request.Options, 
+            request.Variants,
+            request.Weight,
+            request.Length,
+            request.Width,
+            request.Height
+        ));
 
         if (result.IsSuccess)
         {
@@ -228,6 +279,7 @@ public class ProductsController(ISender sender) : ControllerBase
     }
 
     [HttpPut("{id:long}/attributes")]
+    [Authorize]
     public async Task<IActionResult> UpdateAttributes(long id, [FromBody] UpdateAttributesRequest request)
     {
         var result = await sender.Send(new Ecommerce.Services.Catalog.Application.Features.Products.Commands.UpdateProductAttributes.UpdateProductAttributesCommand(id, request.AttributesJson));
@@ -241,6 +293,7 @@ public class ProductsController(ISender sender) : ControllerBase
     }
 
     [HttpDelete("{id:long}")]
+    [Authorize]
     public async Task<IActionResult> DeleteProduct(long id)
     {
         var result = await sender.Send(new DeleteProductCommand(id));
@@ -267,6 +320,7 @@ public class ProductsController(ISender sender) : ControllerBase
     }
 
     [HttpDelete("{productId:long}/variants/{variantId:long}")]
+    [Authorize]
     public async Task<IActionResult> DeleteProductVariant(long productId, long variantId)
     {
         var result = await sender.Send(new DeleteProductVariantCommand(productId, variantId));
@@ -278,6 +332,115 @@ public class ProductsController(ISender sender) : ControllerBase
 
         return StatusCode(result.GetHttpStatusCode(), result.Message);
     }
+
+    [HttpDelete("{productId:long}/options/{optionId:long}")]
+    [Authorize]
+    public async Task<IActionResult> DeleteProductOption(long productId, long optionId)
+    {
+        var result = await sender.Send(new Ecommerce.Services.Catalog.Application.Features.Products.Commands.DeleteProductOption.DeleteProductOptionCommand(productId, optionId));
+
+        if (result.IsSuccess)
+        {
+            return Ok(result.Value);
+        }
+
+        return StatusCode(result.GetHttpStatusCode(), result.Message);
+    }
+
+    [HttpDelete("{productId:long}/options/{optionId:long}/values/{valueId:long}")]
+    [Authorize]
+    public async Task<IActionResult> DeleteProductOptionValue(long productId, long optionId, long valueId)
+    {
+        var result = await sender.Send(new Ecommerce.Services.Catalog.Application.Features.Products.Commands.DeleteProductOptionValue.DeleteProductOptionValueCommand(productId, optionId, valueId));
+
+        if (result.IsSuccess)
+        {
+            return Ok(result.Value);
+        }
+
+        return StatusCode(result.GetHttpStatusCode(), result.Message);
+    }
+
+    [HttpGet("suggestions")]
+    public async Task<IActionResult> GetSuggestions([FromQuery] string q, [FromQuery] int limit = 5)
+    {
+        var result = await sender.Send(new SearchProductsQuery(Query: q, Page: 1, PageSize: limit, SortBy: "relevance"));
+        if (result.IsSuccess)
+        {
+            return Ok(result.Value);
+        }
+        return StatusCode(result.GetHttpStatusCode(), result.Message);
+    }
+    
+
+    [HttpGet("search-history")]
+    public async Task<IActionResult> GetSearchHistory([FromServices] ICurrentUserService userService)
+    {
+        if (userService.UserId <= 0)
+        {
+            return Ok(new List<string>());
+        }
+        var result = await sender.Send(new GetSearchHistoryQuery(userService.UserId));
+        if (result.IsSuccess)
+        {
+            return Ok(result.Value);
+        }
+        return StatusCode(result.GetHttpStatusCode(), result.Message);
+    }
+
+    [HttpPost("search-history")]
+    public async Task<IActionResult> SaveSearchKeyword(
+        [FromBody] SaveSearchHistoryRequest request,
+        [FromServices] ICurrentUserService userService)
+    {
+        var userId = userService.UserId > 0 ? (long?)userService.UserId : null;
+        var clientIp = HttpContext.Connection.RemoteIpAddress?.ToString();
+        var result = await sender.Send(new SaveSearchKeywordCommand(request.Keyword, userId, clientIp));
+        return Ok(result.IsSuccess);
+    }
+
+    [HttpPost("search-history/sync")]
+    public async Task<IActionResult> SyncSearchHistory(
+        [FromBody] SyncSearchHistoryRequest request,
+        [FromServices] ICurrentUserService userService)
+    {
+        if (userService.UserId <= 0)
+        {
+            return Ok(request.Keywords ?? new List<string>());
+        }
+        var result = await sender.Send(new SyncSearchHistoryCommand(userService.UserId, request.Keywords ?? new List<string>()));
+        if (result.IsSuccess)
+        {
+            return Ok(result.Value);
+        }
+        return StatusCode(result.GetHttpStatusCode(), result.Message);
+    }
+
+    [HttpDelete("search-history")]
+    public async Task<IActionResult> ClearSearchHistory([FromServices] ICurrentUserService userService)
+    {
+        if (userService.UserId <= 0)
+        {
+            return Ok(true);
+        }
+        var result = await sender.Send(new ClearSearchHistoryCommand(userService.UserId));
+        return Ok(result.IsSuccess);
+    }
+
+    [HttpDelete("search-history/item")]
+    public async Task<IActionResult> RemoveSearchHistoryItem(
+        [FromQuery] string keyword,
+        [FromServices] ICurrentUserService userService)
+    {
+        if (userService.UserId <= 0)
+        {
+            return Ok(true);
+        }
+        var result = await sender.Send(new RemoveSearchHistoryItemCommand(userService.UserId, keyword));
+        return Ok(result.IsSuccess);
+    }
 }
 
 public record UpdateAttributesRequest(string? AttributesJson);
+public record SaveSearchHistoryRequest(string Keyword);
+public record SyncSearchHistoryRequest(List<string> Keywords);

@@ -117,10 +117,10 @@ export function OrdersView() {
 			});
 		}
 
-		setWeight(totalWeight > 0 ? totalWeight : 500);
-		setLength(maxLength > 0 ? maxLength : 20);
-		setWidth(maxWidth > 0 ? maxWidth : 15);
-		setHeight(totalHeight > 0 ? totalHeight : 10);
+		setWeight(Math.round(totalWeight > 0 ? totalWeight : 500));
+		setLength(Math.round(maxLength > 0 ? maxLength : 20));
+		setWidth(Math.round(maxWidth > 0 ? maxWidth : 15));
+		setHeight(Math.round(totalHeight > 0 ? totalHeight : 10));
 		setPackingOrderId(order.id);
 	};
 
@@ -229,10 +229,12 @@ export function OrdersView() {
 					<option value="AwaitingPayment">Chờ thanh toán</option>
 					<option value="AwaitingConfirmation">Chờ xác nhận</option>
 					<option value="Processing">Đang xử lý</option>
-					<option value="PackageReady">Chờ shipper</option>
+					<option value="PackageReady">Chờ shipper lấy</option>
 					<option value="Shipping">Đang vận chuyển</option>
 					<option value="Delivered">Đã giao hàng</option>
 					<option value="Completed">Đã hoàn thành</option>
+					<option value="Returning">Đang trả hàng</option>
+					<option value="Refunded">Đã hoàn tiền</option>
 					<option value="Cancelled">Đã hủy</option>
 				</select>
 			</div>
@@ -285,7 +287,7 @@ export function OrdersView() {
 												)}
 												đ
 											</td>
-											<td className="p-3">
+											<td className="p-3 whitespace-nowrap">
 												{getStatusBadge(order.status)}
 											</td>
 											<td className="p-3 text-right">
@@ -328,11 +330,11 @@ export function OrdersView() {
 																			order,
 																		)
 																	}
-																	className="px-2 py-1 text-purple-600 hover:bg-purple-50 border border-purple-200 rounded cursor-pointer transition-all inline-flex items-center gap-1 text-[10px] font-bold"
-																	title="Đóng gói xong"
+																	className="p-1 text-brand-primary hover:bg-brand-light-soft border border-brand-primary/40 rounded cursor-pointer transition-all inline-flex items-center gap-1 text-[10px] font-bold"
+																	title="Chuẩn bị hàng"
 																>
 																	<Package className="w-3.5 h-3.5" />
-																	Đóng gói xong
+																	Chuẩn bị hàng
 																</button>
 																<button
 																	onClick={() =>

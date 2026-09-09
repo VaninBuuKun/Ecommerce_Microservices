@@ -1,3 +1,4 @@
+using BuildingBlocks.Caching;
 using BuildingBlocks.EfCore.Persistence.Commons;
 using BuildingBlocks.Grpc.Extensions;
 using BuildingBlocks.Messaging;
@@ -5,6 +6,7 @@ using BuildingBlocks.Shared.InfrastructureInterfaces.Persistence.EFCore;
 using Ecommerce.Services.Catalog.Application.Common.Interfaces;
 using Ecommerce.Services.Catalog.Application.Commons.Interfaces;
 using Ecommerce.Services.Catalog.Application.Commons.Repositories;
+using Ecommerce.Services.Catalog.Infrastructure.BackgroundServices;
 using Ecommerce.Services.Catalog.Infrastructure.GrpcClients;
 using Ecommerce.Services.Catalog.Infrastructure.Persistence;
 using Ecommerce.Services.Catalog.Infrastructure.Repositories;
@@ -23,6 +25,7 @@ public static class DependencyInjection
         //Db
         var connectionString = configuration.GetConnectionString("Database");
 
+        services.AddCustomCaching(configuration.GetConnectionString("Redis") ?? "localhost:6379");
         services.AddDbContext<ProductDbContext>(options =>
             options.UseNpgsql(connectionString));
 

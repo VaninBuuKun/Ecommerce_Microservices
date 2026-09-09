@@ -29,6 +29,6 @@ public class UpdateSingleVariantCommandValidator : AbstractValidator<UpdateSingl
 
         RuleFor(x => x.DiscountPrice)
             .GreaterThanOrEqualTo(0).When(x => x.DiscountPrice.HasValue).WithMessage("Giá giảm phải lớn hơn hoặc bằng 0.")
-            .LessThanOrEqualTo(x => x.Price).When(x => x.DiscountPrice.HasValue).WithMessage("Giá giảm không được lớn hơn giá gốc.");
+            .LessThan(x => x.Price).When(x => x.DiscountPrice.HasValue && x.DiscountPrice.Value > 0).WithMessage("Giá giảm phải nhỏ hơn giá bán.");
     }
 }

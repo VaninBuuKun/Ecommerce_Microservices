@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
-import api from "@/core/api/axiosInstance";
+import { createPortal } from "react-dom";
+import { api } from "@/core";
 import {
 	Loader2,
 	RefreshCw,
@@ -12,6 +13,8 @@ import {
 	Copy,
 	Check,
 	Send,
+	ArrowRight,
+	AlertCircle,
 } from "lucide-react";
 import { Pagination } from "@/shared/components/Pagination";
 import { toast } from "react-toastify";
@@ -33,64 +36,91 @@ export interface ShipmentItem {
 	failureReason?: string;
 }
 
-const GHN_STATUS_OPTIONS = [
-	{ value: "picking", label: "Lấy hàng (picking / storing)", statusName: "Picking", desc: "Shipper đang trên đường lấy hàng từ Shop" },
-	{ value: "delivering", label: "Đang giao hàng (delivering ➔ InTransit)", statusName: "InTransit", desc: "Kiện hàng đang luân chuyển và đi giao (Kích hoạt SubOrderShippedEvent)" },
-	{ value: "delivered", label: "Giao hàng thành công (delivered)", statusName: "Delivered", desc: "Khách đã nhận hàng thành công (Kích hoạt SubOrderDeliveredEvent)" },
-	{ value: "returned", label: "Hoàn hàng / Trả hàng (returned)", statusName: "Returned", desc: "Giao không thành công hoặc hoàn trả về Shop" },
-	{ value: "cancelled", label: "Hủy vận đơn (cancelled)", statusName: "Cancelled", desc: "Hủy bỏ vận đơn vận chuyển" },
-];
+export const isTerminalStatus = (status: string) => {
+	const str = String(status);
+	return ["3", "Delivered", "4", "Returned", "5", "Cancelled", "6", "Failed"].includes(str);
+};
+
+export const getNextWebhookOptions = (currentStatus: string) => {
+	const str = String(currentStatus);
+	if (str === "1" || str === "ReadyToPick") {
+		return [
+			{
+				value: "delivering",
+				label: "Đang vận chuyển",
+				statusName: "InTransit",
+				desc: "Shipper đã lấy hàng từ Shop, kiện hàng bắt đầu luân chuyển giao hàng (Kích hoạt SubOrderShippedEvent)",
+			},
+			{
+				value: "cancelled",
+				label: "Hủy vận đơn",
+				statusName: "Cancelled",
+				desc: "Hủy bỏ vận đơn trước khi lấy hàng (Kích hoạt SubOrderRejectedEvent)",
+			},
+		];
+	}
+	if (str === "2" || str === "InTransit") {
+		return [
+			{
+				value: "delivered",
+				label: "Giao hàng thành công",
+				statusName: "Delivered",
+				desc: "Khách hàng đã nhận kiện hàng thành công (Kích hoạt SubOrderDeliveredEvent)",
+			},
+			{
+				value: "returned",
+				label: "Hoàn trả hàng về Shop",
+				statusName: "Returned",
+				desc: "Giao không thành công hoặc khách từ chối nhận, chuyển hoàn về Shop (Kích hoạt SubOrderRejectedEvent)",
+			},
+		];
+	}
+	return [];
+};
 
 export function getShipmentStatusBadge(status: string) {
 	const strStatus = String(status);
 	switch (strStatus) {
 		case "1":
-		case "Created":
-			return (
-				<span className="px-2 py-0.5 rounded text-[9px] font-black uppercase bg-slate-100 text-slate-700 border border-slate-200">
-					Đã tạo đơn
-				</span>
-			);
-		case "2":
 		case "ReadyToPick":
 			return (
 				<span className="px-2 py-0.5 rounded text-[9px] font-black uppercase bg-amber-50 text-amber-700 border border-amber-200">
 					Chờ lấy hàng
 				</span>
 			);
-		case "3":
-		case "Picking":
-			return (
-				<span className="px-2 py-0.5 rounded text-[9px] font-black uppercase bg-blue-50 text-blue-700 border border-blue-200">
-					Đang lấy hàng
-				</span>
-			);
-		case "4":
+		case "2":
 		case "InTransit":
 			return (
 				<span className="px-2 py-0.5 rounded text-[9px] font-black uppercase bg-indigo-50 text-indigo-700 border border-indigo-200">
 					Đang vận chuyển
 				</span>
 			);
-		case "5":
+		case "3":
 		case "Delivered":
 			return (
 				<span className="px-2 py-0.5 rounded text-[9px] font-black uppercase bg-emerald-50 text-emerald-700 border border-emerald-200">
-					Đã giao thành công
+					Giao hàng thành công
 				</span>
 			);
-		case "6":
+		case "4":
+		case "Returned":
+			return (
+				<span className="px-2 py-0.5 rounded text-[9px] font-black uppercase bg-purple-50 text-purple-700 border border-purple-200">
+					Đã hoàn trả
+				</span>
+			);
+		case "5":
 		case "Cancelled":
 			return (
 				<span className="px-2 py-0.5 rounded text-[9px] font-black uppercase bg-rose-50 text-rose-700 border border-rose-200">
 					Đã hủy
 				</span>
 			);
-		case "7":
-		case "Returned":
+		case "6":
+		case "Failed":
 			return (
-				<span className="px-2 py-0.5 rounded text-[9px] font-black uppercase bg-purple-50 text-purple-700 border border-purple-200">
-					Đã trả hàng
+				<span className="px-2 py-0.5 rounded text-[9px] font-black uppercase bg-red-50 text-red-700 border border-red-200">
+					Thất bại
 				</span>
 			);
 		default:
@@ -169,11 +199,28 @@ export function AdminShipmentsView() {
 		setTimeout(() => setCopiedCode(null), 2000);
 	};
 
+	const openWebhookModal = (shipment: ShipmentItem) => {
+		setSelectedShipment(shipment);
+		const availableOpts = getNextWebhookOptions(shipment.status);
+		if (availableOpts.length > 0) {
+			setSelectedWebhookStatus(availableOpts[0].value);
+		} else {
+			setSelectedWebhookStatus("");
+		}
+		setCustomReason("");
+		setShowWebhookModal(true);
+	};
+
 	const handleTriggerWebhook = async () => {
 		if (!selectedShipment) return;
 		const code = selectedShipment.waybillCode;
 		if (!code) {
 			toast.error("Vận đơn này chưa có mã GHN (OrderCode / WaybillCode)!");
+			return;
+		}
+
+		if (!selectedWebhookStatus) {
+			toast.error("Vui lòng chọn trạng thái tiếp theo!");
 			return;
 		}
 
@@ -189,7 +236,7 @@ export function AdminShipmentsView() {
 
 			await api.post("/shipping-webhooks/ghn", payload);
 			toast.success(
-				`Bắn Webhook GHN thành công! Đã cập nhật trạng thái '${selectedWebhookStatus}' cho mã ${code}`
+				`Cập nhật trạng thái thành công!`
 			);
 			setShowWebhookModal(false);
 			setCustomReason("");
@@ -205,15 +252,23 @@ export function AdminShipmentsView() {
 	// Filtered items on client if statusFilter is active
 	const filteredShipments = statusFilter === "All"
 		? shipments
-		: shipments.filter((s) => String(s.status) === statusFilter);
+		: shipments.filter((s) => {
+			const str = String(s.status);
+			if (statusFilter === "ReadyToPick") return str === "ReadyToPick" || str === "1";
+			if (statusFilter === "InTransit") return str === "InTransit" || str === "2";
+			if (statusFilter === "Delivered") return str === "Delivered" || str === "3";
+			if (statusFilter === "Returned") return str === "Returned" || str === "4";
+			if (statusFilter === "Cancelled") return str === "Cancelled" || str === "5";
+			if (statusFilter === "Failed") return str === "Failed" || str === "6";
+			return str === statusFilter;
+		});
 
 	const totalPages = Math.ceil(totalCount / pageSize) || 1;
 
 	// Summary stats
-	const pickingCount = shipments.filter((s) => ["3", "Picking", "2", "ReadyToPick"].includes(String(s.status))).length;
-	const inTransitCount = shipments.filter((s) => ["4", "InTransit"].includes(String(s.status))).length;
-	const deliveredCount = shipments.filter((s) => ["5", "Delivered"].includes(String(s.status))).length;
-	const problemCount = shipments.filter((s) => ["6", "Cancelled", "7", "Returned"].includes(String(s.status))).length;
+	const readyToPickCount = shipments.filter((s) => ["1", "ReadyToPick"].includes(String(s.status))).length;
+	const inTransitCount = shipments.filter((s) => ["2", "InTransit"].includes(String(s.status))).length;
+	const deliveredCount = shipments.filter((s) => ["3", "Delivered"].includes(String(s.status))).length;
 
 	return (
 		<div className="space-y-4 text-left font-sans animate-in fade-in duration-200">
@@ -221,11 +276,10 @@ export function AdminShipmentsView() {
 			<div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 pb-2.5 border-b border-brand-border">
 				<div>
 					<h2 className="text-sm font-black text-brand-dark uppercase tracking-wide flex items-center gap-2">
-						{/*<Truck className="w-4 h-4 text-brand-primary" />*/}
 						Quản lý Vận chuyển & Webhook GHN Simulator
 					</h2>
 					<p className="text-[10px] text-brand-muted font-bold mt-0.5">
-						Theo dõi vận đơn thực tế, xem nhật ký lộ trình và mô phỏng Webhook đối tác vận chuyển GHN
+						Theo dõi vận đơn thực tế, xem nhật ký lộ trình và mô phỏng Webhook đối tác vận chuyển GHN theo thứ tự chuẩn
 					</p>
 				</div>
 
@@ -263,10 +317,10 @@ export function AdminShipmentsView() {
 				</div>
 				<div className="bg-white border border-brand-border/80 rounded-lg p-3 shadow-2xs">
 					<div className="flex items-center justify-between">
-						<span className="text-[10px] font-bold text-blue-600 uppercase">Đang lấy / Chuẩn bị</span>
-						<Clock className="w-3.5 h-3.5 text-blue-500" />
+						<span className="text-[10px] font-bold text-amber-600 uppercase">Chờ lấy hàng</span>
+						<Clock className="w-3.5 h-3.5 text-amber-500" />
 					</div>
-					<p className="text-lg font-black text-blue-700 mt-1">{pickingCount}</p>
+					<p className="text-lg font-black text-amber-700 mt-1">{readyToPickCount}</p>
 				</div>
 				<div className="bg-white border border-brand-border/80 rounded-lg p-3 shadow-2xs">
 					<div className="flex items-center justify-between">
@@ -277,7 +331,7 @@ export function AdminShipmentsView() {
 				</div>
 				<div className="bg-white border border-brand-border/80 rounded-lg p-3 shadow-2xs">
 					<div className="flex items-center justify-between">
-						<span className="text-[10px] font-bold text-emerald-600 uppercase">Đã giao thành công</span>
+						<span className="text-[10px] font-bold text-emerald-600 uppercase">Giao thành công</span>
 						<CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />
 					</div>
 					<p className="text-lg font-black text-emerald-700 mt-1">{deliveredCount}</p>
@@ -292,13 +346,12 @@ export function AdminShipmentsView() {
 					className="h-8 px-3 bg-white border border-brand-border rounded-md text-xs focus:outline-none focus:border-brand-primary cursor-pointer font-bold text-brand-dark"
 				>
 					<option value="All">Mọi trạng thái vận đơn</option>
-					<option value="Created">Đã tạo đơn</option>
 					<option value="ReadyToPick">Chờ lấy hàng</option>
-					<option value="Picking">Đang lấy hàng</option>
 					<option value="InTransit">Đang vận chuyển</option>
-					<option value="Delivered">Đã giao thành công</option>
+					<option value="Delivered">Giao hàng thành công</option>
+					<option value="Returned">Đã hoàn trả</option>
 					<option value="Cancelled">Đã hủy</option>
-					<option value="Returned">Đã trả hàng</option>
+					<option value="Failed">Thất bại</option>
 				</select>
 			</div>
 
@@ -378,18 +431,34 @@ export function AdminShipmentsView() {
 													<span>Logs</span>
 												</button>
 
-												{/* Webhook Modal Trigger Button */}
-												<button
-													type="button"
-													onClick={() => {
-														setSelectedShipment(item);
-														setShowWebhookModal(true);
-													}}
-													className="px-2.5 py-1 bg-brand-dark text-white hover:bg-brand-primary hover:text-brand-dark text-[10px] font-black rounded-md transition-all cursor-pointer border-none flex items-center gap-1 shadow-2xs"
-												>
-													<Send className="w-3 h-3" />
-													<span>Webhook</span>
-												</button>
+												{/* Sequential Action Button */}
+												{isTerminalStatus(item.status) ? (
+													<span
+														className="px-2.5 py-1 bg-slate-100 text-slate-500 text-[10px] font-bold rounded-md border border-slate-200 flex items-center gap-1 cursor-default"
+														title="Vận đơn đã ở trạng thái kết thúc"
+													>
+														<CheckCircle2 className="w-3 h-3 text-emerald-600" />
+														<span>Hoàn tất</span>
+													</span>
+												) : (
+													<button
+														type="button"
+														onClick={() => openWebhookModal(item)}
+														className="px-2.5 py-1 bg-brand-dark text-white hover:bg-brand-primary hover:text-brand-dark text-[10px] font-black rounded-md transition-all cursor-pointer border-none flex items-center gap-1 shadow-2xs"
+														title={
+															String(item.status) === "1" || item.status === "ReadyToPick"
+																? "Chuyển sang: Đang vận chuyển"
+																: "Chuyển sang: Giao hàng thành công"
+														}
+													>
+														<Send className="w-3 h-3" />
+														<span>
+															{String(item.status) === "1" || item.status === "ReadyToPick"
+																? "Vận chuyển"
+																: "Giao hàng"}
+														</span>
+													</button>
+												)}
 											</div>
 										</td>
 									</tr>
@@ -414,14 +483,14 @@ export function AdminShipmentsView() {
 			</div>
 
 			{/* Modal GHN Webhook Simulation */}
-			{showWebhookModal && selectedShipment && (
-				<div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-xs p-4 animate-in fade-in duration-200">
+			{showWebhookModal && selectedShipment && createPortal(
+				<div className="fixed inset-0 z-[10000] flex items-center justify-center bg-black/40 backdrop-blur-xs p-4 animate-in fade-in duration-200">
 					<div className="bg-white border border-brand-border rounded-xl w-full max-w-md p-5 shadow-2xl text-left space-y-4">
 						<div className="border-b border-brand-border pb-3 flex justify-between items-start">
 							<div>
 								<h3 className="text-xs font-black text-brand-dark uppercase tracking-wide flex items-center gap-1.5">
 									<Send className="w-3.5 h-3.5 text-brand-primary" />
-									Mô phỏng Webhook GHN Carrier
+									Cập nhật Trạng thái Vận chuyển (GHN)
 								</h3>
 								<p className="text-[10px] text-brand-muted font-bold mt-1">
 									Vận đơn: <span className="font-mono text-brand-dark font-black">{selectedShipment.waybillCode || "N/A"}</span> | SubOrder #{String(selectedShipment.subOrderId).split("-")[0].toUpperCase()}
@@ -435,47 +504,51 @@ export function AdminShipmentsView() {
 								✕
 							</button>
 						</div>
-
-						<div className="space-y-3 text-xs">
-							<div className="space-y-1">
-								<label className="block text-[10px] font-extrabold text-brand-muted uppercase">
-									Trạng thái Webhook GHN gửi về
-								</label>
-								<select
-									value={selectedWebhookStatus}
-									onChange={(e) => setSelectedWebhookStatus(e.target.value)}
-									className="w-full px-3 py-2 border border-brand-border rounded-md bg-white font-bold text-brand-dark focus:outline-none focus:border-brand-primary"
-								>
-									{GHN_STATUS_OPTIONS.map((opt) => (
-										<option key={opt.value} value={opt.value}>
-											{opt.label}
-										</option>
-									))}
-								</select>
-								<p className="text-[10px] text-brand-muted font-medium pt-0.5">
-									{GHN_STATUS_OPTIONS.find((o) => o.value === selectedWebhookStatus)?.desc}
-								</p>
+						
+						
+						{isTerminalStatus(selectedShipment.status) ? (
+							<div className="p-3 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-600 flex items-center gap-2">
+								<AlertCircle className="w-4 h-4 text-slate-400 shrink-0" />
+								<span>Vận đơn này đã hoàn tất lộ trình giao hàng, không thể chuyển tiếp trạng thái.</span>
 							</div>
-
-							{(selectedWebhookStatus === "cancelled" || selectedWebhookStatus === "returned") && (
+						) : (
+							<div className="space-y-3 text-xs">
 								<div className="space-y-1">
 									<label className="block text-[10px] font-extrabold text-brand-muted uppercase">
-										Lý do hủy / trả hàng (Failure Reason)
+										Chuyển sang trạng thái tiếp theo
 									</label>
-									<textarea
-										value={customReason}
-										onChange={(e) => setCustomReason(e.target.value)}
-										placeholder="Ví dụ: Khách không nghe máy 3 lần, địa chỉ không tìm thấy..."
-										rows={2}
-										className="w-full px-3 py-2 border border-brand-border rounded-md font-semibold text-brand-dark focus:outline-none focus:border-brand-primary text-xs"
-									/>
+									<select
+										value={selectedWebhookStatus}
+										onChange={(e) => setSelectedWebhookStatus(e.target.value)}
+										className="w-full px-3 py-2 border border-brand-border rounded-md bg-white font-bold text-brand-dark focus:outline-none focus:border-brand-primary cursor-pointer"
+									>
+										{getNextWebhookOptions(selectedShipment.status).map((opt) => (
+											<option key={opt.value} value={opt.value}>
+												{opt.label} ({opt.statusName})
+											</option>
+										))}
+									</select>
+									<p className="text-[10px] text-brand-muted font-medium pt-0.5">
+										{getNextWebhookOptions(selectedShipment.status).find((o) => o.value === selectedWebhookStatus)?.desc}
+									</p>
 								</div>
-							)}
 
-							<div className="bg-brand-light-soft/50 p-2.5 rounded-md border border-brand-border text-[10px] text-brand-muted font-medium leading-relaxed">
-								* Khi gửi Webhook thành công, Shippings Service sẽ cập nhật trạng thái Shipment và phát bắn Event <span className="font-mono text-brand-dark font-bold">SubOrderShippedEvent / SubOrderDeliveredEvent</span> qua RabbitMQ để Orders Service tự động đồng bộ trạng thái đơn hàng.
+								{(selectedWebhookStatus === "cancelled" || selectedWebhookStatus === "returned") && (
+									<div className="space-y-1">
+										<label className="block text-[10px] font-extrabold text-brand-muted uppercase">
+											Lý do hủy / trả hàng (Failure Reason)
+										</label>
+										<textarea
+											value={customReason}
+											onChange={(e) => setCustomReason(e.target.value)}
+											placeholder="Ví dụ: Khách không nghe máy 3 lần, địa chỉ không tìm thấy..."
+											rows={2}
+											className="w-full px-3 py-2 border border-brand-border rounded-md font-semibold text-brand-dark focus:outline-none focus:border-brand-primary text-xs"
+										/>
+									</div>
+								)}
 							</div>
-						</div>
+						)}
 
 						<div className="flex items-center justify-end gap-2 pt-3 border-t border-brand-border">
 							<button
@@ -488,32 +561,35 @@ export function AdminShipmentsView() {
 							>
 								Đóng
 							</button>
-							<button
-								type="button"
-								onClick={handleTriggerWebhook}
-								disabled={submitting}
-								className="px-4 py-1.5 bg-brand-dark hover:bg-brand-primary hover:text-brand-dark text-white rounded-md font-black text-xs cursor-pointer transition-all disabled:opacity-50 flex items-center gap-1.5 border-none"
-							>
-								{submitting ? (
-									<>
-										<Loader2 className="w-3.5 h-3.5 animate-spin" />
-										<span>Đang gửi...</span>
-									</>
-								) : (
-									<>
-										<Send className="w-3.5 h-3.5" />
-										<span>Bắn Webhook GHN</span>
-									</>
-								)}
-							</button>
+							{!isTerminalStatus(selectedShipment.status) && (
+								<button
+									type="button"
+									onClick={handleTriggerWebhook}
+									disabled={submitting || !selectedWebhookStatus}
+									className="px-4 py-1.5 bg-brand-dark hover:bg-brand-primary hover:text-brand-dark text-white rounded-md font-black text-xs cursor-pointer transition-all disabled:opacity-50 flex items-center gap-1.5 border-none"
+								>
+									{submitting ? (
+										<>
+											<Loader2 className="w-3.5 h-3.5 animate-spin" />
+											<span>Đang gửi...</span>
+										</>
+									) : (
+										<>
+											<Send className="w-3.5 h-3.5" />
+											<span>Xác nhận chuyển trạng thái</span>
+										</>
+									)}
+								</button>
+							)}
 						</div>
 					</div>
-				</div>
+				</div>,
+				document.body
 			)}
 
 			{/* Modal Tracking Logs */}
-			{logShipment && (
-				<div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-xs p-4 animate-in fade-in duration-200">
+			{logShipment && createPortal(
+				<div className="fixed inset-0 z-[10000] flex items-center justify-center bg-black/40 backdrop-blur-xs p-4 animate-in fade-in duration-200">
 					<div className="bg-white border border-brand-border rounded-xl w-full max-w-lg p-5 shadow-2xl text-left space-y-4">
 						<div className="border-b border-brand-border pb-3 flex justify-between items-start">
 							<div>
@@ -556,7 +632,8 @@ export function AdminShipmentsView() {
 							</button>
 						</div>
 					</div>
-				</div>
+				</div>,
+				document.body
 			)}
 		</div>
 	);

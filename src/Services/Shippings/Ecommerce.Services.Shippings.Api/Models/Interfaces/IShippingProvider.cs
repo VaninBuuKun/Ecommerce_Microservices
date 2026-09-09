@@ -9,10 +9,10 @@ namespace Ecommerce.Services.Shippings.Api.Models.Interfaces;
 public record CalculateFeeRequest(
     long SenderWardId,
     long RecipientWardId,
-    double Weight,
-    double Length,
-    double Width,
-    double Height
+    int Weight,
+    int Length,
+    int Width,
+    int Height
 );
 
 public record CreateWaybillItemRequest(
@@ -33,10 +33,10 @@ public record CreateWaybillRequest(
     string RecipientAddress,
     string RecipientName,
     string RecipientPhone,
-    double Weight,
-    double Length,
-    double Width,
-    double Height,
+    int Weight,
+    int Length,
+    int Width,
+    int Height,
     decimal CodAmount,
     List<CreateWaybillItemRequest> Items
 );

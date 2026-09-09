@@ -30,6 +30,7 @@ try
     
 
     var app = builder.Build();
+    app.UseBuildingBlocksMiddlewares();
     if (app.Environment.IsDevelopment())
     {
         app.MapOpenApi();

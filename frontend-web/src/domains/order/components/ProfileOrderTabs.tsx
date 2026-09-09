@@ -35,12 +35,27 @@ export function MyOrdersTab({ customerId }: { customerId?: number }) {
 	const [detailSubOrderId, setDetailSubOrderId] = useState<string | null>(null);
 	const [showAllItems, setShowAllItems] = useState<Record<string, boolean>>({});
 
+	const ORDER_TABS = [
+		{ key: "All", label: "Tất cả đơn" },
+		{ key: "AwaitingPayment", label: "Chờ thanh toán" },
+		{ key: "Processing", label: "Đang xử lý" },
+		{ key: "Shipping", label: "Vận chuyển" },
+		{ key: "Delivered", label: "Đã giao" },
+		{ key: "Completed", label: "Hoàn thành" },
+		{ key: "Returning", label: "Đang trả hàng" },
+		{ key: "Refunded", label: "Trả hàng" },
+		{ key: "Cancelled", label: "Đã hủy" },
+	];
+
 	const matchesTab = (order: any, tab: string) => {
 		if (tab === "All") return true;
 		if (tab === "AwaitingPayment") return order.status === "AwaitingPayment";
 		if (tab === "Processing") return order.status === "Processing" || order.status === "AwaitingConfirmation";
 		if (tab === "Shipping") return order.status === "Shipping" || order.status === "PackageReady";
-		if (tab === "Delivered") return order.status === "Delivered" || order.status === "Completed";
+		if (tab === "Delivered") return order.status === "Delivered";
+		if (tab === "Completed") return order.status === "Completed";
+		if (tab === "Returning") return order.status === "Returning";
+		if (tab === "Refunded") return order.status === "Refunded";
 		if (tab === "Cancelled") return order.status === "Cancelled" || order.status === "Rejected";
 		return true;
 	};
@@ -89,27 +104,36 @@ export function MyOrdersTab({ customerId }: { customerId?: number }) {
 			</div>
 
 			{/* Tab bars */}
-			<div className="flex border-b border-brand-border overflow-x-auto select-none no-scrollbar">
-				{[
-					{ key: "All", label: "Tất cả đơn" },
-					{ key: "AwaitingPayment", label: "Chờ thanh toán" },
-					{ key: "Processing", label: "Đang xử lý" },
-					{ key: "Shipping", label: "Đang vận chuyển" },
-					{ key: "Delivered", label: "Đã giao" },
-					{ key: "Cancelled", label: "Đã hủy" },
-				].map((tab) => (
-					<button
-						key={tab.key}
-						onClick={() => setOrderTab(tab.key)}
-						className={`py-3 px-4 text-xs font-extrabold border-b-2 whitespace-nowrap cursor-pointer transition-all ${
-							orderTab === tab.key
-								? "border-brand-primary text-brand-primary-deep"
-								: "border-transparent text-brand-muted hover:text-brand-dark"
-						}`}
-					>
-						{tab.label}
-					</button>
-				))}
+			<div className="flex border-b border-brand-border overflow-x-auto select-none no-scrollbar gap-1">
+				{ORDER_TABS.map((tab) => {
+					const count = customerOrders.filter((order: any) => matchesTab(order, tab.key)).length;
+					const isActive = orderTab === tab.key;
+					return (
+						<button
+							key={tab.key}
+							type="button"
+							onClick={() => setOrderTab(tab.key)}
+							className={`py-2.5 px-3 text-xs font-bold border-b-2 whitespace-nowrap cursor-pointer transition-colors flex items-center gap-1.5 shrink-0 ${
+								isActive
+									? "border-brand-primary text-brand-primary-deep bg-brand-primary/10"
+									: "border-transparent text-brand-muted hover:text-brand-dark hover:bg-brand-light-soft/50"
+							}`}
+						>
+							<span>{tab.label}</span>
+							{count > 0 && (
+								<span
+									className={`px-1.5 py-0.5 rounded-full text-[10px] font-bold leading-none shrink-0 transition-colors ${
+										isActive
+											? "bg-brand-primary text-white"
+											: "bg-brand-border/60 text-brand-muted"
+									}`}
+								>
+									{count}
+								</span>
+							)}
+						</button>
+					);
+				})}
 			</div>
 
 			{/* Search Order bar */}
@@ -145,16 +169,18 @@ export function MyOrdersTab({ customerId }: { customerId?: number }) {
 							className="border border-brand-border rounded-md overflow-hidden bg-white shadow-xs hover:shadow-md transition-all text-left"
 						>
 							{/* Shop header and status */}
-							<div className="flex justify-between items-center bg-brand-light-soft/50 border-b border-brand-border px-4 py-3">
-								<div className="flex items-center gap-2">
-									<span className="font-extrabold text-brand-dark text-xs uppercase tracking-wider">
+							<div className="flex justify-between items-center bg-brand-light-soft/50 border-b border-brand-border px-4 py-2.5">
+								<div className="flex items-center gap-2 min-w-0">
+									<span className="font-extrabold text-brand-dark text-xs uppercase tracking-wider truncate">
 										{order.shopName || `Shop #${order.shopId || 1}`}
 									</span>
-									<span className="text-[10px] text-brand-muted font-bold">
+									<span className="text-[10px] text-brand-muted font-bold shrink-0">
 										Mã đơn: #{String(order.id).split("-")[0]}
 									</span>
 								</div>
-								{getOrderStatusBadge(order.status)}
+								<div className="shrink-0 flex items-center ml-2">
+									{getOrderStatusBadge(order.status)}
+								</div>
 							</div>
 
 							{/* Products items */}

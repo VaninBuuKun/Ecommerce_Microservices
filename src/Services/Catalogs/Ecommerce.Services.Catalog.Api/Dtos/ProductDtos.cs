@@ -14,20 +14,28 @@ public record UpdateProductRequest(
     string? VideoUrl,
     List<string> ImageUrls,
     long? CategoryId,
-    string? AttributesJson
+    string? AttributesJson,
+    int Weight = 0,
+    int Length = 0,
+    int Width = 0,
+    int Height = 0
 );
 
 public record UpdateSingleVariantRequest(
     decimal Price,
     int AvailableStock,
-    double Weight,
-    double Length,
-    double Width,
-    double Height,
+    int Weight,
+    int Length,
+    int Width,
+    int Height,
     decimal? DiscountPrice
 );
 
 public record UpdateMultiVariantsRequest(
     List<MultiUpdateOptionDto> Options,
-    List<MultiUpdateVariantDto> Variants
+    List<MultiUpdateVariantDto> Variants,
+    int? Weight = null,
+    int? Length = null,
+    int? Width = null,
+    int? Height = null
 );

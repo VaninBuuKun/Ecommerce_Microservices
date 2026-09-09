@@ -1,17 +1,26 @@
 using BuildingBlocks.Application.InMemoryBus;
 using BuildingBlocks.Shared.Commons;
+using BuildingBlocks.Shared.InfrastructureInterfaces.Caching;
 using BuildingBlocks.Shared.InfrastructureInterfaces.Persistence.EFCore;
 using Ecommerce.Services.Catalog.Application.Features.Categories.Dtos;
 using Ecommerce.Services.Catalog.Domain;
 
 namespace Ecommerce.Services.Catalog.Application.Features.Categories.Queries.GetCategories;
 
-public class GetCategoriesQueryHandler(IEfUnitOfWork unitOfWork) : CommandHandler<GetCategoriesQuery, List<CategoryDto>>
+public class GetCategoriesQueryHandler(IEfUnitOfWork unitOfWork, ICacheService cacheService) : CommandHandler<GetCategoriesQuery, List<CategoryDto>>
 {
+    private const string CategoryTreeCacheKey = "catalog:categories:tree";
+
     protected override async Task<Result<List<CategoryDto>>> HandleCommandAsync(GetCategoriesQuery command, CancellationToken cancellationToken)
     {
         try
         {
+            var cached = await cacheService.GetAsync<List<CategoryDto>>(CategoryTreeCacheKey, cancellationToken);
+            if (cached != null && cached.Count > 0)
+            {
+                return Result<List<CategoryDto>>.Success(cached);
+            }
+
             var cateRepo = unitOfWork.Repository<Category, long>();
 
             // Lấy tất cả danh mục đang hoạt động và sắp xếp cố định 100% theo CreatedDate rồi đến Id
@@ -45,6 +54,8 @@ public class GetCategoriesQueryHandler(IEfUnitOfWork unitOfWork) : CommandHandle
                 .ThenBy(root => root.Id)
                 .Select(MapNode)
                 .ToList();
+
+            await cacheService.SetAsync(CategoryTreeCacheKey, response, TimeSpan.FromHours(2), cancellationToken);
 
             return Result<List<CategoryDto>>.Success(response);
         }

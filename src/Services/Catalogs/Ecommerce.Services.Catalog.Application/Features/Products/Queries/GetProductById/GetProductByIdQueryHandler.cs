@@ -37,6 +37,18 @@ public class GetProductByIdQueryHandler(
             
             var response = mapper.Map<ProductResponse>(product);
 
+            if (response.Options != null && response.Options.Count > 0)
+            {
+                response.Options = response.Options.OrderBy(o => o.SortOrder).ToList();
+                foreach (var opt in response.Options)
+                {
+                    if (opt.Values != null && opt.Values.Count > 0)
+                    {
+                        opt.Values = opt.Values.OrderBy(v => v.SortOrder).ToList();
+                    }
+                }
+            }
+
             // Fetch shop details via gRPC
             if (product.ShopId > 0)
             {

@@ -15,10 +15,10 @@ public class SubOrderItem : EntityTrackingBase<long>
     public string? ThumbnailUrl { get; set; }
     
     // Snapshot metrics
-    public double WeightInGrams { get; set; }
-    public double Length { get; set; }
-    public double Width { get; set; }
-    public double Height { get; set; }
+    public int WeightInGrams { get; set; }
+    public int Length { get; set; }
+    public int Width { get; set; }
+    public int Height { get; set; }
         
     public SubOrder SubOrder { get; set; } = null!;
 
@@ -31,10 +31,10 @@ public class SubOrderItem : EntityTrackingBase<long>
         decimal unitPrice,
         int quantity,
         string? thumbnailUrl = null,
-        double weightInGrams = 0,
-        double length = 0,
-        double width = 0,
-        double height = 0)
+        int weightInGrams = 0,
+        int length = 0,
+        int width = 0,
+        int height = 0)
     {
         VariantId = variantId;
         ProductName = productName;

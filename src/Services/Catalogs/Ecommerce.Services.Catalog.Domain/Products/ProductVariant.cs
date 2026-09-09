@@ -95,7 +95,7 @@ public class ProductVariant : EntityTrackingBase<long>
         {
             return string.Empty;
         }
-        return string.Join(", ", names);
+        return string.Join(" | ", names);
     }
 
     public string GetThumbnailUrl()

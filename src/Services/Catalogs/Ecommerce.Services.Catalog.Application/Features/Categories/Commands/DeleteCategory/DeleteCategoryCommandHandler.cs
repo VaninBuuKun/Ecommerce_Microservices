@@ -1,3 +1,4 @@
+using BuildingBlocks.Shared.InfrastructureInterfaces.Caching;
 using BuildingBlocks.Shared.InfrastructureInterfaces.Persistence.EFCore;
 using BuildingBlocks.Shared.Commons;
 using Ecommerce.Services.Catalog.Domain;
@@ -5,8 +6,10 @@ using MediatR;
 
 namespace Ecommerce.Services.Catalog.Application.Features.Categories.Commands.DeleteCategory;
 
-public class DeleteCategoryCommandHandler(IEfUnitOfWork unitOfWork) : IRequestHandler<DeleteCategoryCommand, Result<bool>>
+public class DeleteCategoryCommandHandler(IEfUnitOfWork unitOfWork, ICacheService cacheService) : IRequestHandler<DeleteCategoryCommand, Result<bool>>
 {
+    private const string CategoryTreeCacheKey = "catalog:categories:tree";
+
     public async Task<Result<bool>> Handle(DeleteCategoryCommand request, CancellationToken cancellationToken)
     {
         var categoryRepository = unitOfWork.Repository<Category, long>();
@@ -19,6 +22,7 @@ public class DeleteCategoryCommandHandler(IEfUnitOfWork unitOfWork) : IRequestHa
 
         categoryRepository.Delete(category);
         await unitOfWork.SaveChangesAsync(cancellationToken);
+        await cacheService.RemoveAsync(CategoryTreeCacheKey, cancellationToken);
 
         return Result<bool>.Success(true);
     }

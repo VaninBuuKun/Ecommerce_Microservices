@@ -97,6 +97,28 @@ export default function CheckoutPage() {
 		(group.items || []).filter((item: any) => item.isSelected)
 	);
 
+	const fallbackSubTotal = selectedItems.reduce((sum: number, i: any) => {
+		const activePrice = i.discountPrice && i.discountPrice > 0 && i.discountPrice < i.unitPrice ? i.discountPrice : i.unitPrice;
+		return sum + activePrice * i.quantity;
+	}, 0);
+	const currentGrandTotal = calcResult?.grandTotal ?? fallbackSubTotal;
+
+	// If grand total < minAmount of currently selected payment method, fallback to a valid payment method (or COD)
+	useEffect(() => {
+		if (!paymentMethods || paymentMethods.length === 0) return;
+		const selectedMethod = paymentMethods.find((m) => m.providerName === paymentProvider);
+		if (
+			selectedMethod?.minAmount &&
+			selectedMethod.minAmount > 0 &&
+			currentGrandTotal < selectedMethod.minAmount
+		) {
+			const fallbackMethod = paymentMethods.find(
+				(m) => m.isActive && (!m.minAmount || currentGrandTotal >= m.minAmount)
+			);
+			setPaymentProvider(fallbackMethod?.providerName || "cod");
+		}
+	}, [currentGrandTotal, paymentProvider, paymentMethods]);
+
 	// Countdown timer interval
 	useEffect(() => {
 		if (isSuccess || selectedItems.length === 0) return;
@@ -284,6 +306,17 @@ export default function CheckoutPage() {
 			toast.error("Không tìm thấy phiên giao dịch tính toán. Vui lòng thử lại!");
 			return;
 		}
+		const selectedMethod = paymentMethods?.find((m) => m.providerName === paymentProvider);
+		if (
+			selectedMethod?.minAmount &&
+			selectedMethod.minAmount > 0 &&
+			currentGrandTotal < selectedMethod.minAmount
+		) {
+			toast.error(
+				`Phương thức thanh toán qua ${selectedMethod.title} chỉ áp dụng cho đơn hàng từ ${Number(selectedMethod.minAmount).toLocaleString("vi-VN")} ₫ trở lên.`
+			);
+			return;
+		}
 
 		checkoutMutation.mutate(
 			{
@@ -408,6 +441,7 @@ export default function CheckoutPage() {
 						paymentMethods={paymentMethods}
 						paymentProvider={paymentProvider}
 						setPaymentProvider={setPaymentProvider}
+						grandTotal={currentGrandTotal}
 					/>
 				</div>
 

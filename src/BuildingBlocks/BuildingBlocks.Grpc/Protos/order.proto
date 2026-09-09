@@ -7,6 +7,8 @@ package order;
 service OrderGrpc {
   rpc GetCompletedSubOrderCountForProduct(GetCompletedSubOrderCountForProductRequest) returns (GetCompletedSubOrderCountForProductResponse);
   rpc GetSubOrderItemsForRebuy(GetSubOrderItemsForRebuyRequest) returns (GetSubOrderItemsForRebuyResponse);
+  rpc CheckProductHasActiveSubOrders(CheckProductHasActiveSubOrdersRequest) returns (CheckProductHasActiveSubOrdersResponse);
+  rpc CheckVariantOrders(CheckVariantOrdersRequest) returns (CheckVariantOrdersResponse);
 }
 
 message GetCompletedSubOrderCountForProductRequest {
@@ -33,4 +35,23 @@ message GetSubOrderItemsForRebuyResponse {
   bool is_success = 1;
   string error_message = 2;
   repeated SubOrderItemRebuyDto items = 3;
+}
+
+message CheckProductHasActiveSubOrdersRequest {
+  int64 product_id = 1;
+}
+
+message CheckProductHasActiveSubOrdersResponse {
+  bool has_active_sub_orders = 1;
+  string message = 2;
+}
+
+message CheckVariantOrdersRequest {
+  int64 variant_id = 1;
+}
+
+message CheckVariantOrdersResponse {
+  bool has_any_orders = 1;
+  bool has_active_orders = 2;
+  string message = 3;
 }

@@ -1,4 +1,4 @@
-﻿using System.Linq.Expressions;
+using System.Linq.Expressions;
 using Ardalis.Specification;
 using Ardalis.Specification.EntityFrameworkCore;
 using BuildingBlocks.Shared.Domains.Interfaces;
@@ -216,5 +216,11 @@ public class GenericEfRepository<T, TKey, TDbContext> : IGenericEfRepository<T, 
     {
         return await SpecificationEvaluator.Default.GetQuery(_dbSet.AsQueryable(), spec)
             .ToListAsync(cancellationToken);
+    }
+
+    public async Task<int> CountAsync(ISpecification<T> spec, CancellationToken cancellationToken = default)
+    {
+        return await SpecificationEvaluator.Default.GetQuery(_dbSet.AsQueryable(), spec)
+            .CountAsync(cancellationToken);
     }
 }

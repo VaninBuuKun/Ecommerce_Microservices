@@ -31,6 +31,11 @@ public class PaymentDbContext(DbContextOptions options, IInMemoryBus bus) : EfDb
             e.Property(p => p.Status).HasConversion<string>();
         });
 
+        modelBuilder.Entity<PaymentMethod>(e =>
+        {
+            e.Property(pm => pm.MinAmount).HasColumnType("decimal(18,2)");
+        });
+
         modelBuilder.Entity<Wallet>(e =>
         {
             e.Property(w => w.Balance).HasColumnType("decimal(18,2)");

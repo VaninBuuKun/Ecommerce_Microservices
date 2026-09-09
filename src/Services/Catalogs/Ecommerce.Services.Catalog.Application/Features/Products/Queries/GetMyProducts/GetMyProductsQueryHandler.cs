@@ -1,5 +1,6 @@
 using BuildingBlocks.Application.InMemoryBus;
 using BuildingBlocks.Shared.Commons;
+using BuildingBlocks.Shared.Enums;
 using BuildingBlocks.Shared.InfrastructureInterfaces.Persistence.EFCore;
 using Ecommerce.Services.Catalog.Application.Commons.Dtos.Products;
 using Ecommerce.Services.Catalog.Application.Commons.Interfaces;
@@ -20,6 +21,11 @@ public class GetMyProductsQueryHandler(IEfUnitOfWork unitOfWork, ISellerService 
             if (!IsOwnerResult.IsSuccess)
             {
                 return Result<List<MyProductDto>>.Failure(IsOwnerResult);
+            }
+
+            if (!IsOwnerResult.Value)
+            {
+                return Result<List<MyProductDto>>.Failure("Bạn không có quyền truy cập vào danh sách sản phẩm của cửa hàng này.", EErrorCode.Forbidden);
             }
             
             var spec = new ProductTreeSpec(command.ShopId, command.pageSize, command.page, command.searchTerm ?? "");

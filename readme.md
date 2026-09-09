@@ -12,7 +12,7 @@ An enterprise-grade **Marketplace Ecommerce Platform** built with modern **Micro
         ▼
 [ YARP API Gateway ] ── (CORS / Rate Limiting / Routing)
         │
-        ├──► Catalog.Api      (REST 5001 / gRPC 5002) ──► MySQL
+        ├──► Catalog.Api      (REST 5001 / gRPC 5002) ──► PostgreSQL
         ├──► Cart.Api         (REST 5004 / gRPC 5005) ──► Redis
         ├──► Orders.Api       (REST 5007 / gRPC 5008) ──► PostgreSQL
         ├──► Payments.Api     (REST 5052 / gRPC 5053) ──► PostgreSQL
@@ -35,7 +35,7 @@ Saga State Machine + Transactional Outbox
 
 | Service               | REST | gRPC | Database   | Responsibilities                                            |
 | --------------------- | ---- | ---- | ---------- | ----------------------------------------------------------- |
-| **Catalog.Api**       | 5001 | 5002 | MySQL      | Product Catalog, SKU Variants, Inventory, Ratings & Reviews |
+| **Catalog.Api**       | 5001 | 5002 | PostgreSQL | Product Catalog, SKU Variants, Inventory, Ratings & Reviews, Smart Search |
 | **Cart.Api**          | 5004 | 5005 | Redis      | Shopping Cart, Shop Grouping                                |
 | **Orders.Api**        | 5007 | 5008 | PostgreSQL | Orders, SubOrders, Vouchers, Refund Workflow                |
 | **Identity.Api**      | 5027 | 5028 | PostgreSQL | Authentication, Authorization, OAuth2/OIDC, User Addresses  |
@@ -78,11 +78,47 @@ Saga State Machine + Transactional Outbox
 ### Product Management
 
 * Product creation with rich description.
-* Product variant matrix (options → variants with SKU/price/stock).
-* Bulk variant updates.
-* Sale price configuration.
-* Product activation/deactivation.
-* Shipping dimensions and weight configuration.
+* **Multi-tier product variant matrix**:
+  * Visual matrix table with Shopee/TikTok Shop-style grouping (vertical row merging and clear classification dividers).
+  * Smooth HTML5 drag-and-drop reordering for option values and specification attributes with real-time Cartesian variant sync.
+  * Missing variant generation: Auto-detects omitted combinations with 1-click batch restoration modal.
+  * Variant capacity limit: Strict 60-variant cap enforced across frontend and backend.
+  * Bulk updates with quick-apply controls (price, stock, SKU) and promotional sale pricing.
+* Product activation/deactivation & deletion with gRPC active orders validation (`CheckProductHasActiveSubOrders` from `Orders.Api`), preventing permanent deletion or deactivation while sub-orders are still in active/in-flight status.
+* Multi-tenant shop ownership validation: Strictly verifies seller ownership via `Sellers.Api` gRPC for all product commands and queries (`GetMyProducts`, `UpdateProduct`, `ToggleStatus`, `DeleteProduct`, variant updates).
+* Snowflake 64-bit ID serialization: All `long`/`long?` IDs are serialized to JSON strings in `Catalog.Api` to eliminate JavaScript floating-point precision loss ($2^{53} - 1$ limit) on the frontend.
+* Customer Product Detail UX:
+  * Interactive Modal Portal (`z-[10000]`) notifications when a product is non-existent/deleted or temporarily inactive, with warning banner for shop owners previewing their inactive products.
+  * Single-line responsive price display (`whitespace-nowrap`) showing min-max discount price and percentage range (`-min% ~ -max%`) without layout shifting.
+  * Real-time multi-tier combination availability checking: dynamically dims, strikes through, and disables options (`opacity-40 cursor-not-allowed pointer-events-none line-through`) that have zero stock or no matching combination.
+  * Option 2 (tierIndex > 0) thumbnail suppression: excludes image tags for tier 2 values to ensure a clean layout.
+* Shipping dimensions and weight configuration: Integrated into basic info management with standard parcel measurements in whole integers (`int`: weight in grams, length, width, height in cm) complying with GHN logistics requirements and eliminating floating-point precision artifacts.
+* Granular deletion policies & controlled deletion workflow:
+  * Zero silent soft-deletes: Variant updates strictly add or edit combinations without accidental cascade deletions.
+  * ProductVariant: Verified via gRPC `CheckVariantOrders` from `Orders.Api`. Hard-deleted if no orders exist, blocked with conflict error if active orders exist, and soft-deleted if only historical orders exist.
+  * ProductOption & ProductOptionValue: Guarded against deletion if referenced by any active variant. Endpoints: `DELETE /api/v1/catalog/products/{productId}/options/{optionId}` and `DELETE .../values/{valueId}`.
+  * Seller UX: `IdHighlightBadge` with emerald highlight, dotted underline, tooltip hover ID & copy button for DB-persisted variants/options/values; non-intrusive switch confirmation modal on save with "Do not show again" preference.
+* Tab dirty tracking & safe discard modal:
+  * Independent dirty tracking across "Thông tin cơ bản" and "Biến thể" tabs with red `*` indicators.
+  * Save button dynamically disabled when the currently active tab has no unsaved modifications.
+  * Safety discard confirmation modal (`DiscardChangesModal`) rendered via Portal `z-[10000]` when attempting to cancel with unsaved changes.
+* Specification attribute validation: Strict validation on both FE and BE ensuring every specification attribute contains non-empty key and value.
+* Price range indexing (`Price` & `MaxPrice`) for min/max price range filtering.
+* Native `jsonb` attributes storage with PostgreSQL GIN index (`jsonb_path_ops`).
+* PostgreSQL Trigram (`pg_trgm`) & `unaccent` for accent-insensitive typo-tolerant search.
+
+### 🔍 Smart Search & Discovery
+
+* **Search History (Redis List)**: Stores the 5 most recent search queries per authenticated user (`search:history:{userId}`) with individual deletion and clear all.
+* **Guest History Sync**: Automatically synchronizes guest local search history to Redis upon user login via `POST /api/products/search-history/sync`.
+* **Trending Searches (Redis Sorted Set)**: Tracks top 5 hot queries with rank badges, debounced increment rate-limiting, and background decay service (`HalfLifeHours`). Supports campaign duration overrides and pinned promotional keywords.
+* **Smart Intent Suggestions**: Real-time regex intent parser extracting price constraints (e.g., `dưới 500k`, `từ 100k đến 200k`), star ratings (`4 sao trở lên`), popularity (`bán chạy`), categories, and dynamic specification attributes. Directs users to `/explore` with pre-filled structured filters.
+* **Streamlined Explore Page**:
+  * Root categories removed from main view; focuses exclusively on subcategories.
+  * Preserves and accumulates subcategories across filter changes and infinite scroll batches (subcategory list never shrinks unexpectedly).
+  * Direct subcategory navigation from landing page and product detail breadcrumbs.
+  * Consolidated sorting select box (`Mới nhất`, `Cũ nhất`, `Giá thấp đến cao`, `Giá cao đến thấp`, `Bán chạy nhất`) and dynamic result counter ("Tìm thấy X sản phẩm").
+  * Clean product grid focused on browsing without redundant detail-only action buttons.
 
 ### Ratings & Reviews
 
@@ -119,6 +155,12 @@ Saga State Machine + Transactional Outbox
 
 A single checkout is automatically split into multiple SubOrders based on seller shop ownership.
 
+### Vouchers & Promotion Management
+
+* **Voucher Code Uniqueness**: Enforced with PostgreSQL unique constraint `IX_Vouchers_Code` on `Voucher.Code` in `OrderDb`.
+* **Double-Submission Protection**: Frontend request debouncing and button disablement preventing accidental duplicate voucher creation.
+* **Scope-based Vouchers**: Platform-wide and shop-specific vouchers with minimum order value and usage limits.
+
 ### Order & Saga State Machine Lifecycle
 
 ```text
@@ -143,11 +185,15 @@ A single checkout is automatically split into multiple SubOrders based on seller
 ### Payment Integration
 
 Supported payment methods:
-* MoMo QR Payment (Sandbox)
-* VNPay (Sandbox)
-* Cash On Delivery (COD)
+* MoMo QR Payment (Sandbox) - Configurable minimum order threshold (`MinAmount`).
+* VNPay (Sandbox) - Configurable minimum order threshold (`MinAmount`).
+* Cash On Delivery (COD) - Flexible zero-threshold payment.
 
-Payment webhooks automatically trigger status transitions via MassTransit events.
+Data Architecture & Dynamic Thresholds:
+* **Configurable Minimum Order Amount**: `MinAmount` integrated into `PaymentMethod` entity, configurable per payment method in Admin Dashboard.
+* **Smart Frontend Feedback**: Methods below the order threshold are gracefully dimmed with clear badges and alerts, automatically falling back to eligible methods.
+* **Backend Validation**: Dynamic order amount verification in `Payments.Api` before gateway dispatch, with instant stock and voucher compensation on payment failure.
+* Payment webhooks automatically trigger status transitions via MassTransit events.
 
 ### Refund Workflow
 
@@ -162,15 +208,22 @@ Payment webhooks automatically trigger status transitions via MassTransit events
 ### GHN Integration
 
 * Province/District/Ward synchronization (cron job).
+* Multi-tier location caching: L1 in-memory + L2 Redis (24-hour TTL) with resilient database fallback.
 * Shipping fee calculation (batch support).
 * Automatic shipment creation (waybill).
-* Shipment tracking via webhooks.
+* Shipment tracking via webhooks with sequential transition enforcement (`ReadyToPick` → `InTransit` → `Delivered`).
+* Streamlined 6-status lifecycle: `ReadyToPick` (1), `InTransit` (2), `Delivered` (3), `Returned` (4), `Cancelled` (5), `Failed` (6).
 
 ### Delivery Workflow
 
 ```text
-GHN Delivered → ShipmentDeliveredEvent → Orders Service → SubOrder Delivered
-                                                        → SellerRevenueConsumer → Seller Wallet Credit
+ReadyToPick (Chờ lấy hàng) → InTransit (Đang vận chuyển) → Delivered (Giao hàng thành công)
+                                                                 ↓
+                                                       ShipmentDeliveredEvent
+                                                                 ↓
+                                             Orders Service (SubOrder Delivered)
+                                                                 ↓
+                                             SellerRevenueConsumer (Wallet Credit)
 ```
 
 ---
@@ -206,7 +259,10 @@ GHN Delivered → ShipmentDeliveredEvent → Orders Service → SubOrder Deliver
 ### Real-time Messaging & Floating Chat
 * **SignalR Customer ↔ Shop Chat Page (`/chat`)**: Fullscreen real-time communication between buyers and seller shops with chat history.
 * **Floating Chat Bubble & Modal (`ChatBubbleButton` + `ChatMiniModal`)**: 2-column popup chat widget accessible across all customer and seller pages.
-* **Room Customization**: Custom theme colors and background styling per conversation (`ThemeColor`, `BackgroundColor`).
+* **Media Presentation & Actions**: Physical gray stacked cards behind multi-image/video with tilt and fan-out effect, action bar (reply quote, download, delete/revoke) on hover. Mốc thời gian khi hover được hiển thị bên dưới tin nhắn thụt nhẹ từ mép đầu.
+* **Facebook Messenger-Style Reply**: Hỗ trợ trả lời (Reply) tin nhắn với thanh xem trước trích dẫn nằm ở mép trên cùng của khung nhập liệu, thẻ quote hiển thị trực quan trong bong bóng tin nhắn và lưu trữ PostgreSQL (`ReplyToMessageId`, `ReplyToContent`, `ReplyToSenderName`).
+* **Input Box & Attachments UX**: Ô nhập `textarea` tự động co giãn từ 1 đến 4 dòng không giật thanh cuộn, widget đính kèm tệp tin đa dạng (ảnh, video, tài liệu PDF/DOCX/ZIP) với thẻ ngang hiển thị tên tệp tin dài trước khi rút gọn.
+* **Room Customization**: Custom theme colors and background styling per conversation (`ThemeColor`, `BackgroundColor`), đồng bộ màu sắc thẻ tin nhắn gửi và nhận.
 
 ### Isolated HTML Email Template Engine
 * **Dynamic Template Renderer**: Decoupled HTML templates in `Templates/Emails/` (`OtpEmail.html`, `WelcomeEmail.html`, `WithdrawalSuccessEmail.html`, `NewDeviceAlertEmail.html`, `PasswordChangedSuccessEmail.html`) rendered dynamically via `ITemplateRenderer`.

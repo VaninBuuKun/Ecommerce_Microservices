@@ -8,10 +8,10 @@ public record ShippingFeeRequestItem(
     long ShopId,
     long SenderWardId,
     long RecipientWardId,
-    double Weight,
-    double Length,
-    double Width,
-    double Height
+    int Weight,
+    int Length,
+    int Width,
+    int Height
 );
 
 public record ShippingFeeResponseItem(

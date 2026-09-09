@@ -1,5 +1,7 @@
 using System;
 using System.Collections.Generic;
+using System.Text.Json.Serialization;
+using BuildingBlocks.Shared.Converters;
 
 namespace Ecommerce.Services.Orders.Application.Features.Orders.Dtos;
 
@@ -28,6 +30,7 @@ public class CheckoutShopGroupDto
 
 public class CheckoutItemDto
 {
+    [JsonConverter(typeof(LongToStringJsonConverter))]
     public long VariantId { get; set; }
     public string ProductName { get; set; } = string.Empty;
     public string VariantName { get; set; } = string.Empty;

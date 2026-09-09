@@ -1,5 +1,14 @@
 import { api } from "@/core";
-import type { Product } from "@/domains/catalog";
+import type { Product, SearchSuggestionsResponse, SearchProductsResponse } from "../types/catalog.types";
+
+export interface PagedResult<T> {
+	items: T[];
+	totalCount: number;
+	page: number;
+	pageSize: number;
+	totalPages: number;
+}
+
 export interface GetProductsParams {
 	searchTerm?: string;
 	categoryId?: number;
@@ -10,7 +19,26 @@ export interface GetProductsParams {
 	pageNumber?: number;
 	pageSize?: number;
 	hasDiscount?: boolean;
+	minPrice?: number;
+	maxPrice?: number;
 }
+
+export interface SearchProductsParams {
+	q?: string;
+	searchTerm?: string;
+	parentCategoryId?: number;
+	categoryId?: number;
+	minRating?: number;
+	page?: number;
+	pageSize?: number;
+	sortBy?: string;
+	shopId?: number;
+	hasDiscount?: boolean;
+	minPrice?: number;
+	maxPrice?: number;
+}
+
+export interface GetExploreProductsParams extends SearchProductsParams {}
 
 export interface GetMyProductsParams {
 	shopId: number;
@@ -34,20 +62,24 @@ export interface UpdateProductRequest {
 	imageUrls: string[];
 	categoryId?: number;
 	attributesJson?: string;
+	weight?: number;
+	length?: number;
+	width?: number;
+	height?: number;
 }
 
 export interface UpdateMultiVariantsRequest {
 	options: Array<{
-		id?: number | null;
+		id?: string | null;
 		name: string;
 		values: Array<{
-			id?: number | null;
+			id?: string | null;
 			value: string;
 			imageUrl?: string | null;
 		}>;
 	}>;
 	variants: Array<{
-		id?: number | null;
+		id?: string | null;
 		price: number;
 		availableStock: number;
 		discountPrice?: number | null;
@@ -56,6 +88,10 @@ export interface UpdateMultiVariantsRequest {
 			valueName: string;
 		}>;
 	}>;
+	weight?: number;
+	length?: number;
+	width?: number;
+	height?: number;
 	[key: string]: any;
 }
 
@@ -96,6 +132,27 @@ export const productApi = {
 			};
 		}
 		return { items: [], totalCount: 0, hasNext: false };
+	},
+
+	searchProducts: async (params?: SearchProductsParams): Promise<SearchProductsResponse> => {
+		const response = await api.get("/products/search", { params });
+		return response.data?.value || response.data;
+	},
+
+	getExploreProducts: async (params?: GetExploreProductsParams): Promise<PagedResult<Product>> => {
+		const response = await api.get("/products/search", { params: { ...params, q: params?.q || params?.searchTerm } });
+		const raw = response.data?.value || response.data;
+		if (raw && typeof raw === "object") {
+			const pagedObj = raw.products || raw;
+			return {
+				items: pagedObj.items || [],
+				totalCount: pagedObj.totalCount || 0,
+				page: pagedObj.page || 1,
+				pageSize: pagedObj.pageSize || 36,
+				totalPages: pagedObj.totalPages || 1,
+			};
+		}
+		return { items: [], totalCount: 0, page: 1, pageSize: 36, totalPages: 1 };
 	},
 
 	getMyProducts: async (params: GetMyProductsParams): Promise<any> => {
@@ -164,8 +221,58 @@ export const productApi = {
 		await api.delete(`/products/${id}`);
 	},
 
+	deleteProductVariant: async (productId: string, variantId: string): Promise<any> => {
+		const response = await api.delete(`/products/${productId}/variants/${variantId}`);
+		return response.data;
+	},
+
+	deleteProductOption: async (productId: string, optionId: string): Promise<any> => {
+		const response = await api.delete(`/products/${productId}/options/${optionId}`);
+		return response.data;
+	},
+
+	deleteProductOptionValue: async (productId: string, optionId: string, valueId: string): Promise<any> => {
+		const response = await api.delete(`/products/${productId}/options/${optionId}/values/${valueId}`);
+		return response.data;
+	},
+
 	toggleProductStatus: async (id: string): Promise<any> => {
 		const response = await api.put(`/products/${id}/toggle-status`);
 		return response.data;
+	},
+
+	getSearchSuggestions: async (query: string, limit: number = 5): Promise<SearchSuggestionsResponse> => {
+		const response = await api.get("/products/suggestions", { params: { q: query, limit } });
+		return response.data?.value || response.data;
+	},
+
+	getTrendingKeywords: async (limit: number = 5): Promise<string[]> => {
+		const response = await api.get("/products/trending", { params: { limit } });
+		return response.data?.value || response.data || [];
+	},
+
+	getSearchHistory: async (): Promise<string[]> => {
+		const response = await api.get("/products/search-history");
+		return response.data?.value || response.data || [];
+	},
+
+	saveSearchKeyword: async (keyword: string): Promise<boolean> => {
+		const response = await api.post("/products/search-history", { keyword });
+		return response.data?.value || response.data;
+	},
+
+	syncSearchHistory: async (keywords: string[]): Promise<string[]> => {
+		const response = await api.post("/products/search-history/sync", { keywords });
+		return response.data?.value || response.data || [];
+	},
+
+	clearSearchHistory: async (): Promise<boolean> => {
+		const response = await api.delete("/products/search-history");
+		return response.data?.value || response.data;
+	},
+
+	removeSearchHistoryItem: async (keyword: string): Promise<boolean> => {
+		const response = await api.delete("/products/search-history/item", { params: { keyword } });
+		return response.data?.value || response.data;
 	},
 };

@@ -22,85 +22,6 @@ namespace Ecommerce.Services.Orders.Infrastructure.Persistence.Migrations
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
-            modelBuilder.Entity("Ecommerce.Services.Orders.Domain.DisputeMessage", b =>
-                {
-                    b.Property<long>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("bigint");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
-
-                    b.Property<string>("AttachmentUrlsJson")
-                        .HasColumnType("text");
-
-                    b.Property<string>("Content")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<DateTimeOffset>("CreatedDate")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<long>("DisputeThreadId")
-                        .HasColumnType("bigint");
-
-                    b.Property<string>("SenderRole")
-                        .IsRequired()
-                        .HasMaxLength(20)
-                        .HasColumnType("character varying(20)");
-
-                    b.Property<long>("SenderUserId")
-                        .HasColumnType("bigint");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("DisputeThreadId");
-
-                    b.ToTable("DisputeMessages");
-                });
-
-            modelBuilder.Entity("Ecommerce.Services.Orders.Domain.DisputeThread", b =>
-                {
-                    b.Property<long>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("bigint");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
-
-                    b.Property<string>("AdminNote")
-                        .HasColumnType("text");
-
-                    b.Property<DateTimeOffset>("CreatedDate")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<DateTimeOffset>("DeadlineDate")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<DateTimeOffset?>("LastModifiedDate")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<long>("RefundRequestId")
-                        .HasColumnType("bigint");
-
-                    b.Property<string>("ResolutionDecision")
-                        .HasMaxLength(50)
-                        .HasColumnType("character varying(50)");
-
-                    b.Property<long?>("ResolvedByAdminId")
-                        .HasColumnType("bigint");
-
-                    b.Property<string>("Status")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("character varying(50)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("RefundRequestId")
-                        .IsUnique();
-
-                    b.ToTable("DisputeThreads");
-                });
-
             modelBuilder.Entity("Ecommerce.Services.Orders.Domain.Order", b =>
                 {
                     b.Property<long>("Id")
@@ -349,14 +270,14 @@ namespace Ecommerce.Services.Orders.Infrastructure.Persistence.Migrations
                     b.Property<DateTimeOffset>("CreatedDate")
                         .HasColumnType("timestamp with time zone");
 
-                    b.Property<double>("Height")
-                        .HasColumnType("double precision");
+                    b.Property<int>("Height")
+                        .HasColumnType("integer");
 
                     b.Property<DateTimeOffset?>("LastModifiedDate")
                         .HasColumnType("timestamp with time zone");
 
-                    b.Property<double>("Length")
-                        .HasColumnType("double precision");
+                    b.Property<int>("Length")
+                        .HasColumnType("integer");
 
                     b.Property<long>("ProductId")
                         .HasColumnType("bigint");
@@ -385,11 +306,11 @@ namespace Ecommerce.Services.Orders.Infrastructure.Persistence.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
-                    b.Property<double>("WeightInGrams")
-                        .HasColumnType("double precision");
+                    b.Property<int>("WeightInGrams")
+                        .HasColumnType("integer");
 
-                    b.Property<double>("Width")
-                        .HasColumnType("double precision");
+                    b.Property<int>("Width")
+                        .HasColumnType("integer");
 
                     b.HasKey("Id");
 
@@ -465,6 +386,9 @@ namespace Ecommerce.Services.Orders.Infrastructure.Persistence.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("Code")
+                        .IsUnique();
+
                     b.ToTable("Vouchers");
                 });
 
@@ -519,8 +443,8 @@ namespace Ecommerce.Services.Orders.Infrastructure.Persistence.Migrations
                         .HasMaxLength(255)
                         .HasColumnType("character varying(255)");
 
-                    b.Property<double>("Height")
-                        .HasColumnType("double precision");
+                    b.Property<int>("Height")
+                        .HasColumnType("integer");
 
                     b.Property<bool>("IsOnlinePayment")
                         .HasColumnType("boolean");
@@ -528,8 +452,8 @@ namespace Ecommerce.Services.Orders.Infrastructure.Persistence.Migrations
                     b.Property<string>("ItemsJson")
                         .HasColumnType("text");
 
-                    b.Property<double>("Length")
-                        .HasColumnType("double precision");
+                    b.Property<int>("Length")
+                        .HasColumnType("integer");
 
                     b.Property<long>("OrderId")
                         .HasColumnType("bigint");
@@ -561,11 +485,11 @@ namespace Ecommerce.Services.Orders.Infrastructure.Persistence.Migrations
                     b.Property<decimal>("TotalAmount")
                         .HasColumnType("decimal(18,2)");
 
-                    b.Property<double>("Weight")
-                        .HasColumnType("double precision");
+                    b.Property<int>("Weight")
+                        .HasColumnType("integer");
 
-                    b.Property<double>("Width")
-                        .HasColumnType("double precision");
+                    b.Property<int>("Width")
+                        .HasColumnType("integer");
 
                     b.HasKey("CorrelationId");
 
@@ -740,26 +664,6 @@ namespace Ecommerce.Services.Orders.Infrastructure.Persistence.Migrations
                     b.ToTable("OutboxState");
                 });
 
-            modelBuilder.Entity("Ecommerce.Services.Orders.Domain.DisputeMessage", b =>
-                {
-                    b.HasOne("Ecommerce.Services.Orders.Domain.DisputeThread", null)
-                        .WithMany("Messages")
-                        .HasForeignKey("DisputeThreadId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-                });
-
-            modelBuilder.Entity("Ecommerce.Services.Orders.Domain.DisputeThread", b =>
-                {
-                    b.HasOne("Ecommerce.Services.Orders.Domain.RefundRequest", "RefundRequest")
-                        .WithOne("DisputeThread")
-                        .HasForeignKey("Ecommerce.Services.Orders.Domain.DisputeThread", "RefundRequestId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("RefundRequest");
-                });
-
             modelBuilder.Entity("Ecommerce.Services.Orders.Domain.RefundRequestItem", b =>
                 {
                     b.HasOne("Ecommerce.Services.Orders.Domain.RefundRequest", null)
@@ -814,11 +718,6 @@ namespace Ecommerce.Services.Orders.Infrastructure.Persistence.Migrations
                         .HasPrincipalKey("MessageId", "ConsumerId");
                 });
 
-            modelBuilder.Entity("Ecommerce.Services.Orders.Domain.DisputeThread", b =>
-                {
-                    b.Navigation("Messages");
-                });
-
             modelBuilder.Entity("Ecommerce.Services.Orders.Domain.Order", b =>
                 {
                     b.Navigation("SubOrderItems");
@@ -826,8 +725,6 @@ namespace Ecommerce.Services.Orders.Infrastructure.Persistence.Migrations
 
             modelBuilder.Entity("Ecommerce.Services.Orders.Domain.RefundRequest", b =>
                 {
-                    b.Navigation("DisputeThread");
-
                     b.Navigation("Items");
                 });
 

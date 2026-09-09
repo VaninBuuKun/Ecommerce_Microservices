@@ -69,15 +69,14 @@ export function ProductReviewsSection({ productId }: ProductReviewsSectionProps)
 					Khách hàng đánh giá
 				</h2>
 
-				<div className="bg-white border border-slate-100 rounded-2xl p-6 shadow-xs space-y-6 max-w-xl">
-					<h3 className="text-sm font-bold text-slate-800">
-						Tổng quan
-					</h3>
-
-					{/* Big rating number & stars row */}
-					<div className="space-y-1.5">
+				<div className="bg-white border border-brand-border rounded-md p-6 shadow-xs grid grid-cols-1 md:grid-cols-2 gap-8 items-center max-w-2xl">
+					{/* Div bên trái: Tổng quan */}
+					<div className="space-y-2">
+						<h3 className="text-sm font-bold text-slate-800">
+							Tổng quan
+						</h3>
 						<div className="flex items-center gap-3">
-							<span className="text-4xl font-extrabold text-slate-950 tracking-tight">
+							<span className="text-4xl md:text-5xl font-extrabold text-slate-950 tracking-tight">
 								{ratingsSummary.totalReviews > 0 ? ratingsSummary.averageRating.toFixed(1) : "0.0"}
 							</span>
 							<div className="flex items-center gap-1">
@@ -98,13 +97,13 @@ export function ProductReviewsSection({ productId }: ProductReviewsSectionProps)
 						</p>
 					</div>
 
-					{/* 5-row progress bars breakdown matching image */}
-					<div className="space-y-2.5 max-w-md">
+					{/* Div bên phải: Các mức sao xếp hạng */}
+					<div className="space-y-2.5">
 						{starsBreakdown.map(({ star, count }) => {
 							const pct = getPercentage(count);
 							return (
 								<div key={star} className="flex items-center gap-3">
-									{/* 5 mini stars representing the row level */}
+									{/* 5 mini stars */}
 									<div className="flex items-center gap-0.5 w-20 shrink-0">
 										{[1, 2, 3, 4, 5].map((idx) => (
 											<Star
@@ -118,16 +117,16 @@ export function ProductReviewsSection({ productId }: ProductReviewsSectionProps)
 										))}
 									</div>
 
-									{/* Blue Progress Bar */}
+									{/* Progress track */}
 									<div className="flex-1 h-2 bg-slate-100 rounded-full overflow-hidden">
 										<div
-											className="h-full bg-blue-600 rounded-full transition-all duration-500"
+											className="h-full bg-amber-400 rounded-full transition-all duration-500"
 											style={{ width: `${pct}%` }}
 										/>
 									</div>
 
-									{/* Count number */}
-									<span className="text-xs font-semibold text-slate-600 min-w-[24px] text-right font-mono">
+									{/* Count */}
+									<span className="text-xs font-semibold text-slate-600 min-w-[20px] text-right font-mono">
 										{count}
 									</span>
 								</div>
@@ -152,7 +151,7 @@ export function ProductReviewsSection({ productId }: ProductReviewsSectionProps)
 								setActiveTab("all");
 								setPage(1);
 							}}
-							className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer border ${
+							className={`px-3 py-1.5 rounded-md text-xs font-bold transition-all cursor-pointer border ${
 								activeTab === "all"
 									? "bg-slate-900 text-white border-slate-900 shadow-xs"
 									: "bg-white text-slate-600 border-slate-200 hover:bg-slate-50"
@@ -169,7 +168,7 @@ export function ProductReviewsSection({ productId }: ProductReviewsSectionProps)
 									setActiveTab(s);
 									setPage(1);
 								}}
-								className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer border ${
+								className={`px-3 py-1.5 rounded-md text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer border ${
 									activeTab === s
 										? "bg-slate-900 text-white border-slate-900 shadow-xs"
 										: "bg-white text-slate-600 border-slate-200 hover:bg-slate-50"
@@ -188,7 +187,7 @@ export function ProductReviewsSection({ productId }: ProductReviewsSectionProps)
 						Đang tải danh sách nhận xét...
 					</div>
 				) : filteredReviews.length === 0 ? (
-					<div className="text-center py-12 bg-slate-50/50 rounded-2xl border border-dashed border-slate-200 text-slate-400 text-xs font-medium">
+					<div className="text-center py-12 bg-slate-50/50 rounded-md border border-dashed border-slate-200 text-slate-400 text-xs font-medium">
 						Chưa có nhận xét nào phù hợp với tiêu chí lọc này.
 					</div>
 				) : (
@@ -251,7 +250,7 @@ export function ProductReviewsSection({ productId }: ProductReviewsSectionProps)
 											<div
 												key={idx}
 												onClick={() => setLightboxMedia(url)}
-												className="relative w-20 h-20 rounded-xl overflow-hidden border border-slate-200 bg-slate-50 cursor-zoom-in hover:brightness-95 transition-all shadow-xs shrink-0"
+												className="relative w-20 h-20 rounded-md overflow-hidden border border-slate-200 bg-slate-50 cursor-zoom-in hover:brightness-95 transition-all shadow-xs shrink-0"
 											>
 												{isVideo(url) ? (
 													<div className="w-full h-full relative bg-black">
@@ -291,7 +290,7 @@ export function ProductReviewsSection({ productId }: ProductReviewsSectionProps)
 								type="button"
 								disabled={page === 1}
 								onClick={() => setPage(page - 1)}
-								className="px-2.5 py-1 text-xs font-bold bg-white border border-slate-200 rounded-lg hover:bg-slate-50 disabled:opacity-40 transition-all cursor-pointer"
+								className="px-2.5 py-1 text-xs font-bold bg-white border border-slate-200 rounded-md hover:bg-slate-50 disabled:opacity-40 transition-all cursor-pointer"
 							>
 								Trước
 							</button>
@@ -303,7 +302,7 @@ export function ProductReviewsSection({ productId }: ProductReviewsSectionProps)
 										key={pageNum}
 										type="button"
 										onClick={() => setPage(pageNum)}
-										className={`w-7 h-7 flex items-center justify-center text-xs font-bold rounded-lg border transition-all cursor-pointer ${
+										className={`w-7 h-7 flex items-center justify-center text-xs font-bold rounded-md border transition-all cursor-pointer ${
 											page === pageNum
 												? "bg-slate-900 text-white border-slate-900"
 												: "bg-white text-slate-600 border-slate-200 hover:bg-slate-50"
@@ -318,7 +317,7 @@ export function ProductReviewsSection({ productId }: ProductReviewsSectionProps)
 								type="button"
 								disabled={page * 5 >= reviewsData.totalCount}
 								onClick={() => setPage(page + 1)}
-								className="px-2.5 py-1 text-xs font-bold bg-white border border-slate-200 rounded-lg hover:bg-slate-50 disabled:opacity-40 transition-all cursor-pointer"
+								className="px-2.5 py-1 text-xs font-bold bg-white border border-slate-200 rounded-md hover:bg-slate-50 disabled:opacity-40 transition-all cursor-pointer"
 							>
 								Sau
 							</button>
@@ -343,13 +342,13 @@ export function ProductReviewsSection({ productId }: ProductReviewsSectionProps)
 								src={lightboxMedia}
 								controls
 								autoPlay
-								className="max-w-full max-h-[85vh] rounded-2xl shadow-2xl"
+								className="max-w-full max-h-[85vh] rounded-md shadow-2xl"
 							/>
 						) : (
 							<img
 								src={lightboxMedia}
 								alt="Zoomed review asset"
-								className="max-w-full max-h-[85vh] object-contain rounded-2xl shadow-2xl"
+								className="max-w-full max-h-[85vh] object-contain rounded-md shadow-2xl"
 							/>
 						)}
 					</div>

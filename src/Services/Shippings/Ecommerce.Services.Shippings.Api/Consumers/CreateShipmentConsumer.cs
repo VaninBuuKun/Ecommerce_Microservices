@@ -4,15 +4,9 @@ using Ecommerce.Services.Orders.Contracts.Requests;
 using Ecommerce.Services.Shippings.Api.Models.Entities;
 using Ecommerce.Services.Shippings.Api.Models.Enums;
 using Ecommerce.Services.Shippings.Api.Persistances;
-using Ecommerce.Services.Shippings.Api.Services;
 using Ecommerce.Services.Shippings.Api.Models.Interfaces;
 using MassTransit;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Logging;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
 
 namespace Ecommerce.Services.Shippings.Api.Consumers;
 
@@ -39,10 +33,10 @@ public class CreateShipmentConsumer(
             string recipientAddressForWaybill = string.Empty;
             long recipientWardIdForWaybill = 0;
 
-            double weight = 0;
-            double length = 0;
-            double width = 0;
-            double height = 0;
+            int weight = 0;
+            int length = 0;
+            int width = 0;
+            int height = 0;
             decimal codAmountForWaybill = 0;
             long shopId = 0;
 
@@ -56,7 +50,7 @@ public class CreateShipmentConsumer(
 
                 if (originalShipment == null)
                 {
-                    logger.LogError("Không tìm thấy thông tin vận đơn gốc cho đơn hàng hoàn trả {SubOrderId}", message.SubOrderId);
+                    logger.LogError("Original shipment not found for return suborder {SubOrderId}", message.SubOrderId);
                     await context.Publish<SubOrderRejectedEvent>(new SubOrderRejectedEvent
                     {
                         SubOrderId = message.SubOrderId,
@@ -81,7 +75,7 @@ public class CreateShipmentConsumer(
                     await context.Publish<SubOrderRejectedEvent>(new SubOrderRejectedEvent
                     {
                         SubOrderId = message.SubOrderId,
-                        Reason = "Shop shipping information is incomplete or invalid. Cannot return package."
+                        Reason = "Thông tin vận chuyển của Cửa hàng không đầy đủ hoặc không hợp lệ. Không thể tạo đơn hoàn trả."
                     });
                     return;
                 }
@@ -133,7 +127,7 @@ public class CreateShipmentConsumer(
                     await context.Publish<SubOrderRejectedEvent>(new SubOrderRejectedEvent
                     {
                         SubOrderId = message.SubOrderId,
-                        Reason = "Shop shipping information is incomplete or invalid (Missing name, phone, address, or ward code)."
+                        Reason = "Thông tin vận chuyển của Cửa hàng không đầy đủ hoặc không hợp lệ (Thiếu tên, số điện thoại, địa chỉ hoặc mã phường/xã)."
                     });
                     return;
                 }
@@ -201,9 +195,8 @@ public class CreateShipmentConsumer(
                 Width = width,
                 Height = height,
                 CarrierName = shippingProvider.ProviderName,
-                IsRefund =  message.IsReturn,
+                IsRefund = message.IsReturn,
             };
-
 
             if (waybillResult.IsSuccess)
             {
@@ -211,7 +204,7 @@ public class CreateShipmentConsumer(
                 shipment.ShippingFee = waybillResult.Value.ShippingFee;
                 shipment.ExpectedDeliveryDate = waybillResult.Value.ExpectedDeliveryDate;
                 shipment.Status = ShipmentStatus.ReadyToPick;
-                shipment.TrackingLogs = $"[Registered] Shipment registered with waybill {shipment.WaybillCode} at {DateTime.UtcNow}";
+                shipment.TrackingLogs = $"[{DateTime.UtcNow}] Khởi tạo vận đơn thành công với mã vận đơn {shipment.WaybillCode}.";
                 
                 dbContext.Shipments.Add(shipment);
                 await dbContext.SaveChangesAsync(context.CancellationToken);
@@ -230,7 +223,7 @@ public class CreateShipmentConsumer(
                 await context.Publish<SubOrderRejectedEvent>(new SubOrderRejectedEvent
                 {
                     SubOrderId = message.SubOrderId,
-                    Reason = $"Shipping allocation failed: {waybillResult.Message}"
+                    Reason = $"Tạo vận đơn thất bại: {waybillResult.Message}"
                 });
             }
         }
@@ -242,7 +235,7 @@ public class CreateShipmentConsumer(
             await context.Publish<SubOrderRejectedEvent>(new SubOrderRejectedEvent
             {
                 SubOrderId = message.SubOrderId,
-                Reason = $"Shipping allocation error: {detailedError}"
+                Reason = $"Lỗi hệ thống khi khởi tạo vận đơn: {detailedError}"
             });
         }
     }

@@ -33,6 +33,7 @@ try
     builder.Services.AddBuildingBlocksHangfire(builder.Configuration, schemaName: "hangfire_orders");
 
     var app = builder.Build();
+    app.UseBuildingBlocksMiddlewares();
 
     if (app.Environment.IsDevelopment())
     {

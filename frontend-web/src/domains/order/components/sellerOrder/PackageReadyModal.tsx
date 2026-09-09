@@ -62,8 +62,9 @@ export function PackageReadyModal({
 								<input
 									type="number"
 									min={1}
-									value={weight}
-									onChange={(e) => setWeight(Math.max(1, Number(e.target.value)))}
+									step={1}
+									value={Math.round(weight || 0)}
+									onChange={(e) => setWeight(Math.max(1, Math.round(Number(e.target.value) || 0)))}
 									className="w-full h-9 px-3 pr-10 border border-brand-border rounded-md text-xs font-bold text-brand-dark focus:outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-100 transition-all"
 								/>
 								<span className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] font-bold text-brand-muted">
@@ -81,8 +82,9 @@ export function PackageReadyModal({
 								<input
 									type="number"
 									min={1}
-									value={length}
-									onChange={(e) => setLength(Math.max(1, Number(e.target.value)))}
+									step={1}
+									value={Math.round(length || 0)}
+									onChange={(e) => setLength(Math.max(1, Math.round(Number(e.target.value) || 0)))}
 									className="w-full h-9 px-3 pr-10 border border-brand-border rounded-md text-xs font-bold text-brand-dark focus:outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-100 transition-all"
 								/>
 								<span className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] font-bold text-brand-muted">
@@ -100,8 +102,9 @@ export function PackageReadyModal({
 								<input
 									type="number"
 									min={1}
-									value={width}
-									onChange={(e) => setWidth(Math.max(1, Number(e.target.value)))}
+									step={1}
+									value={Math.round(width || 0)}
+									onChange={(e) => setWidth(Math.max(1, Math.round(Number(e.target.value) || 0)))}
 									className="w-full h-9 px-3 pr-10 border border-brand-border rounded-md text-xs font-bold text-brand-dark focus:outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-100 transition-all"
 								/>
 								<span className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] font-bold text-brand-muted">
@@ -119,8 +122,9 @@ export function PackageReadyModal({
 								<input
 									type="number"
 									min={1}
-									value={height}
-									onChange={(e) => setHeight(Math.max(1, Number(e.target.value)))}
+									step={1}
+									value={Math.round(height || 0)}
+									onChange={(e) => setHeight(Math.max(1, Math.round(Number(e.target.value) || 0)))}
 									className="w-full h-9 px-3 pr-10 border border-brand-border rounded-md text-xs font-bold text-brand-dark focus:outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-100 transition-all"
 								/>
 								<span className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] font-bold text-brand-muted">

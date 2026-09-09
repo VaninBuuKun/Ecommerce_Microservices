@@ -21,9 +21,8 @@ public class Category : EntityTrackingBase<long>
     {
         Name = name;
         ParentId = parentId;
-        // Ràng buộc: Nếu là SubCategory (ParentId != null) -> IconUrl và Description để rỗng/null
-        Description = parentId.HasValue ? string.Empty : (description ?? string.Empty);
-        IconUrl = parentId.HasValue ? null : iconUrl;
+        Description = description ?? string.Empty;
+        IconUrl = iconUrl;
         IsActive = true;
     }
 
@@ -36,8 +35,8 @@ public class Category : EntityTrackingBase<long>
 
         Name = name;
         ParentId = parentId;
-        Description = parentId.HasValue ? string.Empty : (description ?? string.Empty);
-        IconUrl = parentId.HasValue ? null : iconUrl;
+        Description = description ?? string.Empty;
+        IconUrl = iconUrl;
     }
 
     public void Deactivate()
