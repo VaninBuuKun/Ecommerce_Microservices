@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Builder;
+using Microsoft.Extensions.Configuration;
 
 namespace BuildingBlocks.Logging;
 
@@ -23,11 +24,25 @@ public static class CustomLoggingExtensions
     /// Ví dụ chọn 1 provider:
     /// builder.AddCustomSerilog("IdentityService", LoggingProvider.Console);
     /// </summary>
+    /// <summary>
+    /// Tự động nạp cấu hình ghi đè cục bộ appsettings.Developer.json (nếu có)
+    /// File này được bảo mật trong .gitignore, cho phép dev tùy chỉnh connection strings, api keys ở local.
+    /// </summary>
+    public static WebApplicationBuilder AddCustomConfiguration(this WebApplicationBuilder builder)
+    {
+        builder.Configuration
+            .AddJsonFile("appsettings.Developer.json", optional: true, reloadOnChange: true)
+            .AddJsonFile("appsettings.Local.json", optional: true, reloadOnChange: true);
+        return builder;
+    }
+
     public static WebApplicationBuilder AddCustomSerilog(
         this WebApplicationBuilder builder,
         string applicationName,
         LoggingProvider providers = LoggingProvider.Console)
     {
+        builder.AddCustomConfiguration();
+
         if (providers.HasFlag(LoggingProvider.Console))
         {
             builder.AddSerilogConsoleLogging();

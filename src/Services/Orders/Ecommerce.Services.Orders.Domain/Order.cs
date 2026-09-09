@@ -63,10 +63,10 @@ public sealed class Order : AggregateRoot<long>, IDateTracking
         int quantity,
         string? thumbnailUrl = null,
         long? subOrderItemId = null,
-        double weightInGrams = 0,
-        double length = 0,
-        double width = 0,
-        double height = 0)
+        int weightInGrams = 0,
+        int length = 0,
+        int width = 0,
+        int height = 0)
     {
         var existingShopSubOrder = SubOrderItems.FirstOrDefault(x => x.ShopId == shopId);
 

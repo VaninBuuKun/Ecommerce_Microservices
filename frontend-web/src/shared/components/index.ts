@@ -8,4 +8,8 @@ export * from "./Pagination";
 export * from "./Badge";
 export * from "./ChatBubbleButton";
 export * from "./ChatMiniModal";
+export * from "./chat-mini";
+export * from "./ChatImageViewer";
 export * from "./AuthRequiredModal";
+export * from "./guards";
+

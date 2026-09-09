@@ -58,6 +58,7 @@ public class PaymentMethodService(IEfUnitOfWork unitOfWork, IMapper mapper) : IP
         method.IsActive = request.IsActive;
         method.ProviderName = request.ProviderName;
         method.IconUrl = request.IconUrl;
+        method.MinAmount = request.MinAmount;
         method.LastModifiedDate = DateTimeOffset.UtcNow;
 
         _paymentMethodRepository.Update(method);

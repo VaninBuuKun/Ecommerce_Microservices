@@ -23,10 +23,10 @@ message RpcCartItemDto {
   string unitPrice = 12;
   int64 shopId = 13;
   int32 availableStock = 14;
-  double weight = 15;
-  double length = 16;
-  double width = 17;
-  double height = 18;
+  int32 weight = 15;
+  int32 length = 16;
+  int32 width = 17;
+  int32 height = 18;
   string thumbnailUrl = 19;
   string discountPrice = 20;
 } 

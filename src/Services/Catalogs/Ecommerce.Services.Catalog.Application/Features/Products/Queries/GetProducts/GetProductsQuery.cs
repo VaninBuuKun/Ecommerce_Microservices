@@ -14,6 +14,8 @@ public record GetProductsQuery(
     int Limit = 10, 
     string SortBy = "name",
     long? ShopId = null,
-    bool? HasDiscount = null) : IQuery<PagedCursorResponse<ProductResponse>>;
+    bool? HasDiscount = null,
+    decimal? MinPrice = null,
+    decimal? MaxPrice = null) : IQuery<PagedCursorResponse<ProductResponse>>;
 
 public record PagedCursorResponse<T>(IEnumerable<T> Items, string? NextCursor, bool HasNext);

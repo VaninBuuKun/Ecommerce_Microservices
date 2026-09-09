@@ -35,6 +35,7 @@ message GetPaymentMethodResponse {
   string provider_name = 5;
   string icon_url = 6;
   bool is_active = 7;
+  string min_amount = 8;
 }
 
 message CreatePaymentGrpcRequest {

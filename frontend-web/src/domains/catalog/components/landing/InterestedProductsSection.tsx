@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { Heart, Star, ChevronLeft, ChevronRight } from "lucide-react";
 import { useProductsQuery } from "../../hooks/useCatalog";
+import { useSliderGesture } from "./useSliderGesture";
 
 export function InterestedProductsSection() {
 	const navigate = useNavigate();
@@ -17,6 +18,12 @@ export function InterestedProductsSection() {
 	const allInterested = topProductsData?.items ? [...topProductsData.items].reverse() : [];
 	const SLIDE_ITEMS_PER_PAGE = 6;
 	const totalInterestedSlides = Math.ceil(allInterested.length / SLIDE_ITEMS_PER_PAGE) || 1;
+
+	const { isDraggingRef, containerProps, dragMotionProps } = useSliderGesture({
+		slide: interestedSlide,
+		totalSlides: totalInterestedSlides,
+		setSlide: setInterestedSlide,
+	});
 
 	const currentInterested = allInterested.slice(
 		interestedSlide * SLIDE_ITEMS_PER_PAGE,
@@ -58,7 +65,7 @@ export function InterestedProductsSection() {
 				</div>
 			</div>
 
-			<div className="relative group/slider">
+			<div className="relative group/slider" {...containerProps}>
 				{interestedSlide > 0 && (
 					<button
 						onClick={() => setInterestedSlide((prev) => prev - 1)}
@@ -71,11 +78,12 @@ export function InterestedProductsSection() {
 				<AnimatePresence mode="wait">
 					<motion.div
 						key={interestedSlide}
+						{...dragMotionProps}
 						initial={{ opacity: 0, x: 10 }}
 						animate={{ opacity: 1, x: 0 }}
 						exit={{ opacity: 0, x: -10 }}
 						transition={{ duration: 0.25 }}
-						className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 text-left"
+						className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 text-left cursor-grab active:cursor-grabbing select-none touch-pan-y"
 					>
 						{currentInterested.map((p: any) => {
 							const hasDiscount = p.discountPrice && p.discountPrice > 0 && p.discountPrice < p.price;
@@ -87,7 +95,7 @@ export function InterestedProductsSection() {
 								<motion.div
 									whileHover={{ y: -3 }}
 									key={p.id}
-									onClick={() => navigate(`/products/${p.id}`)}
+									onClick={() => !isDraggingRef.current && navigate(`/products/${p.id}`)}
 									className="group flex flex-col bg-white border border-brand-border/60 hover:border-brand-primary rounded-lg overflow-hidden shadow-2xs hover:shadow-md transition-all duration-200 cursor-pointer justify-between relative"
 								>
 									{hasDiscount && (

@@ -1,7 +1,8 @@
 import React from "react";
-import { MessageOutlined } from "@ant-design/icons";
+import { CommentOutlined } from "@ant-design/icons";
 import { Search } from "lucide-react";
 import type { Conversation } from "../../types/chat.types";
+import { formatConversationLastMessage } from "./chat.constants";
 
 interface ChatConversationListProps {
 	conversations: Conversation[];
@@ -48,21 +49,23 @@ export const ChatConversationList: React.FC<ChatConversationListProps> = ({
 					<div className="p-6 text-center text-xs text-slate-400 font-medium">Đang tải cuộc hội thoại...</div>
 				) : filteredConversations.length === 0 ? (
 					<div className="p-8 text-center text-slate-400 space-y-2">
-						<MessageOutlined className="text-2xl text-slate-300 mx-auto block" />
+						<CommentOutlined className="text-2xl text-slate-300 mx-auto block" />
 						<p className="text-xs font-bold text-slate-500">Chưa có cuộc trò chuyện nào</p>
 					</div>
 				) : (
 					filteredConversations.map((conv) => {
-						const isActive = activeRoom?.roomId === conv.roomId;
+						const isActive =
+							(activeRoom?.roomId && conv.roomId && activeRoom.roomId.toLowerCase() === conv.roomId.toLowerCase()) ||
+							(!isSeller && activeRoom?.shopId && conv.shopId && Number(activeRoom.shopId) === Number(conv.shopId));
 						const initial = conv.displayName?.[0]?.toUpperCase() || "?";
 						return (
 							<div
 								key={conv.roomId}
 								onClick={() => onSelectRoom(conv)}
-								className={`p-3 flex items-center gap-3 cursor-pointer transition-all border-none ${
+								className={`p-3 flex items-center gap-3 cursor-pointer transition-colors border-l-4 ${
 									isActive
-										? "bg-brand-primary/10 border-l-4 border-brand-primary shadow-2xs"
-										: "hover:bg-brand-light-soft bg-transparent"
+										? "bg-brand-primary/10 border-brand-primary shadow-2xs"
+										: "border-transparent hover:bg-brand-light-soft bg-transparent"
 								}`}
 							>
 								<div className="relative shrink-0">
@@ -103,7 +106,7 @@ export const ChatConversationList: React.FC<ChatConversationListProps> = ({
 											isActive ? "text-brand-dark/80" : "text-slate-500"
 										}`}
 									>
-										{conv.lastMessage || "Bắt đầu cuộc hội thoại..."}
+										{formatConversationLastMessage(conv.lastMessage)}
 									</p>
 								</div>
 							</div>

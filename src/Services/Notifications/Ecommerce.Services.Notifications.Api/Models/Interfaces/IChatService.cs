@@ -11,8 +11,11 @@ public interface IChatService
     Task<Result<List<ConversationDto>>> GetConversationsAsync(
         long currentUserId, 
         bool isSeller, 
+        long? shopId,
         BuildingBlocks.Grpc.Services.IdentityGrpc.IdentityGrpcClient identityClient,
         BuildingBlocks.Grpc.Services.SellerGrpc.SellerGrpcClient sellerClient);
 
     Task<Result<bool>> UpdateRoomThemeAsync(Guid roomId, long currentUserId, string? themeColor, string? backgroundColor);
+
+    Task<Result<List<ChatMessageItemDto>>> GetMessagesAsync(Guid roomId, long currentUserId, Guid? beforeMessageId = null, int limit = 50);
 }

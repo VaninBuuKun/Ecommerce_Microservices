@@ -6,7 +6,7 @@ namespace Ecommerce.Services.Orders.Application.Features.Orders.Commands.SellerP
 public record SellerPackageReadyCommand(
     long SubOrderId,
     long SellerId,
-    double Weight,
-    double Length,
-    double Width,
-    double Height) : ICommand;
+    int Weight,
+    int Length,
+    int Width,
+    int Height) : ICommand;

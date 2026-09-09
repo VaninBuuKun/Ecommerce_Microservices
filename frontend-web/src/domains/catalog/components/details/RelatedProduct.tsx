@@ -42,13 +42,13 @@ export function RelatedProducts({
 
 	if (isLoading) {
 		return (
-			<div className="bg-white rounded-xl border border-brand-border/70 shadow-2xs p-4 text-left">
+			<div className="bg-white rounded-md border border-brand-border/70 shadow-2xs p-4 text-left">
 				<div className="h-4 w-36 bg-gray-200 rounded animate-pulse mb-4" />
 				<div className="grid grid-cols-2 md:grid-cols-4 gap-3">
 					{Array.from({ length: 4 }).map((_, i) => (
 						<div
 							key={i}
-							className="h-48 bg-gray-100 rounded-lg animate-pulse"
+							className="h-48 bg-gray-100 rounded-md animate-pulse"
 						/>
 					))}
 				</div>
@@ -59,7 +59,7 @@ export function RelatedProducts({
 	if (relatedList.length === 0) return null;
 
 	return (
-		<div className="bg-white rounded-xl border border-brand-border/70 shadow-2xs p-4 md:p-5 text-left space-y-3.5">
+		<div className="bg-white rounded-md border border-brand-border/70 shadow-2xs p-4 md:p-5 text-left space-y-3.5">
 			<h2 className="text-xs font-black text-brand-dark uppercase tracking-wider border-b border-brand-border/60 pb-2.5">
 				Sản phẩm tương tự
 			</h2>
@@ -81,7 +81,7 @@ export function RelatedProducts({
 						<Link
 							key={item.id}
 							to={`/products/${item.id}`}
-							className="group flex flex-col bg-white border border-brand-border/60 hover:border-brand-primary rounded-lg overflow-hidden shadow-2xs hover:shadow-md transition-all duration-200 cursor-pointer justify-between relative"
+							className="group flex flex-col bg-white border border-brand-border/60 hover:border-brand-primary rounded-md overflow-hidden shadow-2xs hover:shadow-md transition-all duration-200 cursor-pointer justify-between relative"
 						>
 							{hasDiscount && (
 								<div className="absolute top-2 right-2 z-10 bg-red-600 text-white font-extrabold text-[9px] px-1.5 py-0.5 rounded-md shadow-2xs">

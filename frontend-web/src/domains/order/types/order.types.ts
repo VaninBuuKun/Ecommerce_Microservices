@@ -43,7 +43,7 @@ export interface CheckoutShopGroupDto {
 }
 
 export interface CalOrderGrandTotalResponse {
-	id: number;
+	id: string;
 	shopShippingFee: Record<number, number>;
 	shopGroups: CheckoutShopGroupDto[];
 	subTotal: number;
@@ -74,6 +74,7 @@ export interface PaymentMethod {
 	isActive: boolean;
 	providerName: string;
 	iconUrl: string;
+	minAmount?: number | null;
 }
 
 export const PaymentStatus = {

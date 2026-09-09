@@ -1,17 +1,19 @@
 import { useMemo, useEffect, useState } from "react";
-import { Play } from "lucide-react";
+import { Play, ZoomIn } from "lucide-react";
 import type { Product } from "../../types/catalog.types";
 
 interface ProductGalleryProps {
 	product: Product;
 	activeMedia: { type: "image" | "video"; url: string } | null;
 	setActiveMedia: (media: { type: "image" | "video"; url: string }) => void;
+	onOpenImageViewer?: (index: number) => void;
 }
 
 export function ProductGallery({
 	product,
 	activeMedia,
 	setActiveMedia,
+	onOpenImageViewer,
 }: ProductGalleryProps) {
 	// Tập hợp toàn bộ media thành 1 danh sách đồng nhất (tránh duplicate giữa thumbnailUrl và imageUrls)
 	const mediaItems = useMemo(() => {
@@ -72,9 +74,21 @@ export function ProductGallery({
 
 	const currentItem = mediaItems[activeIndex] || activeMedia || { type: "image", url: product.thumbnailUrl || "" };
 
+	const handlePreviewClick = () => {
+		if (currentItem.type === "image" && onOpenImageViewer) {
+			onOpenImageViewer(activeIndex);
+		}
+	};
+
 	return (
 		<div className="space-y-3">
-			<div className="aspect-[4/3] max-h-[360px] w-full border border-brand-border bg-brand-light-soft/20 rounded-xl overflow-hidden relative flex items-center justify-center mx-auto">
+			<div
+				onClick={handlePreviewClick}
+				className={`aspect-[4/3] max-h-[360px] w-full border border-brand-border bg-brand-light-soft/20 rounded-md overflow-hidden relative flex items-center justify-center mx-auto group ${
+					currentItem.type === "image" ? "cursor-pointer" : ""
+				}`}
+				title={currentItem.type === "image" ? "Nhấn để phóng to ảnh" : ""}
+			>
 				{currentItem.type === "video" ? (
 					<video
 						src={currentItem.url}
@@ -83,11 +97,17 @@ export function ProductGallery({
 						autoPlay
 					/>
 				) : (
-					<img
-						src={currentItem.url || "https://via.placeholder.com/400"}
-						alt={product.name}
-						className="w-full h-full object-contain"
-					/>
+					<>
+						<img
+							src={currentItem.url || "https://via.placeholder.com/400"}
+							alt={product.name}
+							className="w-full h-full object-contain transition-transform duration-200 group-hover:scale-102"
+						/>
+						<div className="absolute bottom-2 right-2 bg-black/60 hover:bg-black/80 text-white text-[11px] font-semibold px-2.5 py-1 rounded-full flex items-center gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity duration-150 shadow-sm pointer-events-none">
+							<ZoomIn className="w-3.5 h-3.5" />
+							<span>Phóng to</span>
+						</div>
+					</>
 				)}
 			</div>
 
@@ -101,7 +121,7 @@ export function ProductGallery({
 								key={`video-${idx}`}
 								type="button"
 								onClick={() => handleSelectMedia(item, idx)}
-								className={`w-14 h-14 shrink-0 rounded-lg border-2 overflow-hidden transition-all bg-brand-dark-surface/5 flex flex-col items-center justify-center cursor-pointer ${
+								className={`w-14 h-14 shrink-0 rounded-md border-2 overflow-hidden transition-all bg-brand-dark-surface/5 flex flex-col items-center justify-center cursor-pointer ${
 									isCurrentActive
 										? "border-brand-primary ring-2 ring-brand-primary/30"
 										: "border-brand-border hover:border-gray-400"
@@ -119,12 +139,19 @@ export function ProductGallery({
 						<button
 							key={`img-${idx}`}
 							type="button"
-							onClick={() => handleSelectMedia(item, idx)}
-							className={`w-14 h-14 shrink-0 rounded-lg border-2 overflow-hidden transition-all bg-white cursor-pointer ${
+							onMouseEnter={() => handleSelectMedia(item, idx)}
+							onClick={() => {
+								handleSelectMedia(item, idx);
+								if (onOpenImageViewer) {
+									onOpenImageViewer(idx);
+								}
+							}}
+							className={`w-14 h-14 shrink-0 rounded-md border-2 overflow-hidden transition-all bg-white cursor-pointer ${
 								isCurrentActive
 									? "border-brand-primary ring-2 ring-brand-primary/30"
 									: "border-brand-border hover:border-gray-400"
 							}`}
+							title="Di chuột để xem trước, nhấn để phóng to"
 						>
 							<img
 								src={item.url}

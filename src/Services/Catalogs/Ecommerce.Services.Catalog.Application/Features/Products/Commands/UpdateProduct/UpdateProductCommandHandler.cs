@@ -1,8 +1,10 @@
 using BuildingBlocks.Application.InMemoryBus;
+using BuildingBlocks.Auth;
 using BuildingBlocks.Shared.Commons;
 using BuildingBlocks.Shared.Enums;
 using BuildingBlocks.Shared.InfrastructureInterfaces.Persistence.EFCore;
 using Ecommerce.Services.Catalog.Application.Commons.Dtos.Products;
+using Ecommerce.Services.Catalog.Application.Commons.Interfaces;
 using Ecommerce.Services.Catalog.Domain;
 using Ecommerce.Services.Catalog.Domain.Products;
 using Ecommerce.Services.Catalog.Domain.Products.Specifications;
@@ -13,6 +15,8 @@ namespace Ecommerce.Services.Catalog.Application.Features.Products.Commands.Upda
 
 public class UpdateProductCommandHandler(
     IEfUnitOfWork unitOfWork,
+    ISellerService sellerService,
+    ICurrentUserService currentUserService,
     ILogger<UpdateProductCommandHandler> logger, 
     IMapper mapper
 ) : CommandHandler<UpdateProductCommand, ProductResponse>
@@ -29,13 +33,31 @@ public class UpdateProductCommandHandler(
 
             if (existsProduct == null)
             {
-                return Result<ProductResponse>.Failure("Product Not Found", EErrorCode.NotFound);
+                return Result<ProductResponse>.Failure("Không tìm thấy thông tin sản phẩm.", EErrorCode.NotFound);
+            }
+
+            // 0. Xác thực quyền sở hữu cửa hàng của sản phẩm (trừ Admin)
+            if (!currentUserService.IsAdmin)
+            {
+                var isOwnerResult = await sellerService.ValidateShopOwnerAsync(existsProduct.ShopId, currentUserService.UserId);
+                if (!isOwnerResult.IsSuccess)
+                {
+                    logger.LogWarning("UpdateProduct: Lỗi khi kiểm tra Shop {ShopId}. Error: {Message}", existsProduct.ShopId, isOwnerResult.Message);
+                    return Result<ProductResponse>.Failure(isOwnerResult.Message ?? "Bạn không có quyền quản lý cửa hàng này.", isOwnerResult.ErrorCode);
+                }
+
+                if (!isOwnerResult.Value)
+                {
+                    logger.LogWarning("UpdateProduct: User {UserId} không có quyền sở hữu Shop {ShopId}.", currentUserService.UserId, existsProduct.ShopId);
+                    return Result<ProductResponse>.Failure("Bạn không có quyền chỉnh sửa sản phẩm của cửa hàng này.", EErrorCode.Forbidden);
+                }
             }
 
             // Kiểm tra CategoryId: Bắt buộc phải tồn tại và phải là SubCategory (ParentId != null)
+            Category? category = null;
             if (command.CategoryId.HasValue && command.CategoryId.Value > 0)
             {
-                var category = await _categoryRepository.GetByIdAsync(command.CategoryId.Value, cancellationToken);
+                category = await _categoryRepository.GetByIdAsync(command.CategoryId.Value, cancellationToken);
                 if (category == null)
                 {
                     return Result<ProductResponse>.ValidationFailure($"Danh mục sản phẩm không tồn tại (Id: {command.CategoryId}).");
@@ -44,6 +66,32 @@ public class UpdateProductCommandHandler(
                 if (category.ParentId == null)
                 {
                     return Result<ProductResponse>.ValidationFailure("Danh mục sản phẩm được chọn phải là Danh mục con (SubCategory).");
+                }
+            }
+
+            // Validate AttributesJson nếu có
+            if (!string.IsNullOrWhiteSpace(command.AttributesJson))
+            {
+                try
+                {
+                    using var doc = System.Text.Json.JsonDocument.Parse(command.AttributesJson);
+                    if (doc.RootElement.ValueKind == System.Text.Json.JsonValueKind.Array)
+                    {
+                        foreach (var item in doc.RootElement.EnumerateArray())
+                        {
+                            var hasKey = (item.TryGetProperty("key", out var kProp) || item.TryGetProperty("Key", out kProp)) && !string.IsNullOrWhiteSpace(kProp.GetString());
+                            var hasValue = (item.TryGetProperty("value", out var vProp) || item.TryGetProperty("Value", out vProp)) && !string.IsNullOrWhiteSpace(vProp.GetString());
+
+                            if (!hasKey || !hasValue)
+                            {
+                                return Result<ProductResponse>.ValidationFailure("Thuộc tính sản phẩm không hợp lệ. Mỗi thuộc tính phải có đầy đủ tên (key) và giá trị (value).");
+                            }
+                        }
+                    }
+                }
+                catch (System.Text.Json.JsonException)
+                {
+                    return Result<ProductResponse>.ValidationFailure("Định dạng dữ liệu thuộc tính sản phẩm không hợp lệ.");
                 }
             }
 
@@ -58,6 +106,8 @@ public class UpdateProductCommandHandler(
 
             existsProduct.SetCategory(command.CategoryId);
             existsProduct.SetAttributes(command.AttributesJson);
+            existsProduct.UpdateShippingDimensions(command.Weight, command.Length, command.Width, command.Height);
+            existsProduct.RebuildSearchDocument(category?.Name);
 
             _productRepository.Update(existsProduct);
             await unitOfWork.SaveChangesAsync(cancellationToken);

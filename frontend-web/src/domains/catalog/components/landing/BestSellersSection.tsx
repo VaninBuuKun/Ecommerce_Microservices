@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { Flame, Star, ChevronLeft, ChevronRight } from "lucide-react";
 import { useBestSellersQuery } from "../../hooks/useCatalog";
+import { useSliderGesture } from "./useSliderGesture";
 
 export function BestSellersSection() {
 	const navigate = useNavigate();
@@ -14,6 +15,12 @@ export function BestSellersSection() {
 
 	const SLIDE_ITEMS_PER_PAGE = 6;
 	const totalBestSellerSlides = Math.ceil(allBestSellers.length / SLIDE_ITEMS_PER_PAGE) || 1;
+
+	const { isDraggingRef, containerProps, dragMotionProps } = useSliderGesture({
+		slide: bestSellerSlide,
+		totalSlides: totalBestSellerSlides,
+		setSlide: setBestSellerSlide,
+	});
 
 	const currentBestSellers = allBestSellers.slice(
 		bestSellerSlide * SLIDE_ITEMS_PER_PAGE,
@@ -55,7 +62,7 @@ export function BestSellersSection() {
 				</div>
 			</div>
 
-			<div className="relative">
+			<div className="relative" {...containerProps}>
 				{bestSellerSlide > 0 && (
 					<button
 						onClick={() => setBestSellerSlide((prev) => prev - 1)}
@@ -68,11 +75,12 @@ export function BestSellersSection() {
 				<AnimatePresence mode="wait">
 					<motion.div
 						key={bestSellerSlide}
+						{...dragMotionProps}
 						initial={{ opacity: 0, x: 10 }}
 						animate={{ opacity: 1, x: 0 }}
 						exit={{ opacity: 0, x: -10 }}
 						transition={{ duration: 0.25 }}
-						className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 text-left"
+						className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 text-left cursor-grab active:cursor-grabbing select-none touch-pan-y"
 					>
 						{currentBestSellers.map((p: any) => {
 							const hasDiscount = p.discountPrice && p.discountPrice > 0 && p.discountPrice < p.price;
@@ -84,7 +92,7 @@ export function BestSellersSection() {
 								<motion.div
 									whileHover={{ y: -3 }}
 									key={p.id}
-									onClick={() => navigate(`/products/${p.id}`)}
+									onClick={() => !isDraggingRef.current && navigate(`/products/${p.id}`)}
 									className="group flex flex-col bg-white border border-brand-border/60 hover:border-brand-primary rounded-lg overflow-hidden shadow-2xs hover:shadow-md transition-all duration-200 cursor-pointer justify-between relative"
 								>
 									{hasDiscount && (

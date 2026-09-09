@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient, useInfiniteQuery } from "@tanstack/react-query";
-import { productApi, type CreateProductRequest, type UpdateProductRequest, type UpdateProductSaleRequest, type BulkUpdateVariantsRequest, type GetProductsParams, type GetMyProductsParams, type UpdateSingleVariantRequest, type UpdateMultiVariantsRequest } from "../api/productApi";
+import { productApi, type CreateProductRequest, type UpdateProductRequest, type UpdateProductSaleRequest, type BulkUpdateVariantsRequest, type GetProductsParams, type GetExploreProductsParams, type SearchProductsParams, type GetMyProductsParams, type UpdateSingleVariantRequest, type UpdateMultiVariantsRequest } from "../api/productApi";
 import { categoryApi } from "../api/categoryApi";
 import { reviewApi, type AddProductReviewRequest, type GetProductReviewsParams } from "../api/reviewApi";
 import {
@@ -10,6 +10,8 @@ import {
 
 export const catalogQueryKeys = {
 	products: ["catalog", "products"] as const,
+	exploreProducts: (params?: GetExploreProductsParams) => ["catalog", "explore", params] as const,
+	searchProducts: (params?: SearchProductsParams) => ["catalog", "searchProducts", params] as const,
 	productById: (id?: string) => ["catalog", "products", id] as const,
 	myProducts: (params?: GetMyProductsParams) => ["catalog", "myProducts", params] as const,
 	categories: ["catalog", "categories"] as const,
@@ -18,12 +20,31 @@ export const catalogQueryKeys = {
 	bestSellers: (limit?: number) => ["catalog", "products", "bestSellers", limit] as const,
 	newArrivals: (limit?: number) => ["catalog", "products", "newArrivals", limit] as const,
 	onSale: (limit?: number) => ["catalog", "products", "onSale", limit] as const,
+	searchSuggestions: (q: string) => ["catalog", "search", "suggestions", q] as const,
+	trendingKeywords: ["catalog", "search", "trending"] as const,
+	searchHistory: ["catalog", "search", "history"] as const,
 };
 
 export function useProductsQuery(params?: GetProductsParams) {
 	return useQuery({
 		queryKey: [...catalogQueryKeys.products, params],
 		queryFn: () => productApi.getProducts(params),
+	});
+}
+
+export function useExploreProductsQuery(params?: GetExploreProductsParams) {
+	return useQuery({
+		queryKey: catalogQueryKeys.exploreProducts(params),
+		queryFn: () => productApi.getExploreProducts(params),
+		placeholderData: (previousData) => previousData,
+	});
+}
+
+export function useSearchProductsQuery(params?: SearchProductsParams) {
+	return useQuery({
+		queryKey: catalogQueryKeys.searchProducts(params),
+		queryFn: () => productApi.searchProducts(params),
+		placeholderData: (previousData) => previousData,
 	});
 }
 
@@ -89,6 +110,8 @@ export function useProductByIdQuery(id?: string) {
 		queryKey: catalogQueryKeys.productById(id),
 		queryFn: () => (id ? productApi.getProductById(id) : null),
 		enabled: !!id,
+		staleTime: 5 * 60 * 1000,
+		refetchOnWindowFocus: false,
 	});
 }
 
@@ -105,6 +128,7 @@ export function useCreateProductMutation() {
 		mutationFn: (payload: CreateProductRequest) => productApi.createProduct(payload),
 		onSuccess: () => {
 			queryClient.invalidateQueries({ queryKey: catalogQueryKeys.products });
+			queryClient.invalidateQueries({ queryKey: ["catalog", "myProducts"] });
 			queryClient.invalidateQueries({ queryKey: ["catalog"] });
 		},
 	});
@@ -115,9 +139,12 @@ export function useUpdateProductMutation() {
 	return useMutation({
 		mutationFn: ({ id, payload }: { id: string; payload: UpdateProductRequest }) =>
 			productApi.updateProduct(id, payload),
-		onSuccess: (_, variables) => {
-			queryClient.invalidateQueries({ queryKey: catalogQueryKeys.productById(variables.id) });
+		onSuccess: (data, variables) => {
+			if (data?.value || data) {
+				queryClient.setQueryData(catalogQueryKeys.productById(variables.id), data?.value || data);
+			}
 			queryClient.invalidateQueries({ queryKey: catalogQueryKeys.products });
+			queryClient.invalidateQueries({ queryKey: ["catalog", "myProducts"] });
 		},
 	});
 }
@@ -127,8 +154,12 @@ export function useUpdateSingleVariantMutation() {
 	return useMutation({
 		mutationFn: ({ id, payload }: { id: string; payload: UpdateSingleVariantRequest }) =>
 			productApi.updateSingleVariant(id, payload),
-		onSuccess: (_, variables) => {
-			queryClient.invalidateQueries({ queryKey: catalogQueryKeys.productById(variables.id) });
+		onSuccess: (data, variables) => {
+			if (data?.value || data) {
+				queryClient.setQueryData(catalogQueryKeys.productById(variables.id), data?.value || data);
+			}
+			queryClient.invalidateQueries({ queryKey: catalogQueryKeys.products });
+			queryClient.invalidateQueries({ queryKey: ["catalog", "myProducts"] });
 		},
 	});
 }
@@ -140,8 +171,12 @@ export function useUpdateMultiVariantsMutation() {
 	return useMutation({
 		mutationFn: ({ id, payload }: { id: string; payload: UpdateMultiVariantsRequest }) =>
 			productApi.updateMultiVariants(id, payload),
-		onSuccess: (_, variables) => {
-			queryClient.invalidateQueries({ queryKey: catalogQueryKeys.productById(variables.id) });
+		onSuccess: (data, variables) => {
+			if (data?.value || data) {
+				queryClient.setQueryData(catalogQueryKeys.productById(variables.id), data?.value || data);
+			}
+			queryClient.invalidateQueries({ queryKey: catalogQueryKeys.products });
+			queryClient.invalidateQueries({ queryKey: ["catalog", "myProducts"] });
 		},
 	});
 }
@@ -154,7 +189,44 @@ export function useDeleteProductMutation() {
 		mutationFn: (id: string) => productApi.deleteProduct(id),
 		onSuccess: () => {
 			queryClient.invalidateQueries({ queryKey: catalogQueryKeys.products });
+			queryClient.invalidateQueries({ queryKey: ["catalog", "myProducts"] });
 			queryClient.invalidateQueries({ queryKey: ["catalog"] });
+		},
+	});
+}
+
+export function useDeleteProductVariantMutation() {
+	const queryClient = useQueryClient();
+	return useMutation({
+		mutationFn: ({ productId, variantId }: { productId: string; variantId: string }) =>
+			productApi.deleteProductVariant(productId, variantId),
+		onSuccess: (_, variables) => {
+			queryClient.invalidateQueries({ queryKey: catalogQueryKeys.productById(variables.productId) });
+			queryClient.invalidateQueries({ queryKey: ["catalog", "myProducts"] });
+		},
+	});
+}
+
+export function useDeleteProductOptionMutation() {
+	const queryClient = useQueryClient();
+	return useMutation({
+		mutationFn: ({ productId, optionId }: { productId: string; optionId: string }) =>
+			productApi.deleteProductOption(productId, optionId),
+		onSuccess: (_, variables) => {
+			queryClient.invalidateQueries({ queryKey: catalogQueryKeys.productById(variables.productId) });
+			queryClient.invalidateQueries({ queryKey: ["catalog", "myProducts"] });
+		},
+	});
+}
+
+export function useDeleteProductOptionValueMutation() {
+	const queryClient = useQueryClient();
+	return useMutation({
+		mutationFn: ({ productId, optionId, valueId }: { productId: string; optionId: string; valueId: string }) =>
+			productApi.deleteProductOptionValue(productId, optionId, valueId),
+		onSuccess: (_, variables) => {
+			queryClient.invalidateQueries({ queryKey: catalogQueryKeys.productById(variables.productId) });
+			queryClient.invalidateQueries({ queryKey: ["catalog", "myProducts"] });
 		},
 	});
 }
@@ -165,6 +237,7 @@ export function useToggleProductStatusMutation() {
 		mutationFn: (id: string) => productApi.toggleProductStatus(id),
 		onSuccess: () => {
 			queryClient.invalidateQueries({ queryKey: catalogQueryKeys.products });
+			queryClient.invalidateQueries({ queryKey: ["catalog", "myProducts"] });
 			queryClient.invalidateQueries({ queryKey: ["catalog"] });
 		},
 	});
@@ -195,6 +268,72 @@ export function useAddProductReviewMutation() {
 				queryClient.invalidateQueries({ queryKey: catalogQueryKeys.reviews(String(variables.productId)) });
 				queryClient.invalidateQueries({ queryKey: catalogQueryKeys.reviewSummary(String(variables.productId)) });
 			}
+		},
+	});
+}
+
+export function useSearchSuggestionsQuery(query: string) {
+	return useQuery({
+		queryKey: catalogQueryKeys.searchSuggestions(query),
+		queryFn: () => productApi.getSearchSuggestions(query),
+		enabled: Boolean(query && query.trim().length > 0),
+		staleTime: 30 * 1000,
+	});
+}
+
+export function useTrendingKeywordsQuery(limit: number = 5) {
+	return useQuery({
+		queryKey: catalogQueryKeys.trendingKeywords,
+		queryFn: () => productApi.getTrendingKeywords(limit),
+		staleTime: 5 * 60 * 1000,
+	});
+}
+
+export function useSearchHistoryQuery(enabled: boolean = true) {
+	return useQuery({
+		queryKey: catalogQueryKeys.searchHistory,
+		queryFn: () => productApi.getSearchHistory(),
+		enabled,
+		staleTime: 60 * 1000,
+	});
+}
+
+export function useSaveSearchKeywordMutation() {
+	const queryClient = useQueryClient();
+	return useMutation({
+		mutationFn: (keyword: string) => productApi.saveSearchKeyword(keyword),
+		onSuccess: () => {
+			queryClient.invalidateQueries({ queryKey: catalogQueryKeys.searchHistory });
+		},
+	});
+}
+
+export function useSyncSearchHistoryMutation() {
+	const queryClient = useQueryClient();
+	return useMutation({
+		mutationFn: (keywords: string[]) => productApi.syncSearchHistory(keywords),
+		onSuccess: () => {
+			queryClient.invalidateQueries({ queryKey: catalogQueryKeys.searchHistory });
+		},
+	});
+}
+
+export function useClearSearchHistoryMutation() {
+	const queryClient = useQueryClient();
+	return useMutation({
+		mutationFn: () => productApi.clearSearchHistory(),
+		onSuccess: () => {
+			queryClient.setQueryData(catalogQueryKeys.searchHistory, []);
+		},
+	});
+}
+
+export function useRemoveSearchHistoryItemMutation() {
+	const queryClient = useQueryClient();
+	return useMutation({
+		mutationFn: (keyword: string) => productApi.removeSearchHistoryItem(keyword),
+		onSuccess: () => {
+			queryClient.invalidateQueries({ queryKey: catalogQueryKeys.searchHistory });
 		},
 	});
 }

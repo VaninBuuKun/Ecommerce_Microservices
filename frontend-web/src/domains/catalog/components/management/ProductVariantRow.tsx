@@ -16,12 +16,14 @@ export function ProductVariantRow({
 	variant,
 	parentThumbnail,
 }: ProductVariantRowProps) {
-	const variantName = variant.variantName || "Mặc định";
+	const rawName = variant.variantName || "Mặc định";
+	const variantName = rawName.includes("|") ? rawName : rawName.replace(/,\s*/g, " | ");
 
 	return (
 		<tr className="bg-gray-50/20 border-t-0 hover:bg-gray-50/60 transition-colors align-top">
-			<td className="p-3 pl-11 pb-3.5">
-				<div className="flex items-start gap-2.5">
+			<td className="p-3 pl-9 pb-3.5">
+				<div className="flex items-center gap-2">
+					<span className="text-gray-300 font-mono select-none font-bold text-xs shrink-0">|—</span>
 					<img
 						src={
 							variant.thumbnailUrl ||

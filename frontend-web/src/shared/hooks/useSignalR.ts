@@ -3,7 +3,8 @@ import * as signalR from "@microsoft/signalr";
 import { toast } from "react-toastify";
 import { useAuthStore } from "@/domains/auth";
 
-const HUB_URL = "http://localhost:5111/hubs/notification";
+const API_BASE = import.meta.env.VITE_API_BASE_URL || "http://localhost:5111";
+const HUB_URL = `${API_BASE}/hubs/notification`;
 
 // Global connection instance (Singleton) to persist across HMR and route changes
 let globalConnection: signalR.HubConnection | null = null;
@@ -105,4 +106,51 @@ export function useSignalR() {
 
 	return { connection: globalConnection, isConnected };
 }
+
+export function getSignalRConnection(): signalR.HubConnection | null {
+	return globalConnection;
+}
+
+export async function ensureSignalRConnected(): Promise<signalR.HubConnection | null> {
+	const token = localStorage.getItem("accessToken");
+	if (!token) return null;
+
+	if (!globalConnection) {
+		globalConnection = new signalR.HubConnectionBuilder()
+			.withUrl(HUB_URL, {
+				accessTokenFactory: () => token,
+			})
+			.withAutomaticReconnect([0, 2000, 5000, 10000, 30000])
+			.configureLogging(signalR.LogLevel.Warning)
+			.build();
+	}
+
+	const conn = globalConnection;
+	if (conn.state === signalR.HubConnectionState.Connected) {
+		return conn;
+	}
+
+	if (conn.state === signalR.HubConnectionState.Connecting || isStarting) {
+		for (let i = 0; i < 25; i++) {
+			await new Promise((r) => setTimeout(r, 200));
+			if (conn.state === signalR.HubConnectionState.Connected) return conn;
+		}
+	}
+
+	if (conn.state === signalR.HubConnectionState.Disconnected) {
+		isStarting = true;
+		try {
+			await conn.start();
+			return conn;
+		} catch (err) {
+			console.warn("[SignalR] ensureConnected error:", err);
+			return null;
+		} finally {
+			isStarting = false;
+		}
+	}
+
+	return conn.state === signalR.HubConnectionState.Connected ? conn : null;
+}
+
 

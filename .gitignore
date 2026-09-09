@@ -37,14 +37,17 @@ TestResults/
 _ReSharper*/
 [Tt]est[Rr]esult*/
 
-# File cấu hình môi trường chứa THÔNG TIN BẢO MẬT & DATABASE CONNECTION
-appsettings.json
-appsettings.*.json
-!appsettings.Example.json
-!appsettings.Template.json
+# File cấu hình môi trường chứa THÔNG TIN BẢO MẬT & LOCAL SECRETS
+appsettings.Developer.json
+appsettings.*.Developer.json
+*.Developer.json
+appsettings.Local.json
+appsettings.*.Local.json
+*.Local.json
+secrets.json
 *.env
 *.env.*
-secrets.json
+*.env.local
 
 # Hệ điều hành sinh ra (Windows, Mac)
 Thumbs.db
@@ -76,18 +79,13 @@ src/scripts/
 *.sh
 seed-all.bat
 
-# AI Assistant, AGENTS & Scratchpad Files
-AGENTS.md
-agents.md
-[Aa][Gg][Ee][Nn][Tt][Ss].[Mm][Dd]
-.agents/
-.antigravity/
+# AI Runtime & Scratch Cache (Cho phép track .agents và .antigravity để không mất context)
 .gemini/
 .brain/
 .scratch/
 scratch/
 **/scratch/
-scratchpad.md
-*.scratchpad.*
+
 # VS Code C# Dev Tools - Auto-generated runners
 .vscodecsdt/Runners/
+

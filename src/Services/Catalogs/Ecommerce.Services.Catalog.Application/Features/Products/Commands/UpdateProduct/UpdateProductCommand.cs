@@ -12,5 +12,9 @@ public record UpdateProductCommand(
     string? VideoUrl,
     List<string> ImageUrls,
     long? CategoryId,
-    string? AttributesJson
+    string? AttributesJson,
+    int Weight = 0,
+    int Length = 0,
+    int Width = 0,
+    int Height = 0
 ) : ICommand<ProductResponse>;

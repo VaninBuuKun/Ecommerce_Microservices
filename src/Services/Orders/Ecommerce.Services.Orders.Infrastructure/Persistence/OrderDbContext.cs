@@ -115,6 +115,7 @@ public class OrderDbContext(DbContextOptions<OrderDbContext> options, IInMemoryB
         {
             entity.HasKey(v => v.Id);
             entity.Property(v => v.Code).IsRequired().HasMaxLength(50);
+            entity.HasIndex(v => v.Code).IsUnique();
             entity.Property(v => v.DiscountType).HasConversion<string>();
             entity.Property(v => v.Scope).HasConversion<string>();
             entity.Property(v => v.DiscountValue).HasColumnType("decimal(18,2)");

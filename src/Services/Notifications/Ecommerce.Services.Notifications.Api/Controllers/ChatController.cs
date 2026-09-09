@@ -22,11 +22,12 @@ public class ChatController(IChatService chatService, ICurrentUserService curren
     [ProducesResponseType(typeof(List<ConversationDto>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetConversations(
         [FromQuery] bool isSeller,
+        [FromQuery] long? shopId,
         [FromServices] BuildingBlocks.Grpc.Services.IdentityGrpc.IdentityGrpcClient identityClient,
         [FromServices] BuildingBlocks.Grpc.Services.SellerGrpc.SellerGrpcClient sellerClient)
     {
         var currentUserId = currentUserService.UserId;
-        var result = await chatService.GetConversationsAsync(currentUserId, isSeller, identityClient, sellerClient);
+        var result = await chatService.GetConversationsAsync(currentUserId, isSeller, shopId, identityClient, sellerClient);
         
         if (result.IsSuccess)
         {
@@ -53,6 +54,39 @@ public class ChatController(IChatService chatService, ICurrentUserService curren
 
         return StatusCode(result.GetHttpStatusCode(), result.Message);
     }
+
+    /// <summary>
+    /// Lấy lịch sử tin nhắn của một phòng chat (hỗ trợ phân trang scrolling).
+    /// </summary>
+    [HttpGet("rooms/{roomId}/messages")]
+    [ProducesResponseType(typeof(List<ChatMessageItemDto>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetMessages(
+        [FromRoute] Guid roomId,
+        [FromQuery] Guid? beforeMessageId = null,
+        [FromQuery] int limit = 50)
+    {
+        var currentUserId = currentUserService.UserId;
+        var result = await chatService.GetMessagesAsync(roomId, currentUserId, beforeMessageId, limit);
+        if (result.IsSuccess)
+        {
+            return Ok(result.Value);
+        }
+
+        return StatusCode(result.GetHttpStatusCode(), result.Message);
+    }
+}
+
+public class ChatMessageItemDto
+{
+    public Guid Id { get; set; }
+    public Guid RoomId { get; set; }
+    public long SenderId { get; set; }
+    public string Content { get; set; } = string.Empty;
+    public string MessageType { get; set; } = "Text";
+    public DateTimeOffset SentAt { get; set; }
+    public Guid? ReplyToMessageId { get; set; }
+    public string? ReplyToContent { get; set; }
+    public string? ReplyToSenderName { get; set; }
 }
 
 public class ConversationDto

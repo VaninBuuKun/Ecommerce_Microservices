@@ -1,3 +1,4 @@
+using BuildingBlocks.Shared.InfrastructureInterfaces.Caching;
 using BuildingBlocks.Shared.InfrastructureInterfaces.Persistence.EFCore;
 using BuildingBlocks.Shared.Commons;
 using Ecommerce.Services.Catalog.Domain;
@@ -5,8 +6,10 @@ using MediatR;
 
 namespace Ecommerce.Services.Catalog.Application.Features.Categories.Commands.UpdateCategory;
 
-public class UpdateCategoryCommandHandler(IEfUnitOfWork unitOfWork) : IRequestHandler<UpdateCategoryCommand, Result<bool>>
+public class UpdateCategoryCommandHandler(IEfUnitOfWork unitOfWork, ICacheService cacheService) : IRequestHandler<UpdateCategoryCommand, Result<bool>>
 {
+    private const string CategoryTreeCacheKey = "catalog:categories:tree";
+
     public async Task<Result<bool>> Handle(UpdateCategoryCommand request, CancellationToken cancellationToken)
     {
         var categoryRepository = unitOfWork.Repository<Category, long>();
@@ -30,6 +33,7 @@ public class UpdateCategoryCommandHandler(IEfUnitOfWork unitOfWork) : IRequestHa
 
         categoryRepository.Update(category);
         await unitOfWork.SaveChangesAsync(cancellationToken);
+        await cacheService.RemoveAsync(CategoryTreeCacheKey, cancellationToken);
 
         return Result<bool>.Success(true);
     }

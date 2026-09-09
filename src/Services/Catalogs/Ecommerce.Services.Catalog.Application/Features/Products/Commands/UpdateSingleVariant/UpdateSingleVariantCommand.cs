@@ -7,9 +7,9 @@ public record UpdateSingleVariantCommand(
     long ProductId,
     decimal Price,
     int AvailableStock,
-    double Weight,
-    double Length,
-    double Width,
-    double Height,
+    int Weight,
+    int Length,
+    int Width,
+    int Height,
     decimal? DiscountPrice
 ) : ICommand<ProductResponse>;

@@ -107,6 +107,7 @@ export function AdminVouchersView() {
 
 	const handleSave = (e: React.FormEvent) => {
 		e.preventDefault();
+		if (createVoucherMutation.isPending || updateVoucherMutation.isPending) return;
 		setFormErrors({});
 
 		const isPercent = formDiscountType === "Percentage";
@@ -688,8 +689,12 @@ export function AdminVouchersView() {
 								</button>
 								<button
 									type="submit"
-									className="flex-1 h-9 bg-brand-primary hover:bg-brand-primary-deep text-brand-dark font-black text-xs rounded-md transition-colors cursor-pointer border-none"
+									disabled={createVoucherMutation.isPending || updateVoucherMutation.isPending}
+									className="flex-1 h-9 bg-brand-primary hover:bg-brand-primary-deep text-brand-dark font-black text-xs rounded-md transition-colors cursor-pointer border-none disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-1.5"
 								>
+									{(createVoucherMutation.isPending || updateVoucherMutation.isPending) && (
+										<Loader2 className="w-3.5 h-3.5 animate-spin" />
+									)}
 									{editingVoucher ? "Lưu thay đổi" : "Lưu lại"}
 								</button>
 							</div>

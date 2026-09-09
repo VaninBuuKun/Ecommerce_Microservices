@@ -18,6 +18,7 @@ public static class ServiceConfigurations
         // SignalR — dùng JWT Bearer để authenticate connection
         // Client phải gửi token qua query string: ?access_token=...
         // vì WebSocket không hỗ trợ header Authorization
+        services.AddSingleton<Microsoft.AspNetCore.SignalR.IUserIdProvider, CustomUserIdProvider>();
         services.AddSignalR(options =>
         {
             options.EnableDetailedErrors = true;

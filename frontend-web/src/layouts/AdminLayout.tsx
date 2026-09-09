@@ -70,15 +70,15 @@ export default function AdminLayout() {
 						<img
 							src="/ecommerce-icon.png"
 							alt="Logo"
-							className="w-7 h-7 object-contain"
+							className="w-32 h-16 object-contain"
 							onError={(e) => {
 								(e.target as HTMLImageElement).src =
 									"https://cdn-icons-png.flaticon.com/512/3081/3081986.png";
 							}}
 						/>
-						<span className="text-xs font-black text-brand-dark tracking-wide uppercase flex items-center gap-1.5">
+						<span className="text-4 font-black text-brand-dark tracking-wide uppercase flex items-center gap-1.5">
 							Admin Portal
-							<span className="bg-red-500 text-white font-extrabold text-[8px] px-1.5 py-0.2 rounded-full uppercase tracking-normal hidden sm:inline-block">
+							<span className="bg-red-600 text-white font-extrabold text-[10px] px-1.5 py-0.3 rounded-md uppercase tracking-normal hidden sm:inline-block">
 								System
 							</span>
 						</span>
@@ -90,7 +90,7 @@ export default function AdminLayout() {
 						<img
 							src={user?.avatarUrl || "https://cdn-icons-png.flaticon.com/512/149/149071.png"}
 							alt="Admin Avatar"
-							className="w-6 h-6 rounded-full object-cover border border-brand-border"
+							className="w-8 h-8 rounded-full object-cover ring-2 ring-brand-primary/20 ring-offset-1 ring-offset-white shadow-sm transition-all duration-200 hover:ring-brand-primary hover:scale-105"
 						/>
 						<div className="hidden sm:block text-left">
 							<p className="font-bold text-brand-dark text-xs truncate max-w-30">

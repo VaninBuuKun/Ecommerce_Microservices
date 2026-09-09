@@ -20,6 +20,8 @@ namespace Ecommerce.Services.Catalog.Infrastructure.Migrations
                 .HasAnnotation("ProductVersion", "9.0.16")
                 .HasAnnotation("Relational:MaxIdentifierLength", 63);
 
+            NpgsqlModelBuilderExtensions.HasPostgresExtension(modelBuilder, "pg_trgm");
+            NpgsqlModelBuilderExtensions.HasPostgresExtension(modelBuilder, "unaccent");
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
             modelBuilder.Entity("Ecommerce.Services.Catalog.Domain.Banner", b =>
@@ -175,7 +177,7 @@ namespace Ecommerce.Services.Catalog.Infrastructure.Migrations
                         .HasColumnType("bigint");
 
                     b.Property<string>("AttributesJson")
-                        .HasColumnType("text");
+                        .HasColumnType("jsonb");
 
                     b.Property<double>("AverageRating")
                         .HasColumnType("double precision");
@@ -195,19 +197,24 @@ namespace Ecommerce.Services.Catalog.Infrastructure.Migrations
                         .HasColumnType("decimal(18,2)")
                         .HasDefaultValue(0m);
 
-                    b.Property<double>("Height")
+                    b.Property<int>("Height")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("double precision")
-                        .HasDefaultValue(0.0);
+                        .HasColumnType("integer")
+                        .HasDefaultValue(0);
 
                     b.Property<string>("ImageUrls")
                         .IsRequired()
                         .HasColumnType("json");
 
-                    b.Property<double>("Length")
+                    b.Property<int>("Length")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("double precision")
-                        .HasDefaultValue(0.0);
+                        .HasColumnType("integer")
+                        .HasDefaultValue(0);
+
+                    b.Property<decimal>("MaxPrice")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("decimal(18,2)")
+                        .HasDefaultValue(0m);
 
                     b.Property<string>("Name")
                         .IsRequired()
@@ -223,6 +230,12 @@ namespace Ecommerce.Services.Catalog.Infrastructure.Migrations
 
                     b.Property<int>("ReviewCount")
                         .HasColumnType("integer");
+
+                    b.Property<string>("SearchDocument")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("text")
+                        .HasDefaultValue("");
 
                     b.Property<long>("ShopId")
                         .HasColumnType("bigint");
@@ -248,19 +261,24 @@ namespace Ecommerce.Services.Catalog.Infrastructure.Migrations
                         .HasMaxLength(1000)
                         .HasColumnType("character varying(1000)");
 
-                    b.Property<double>("Weight")
+                    b.Property<int>("Weight")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("double precision")
-                        .HasDefaultValue(0.0);
+                        .HasColumnType("integer")
+                        .HasDefaultValue(0);
 
-                    b.Property<double>("Width")
+                    b.Property<int>("Width")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("double precision")
-                        .HasDefaultValue(0.0);
+                        .HasColumnType("integer")
+                        .HasDefaultValue(0);
 
                     b.HasKey("Id");
 
                     b.HasIndex("CategoryId");
+
+                    b.HasIndex("SearchDocument");
+
+                    NpgsqlIndexBuilderExtensions.HasMethod(b.HasIndex("SearchDocument"), "gin");
+                    NpgsqlIndexBuilderExtensions.HasOperators(b.HasIndex("SearchDocument"), new[] { "gin_trgm_ops" });
 
                     b.ToTable("Products");
                 });

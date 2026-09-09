@@ -24,17 +24,17 @@ public class ShipmentsController(IShippingProvider shippingProvider) : Controlle
     [HttpPost("preview-fee")]
     public async Task<IActionResult> PreviewFee([FromBody] PreviewFeeRequest request)
     {
-        double totalWeight = 0;
-        double maxLength = 0;
-        double maxWidth = 0;
-        double totalHeight = 0;
+        int totalWeight = 0;
+        int maxLength = 0;
+        int maxWidth = 0;
+        int totalHeight = 0;
 
         foreach (var item in request.Items)
         {
-            double itemWeight = 500; 
-            double itemLength = 20;
-            double itemWidth = 15;
-            double itemHeight = 5;
+            int itemWeight = 500; 
+            int itemLength = 20;
+            int itemWidth = 15;
+            int itemHeight = 5;
 
             totalWeight += itemWeight * item.Quantity;
             maxLength = Math.Max(maxLength, itemLength);

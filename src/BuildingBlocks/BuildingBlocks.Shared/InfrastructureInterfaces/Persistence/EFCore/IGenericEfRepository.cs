@@ -1,4 +1,4 @@
-﻿using System.Linq.Expressions;
+using System.Linq.Expressions;
 using Ardalis.Specification;
 using BuildingBlocks.Shared.Domains.Interfaces;
 
@@ -68,4 +68,5 @@ public interface IGenericEfRepository<T, in TKey>
     Task<T?> GetBySpecAsync(ISingleResultSpecification<T> spec, CancellationToken cancellationToken = default);
     Task<T?> FirstOrDefaultAsync(ISpecification<T> spec, CancellationToken cancellationToken = default);
     Task<List<T>> GetListAsync(ISpecification<T> spec, CancellationToken cancellationToken = default);
+    Task<int> CountAsync(ISpecification<T> spec, CancellationToken cancellationToken = default);
 }

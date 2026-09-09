@@ -15,10 +15,10 @@ public class CreateShipmentRequest : IIntegrationEvent
     public string RecipientName { get; set; } = string.Empty;
     public string RecipientPhone { get; set; } = string.Empty;
     public long ShopId { get; set; }
-    public double Weight { get; set; }
-    public double Height { get; set; }
-    public double Width { get; set; }
-    public double Length { get; set; }
+    public int Weight { get; set; }
+    public int Height { get; set; }
+    public int Width { get; set; }
+    public int Length { get; set; }
     public decimal CodAmount { get; set; }
     public bool IsReturn { get; set; }
     public List<ShipmentItemData> Items { get; set; } = new();

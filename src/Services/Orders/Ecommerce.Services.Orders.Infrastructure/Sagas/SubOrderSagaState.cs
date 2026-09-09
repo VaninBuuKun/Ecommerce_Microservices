@@ -23,8 +23,8 @@ public class SubOrderSagaState : SagaStateMachineInstance
     public string RecipientPhone { get; set; } = string.Empty;
     public long RecipientWardId { get; set; }
 
-    public double Weight { get; set; }
-    public double Height { get; set; }
-    public double Width { get; set; }
-    public double Length { get; set; }
+    public int Weight { get; set; }
+    public int Height { get; set; }
+    public int Width { get; set; }
+    public int Length { get; set; }
 }

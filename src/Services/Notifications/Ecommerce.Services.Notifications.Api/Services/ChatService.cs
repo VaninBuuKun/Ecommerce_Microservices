@@ -7,6 +7,7 @@ using BuildingBlocks.Shared.Enums;
 using Ecommerce.Services.Notifications.Api.Controllers;
 using Ecommerce.Services.Notifications.Api.Persistances;
 using Ecommerce.Services.Notifications.Api.Models.Interfaces;
+using Ecommerce.Services.Notifications.Api.Models.Entities;
 using Microsoft.EntityFrameworkCore;
 
 namespace Ecommerce.Services.Notifications.Api.Services;
@@ -16,6 +17,7 @@ public class ChatService(NotificationDbContext dbContext) : IChatService
     public async Task<Result<List<ConversationDto>>> GetConversationsAsync(
         long currentUserId, 
         bool isSeller, 
+        long? shopId,
         BuildingBlocks.Grpc.Services.IdentityGrpc.IdentityGrpcClient identityClient,
         BuildingBlocks.Grpc.Services.SellerGrpc.SellerGrpcClient sellerClient)
     {
@@ -24,7 +26,13 @@ public class ChatService(NotificationDbContext dbContext) : IChatService
         if (isSeller)
         {
             // 1. Dành cho Người bán (Seller): Lấy các phòng chat của Shop thuộc quyền sở hữu/quản lý
-            var rooms = await dbContext.ChatRooms
+            var query = dbContext.ChatRooms.AsQueryable();
+            if (shopId.HasValue && shopId.Value > 0)
+            {
+                query = query.Where(r => r.ShopId == shopId.Value);
+            }
+
+            var rooms = await query
                 .OrderByDescending(r => r.LastActiveAt)
                 .ToListAsync();
 
@@ -105,7 +113,7 @@ public class ChatService(NotificationDbContext dbContext) : IChatService
                     LastMessage = room.LastMessage,
                     LastActiveAt = room.LastActiveAt,
                     DisplayName = displayName,
-                    DisplayAvatar = string.Empty,
+                    DisplayAvatar = shopInfo?.LogoUrl ?? string.Empty,
                     ThemeColor = room.ThemeColor,
                     BackgroundColor = room.BackgroundColor
                 });
@@ -128,5 +136,62 @@ public class ChatService(NotificationDbContext dbContext) : IChatService
         await dbContext.SaveChangesAsync();
 
         return Result<bool>.Success(true);
+    }
+
+    public async Task<Result<List<ChatMessageItemDto>>> GetMessagesAsync(
+        Guid roomId, 
+        long currentUserId, 
+        Guid? beforeMessageId = null, 
+        int limit = 50)
+    {
+        var room = await dbContext.ChatRooms.FirstOrDefaultAsync(r => r.Id == roomId);
+        if (room == null)
+        {
+            return Result<List<ChatMessageItemDto>>.Failure("Không tìm thấy phòng chat.", EErrorCode.NotFound);
+        }
+
+        var query = dbContext.ChatMessages.Where(m => m.RoomId == roomId);
+
+        if (beforeMessageId.HasValue && beforeMessageId != Guid.Empty)
+        {
+            var beforeMessage = await dbContext.ChatMessages.FirstOrDefaultAsync(m => m.Id == beforeMessageId.Value);
+            if (beforeMessage != null)
+            {
+                query = query.Where(m => m.SentAt < beforeMessage.SentAt);
+            }
+        }
+
+        var rawMessages = await query
+            .OrderByDescending(m => m.SentAt)
+            .Take(limit)
+            .Select(m => new
+            {
+                m.Id,
+                m.RoomId,
+                m.SenderId,
+                m.Content,
+                MessageType = m.MessageType.ToString(),
+                m.SentAt,
+                m.ReplyToMessageId,
+                m.ReplyToContent,
+                m.ReplyToSenderName
+            })
+            .ToListAsync();
+
+        var messages = rawMessages.Select(m => new ChatMessageItemDto
+        {
+            Id = m.Id,
+            RoomId = m.RoomId,
+            SenderId = m.SenderId,
+            Content = m.Content,
+            MessageType = m.MessageType,
+            SentAt = m.SentAt,
+            ReplyToMessageId = m.ReplyToMessageId,
+            ReplyToContent = m.ReplyToContent,
+            ReplyToSenderName = m.ReplyToSenderName
+        }).ToList();
+
+        messages.Reverse();
+        return Result<List<ChatMessageItemDto>>.Success(messages);
     }
 }

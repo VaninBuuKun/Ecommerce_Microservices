@@ -120,7 +120,8 @@ public class UserService(
             Email = request.Email,
             FirstName = request.FirstName,
             LastName = request.LastName,
-            EmailConfirmed = true
+            EmailConfirmed = true,
+            AvatarUrl = "https://cdn.vectorstock.com/i/500p/81/62/grey-business-avatar-placeholder-vector-38508162.jpg"
         };
 
         var result = await userManager.CreateAsync(newUser, request.Password);
