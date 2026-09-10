@@ -36,13 +36,12 @@ export function PaymentMethodSelector({
 							return (
 								<label
 									key={method.id}
-									className={`flex items-start sm:items-center gap-3 p-3 rounded-md border transition-all ${
-										isBelowMin
-											? "opacity-55 cursor-not-allowed bg-gray-50/80 border-gray-200"
-											: isSelected
+									className={`flex items-start sm:items-center gap-3 p-3 rounded-md border transition-all ${isBelowMin
+										? "opacity-55 cursor-not-allowed bg-gray-50/80 border-gray-200"
+										: isSelected
 											? "border-brand-primary bg-brand-primary/5 cursor-pointer"
 											: "border-brand-border bg-white hover:border-brand-primary/50 cursor-pointer"
-									}`}
+										}`}
 								>
 									<input
 										type="radio"
@@ -56,9 +55,9 @@ export function PaymentMethodSelector({
 										}}
 										className="accent-brand-primary w-4 h-4 mt-0.5 sm:mt-0 disabled:cursor-not-allowed"
 									/>
-									<div className="w-7 h-7 rounded-md flex items-center justify-center flex-shrink-0 bg-brand-light-soft overflow-hidden mt-0.5 sm:mt-0">
+									<div className="w-10 h-10 rounded-md flex items-center justify-center flex-shrink-0 bg-brand-light-soft overflow-hidden mt-0.5 sm:mt-0">
 										{method.iconUrl ? (
-											<img src={method.iconUrl} alt={method.title} className="w-5 h-5 object-contain" />
+											<img src={method.iconUrl} alt={method.title} className="w-8 h-8 object-contain" />
 										) : (
 											<CreditCard className="w-3.5 h-3.5 text-brand-primary" />
 										)}

@@ -326,18 +326,6 @@ export function OrdersView() {
 															<>
 																<button
 																	onClick={() =>
-																		handleOpenPackaging(
-																			order,
-																		)
-																	}
-																	className="p-1 text-brand-primary hover:bg-brand-light-soft border border-brand-primary/40 rounded cursor-pointer transition-all inline-flex items-center gap-1 text-[10px] font-bold"
-																	title="Chuẩn bị hàng"
-																>
-																	<Package className="w-3.5 h-3.5" />
-																	Chuẩn bị hàng
-																</button>
-																<button
-																	onClick={() =>
 																		setCancelingOrderId(
 																			order.id,
 																		)

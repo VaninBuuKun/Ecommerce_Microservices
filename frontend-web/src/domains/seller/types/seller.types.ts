@@ -7,9 +7,9 @@ export interface Shop {
 	recipientName?: string;
 	phone?: string;
 	addressLine?: string;
-	ward?: string;
-	district?: string;
-	province?: string;
+	wardId?: number;
+	districtId?: number;
+	provinceId?: number;
 }
 
 export interface ShopDto {
@@ -21,9 +21,9 @@ export interface ShopDto {
 	recipientName?: string;
 	phone?: string;
 	addressLine?: string;
-	ward?: string;
-	district?: string;
-	province?: string;
+	wardId?: number;
+	districtId?: number;
+	provinceId?: number;
 }
 
 export interface SellerProfileDto {

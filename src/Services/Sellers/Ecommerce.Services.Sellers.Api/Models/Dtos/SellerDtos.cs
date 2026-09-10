@@ -32,9 +32,6 @@ public class ShopDto
     public string RecipientName { get; set; } = string.Empty;
     public string Phone { get; set; } = string.Empty;
     public string AddressLine { get; set; } = string.Empty;
-    public string Province { get; set; } = string.Empty;
-    public string District { get; set; } = string.Empty;
-    public string Ward { get; set; } = string.Empty;
     public long ProvinceId { get; set; }
     public long DistrictId { get; set; }
     public long WardId { get; set; }

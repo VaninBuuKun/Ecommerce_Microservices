@@ -147,7 +147,7 @@ export const ProductReviewModal: React.FC<ProductReviewModalProps> = ({
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: 12 }}
             transition={{ type: "spring", stiffness: 400, damping: 30 }}
-            className="relative w-full max-w-md bg-white rounded-2xl p-5 shadow-xl border border-slate-100 overflow-hidden text-left z-10 font-sans flex flex-col"
+            className="relative w-full max-w-md bg-white rounded-md p-5 shadow-xl border border-slate-100 overflow-hidden text-left z-10 font-sans flex flex-col"
           >
             {/* Header Compact */}
             <div className="flex items-center justify-between pb-3 border-b border-slate-100">
@@ -166,14 +166,14 @@ export const ProductReviewModal: React.FC<ProductReviewModalProps> = ({
 
             <form onSubmit={handleSubmit} className="pt-3.5 space-y-4">
               {/* Product Info + Inline Rating Stars */}
-              <div className="flex items-center gap-3 p-2.5 bg-slate-50/80 rounded-xl border border-slate-100">
+              <div className="flex items-center gap-3 p-2.5 bg-slate-50/80 rounded-md border border-slate-100">
                 <img
                   src={
                     thumbnailUrl ||
                     "https://images.unsplash.com/photo-1556821840-3a63f95609a7?auto=format&fit=crop&q=80&w=150"
                   }
                   alt={productName}
-                  className="w-12 h-12 object-cover rounded-lg border border-slate-200 shrink-0 bg-white"
+                  className="w-12 h-12 object-cover rounded-md border border-slate-200 shrink-0 bg-white"
                 />
                 <div className="min-w-0 flex-1 space-y-1">
                   <h4 className="font-bold text-xs text-slate-800 truncate leading-tight">
@@ -197,11 +197,10 @@ export const ProductReviewModal: React.FC<ProductReviewModalProps> = ({
                           className="focus:outline-none transition-transform hover:scale-110 cursor-pointer p-0.5 border-none bg-transparent"
                         >
                           <Star
-                            className={`w-4 h-4 transition-all ${
-                              s <= currentDisplayRating
+                            className={`w-4 h-4 transition-all ${s <= currentDisplayRating
                                 ? "text-amber-400 fill-amber-400"
                                 : "text-slate-200 fill-slate-200"
-                            }`}
+                              }`}
                           />
                         </button>
                       ))}
@@ -220,7 +219,7 @@ export const ProductReviewModal: React.FC<ProductReviewModalProps> = ({
                   onChange={(e) => setComment(e.target.value)}
                   placeholder="Viết đánh giá của bạn về sản phẩm..."
                   rows={3}
-                  className="w-full border border-slate-200 rounded-xl p-3 text-xs focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-400 placeholder:text-slate-400 font-medium leading-relaxed bg-slate-50/30 resize-none"
+                  className="w-full border border-slate-200 rounded-md p-3 text-xs focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-400 placeholder:text-slate-400 font-medium leading-relaxed bg-slate-50/30 resize-none"
                 />
               </div>
 
@@ -240,7 +239,7 @@ export const ProductReviewModal: React.FC<ProductReviewModalProps> = ({
                   type="button"
                   onClick={() => fileInputRef.current?.click()}
                   disabled={isUploading}
-                  className="w-full h-10 bg-slate-50 hover:bg-slate-100 text-slate-600 rounded-xl font-semibold text-xs border border-dashed border-slate-300 transition-colors flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+                  className="w-full h-10 bg-slate-50 hover:bg-slate-100 text-slate-600 rounded-md font-semibold text-xs border border-dashed border-slate-300 transition-colors flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
                 >
                   {isUploading ? (
                     <Loader2 className="w-3.5 h-3.5 animate-spin text-slate-500" />
@@ -258,7 +257,7 @@ export const ProductReviewModal: React.FC<ProductReviewModalProps> = ({
                     {mediaList.map((url, idx) => (
                       <div
                         key={idx}
-                        className="relative w-12 h-12 rounded-lg overflow-hidden border border-slate-200 bg-slate-100 shrink-0 group"
+                        className="relative w-12 h-12 rounded-md overflow-hidden border border-slate-200 bg-slate-100 shrink-0 group"
                       >
                         {isVideo(url) ? (
                           <div className="w-full h-full relative bg-slate-900 flex items-center justify-center">
@@ -286,14 +285,14 @@ export const ProductReviewModal: React.FC<ProductReviewModalProps> = ({
                 <button
                   type="button"
                   onClick={onClose}
-                  className="flex-1 h-9 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-lg font-bold text-xs transition-colors cursor-pointer border-none"
+                  className="flex-1 h-9 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-md font-bold text-xs transition-colors cursor-pointer border-none"
                 >
                   Hủy
                 </button>
                 <button
                   type="submit"
                   disabled={addReviewMutation.isPending}
-                  className="flex-1 h-9 bg-amber-50 hover:bg-amber-100 border border-amber-300 text-xs font-black text-amber-800 rounded-lg transition-all cursor-pointer flex items-center justify-center gap-1.5 shadow-2xs disabled:opacity-50"
+                  className="flex-1 h-9 bg-amber-50 hover:bg-amber-100 border border-amber-300 text-xs font-black text-amber-800 rounded-md transition-all cursor-pointer flex items-center justify-center gap-1.5 shadow-2xs disabled:opacity-50"
                 >
                   {addReviewMutation.isPending ? (
                     <Loader2 className="w-3.5 h-3.5 animate-spin text-amber-700" />

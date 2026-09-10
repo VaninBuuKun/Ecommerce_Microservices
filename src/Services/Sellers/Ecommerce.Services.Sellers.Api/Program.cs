@@ -2,7 +2,9 @@ using System.Text.Json.Serialization;
 using BuildingBlocks.Logging;
 
 using Ecommerce.Services.Sellers.Api.Configurations;
+using Ecommerce.Services.Sellers.Api.Extensions;
 using Ecommerce.Services.Sellers.Api.GrpcServers;
+using Ecommerce.Services.Sellers.Api.Persistances;
 using Scalar.AspNetCore;
 using Serilog;
 
@@ -43,6 +45,12 @@ try
     app.MapGrpcService<SellerGrpcServer>();
 
     app.MapControllers();
+
+    using (var scope = app.Services.CreateScope())
+    {
+        var dbContext = scope.ServiceProvider.GetRequiredService<SellerDbContext>();
+        await Ecommerce.Services.Sellers.Api.Extensions.SeedDataExtensions.SeedShopsAsync(dbContext);
+    }
 
     app.Run();
 }

@@ -12,14 +12,14 @@ namespace Ecommerce.Services.Shippings.Api.Consumers;
 
 public class CreateShipmentConsumer(
     IShippingProviderFactory providerFactory,
-    SellerGrpc.SellerGrpcClient sellerGrpcClient,
+    SellerGrpc.SellerGrpcClient sellerGrpcClient,   
     ShippingDbContext dbContext,
     ILogger<CreateShipmentConsumer> logger) : IConsumer<CreateShipmentRequest>
 {
     public async Task Consume(ConsumeContext<CreateShipmentRequest> context)
     {
         var message = context.Message;
-        logger.LogInformation("Creating shipment for SubOrder {SubOrderId}, Order {OrderId}, IsReturn {IsReturn}", message.SubOrderId, message.OrderId, message.IsReturn);
+        logger.LogInformation("Creating shipment for SubOrder {SubOrderId}, Order {OrderId}, IsReturn {IsReturn}", message.SubOrderId, message.OrderId, message.IsRefund);
 
         try
         {
@@ -42,7 +42,7 @@ public class CreateShipmentConsumer(
 
             List<CreateWaybillItemRequest> itemsForWaybill;
 
-            if (message.IsReturn)
+            if (message.IsRefund)
             {
                 // Tìm kiếm shipment gốc đã được tạo trước đó thành công
                 var originalShipment = await dbContext.Shipments
@@ -100,10 +100,13 @@ public class CreateShipmentConsumer(
                 codAmountForWaybill = 0m;
                 shopId = originalShipment.ShopId;
 
-                itemsForWaybill = new List<CreateWaybillItemRequest>
-                {
-                    new CreateWaybillItemRequest($"Hàng hoàn trả đơn {message.SubOrderId}", "RETURN_ITEM", 1, 0)
-                };
+                itemsForWaybill = message.Items.Select(item => new CreateWaybillItemRequest(
+                    item.ProductName,
+                    item.VariantId.ToString(),
+                    item.Quantity,
+                    (int)item.UnitPrice,
+                    item.ProductImage
+                )).ToList();
             }
             else
             {
@@ -153,7 +156,8 @@ public class CreateShipmentConsumer(
                     item.ProductName,
                     item.VariantId.ToString(),
                     item.Quantity,
-                    (int)item.UnitPrice
+                    (int)item.UnitPrice,
+                    item.ProductImage
                 )).ToList();
             }
 
@@ -195,7 +199,7 @@ public class CreateShipmentConsumer(
                 Width = width,
                 Height = height,
                 CarrierName = shippingProvider.ProviderName,
-                IsRefund = message.IsReturn,
+                IsRefund = message.IsRefund,
             };
 
             if (waybillResult.IsSuccess)

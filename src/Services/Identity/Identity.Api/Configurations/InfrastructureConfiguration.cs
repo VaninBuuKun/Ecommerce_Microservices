@@ -63,5 +63,7 @@ public static class InfrastructureConfiguration
         
         services.AddHttpContextAccessor();
         services.AddHttpClient();
+        
+        
     }
 }

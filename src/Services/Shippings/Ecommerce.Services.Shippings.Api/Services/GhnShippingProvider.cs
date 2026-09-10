@@ -244,7 +244,8 @@ public class GhnShippingProvider(
                     name = item.Name,
                     code = item.Code,
                     quantity = item.Quantity,
-                    price = item.Price
+                    price = item.Price,
+                    image = item.productImage
                 }).ToArray()
             };
 

@@ -125,7 +125,6 @@ export default function HomePage() {
 						<div className="aspect-[4/3] w-full max-w-[360px] rounded-lg overflow-hidden border border-brand-border shadow-lg mt-[-30px] mr-[40px] z-10 relative">
 							<img
 								src="https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?auto=format&fit=crop&q=80&w=500"
-								alt="Buu Store Marketplace"
 								className="w-full h-full object-cover"
 							/>
 						</div>
@@ -183,7 +182,6 @@ export default function HomePage() {
 							<div className="aspect-square w-full overflow-hidden relative bg-brand-light border-b border-brand-border">
 								<img
 									src={p.thumbnailUrl}
-									alt={p.name}
 									className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
 								/>
 								<span className="absolute top-2 left-2 bg-brand-primary text-brand-dark text-[8px] font-bold uppercase px-2 py-0.5 rounded-sm tracking-wider">
@@ -231,7 +229,6 @@ export default function HomePage() {
 					<div className="aspect-[4/3] rounded-lg overflow-hidden shadow-lg border border-brand-border">
 						<img
 							src="https://images.unsplash.com/photo-1542272604-787c3835535d?auto=format&fit=crop&q=80&w=600"
-							alt="Buu Store Marketplace Platform"
 							className="w-full h-full object-cover"
 						/>
 					</div>

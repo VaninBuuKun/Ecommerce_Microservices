@@ -158,20 +158,18 @@ export function OrderDetailPage() {
 							return (
 								<div key={step.key} className="flex flex-col items-center gap-2 relative z-10">
 									<div
-										className={`w-9 h-9 rounded-full flex items-center justify-center transition-all ${
-											isCurrent
+										className={`w-9 h-9 rounded-full flex items-center justify-center transition-all ${isCurrent
 												? "bg-brand-dark text-white ring-4 ring-brand-primary/30 font-black shadow-md scale-110"
 												: isPassed
-												? "bg-brand-primary text-brand-dark font-bold"
-												: "bg-slate-100 text-slate-400"
-										}`}
+													? "bg-brand-primary text-brand-dark font-bold"
+													: "bg-slate-100 text-slate-400"
+											}`}
 									>
 										<Icon className="w-4 h-4" />
 									</div>
 									<span
-										className={`text-[10px] font-bold text-center leading-tight max-w-[70px] ${
-											isCurrent ? "text-brand-dark font-black" : isPassed ? "text-brand-dark" : "text-slate-400"
-										}`}
+										className={`text-[10px] font-bold text-center leading-tight max-w-[70px] ${isCurrent ? "text-brand-dark font-black" : isPassed ? "text-brand-dark" : "text-slate-400"
+											}`}
 									>
 										{step.label}
 									</span>
@@ -231,7 +229,6 @@ export function OrderDetailPage() {
 								<div key={item.id} className="py-3 flex items-center gap-3">
 									<img
 										src={item.thumbnailUrl || "https://images.unsplash.com/photo-1523275335684-37898b6baf30?auto=format&fit=crop&w=150&q=80"}
-										alt={item.productName}
 										className="w-14 h-14 object-cover rounded-xl border border-slate-200 shrink-0 bg-slate-50"
 									/>
 									<div className="flex-1 min-w-0">

@@ -1,3 +1,41 @@
+- [x] Mở Rộng & Seed Toàn Diện 21 Hồ Sơ Seller KYC Với 4 Trạng Thái Chuẩn E-commerce (`SeedDataExtensions.cs` ở cả Sellers.Api & Identity.Api, `seed_seller_kyc.sql`):
+  - **Mục tiêu**: Bổ sung đầy đủ hồ sơ định danh người bán (Seller KYC) phục vụ kiểm thử quản trị `/admin/kyc` (tab mặc định là Chờ duyệt `Submitted`), quy trình nộp duyệt KYC, từ chối kèm lý do và lưu nháp.
+  - **Triển khai trong Code C#**:
+    - Cập nhật [SeedDataExtensions.cs](file:///home/vanmuzic/Projects/Ecommerce_Microservices/src/Services/Identity/Identity.Api/Extensions/SeedDataExtensions.cs) (Identity.Api): Seed thêm 11 nhân vật Naruto (User IDs 12 -> 22) gồm Tsunade, Orochimaru, Nagato/Pain, Konan, Killer Bee, Tenten, Kiba, Rock Lee, Neji, Madara, Obito với role `Customer` và mật khẩu `password123`.
+    - Cập nhật [SeedDataExtensions.cs](file:///home/vanmuzic/Projects/Ecommerce_Microservices/src/Services/Sellers/Ecommerce.Services.Sellers.Api/Extensions/SeedDataExtensions.cs) (Sellers.Api): Khởi tạo 21 hồ sơ Seller KYC phân bổ đa dạng:
+      1. `Verified` (10 hồ sơ, User IDs 2 -> 11): Chủ 13 Shop Naruto hiện có, đủ điều kiện kinh doanh.
+      2. `Submitted` (6 hồ sơ, User IDs 12 -> 17): Đang chờ Admin duyệt trên `/admin/kyc`, sẵn sàng để thao tác Phê duyệt / Từ chối.
+      3. `Rejected` (3 hồ sơ, User IDs 18 -> 20): Bị từ chối kèm lý do chi tiết (ảnh mờ, che khuất khuôn mặt, giấy tờ hết hạn).
+      4. `Draft` (2 hồ sơ, User IDs 21 -> 22): Người bán lưu nháp hồ sơ.
+    - Bổ sung lệnh tự động đồng bộ sequence PostgreSQL cho bảng `SellerKycs`.
+  - **Script SQL Độc Lập & Thực Thi DB**:
+    - Tạo file [seed_seller_kyc.sql](file:///home/vanmuzic/Projects/Ecommerce_Microservices/QueryDb/seed_seller_kyc.sql) nạp trực tiếp vào `IdentityDb` và `SellerDb`.
+    - Đã thực thi thành công vào container `ecommerce_postgres_db`, database hiện có 22 users và 21 hồ sơ Seller KYC hoàn chỉnh.
+- [x] Thiết Kế & Triển Khai Cây Danh Mục 2 Cấp (19 Danh Mục Chính, 110 Danh Mục Con) & Nâng Cấp Toàn Diện CatalogDataSeeder (`CatalogCategorySeedData.cs`, `CatalogDataSeeder.cs`, `seed_categories.sql`):
+  - **Khởi tạo Cây danh mục 2 cấp chuẩn Thương mại điện tử**:
+    - Xây dựng [CatalogCategorySeedData.cs](file:///home/vanmuzic/Projects/Ecommerce_Microservices/src/Services/Catalogs/Ecommerce.Services.Catalog.Infrastructure/Persistence/CatalogCategorySeedData.cs) định nghĩa 19 danh mục chính (Điện Thoại & Máy Tính Bảng, Máy Tính & Laptop, Thiết Bị Điện Tử & Âm Thanh, Điện Gia Dụng, Thời Trang Nam, Thời Trang Nữ, Giày Dép Nam, Giày Dép Nữ, Túi Ví & Balo, Đồng Hồ & Trang Sức, Sắc Đẹp & Chăm Sóc Da, Sức Khỏe, Mẹ & Bé, Nhà Cửa & Đời Sống, Thể Thao, Ô Tô - Xe Máy, Sách & Văn Phòng Phẩm, Bách Hóa Online, Thú Cưng) cùng 110 danh mục con cấp 2.
+    - Toàn bộ danh mục được gắn URL ảnh đại diện CDN Unsplash chất lượng cao (`auto=format&fit=crop&q=80&w=200`) đồng bộ với giao diện Frontend `CategoryList.tsx` và `CategorySidebar.tsx`.
+  - **Nâng cấp CatalogDataSeeder**:
+    - Bổ sung `SeedCategoriesAsync()`: Tự động seed 19 danh mục cha và các danh mục con vào `CatalogDb` khi khởi động service, tự động xóa cache Redis key `catalog:categories:tree`.
+    - Bổ sung `SyncMissingProductCategoriesAsync()` & `MatchCategoryByProductName()`: Tự động phân tích tên sản phẩm và gán chính xác `CategoryId` vào danh mục con cấp 2 (Level-2 Subcategory) thay vì để `NULL`.
+    - Cải tiến `ParseCsvFile` & `ResolveCategoryId`: Tự động nhận diện từ khóa từng dòng sản phẩm CSV để phân loại sâu.
+  - **Tạo Script SQL & Thực Thi Trực Tiếp**:
+    - Tạo tệp script SQL độc lập [seed_categories.sql](file:///home/vanmuzic/Projects/Ecommerce_Microservices/QueryDb/seed_categories.sql) chứa toàn bộ câu lệnh nạp 129 danh mục và tự động ánh xạ sản phẩm.
+    - Đã nạp thành công vào PostgreSQL `CatalogDb`: 19 danh mục gốc + 110 danh mục con = 129 danh mục, 180 sản phẩm hiện có đã được map trọn vẹn (0 sản phẩm mồ côi `NULL`).
+    - Xóa cache Redis `catalog:categories:tree` trên container `ecommerce_cart_db` để API trả về dữ liệu mới ngay lập tức.
+- [x] Triển Khai Seed 13 Cửa Hàng Naruto (IDs 1->13) & Tinh Gọn Hoàn Toàn Địa Chỉ Lấy Hàng PickUpAddress (`Shop.cs`, `SellerDbContext.cs`, `SellerDtos.cs`, `ShopService.cs`, `SeedDataExtensions.cs`, `seller.types.ts`, `ProductDetailPage.tsx`):
+  - **Tinh gọn PickUpAddress & Xóa bỏ các cột chuỗi dư thừa (Province, District, Ward)**:
+    - Loại bỏ hoàn toàn 3 thuộc tính `Province`, `District`, `Ward` (dạng string) khỏi entity `PickUpAddress` trong [Shop.cs](file:///home/vanmuzic/Projects/Ecommerce_Microservices/src/Services/Sellers/Ecommerce.Services.Sellers.Api/Models/Entities/Shop.cs), chỉ lưu trữ các ID: `ProvinceId`, `DistrictId`, `WardId` (long) và `AddressLine`, đồng bộ chuẩn kiến trúc với `Identity.Api` (`UserAddress`).
+    - Cập nhật [SellerDbContext.cs](file:///home/vanmuzic/Projects/Ecommerce_Microservices/src/Services/Sellers/Ecommerce.Services.Sellers.Api/Persistances/SellerDbContext.cs): Bỏ cấu hình các cột chuỗi `PickUp_Province`, `PickUp_District`, `PickUp_Ward`, sửa `PickUp_WardId` thành `.IsRequired()` (bỏ `.HasMaxLength(20)` sai kiểu).
+    - Tạo EF Core Migration `RemoveStringLocationsFromPickUpAddress` và áp dụng trực tiếp vào database `SellerDb`, xóa triệt để 3 cột chuỗi dư thừa trong bảng `Shops`.
+    - Tinh giản `ShopDto` tại [SellerDtos.cs](file:///home/vanmuzic/Projects/Ecommerce_Microservices/src/Services/Sellers/Ecommerce.Services.Sellers.Api/Models/Dtos/SellerDtos.cs) và [MapsterMappingConfig.cs](file:///home/vanmuzic/Projects/Ecommerce_Microservices/src/Services/Sellers/Ecommerce.Services.Sellers.Api/Configurations/MapsterMappingConfig.cs), loại bỏ overhead gọi gRPC tra cứu địa chỉ trong `ShopService.UpdateShopAsync`.
+    - Đồng bộ Frontend: Loại bỏ các trường string thừa trong `Shop` & `ShopDto` tại [seller.types.ts](file:///home/vanmuzic/Projects/Ecommerce_Microservices/frontend-web/src/domains/seller/types/seller.types.ts), dùng query phân giải địa chỉ động `useResolveLocationsQuery([shop.wardId])` trong [ProductDetailPage.tsx](file:///home/vanmuzic/Projects/Ecommerce_Microservices/frontend-web/src/apps/customer/pages/ProductDetailPage.tsx).
+  - **Seed dữ liệu 13 Cửa hàng Naruto (IDs 1-13) & Verified Seller KYC**:
+    - Xây dựng [SeedDataExtensions.cs](file:///home/vanmuzic/Projects/Ecommerce_Microservices/src/Services/Sellers/Ecommerce.Services.Sellers.Api/Extensions/SeedDataExtensions.cs) tại `Sellers.Api` khởi tạo 13 shop gắn với các tổ chức / làng / gia tộc Naruto (Akatsuki, Làng Lá, Tiệm mì Ichiraku, Làng Cát, Làng Mây, Làng Sương Mù, Làng Mưa, Uchiha, Hyuga, Tsunade, Orochimaru, Tenten, Inuzuka).
+    - Phân bổ 13 `WardId` chia đều từ 850 đến 11050 (dưới mốc tối đa 11159), liên kết chính xác với `DistrictId` và `ProvinceId` thực tế từ `ShippingDb`.
+    - Đặt các `AddressLine` vui nhộn, đậm chất anime Naruto (Hang đá Akatsuki Thung lũng tận cùng, Tượng Hokage, Ngõ Mì Ramen, Tháp Kazekage bão cát...).
+    - Tự động seed 10 hồ sơ `SellerKyc` trạng thái `Verified` cho các chủ shop (User IDs 2 -> 11).
+    - Tích hợp tự động chạy seed vào `Program.cs` của `Identity.Api` và `Sellers.Api`, đồng bộ identity sequence PostgreSQL để các shop mới tự tăng từ 14.
 - [x] Tinh Chỉnh Cẩm Nang Di Chuyển Dữ Liệu & Hướng Dẫn AWS S3 + Database Update (`MIGRATION_AND_R2_SETUP_GUIDE.md`):
   - **Nội dung điều chỉnh theo yêu cầu**:
     - Lược bỏ hoàn toàn phần Cloudflare R2 và Postman.

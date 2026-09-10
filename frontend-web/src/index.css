@@ -46,6 +46,17 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
+/* ==========================================================================
+   🖼️ Image Alt Text & Loading Optimization
+   - color: transparent triệt tiêu 100% việc chữ alt text bị giật hiện ra màn hình khi ảnh S3 đang tải.
+   - font-size: 0 ngăn chặn text line-height làm phình khung layout trong lúc chờ ảnh.
+   - Giữ nguyên 100% giá trị thuộc tính alt trong DOM phục vụ Google SEO & Screen Reader.
+   ========================================================================== */
+img {
+  color: transparent;
+  font-size: 0;
+}
+
 h1, h2, h3, h4, h5, h6 {
   font-family: var(--font-sans);
   font-weight: 500;

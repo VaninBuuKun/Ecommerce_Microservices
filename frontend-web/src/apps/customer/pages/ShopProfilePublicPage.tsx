@@ -14,10 +14,10 @@ export default function ShopProfilePublicPage() {
   const [sortBy, setSortBy] = useState<string>("name");
 
   // 1. Query thông tin Public của Shop
-  const { 
-    data: shop, 
-    isLoading: loadingShop, 
-    isError: isShopError 
+  const {
+    data: shop,
+    isLoading: loadingShop,
+    isError: isShopError
   } = usePublicShopQuery(parsedShopId);
 
   // 2. Query danh sách sản phẩm của Shop theo phân trang vô hạn
@@ -53,7 +53,7 @@ export default function ShopProfilePublicPage() {
         <p className="text-sm font-bold text-brand-muted">Không tìm thấy thông tin cửa hàng này.</p>
         <button
           onClick={() => navigate(-1)}
-          className="px-4 py-2 bg-brand-dark text-white rounded-xl font-black cursor-pointer"
+          className="px-4 py-2 bg-brand-dark text-white rounded-md font-black cursor-pointer"
         >
           Quay lại
         </button>
@@ -62,7 +62,7 @@ export default function ShopProfilePublicPage() {
   }
 
   return (
-    <div className="max-w-6xl mx-auto px-4 py-8 space-y-6 text-left font-sans text-xs">
+    <div className="max-w-6xl mx-auto px-4 py-3 space-y-4 text-left font-sans text-xs">
       {/* Back Button */}
       <button
         onClick={() => navigate(-1)}
@@ -73,11 +73,11 @@ export default function ShopProfilePublicPage() {
       </button>
 
       {/* CARD 1: THÔNG TIN HEADER CHÍNH CỦA SHOP (LOGO, TÊN, NÚT THEO DÕI, ĐỊA CHỈ) */}
-      <div className="bg-white border border-brand-border rounded-3xl p-6 md:p-8 flex flex-col md:flex-row items-center justify-between gap-6 shadow-xs">
+      <div className="bg-white border border-brand-border rounded-md p-6 md:p-8 flex flex-col md:flex-row items-center justify-between gap-6 shadow-xs">
         <div className="flex flex-col md:flex-row items-center md:items-start gap-6 text-center md:text-left flex-1">
-          <div className="w-24 h-24 rounded-2xl overflow-hidden bg-slate-50 border border-brand-border shrink-0 flex items-center justify-center text-3xl font-black text-brand-muted uppercase shadow-xs">
+          <div className="w-24 h-24 rounded-md overflow-hidden bg-slate-50 border border-brand-border shrink-0 flex items-center justify-center text-3xl font-black text-brand-muted uppercase shadow-xs">
             {shop.logoUrl ? (
-              <img src={shop.logoUrl} alt={shop.name} className="w-full h-full object-cover" />
+              <img src={shop.logoUrl} className="w-full h-full object-cover" />
             ) : (
               shop.name.charAt(0)
             )}
@@ -121,7 +121,7 @@ export default function ShopProfilePublicPage() {
       </div>
 
       {/* CARD 2 (Ở GIỮA): MÔ TẢ CHI TIẾT SHOP */}
-      <div className="bg-white border border-brand-border rounded-2xl p-6 shadow-xs space-y-2 text-left">
+      <div className="bg-white border border-brand-border rounded-md p-6 shadow-xs space-y-2 text-left">
         <h3 className="text-xs font-black text-brand-dark uppercase tracking-wider flex items-center gap-2">
           <Store className="w-4 h-4 text-brand-primary" />
           Giới thiệu cửa hàng
@@ -143,7 +143,7 @@ export default function ShopProfilePublicPage() {
             <select
               value={sortBy}
               onChange={(e) => setSortBy(e.target.value)}
-              className="h-8 px-2.5 bg-white border border-brand-border rounded-xl text-xs font-bold text-brand-dark cursor-pointer focus:outline-none"
+              className="h-8 px-2.5 bg-white border border-brand-border rounded-md text-xs font-bold text-brand-dark cursor-pointer focus:outline-none"
             >
               <option value="name">Tên A-Z</option>
               <option value="newest">Mới nhất</option>
@@ -166,7 +166,7 @@ export default function ShopProfilePublicPage() {
                   whileHover={{ y: -4 }}
                   key={prod.id}
                   onClick={() => navigate(`/products/${prod.id}`)}
-                  className="group flex flex-col bg-white rounded-lg overflow-hidden border border-brand-border hover:shadow-[0_6px_20px_rgba(0,0,0,0.06)] transition-all duration-200 relative cursor-pointer"
+                  className="group flex flex-col bg-white rounded-md overflow-hidden border border-brand-border hover:shadow-[0_6px_20px_rgba(0,0,0,0.06)] transition-all duration-200 relative cursor-pointer"
                 >
                   <div className="aspect-square w-full overflow-hidden relative bg-brand-light border-b border-brand-border">
                     <img
@@ -219,7 +219,7 @@ export default function ShopProfilePublicPage() {
                 <button
                   onClick={() => fetchNextPage()}
                   disabled={isFetchingNextPage}
-                  className="px-6 py-2.5 bg-brand-dark text-white rounded-xl hover:bg-black font-black text-xs transition-all disabled:opacity-50 flex items-center gap-1.5 cursor-pointer shadow-xs"
+                  className="px-6 py-2.5 bg-brand-dark text-white rounded-md hover:bg-black font-black text-xs transition-all disabled:opacity-50 flex items-center gap-1.5 cursor-pointer shadow-xs"
                 >
                   {isFetchingNextPage && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
                   Xem thêm sản phẩm

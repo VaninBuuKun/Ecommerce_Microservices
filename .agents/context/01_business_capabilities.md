@@ -2,7 +2,7 @@
 
 This document provides a detailed breakdown of all implemented backend APIs, gRPC endpoints, and frontend features across the 7 microservices.
 
-## 1. Catalog Service (MySQL)
+## 1. Catalog Service (PostgreSQL)
 - **Entities**: Product, ProductOption, ProductOptionValue, ProductVariant, Category, ProductReview, Wishlist.
 - **Commands**:
   - `CreateProductCommandHandler`, `UpdateProductCommandHandler`, `DeleteProductCommandHandler`
@@ -14,9 +14,11 @@ This document provides a detailed breakdown of all implemented backend APIs, gRP
 - **Queries**:
   - `GetProductsQueryHandler`, `GetProductByIdQuery`, `GetMyProductsQueryHandler`
   - `GetVariantsByIdsCommandHandler`, `GetVariantByIdQueryHandler`
-  - `GetCategoriesQueryHandler`
+  - `GetCategoriesQueryHandler` (Cached in Redis `catalog:categories:tree`)
   - `GetProductReviewsQuery`, `GetProductReviewsSummaryQuery`
   - `GetMyWishlistQueryHandler` (`GET /api/wishlists`)
+- **Seeding**:
+  - `CatalogCategorySeedData` & `CatalogDataSeeder`: 19 Root Categories & 110 Subcategories (129 total) with Unsplash CDN icons, automatic level-2 category assignment for products.
 
 ## 2. Cart Service (Redis)
 - **Session-less Redis Cart**: Add/Update/Remove cart items, toggle `IsSelected`, group items by `ShopId`.
@@ -31,15 +33,15 @@ This document provides a detailed breakdown of all implemented backend APIs, gRP
   - `CompleteSubOrderCommandHandler`, `CancelSubOrderCommandHandler`
   - `CreateRefundCommandHandler`: Supports List<string> Medias for refund evidence images.
   - `ApproveRefundCommandHandler`, `RejectRefundCommandHandler`, `CancelRefundCommandHandler`
-  - `CreateVoucherCommandHandler`, `UpdateVoucherCommandHandler`
+  - `CreateVoucherCommandHandler`, `UpdateVoucherCommandHandler` (Unique index on `Voucher.Code`)
 - **Queries**:
-  - `GetOrderByIdQueryHandler`, `GetSubOrdersQuery`, `GetSubOrdersByShopQueryHandler`, `GetSubOrderDetailQuery`
+  - `GetOrderByIdQueryHandler`, `GetSubOrdersQuery`, `GetSubOrdersByShopQueryHandler`, `GetSubOrderDetailQueryHandler`
   - `GetCompletedSubOrderCountForProductQueryHandler` (gRPC)
   - `GetVouchersQueryHandler`, `GetAvailableVouchersQueryHandler`
   - `GetMyRefundsQueryHandler`, `GetShopRefundsQueryHandler`
 
 ## 4. Sellers Service (PostgreSQL)
-- **Entities**: SellerKyc, Shop, PickUpAddress, FollowedShop.
+- **Entities**: SellerKyc, Shop, PickUpAddress (Streamlined to `ProvinceId`, `DistrictId`, `WardId` (long) and `AddressLine`), FollowedShop.
 - **Commands**:
   - `RegisterKycCommandHandler`, `WithdrawKycDraftCommand`, `ApproveKycCommandHandler`
   - `CreateShopCommandHandler`, `UpdateShopCommandHandler`
@@ -50,6 +52,8 @@ This document provides a detailed breakdown of all implemented backend APIs, gRP
   - `GetAllShopsQueryHandler` (CQRS Query `GET /api/shop/all` for Admin with pagination, search & status filter)
   - `GetFollowedShopsQueryHandler` (`GET /api/shops/followed`), `CheckFollowShopStatusQueryHandler` (`GET /api/shops/{shopId}/follow-status`)
   - `ValidateShopOwnerQueryHandler` (gRPC), `GetShopsByIdsQueryHandler` (gRPC), `GetShopShippingInfoQueryHandler` (gRPC)
+- **Seeding**:
+  - `SeedDataExtensions`: Seeds 13 Naruto-themed Shops (IDs 1-13) with realistic `WardId`/`DistrictId`/`ProvinceId` and 10 verified `SellerKyc` profiles.
 
 
 ## 5. Payments Service (PostgreSQL)
@@ -64,12 +68,12 @@ This document provides a detailed breakdown of all implemented backend APIs, gRP
   - `RefundSubOrderConsumer`: Automatically refunds money to customer wallet/gateway on refund approval.
 
 ## 6. Shippings Service (PostgreSQL)
-- **Entities**: Province, District, Ward, Shipment.
+- **Entities**: Province, District, Ward, Shipment (6 states: `ReadyToPick=1`, `InTransit=2`, `Delivered=3`, `Returned=4`, `Cancelled=5`, `Failed=6`).
 - **Features**:
   - `LocationSyncJob`: Cron job syncing GHN location hierarchy.
   - `CalculateBatchShippingFeeQueryHandler` (gRPC & REST): GHN API fee calculation.
   - `CreateShipmentConsumer`: MassTransit Consumer creating GHN waybills.
-  - `WebhooksController`: Receives GHN status updates (`Delivered`, `Shipped`, `Picking`, `Returned`, `Cancelled`).
+  - `WebhooksController`: Receives GHN status updates with sequential state transition enforcement.
   - `ShipmentsController`: `GET /api/shipments` for Admin shipment management.
 
 ## 7. Identity Service (PostgreSQL)

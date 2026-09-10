@@ -236,7 +236,8 @@ public class CreateOrderCommandHandler(
                     Quantity = item.Quantity,
                     ProductName = string.IsNullOrEmpty(item.VariantName)
                         ? item.ProductName 
-                        : $"{item.ProductName} - {item.VariantName}"
+                        : $"{item.ProductName} - {item.VariantName}",
+                    ProductImage = item.ThumbnailUrl
                 }).ToList()
             }).ToList();
 

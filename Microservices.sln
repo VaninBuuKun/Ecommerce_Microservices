@@ -66,6 +66,12 @@ EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "QueryDb", "QueryDb", "{9D57CF15-9990-498E-87D2-C313CD4FBCCB}"
 	ProjectSection(SolutionItems) = preProject
 		QueryDb\IdentityService.sql = QueryDb\IdentityService.sql
+		QueryDb\ShippingService.sql = QueryDb\ShippingService.sql
+		QueryDb\CatalogService.sql = QueryDb\CatalogService.sql
+		QueryDb\SellerService.sql = QueryDb\SellerService.sql
+		QueryDb\seed_seller_kyc.sql = QueryDb\seed_seller_kyc.sql
+		QueryDb\PaymentService.sql = QueryDb\PaymentService.sql
+		QueryDb\OrderService.sql = QueryDb\OrderService.sql
 	EndProjectSection
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Identity", "Identity", "{FFF8B124-DA0A-4225-8888-6E5327A517E7}"

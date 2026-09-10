@@ -100,7 +100,7 @@ public class ApproveRefundCommandHandler(
             {
                 SubOrderId = subOrder.Id,
                 OrderId = subOrder.OrderId,
-                IsReturn = true
+                IsRefund = true
             }, cancellationToken);
 
             if (subOrderItems.Any())

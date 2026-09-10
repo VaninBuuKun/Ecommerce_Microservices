@@ -58,9 +58,9 @@ export default function UserProfilePublicPage() {
     return (
       <div className="max-w-md mx-auto text-center py-20 space-y-4 font-sans text-xs">
         <p className="text-sm font-bold text-brand-muted">Không tìm thấy thông tin người dùng này.</p>
-        <button 
+        <button
           onClick={() => navigate(-1)}
-          className="px-4 py-2 bg-brand-dark text-white rounded-xl text-xs font-black cursor-pointer border-none"
+          className="px-4 py-2 bg-brand-dark text-white rounded-md text-xs font-black cursor-pointer border-none"
         >
           Quay lại
         </button>
@@ -69,7 +69,7 @@ export default function UserProfilePublicPage() {
   }
 
   return (
-    <div className="max-w-4xl mx-auto px-4 py-8 space-y-8 text-left font-sans text-xs">
+    <div className="max-w-4xl mx-auto px-4 py-3 space-y-4 text-left font-sans text-xs">
       {/* Back Button */}
       <button
         onClick={() => navigate(-1)}
@@ -80,7 +80,7 @@ export default function UserProfilePublicPage() {
       </button>
 
       {/* Hero Profile Block */}
-      <div className="flex flex-col md:flex-row items-center gap-6 p-6 bg-white border border-brand-border rounded-3xl shadow-xs">
+      <div className="flex flex-col md:flex-row items-center gap-6 p-6 bg-white border border-brand-border rounded-md shadow-xs">
         <div className="w-20 h-20 rounded-full overflow-hidden bg-brand-primary/10 border-2 border-brand-border shrink-0 flex items-center justify-center font-black text-3xl text-brand-primary uppercase">
           {user.avatarUrl ? (
             <img src={user.avatarUrl} alt={user.fullName} className="w-full h-full object-cover" />
@@ -105,18 +105,18 @@ export default function UserProfilePublicPage() {
         </h2>
 
         {shops.length === 0 ? (
-          <div className="p-8 border border-dashed border-brand-border rounded-2xl bg-slate-50/50 text-center">
+          <div className="p-8 border border-dashed border-brand-border rounded-md bg-slate-50/50 text-center">
             <p className="text-brand-muted font-bold">Người dùng này hiện không quản lý cửa hàng nào.</p>
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {shops.map((shop) => (
-              <div 
+              <div
                 key={shop.id}
                 onClick={() => navigate(`/shops/${shop.id}`)}
-                className="flex items-center gap-4 p-4 bg-white border border-brand-border rounded-2xl hover:border-brand-dark/30 hover:shadow-xs transition-all cursor-pointer group"
+                className="flex items-center gap-4 p-4 bg-white border border-brand-border rounded-md hover:border-brand-dark/30 hover:shadow-xs transition-all cursor-pointer group"
               >
-                <div className="w-12 h-12 rounded-xl overflow-hidden border border-brand-border bg-slate-50 shrink-0 flex items-center justify-center text-lg font-black text-brand-muted uppercase">
+                <div className="w-12 h-12 rounded-md overflow-hidden border border-brand-border bg-slate-50 shrink-0 flex items-center justify-center text-lg font-black text-brand-muted uppercase">
                   {shop.logoUrl ? (
                     <img src={shop.logoUrl} alt={shop.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
                   ) : (

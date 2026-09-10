@@ -122,7 +122,8 @@ public class ShopService(
         shop.Name = name;
         shop.Description = description;
         if (!string.IsNullOrEmpty(logoUrl)) shop.LogoUrl = logoUrl;
-        shop.PickUpAddress = new PickUpAddress(recipientName, phone, "", "", "", addressLine, provinceId, districtId, wardId);
+
+        shop.PickUpAddress = new PickUpAddress(recipientName, phone, addressLine, provinceId, districtId, wardId);
         shop.LastModifiedDate = DateTimeOffset.UtcNow;
 
         await unitOfWork.SaveChangesAsync();

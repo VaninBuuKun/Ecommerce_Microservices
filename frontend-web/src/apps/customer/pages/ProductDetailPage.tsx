@@ -33,6 +33,7 @@ import { useSellerProfileQuery, usePublicShopQuery } from "@/domains/seller";
 import { useAddItemToCartMutation, useBuyNowOrReorder } from "@/domains/cart";
 import { useChatStore } from "@/domains/notification";
 import { useAuthStore, useAuthModalStore } from "@/domains/auth";
+import { useResolveLocationsQuery } from "@/domains/shipping";
 import { CommentOutlined } from "@ant-design/icons";
 import { toast } from "react-toastify";
 
@@ -46,19 +47,23 @@ export default function ProductDetailPage() {
 	const { data: product, isLoading, isError } = useProductByIdQuery(id);
 	const { data: shop } = usePublicShopQuery(product?.shopId ? Number(product.shopId) : undefined);
 
+	const shopWardId = Number(shop?.wardId || 0);
+	const { data: resolvedLocations } = useResolveLocationsQuery(shopWardId > 0 ? [shopWardId] : []);
+
 	const fullShopAddress = useMemo(() => {
 		if (shop) {
+			const loc = resolvedLocations?.find((l) => Number(l.wardId) === shopWardId);
 			const parts = [
 				shop.addressLine,
-				shop.ward,
-				shop.district,
-				shop.province,
+				loc?.wardName,
+				loc?.districtName,
+				loc?.provinceName,
 			].filter(Boolean);
 			if (parts.length > 0) return parts.join(", ");
 		}
 		if (product?.shopAddress) return product.shopAddress;
 		return "Chưa cập nhật";
-	}, [shop, product?.shopAddress]);
+	}, [shop, product?.shopAddress, resolvedLocations, shopWardId]);
 
 	const [activeMedia, setActiveMedia] = useState<{
 		type: "image" | "video";
@@ -610,11 +615,10 @@ export default function ProductDetailPage() {
 									{Array.from({ length: 5 }).map((_, idx) => (
 										<Star
 											key={idx}
-											className={`w-3.5 h-3.5 ${
-												idx < Math.round(product.averageRating || 0)
+											className={`w-3.5 h-3.5 ${idx < Math.round(product.averageRating || 0)
 													? "fill-brand-primary stroke-brand-primary"
 													: "text-gray-300 stroke-gray-300"
-											}`}
+												}`}
 										/>
 									))}
 								</div>
@@ -641,29 +645,29 @@ export default function ProductDetailPage() {
 						{/* Shipping Specs */}
 						{((product.weight && product.weight > 0) ||
 							(product.width && product.width > 0)) && (
-							<div className="space-y-2 text-xs border-y border-brand-border/60 py-3">
-								<div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[11px] text-brand-muted font-medium">
-									{product.weight > 0 && (
-										<span>
-											Khối lượng:{" "}
-											<strong className="text-brand-dark">
-												{product.weight}g
-											</strong>
-										</span>
-									)}
-									{product.width > 0 && (
-										<span>
-											Kích thước:{" "}
-											<strong className="text-brand-dark">
-												{product.width} x{" "}
-												{product.length} x{" "}
-												{product.height} cm
-											</strong>
-										</span>
-									)}
+								<div className="space-y-2 text-xs border-y border-brand-border/60 py-3">
+									<div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[11px] text-brand-muted font-medium">
+										{product.weight > 0 && (
+											<span>
+												Khối lượng:{" "}
+												<strong className="text-brand-dark">
+													{product.weight}g
+												</strong>
+											</span>
+										)}
+										{product.width > 0 && (
+											<span>
+												Kích thước:{" "}
+												<strong className="text-brand-dark">
+													{product.width} x{" "}
+													{product.length} x{" "}
+													{product.height} cm
+												</strong>
+											</span>
+										)}
+									</div>
 								</div>
-							</div>
-						)}
+							)}
 
 						{/* Product Options Selector Sub-component */}
 						{product.options && product.options.length > 0 && (

@@ -20,7 +20,7 @@ public class CreateShipmentRequest : IIntegrationEvent
     public int Width { get; set; }
     public int Length { get; set; }
     public decimal CodAmount { get; set; }
-    public bool IsReturn { get; set; }
+    public bool IsRefund { get; set; }
     public List<ShipmentItemData> Items { get; set; } = new();
 }
 
@@ -30,4 +30,5 @@ public class ShipmentItemData
     public int Quantity { get; set; }
     public decimal UnitPrice { get; set; }
     public string ProductName { get; set; } = string.Empty;
+    public string ProductImage {get; set;} = string.Empty;
 }

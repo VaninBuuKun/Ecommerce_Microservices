@@ -19,7 +19,8 @@ public record CreateWaybillItemRequest(
     string Name,
     string Code,
     int Quantity,
-    int Price
+    int Price,
+    string productImage
 );
 
 public record CreateWaybillRequest(
