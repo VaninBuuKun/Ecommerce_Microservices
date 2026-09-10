@@ -1,3 +1,17 @@
+- [x] Tinh Chỉnh Cẩm Nang Di Chuyển Dữ Liệu & Hướng Dẫn AWS S3 + Database Update (`MIGRATION_AND_R2_SETUP_GUIDE.md`):
+  - **Nội dung điều chỉnh theo yêu cầu**:
+    - Lược bỏ hoàn toàn phần Cloudflare R2 và Postman.
+    - Hướng dẫn chi tiết, ngắn gọn cách thiết lập AWS S3 (Bucket, Bucket Policy, CORS, IAM User AccessKey/SecretKey) và cấu hình `StorageSettings` trong `appsettings.Developer.json`.
+    - Hướng dẫn di chuyển dữ liệu media từ MinIO máy cũ lên AWS S3 bằng `rclone` và `mc mirror`.
+    - Cung cấp script 1-click export 7 PostgreSQL databases từ container `ecommerce_postgres_db` và restore ở máy mới.
+    - Bổ sung hướng dẫn tự động cập nhật Database Migrations bằng script [update-db.sh](file:///home/vanmuzic/Projects/Ecommerce_Microservices/update-db.sh) cho toàn bộ 8 DbContexts.
+- [x] Tạo Script Tự Động Cập Nhật Database Migration Hàng Loạt Cho Toàn Bộ Microservices (`update-db.sh`, `SKILL.md`):
+  - **Mục tiêu**: Tự động hóa toàn bộ việc quét và chạy `dotnet ef database update` cho 8 DbContexts trên toàn bộ 7 microservices (bao gồm cả Duende IdentityServer `PersistedGrantDbContext`).
+  - **Chi tiết triển khai**:
+    - Tạo file script thực thi [update-db.sh](file:///home/vanmuzic/Projects/Ecommerce_Microservices/update-db.sh) tại root với phân quyền `chmod +x`.
+    - Hỗ trợ chạy đồng loạt tất cả 8 DbContexts (`./update-db.sh`) hoặc chọn riêng từng service qua tham số (`./update-db.sh identity`, `duende`, `catalog`, `orders`, `sellers`, `payments`, `shippings`, `notifications`).
+    - Hỗ trợ format màu trực quan (CYAN, GREEN, RED, YELLOW), đo thời gian thực thi từng context, tổng kết số lượng thành công/thất bại và báo cáo chi tiết.
+    - Cập nhật tài liệu kỹ năng [SKILL.md](file:///home/vanmuzic/Projects/Ecommerce_Microservices/.agents/skills/db-migration/SKILL.md) bổ sung đầy đủ danh sách lệnh cho 8 DbContexts.
 - [x] Thiết Kế & Triển Khai Kiến Trúc Cấu Hình Ghi Đè Developer (Cascading Developer AppSettings Architecture) Cho Toàn Bộ Microservices:
   - **Vấn đề cốt lõi**: Đưa trực tiếp API keys (Momo Sandbox, VNPay HashSecret, GHN API Token, Gmail App Password) vào `appsettings.json` rồi commit lên Git dẫn đến rủi ro bảo mật nghiêm trọng (bị lộ secret, cảnh báo secret scanning của GitHub). Đồng thời việc tạo quá nhiều file `.example` gây rác dự án khi `appsettings.json` đã được viết mẫu sẵn placeholder.
   - **Giải pháp tinh gọn & chuẩn xác**:

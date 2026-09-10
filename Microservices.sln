@@ -65,13 +65,7 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Ecommerce.Services.Carts.Co
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "QueryDb", "QueryDb", "{9D57CF15-9990-498E-87D2-C313CD4FBCCB}"
 	ProjectSection(SolutionItems) = preProject
-		QueryDb\OrderServices.sql = QueryDb\OrderServices.sql
-		QueryDb\SellerService.sql = QueryDb\SellerService.sql
-		QueryDb\Shipping.sql = QueryDb\Shipping.sql
 		QueryDb\IdentityService.sql = QueryDb\IdentityService.sql
-		QueryDb\PaymentService.sql = QueryDb\PaymentService.sql
-		QueryDb\NotificationService.sql = QueryDb\NotificationService.sql
-		QueryDb\CatalogService.sql = QueryDb\CatalogService.sql
 	EndProjectSection
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Identity", "Identity", "{FFF8B124-DA0A-4225-8888-6E5327A517E7}"

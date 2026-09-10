@@ -60,18 +60,6 @@ try
     app.UseAuthorization();
     app.MapGrpcService<IdentityGrpcServer>();
     app.MapControllers();
-    // ⚠️ Schema Migration đã được tách ra ngoài (SQL Script / EF Bundle)
-    // KHÔNG gọi db.Database.Migrate() tại đây trong Production
-    // Xem tài liệu: migration_seeding_strategy.md
-
-    // Seed system data (Roles + Admin user) — Idempotent, đọc password từ ENV
-    // using (var scope = app.Services.CreateScope())
-    // {
-    //     var userManager = scope.ServiceProvider.GetRequiredService<UserManager<AppUser>>();
-    //     var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole<long>>>();
-    //     var dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-    //     await SeedDataExtensions.SeedUserAndRoleAsync(userManager, roleManager, dbContext);
-    // }
 
     app.Run();
 

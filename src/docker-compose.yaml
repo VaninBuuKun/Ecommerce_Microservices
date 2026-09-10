@@ -27,13 +27,8 @@ services:
       
       # Database mặc định PostgreSQL tạo khi khởi động.
       - POSTGRES_DB=OrderDb
-      
-      # Biến custom được script init đọc để tạo thêm DB:
-      # - IdentityDb
-      # - PaymentDb
-      # - SellerDb
-      # - ShippingDb
-      - POSTGRES_MULTIPLE_DATABASES=IdentityDb,PaymentDb,SellerDb,ShippingDb
+  
+      - POSTGRES_MULTIPLE_DATABASES=IdentityDb,PaymentDb,SellerDb,ShippingDb,CatalogDb
     
     ports:
       - "5433:5432"
