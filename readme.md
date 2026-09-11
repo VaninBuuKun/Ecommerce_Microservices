@@ -19,7 +19,8 @@ An enterprise-grade **Marketplace Ecommerce Platform** built with modern **Micro
         ├──► Shippings.Api    (REST 5070 / gRPC 5071) ──► PostgreSQL
         ├──► Sellers.Api      (REST 5042 / gRPC 5043) ──► PostgreSQL
         ├──► Identity.Api     (REST 5027 / gRPC 5028) ──► PostgreSQL
-        └──► Notifications.Api(REST 5080)              ──► PostgreSQL
+        ├──► Notifications.Api(REST 5080 / gRPC 5081) ──► PostgreSQL
+        └──► Recommendations.Api(REST 5090 / gRPC 5091) ──► PostgreSQL
 
 [ Synchronous Communication ]
 gRPC + Protocol Buffers
@@ -42,7 +43,7 @@ Saga State Machine + Transactional Outbox
 | **Sellers.Api**       | 5042 | 5043 | PostgreSQL | KYC Verification, Shop Management, Pickup Addresses, Follow |
 | **Payments.Api**      | 5052 | 5053 | PostgreSQL | VNPay, MoMo, COD, Seller Wallets, Withdrawals               |
 | **Shippings.Api**     | 5070 | 5071 | PostgreSQL | GHN Integration, Shipping Rates, Delivery Tracking          |
-| **Notifications.Api** | 5080 | —    | PostgreSQL | SignalR Realtime Notifications                              |
+| **Notifications.Api** | 5080 | 5081 | PostgreSQL | SignalR Realtime Notifications                              |
 | **Recommendations.Api** | 5090 | 5091 | PostgreSQL | AI Product Recommendations (Similar, For-You, Trending), View Tracking |
 
 ---
@@ -55,13 +56,12 @@ Saga State Machine + Transactional Outbox
 
 * National ID verification with front/back image upload.
 * Approval workflow: Draft → Submitted → Approved / Rejected.
-* Admin KYC management panel with approve/reject actions.
-
+* Admin KYC management panel (`/admin/kyc`) with approve/reject actions and rejection reasons.
 ### Shop Management
 
 * Shop creation after successful KYC approval.
 * Shop profile management (name, description, logo, address).
-* Pickup address management integrated with GHN locations.
+* **Streamlined Pickup Address**: Normalized location architecture using clean numeric identifiers (`ProvinceId`, `DistrictId`, `WardId`, `AddressLine`) adhering to `Identity.Api` standards and eliminating redundant text columns.
 * Shop activate / suspend / ban (Admin).
 * Follow / Unfollow shops (Customer).
 
@@ -107,6 +107,13 @@ Saga State Machine + Transactional Outbox
 * Price range indexing (`Price` & `MaxPrice`) for min/max price range filtering.
 * Native `jsonb` attributes storage with PostgreSQL GIN index (`jsonb_path_ops`).
 * PostgreSQL Trigram (`pg_trgm`) & `unaccent` for accent-insensitive typo-tolerant search.
+
+### 🌳 Hierarchical Category Tree (2 Levels, 129 Categories)
+
+* **E-Commerce Taxonomy**: 19 root categories (Điện Thoại & Máy Tính Bảng, Máy Tính & Laptop, Thiết Bị Điện Tử, Thời Trang Nam, Thời Trang Nữ, Mẹ & Bé, Nhà Cửa & Đời Sống...) and 110 specialized level-2 subcategories (129 categories total).
+* **Automated Data Seeding & Fallback**: Seeded via `CatalogCategorySeedData.cs` and `seed_categories.sql` with high-resolution Unsplash CDN icons.
+* **Dynamic Product Classification**: Automatic categorization mapper (`MatchCategoryByProductName`) mapping all 180 existing products to matching level-2 subcategories with 0 orphaned items.
+* **Redis Tree Caching**: Centralized Redis key `catalog:categories:tree` for instant sub-millisecond frontend navigation.
 
 ### 🔍 Smart Search & Discovery
 
@@ -260,17 +267,23 @@ ReadyToPick (Chờ lấy hàng) → InTransit (Đang vận chuyển) → Deliver
 ### Recommendation Engine (`Recommendations.Api`)
 * **Service Layer Architecture**: Independent microservice running on port REST 5090 / gRPC 5091 with zero inter-service gRPC latency during queries.
 * **Event-Driven Data Materialization**: Real-time sync via 8 MassTransit event consumers (`ProductCreated`, `ProductUpdated`, `ProductDeleted`, `ProductStatusChanged`, `ProductReviewCreated`, `SubOrderCompleted`, `WishlistToggled`, `CategoryTreeSync`).
+* **On-Demand Synchronization**: `POST /api/recommendations/sync` endpoint and `sync_recommendations.sh` PostgreSQL stream script for on-demand synchronization of all 129 categories and 180 products from `CatalogDb` to `RecommendationDb`.
 * **Content-Based Similarity**: Multi-factor similarity scoring (Category 35%, Shop 10%, Price Proximity 20%, Attribute Jaccard 20%, Popularity Boost 15%) for Product Detail pages (`GET /api/recommendations/similar/{productId}`).
-* **Personalized Hybrid Feed**: Customer-specific feed weighting purchase history (40%), wishlists (20%), and 30-day views (25%) with cold-start fallback (`GET /api/recommendations/for-you`).
-* **Real-time Trending**: Live trending product scoring combining 24-hour views (x1), 7-day purchases (x5), 7-day wishlist adds (x2), and review ratings (`GET /api/recommendations/trending`).
+* **Personalized Hybrid Feed**: Customer-specific feed weighting purchase history (40%), wishlists (20%), and 30-day views (25%) with cold-start fallback (`GET /api/recommendations/for-you?page=1`).
+* **Real-time Trending**: Live trending product scoring combining 24-hour views (x1), 7-day purchases (x5), 7-day wishlist adds (x2), and review ratings (`GET /api/recommendations/trending?page=1`).
 * **Anti-Spam View Tracking**: Endpoint `POST /api/product-views` with 30-minute Redis throttle per user/session, capturing page dwell time on unmount.
 * **Performance & Scalability Optimization**:
-  - **Progressive Chunk Pagination**: Fixed payload chunks (18 items per page) on `for-you` and `trending`, avoiding payload bloat over the wire on successive clicks.
-  - **Precomputed Candidate Pool Caching**: Scores candidate pool once in Redis (`reco:pool:for-you:{id}` TTL 2h, `reco:pool:trending` TTL 1h); subsequent pages sliced via `.Skip().Take()` in ~2ms without re-querying the database.
-  - **Viewport Lazy Loading**: Framer-motion `useInView` triggers data fetching only when scrolled near the section, saving initial page load bandwidth.
-* **Frontend ACO Integration**:
-  - Landing Page: `TodayRecommendationsSection` (`useInfinitePersonalizedRecommendationsQuery` + `useInView`) and `InterestedProductsSection` (`useTrendingProductsQuery` + `useInView` + loading skeleton).
-  - Product Detail Page: `RelatedProducts` (`useSimilarProductsQuery`) and automated view duration tracking (`useTrackProductViewMutation`).
+  - **Fixed 18-Item Progressive Pagination**: Fixed payload chunks (18 items per page, ~2.5KB fixed payload), capped at 6 pages (108 items max, exactly 5 "Xem thêm" clicks) to avoid client memory and network bloat.
+  - **Precomputed Candidate Pool Caching**:
+    - `page = 1`: Always computes fresh candidate pool from database and updates Redis (`reco:pool:for-you:{id}` TTL 2h, `reco:pool:trending` TTL 1h), returning the first 18 items.
+    - `page >= 2`: Slices `.Skip().Take()` directly from Redis pool in ~1–2ms without re-querying database or recalculating scores.
+    - **Fault-Tolerant Fallback**: Gracefully re-generates pool if Redis is restarted or evicted during user session.
+* **Frontend ACO Integration & Rich UX**:
+  - **Landing Page Reveal & Viewport Lazy Loading**:
+    - `BestSellersSection`: Golden Championship Cup `Trophy` icon (`fill-amber-400 text-amber-500`) + badge *"Top Bán Chạy"*, with Framer Motion `motion.section` scroll-reveal animation.
+    - `InterestedProductsSection`: Escalating Trend Chart `TrendingUp` icon (`text-rose-500 stroke-[2.5]`) + badge *"Trending 24h"*, lazy viewport loading triggered at `margin: "-40px"`.
+    - `TodayRecommendationsSection`: Smart AI `Sparkles` icon, lazy viewport loading at `margin: "-40px"`, persistent shimmer skeleton grid via `isWaitingForFetch = !isInView || isLoading` eliminating empty state flickering.
+  - **Product Detail Page**: `RelatedProducts` (`useSimilarProductsQuery`) and automated view duration tracking (`useTrackProductViewMutation`).
 
 ---
 
@@ -307,19 +320,23 @@ ReadyToPick (Chờ lấy hàng) → InTransit (Đang vận chuyển) → Deliver
 
 ---
 
-## 🔍 Native Full-Text Search & Explore Page
-* **PostgreSQL Native Full-Text Search**: `to_tsvector` and `websearch_to_tsquery` for Vietnamese text search.
-* **Autocomplete Search Suggestions**: Real-time search keyword suggestions via `/api/products/search-suggestions`.
-* **Explore Products Page (`/explore`)**: 2-column layout with 1-5 star ratings filter, single-choice sort criteria (Newest, Price asc/desc, Best Seller), and keyword title header.
-
----
-
 # 📐 4. Architectural Standards
 
 ## Clean Architecture CQRS vs Service Layer Pattern
 
 * **CQRS + MediatR Services (`Catalog.Api`, `Orders.Api`)**: Strict separation of Commands and Queries, dedicated Handler files, and feature-driven folder structures.
-* **Service Layer Pattern Services (`Payments.Api`, `Sellers.Api`, `Shippings.Api`, `Identity.Api`, `Cart.Api`, `Notifications.Api`)**: 0% MediatR, direct interface dependency injection (`Models/Interfaces/I[Name]Service.cs`), and centralized service implementations (`Services/`).
+* **Service Layer Pattern Services (`Payments.Api`, `Sellers.Api`, `Shippings.Api`, `Identity.Api`, `Cart.Api`, `Notifications.Api`, `Recommendations.Api`)**: 0% MediatR, direct interface dependency injection (`Models/Interfaces/I[Name]Service.cs`), and centralized service implementations (`Services/`).
+
+## Cascading Developer AppSettings Architecture
+
+Strict 2-layer configuration hierarchy across all microservices:
+1. `appsettings.json` (Committed): Base skeleton template with public endpoints and safe local defaults.
+2. `appsettings.Developer.json` (Git-ignored): Active developer secrets and environment overrides.
+* **Automatic Deep Merging**: `builder.AddCustomConfiguration()` in `BuildingBlocks.Logging` automatically registers and merges `appsettings.Developer.json` (with fallback to `appsettings.Local.json`) without modifying individual service `Program.cs`.
+
+## Automated Multi-Service Database Migration Utility
+
+* Centralized shell script `update-db.sh` supporting automated EF Core migration generation and database application across all services (`catalog`, `orders`, `identity`, `sellers`, `payments`, `shippings`, `notifications`, `recommendations`, or `all`).
 
 ## gRPC Presentation Adapter Pattern
 
