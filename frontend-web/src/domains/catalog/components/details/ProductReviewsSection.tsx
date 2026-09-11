@@ -62,84 +62,89 @@ export function ProductReviewsSection({ productId }: ProductReviewsSectionProps)
 			: allReviews.filter((r: any) => r.rating === activeTab);
 
 	return (
-		<div className="space-y-8 py-8 border-t border-slate-200 text-xs font-sans text-slate-800 animate-in fade-in duration-300">
-			{/* Header: Khách hàng đánh giá & Tổng quan */}
-			<div className="text-left space-y-4">
-				<h2 className="text-lg font-black text-slate-900 tracking-tight">
-					Khách hàng đánh giá
+		<div className="bg-white rounded-md border border-brand-border shadow-sm p-4 md:p-5 mb-6 text-left space-y-6 text-xs font-sans text-slate-800 animate-in fade-in duration-300">
+			{/* Header: Đánh giá sản phẩm & Badge */}
+			<div className="flex items-center justify-between border-b border-brand-border/60 pb-3">
+				<h2 className="text-sm font-black text-brand-dark uppercase tracking-wider">
+					Đánh giá sản phẩm
 				</h2>
+				<span className="text-[11px] font-extrabold text-amber-700 bg-amber-50 border border-amber-200/80 px-2.5 py-0.5 rounded-full flex items-center gap-1.5 shadow-2xs">
+					<Star className="w-3 h-3 fill-amber-400 text-amber-500" />
+					Khách hàng đánh giá ({ratingsSummary.totalReviews})
+				</span>
+			</div>
 
-				<div className="bg-white border border-brand-border rounded-md p-6 shadow-xs grid grid-cols-1 md:grid-cols-2 gap-8 items-center max-w-2xl">
-					{/* Div bên trái: Tổng quan */}
-					<div className="space-y-2">
-						<h3 className="text-sm font-bold text-slate-800">
-							Tổng quan
-						</h3>
-						<div className="flex items-center gap-3">
-							<span className="text-4xl md:text-5xl font-extrabold text-slate-950 tracking-tight">
-								{ratingsSummary.totalReviews > 0 ? ratingsSummary.averageRating.toFixed(1) : "0.0"}
-							</span>
-							<div className="flex items-center gap-1">
-								{[1, 2, 3, 4, 5].map((s) => (
-									<Star
-										key={s}
-										className={`w-5 h-5 ${
-											s <= Math.round(ratingsSummary.averageRating) && ratingsSummary.totalReviews > 0
-												? "text-amber-400 fill-amber-400"
-												: "text-slate-200 fill-slate-200"
-										}`}
-									/>
-								))}
-							</div>
+			{/* Ratings Summary Overview Box */}
+			<div className="bg-slate-50/70 border border-slate-200/80 rounded-lg p-5 md:p-6 grid grid-cols-1 md:grid-cols-2 gap-6 items-center max-w-2xl">
+				{/* Div bên trái: Tổng quan */}
+				<div className="space-y-2">
+					<h3 className="text-xs font-bold text-slate-700 uppercase tracking-wide">
+						Tổng quan
+					</h3>
+					<div className="flex items-center gap-3">
+						<span className="text-4xl md:text-5xl font-extrabold text-slate-950 tracking-tight">
+							{ratingsSummary.totalReviews > 0 ? ratingsSummary.averageRating.toFixed(1) : "0.0"}
+						</span>
+						<div className="flex items-center gap-1">
+							{[1, 2, 3, 4, 5].map((s) => (
+								<Star
+									key={s}
+									className={`w-5 h-5 ${
+										s <= Math.round(ratingsSummary.averageRating) && ratingsSummary.totalReviews > 0
+											? "text-amber-400 fill-amber-400"
+											: "text-slate-200 fill-slate-200"
+									}`}
+								/>
+							))}
 						</div>
-						<p className="text-xs text-slate-500 font-medium">
-							({ratingsSummary.totalReviews} đánh giá)
-						</p>
 					</div>
+					<p className="text-xs text-slate-500 font-medium">
+						({ratingsSummary.totalReviews} đánh giá từ người mua)
+					</p>
+				</div>
 
-					{/* Div bên phải: Các mức sao xếp hạng */}
-					<div className="space-y-2.5">
-						{starsBreakdown.map(({ star, count }) => {
-							const pct = getPercentage(count);
-							return (
-								<div key={star} className="flex items-center gap-3">
-									{/* 5 mini stars */}
-									<div className="flex items-center gap-0.5 w-20 shrink-0">
-										{[1, 2, 3, 4, 5].map((idx) => (
-											<Star
-												key={idx}
-												className={`w-3.5 h-3.5 ${
-													idx <= star
-														? "text-amber-400 fill-amber-400"
-														: "text-slate-200 fill-slate-200"
-												}`}
-											/>
-										))}
-									</div>
-
-									{/* Progress track */}
-									<div className="flex-1 h-2 bg-slate-100 rounded-full overflow-hidden">
-										<div
-											className="h-full bg-amber-400 rounded-full transition-all duration-500"
-											style={{ width: `${pct}%` }}
+				{/* Div bên phải: Các mức sao xếp hạng */}
+				<div className="space-y-2.5">
+					{starsBreakdown.map(({ star, count }) => {
+						const pct = getPercentage(count);
+						return (
+							<div key={star} className="flex items-center gap-3">
+								{/* 5 mini stars */}
+								<div className="flex items-center gap-0.5 w-20 shrink-0">
+									{[1, 2, 3, 4, 5].map((idx) => (
+										<Star
+											key={idx}
+											className={`w-3.5 h-3.5 ${
+												idx <= star
+													? "text-amber-400 fill-amber-400"
+													: "text-slate-200 fill-slate-200"
+											}`}
 										/>
-									</div>
-
-									{/* Count */}
-									<span className="text-xs font-semibold text-slate-600 min-w-[20px] text-right font-mono">
-										{count}
-									</span>
+									))}
 								</div>
-							);
-						})}
-					</div>
+
+								{/* Progress track */}
+								<div className="flex-1 h-2 bg-slate-200/70 rounded-full overflow-hidden">
+									<div
+										className="h-full bg-amber-400 rounded-full transition-all duration-500"
+										style={{ width: `${pct}%` }}
+									/>
+								</div>
+
+								{/* Count */}
+								<span className="text-xs font-semibold text-slate-600 min-w-[20px] text-right font-mono">
+									{count}
+								</span>
+							</div>
+						);
+					})}
 				</div>
 			</div>
 
 			{/* Reviews List & Filter tabs */}
-			<div className="space-y-5 text-left">
-				<div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-200">
-					<h3 className="font-extrabold text-slate-900 text-sm">
+			<div className="space-y-5 text-left pt-2">
+				<div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-brand-border/50">
+					<h3 className="font-extrabold text-slate-900 text-xs uppercase tracking-wide">
 						Nhận xét từ người mua ({filteredReviews.length})
 					</h3>
 

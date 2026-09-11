@@ -18,5 +18,7 @@ public record SubOrderCreatedEvent : IIntegrationEvent
     public long RecipientWardId { get; set; }
     public long SenderWardId { get; set; }
     public bool IsOnlinePayment { get; set; }
+    public decimal CommissionRate { get; set; }
+    public long CommissionFee { get; set; }
     public List<OrderItemData> OrderItems { get; set; } = new List<OrderItemData>();
 }

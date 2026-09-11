@@ -673,4 +673,10 @@ public class UserService(
             logger.LogWarning(ex, "Error processing device fingerprinting for User {UserId}", userId);
         }
     }
+
+    public async Task<long> GetUserCountAsync()
+    {
+        return await userManager.Users.LongCountAsync();
+    }
 }
+

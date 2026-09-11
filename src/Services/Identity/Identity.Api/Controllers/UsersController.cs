@@ -110,6 +110,14 @@ public class UsersController(
         return Ok(result.Value);
     }
 
+    [HttpGet("count")]
+    [Authorize(AuthenticationSchemes = IdentityServerConstants.LocalApi.AuthenticationScheme, Roles = "Admin")]
+    public async Task<IActionResult> GetUserCount()
+    {
+        var count = await userService.GetUserCountAsync();
+        return Ok(new { totalUsers = count });
+    }
+
     [HttpGet("{id:long}")]
     [Authorize(AuthenticationSchemes = IdentityServerConstants.LocalApi.AuthenticationScheme, Roles = "Admin")]
     public async Task<IActionResult> GetUserById(long id)

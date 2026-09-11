@@ -25,4 +25,6 @@ public interface IShopService
     Task<Result<bool>> ToggleFollowShopAsync(long customerId, long shopId);
     Task<Result<List<ShopDto>>> GetFollowedShopsAsync(long customerId);
     Task<Result<bool>> CheckFollowStatusAsync(long customerId, long shopId);
+    Task<Result<PagedResult<ShopFollowerDto>>> GetShopFollowersAsync(long shopId, int pageNumber, int pageSize, DateTime? fromDate = null);
+    Task<Result<int>> GetShopFollowersCountAsync(long shopId);
 }

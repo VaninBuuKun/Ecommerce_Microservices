@@ -35,6 +35,15 @@ public class ShopDto
     public long ProvinceId { get; set; }
     public long DistrictId { get; set; }
     public long WardId { get; set; }
+    public int FollowerCount { get; set; }
+}
+
+public class ShopFollowerDto
+{
+    public string Id { get; set; } = string.Empty;
+    public long CustomerId { get; set; }
+    public long ShopId { get; set; }
+    public DateTime FollowedAt { get; set; }
 }
 
 public class SellerProfileDto

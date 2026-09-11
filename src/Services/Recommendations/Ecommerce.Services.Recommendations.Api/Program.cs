@@ -18,6 +18,8 @@ try
         .AddJsonOptions(options =>
         {
             options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
+            options.JsonSerializerOptions.Converters.Add(new BuildingBlocks.Shared.Converters.LongToStringJsonConverter());
+            options.JsonSerializerOptions.Converters.Add(new BuildingBlocks.Shared.Converters.NullableLongToStringJsonConverter());
         });
 
     builder.Services.AddInfrastructureConfiguration(builder.Configuration);

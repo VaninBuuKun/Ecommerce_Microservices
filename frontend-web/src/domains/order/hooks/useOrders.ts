@@ -87,11 +87,12 @@ export function useShopSubOrdersQuery(
 	shopId?: number,
 	pageNumber = 1,
 	pageSize = 5,
-	status?: string
+	status?: string,
+	customerId?: number
 ) {
 	return useQuery({
-		queryKey: ["shopSubOrders", shopId, pageNumber, pageSize, status],
-		queryFn: () => orderApi.getShopSubOrders(shopId!, pageNumber, pageSize, status),
+		queryKey: ["shopSubOrders", shopId, pageNumber, pageSize, status, customerId],
+		queryFn: () => orderApi.getShopSubOrders(shopId!, pageNumber, pageSize, status, customerId),
 		enabled: Boolean(shopId),
 	});
 }

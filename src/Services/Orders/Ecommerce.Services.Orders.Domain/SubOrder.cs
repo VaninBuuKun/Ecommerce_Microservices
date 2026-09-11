@@ -14,6 +14,10 @@ public class SubOrder : EntityTrackingBase<long>
     public long SellerDiscount { get; private set; } //Theo voucher
     public long PlatformDiscount { get; private set; } //Theo sàn
     public long GrandTotal { get; private set; }
+
+    public decimal CommissionRate { get; private set; } // Tỷ lệ hoa hồng sàn snapshot (ví dụ: 5.0)
+    public long CommissionFee { get; private set; }      // Số tiền hoa hồng sàn thu snapshot (VND)
+    public long NetRevenue => GrandTotal - CommissionFee; // Số tiền người bán thực nhận (VND)
     
     // Truy vết voucher đã áp dụng để hỗ trợ rollback khi hủy đơn
     public long? ShopVoucherId { get; private set; }
@@ -73,6 +77,12 @@ public class SubOrder : EntityTrackingBase<long>
         SellerDiscount = sellerDiscount;
         PlatformDiscount = platformDiscount;
         CalculateGrandTotal();
+    }
+
+    public void SetCommission(decimal commissionRate, long commissionFee)
+    {
+        CommissionRate = commissionRate;
+        CommissionFee = commissionFee;
     }
 
     /// <summary>

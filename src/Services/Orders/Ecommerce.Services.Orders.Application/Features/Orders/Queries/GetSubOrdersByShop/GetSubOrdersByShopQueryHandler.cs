@@ -42,9 +42,19 @@ public class GetSubOrdersByShopQueryHandler(
         }
 
         System.Linq.Expressions.Expression<Func<SubOrder, bool>> predicate = o => o.ShopId == query.ShopId;
-        if (statusEnum.HasValue)
+        if (statusEnum.HasValue && query.CustomerId.HasValue && query.CustomerId.Value > 0)
+        {
+            var custId = query.CustomerId.Value;
+            predicate = o => o.ShopId == query.ShopId && o.Status == statusEnum.Value && o.CustomerId == custId;
+        }
+        else if (statusEnum.HasValue)
         {
             predicate = o => o.ShopId == query.ShopId && o.Status == statusEnum.Value;
+        }
+        else if (query.CustomerId.HasValue && query.CustomerId.Value > 0)
+        {
+            var custId = query.CustomerId.Value;
+            predicate = o => o.ShopId == query.ShopId && o.CustomerId == custId;
         }
 
         var totalCount = await subOrderRepo.CountAsync(predicate, cancellationToken);

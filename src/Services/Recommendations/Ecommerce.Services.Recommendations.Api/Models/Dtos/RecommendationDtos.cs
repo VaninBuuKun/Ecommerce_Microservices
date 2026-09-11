@@ -1,11 +1,17 @@
 using System.Collections.Generic;
+using System.Text.Json.Serialization;
+using BuildingBlocks.Shared.Converters;
 
 namespace Ecommerce.Services.Recommendations.Api.Models.Dtos;
 
 public class RecommendedProductDto
 {
+    [JsonConverter(typeof(LongToStringJsonConverter))]
     public long Id { get; set; }
+
+    [JsonConverter(typeof(LongToStringJsonConverter))]
     public long ShopId { get; set; }
+
     public string Name { get; set; } = string.Empty;
     public decimal Price { get; set; }
     public decimal DiscountPrice { get; set; }
@@ -13,7 +19,10 @@ public class RecommendedProductDto
     public int Sold { get; set; }
     public double AverageRating { get; set; }
     public int ReviewCount { get; set; }
+
+    [JsonConverter(typeof(NullableLongToStringJsonConverter))]
     public long? CategoryId { get; set; }
+
     public double MatchScore { get; set; }
     public string? RecommendationReason { get; set; }
 }

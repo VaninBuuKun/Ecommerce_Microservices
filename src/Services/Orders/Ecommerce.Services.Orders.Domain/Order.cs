@@ -110,6 +110,12 @@ public sealed class Order : AggregateRoot<long>, IDateTracking
         existingShopSubOrder?.ApplyVouchers(shopVoucherId, platformVoucherId);
     }
 
+    public void SetCommission(long shopId, decimal commissionRate, long commissionFee)
+    {
+        var existingShopSubOrder = SubOrderItems.FirstOrDefault(x => x.ShopId == shopId);
+        existingShopSubOrder?.SetCommission(commissionRate, commissionFee);
+    }
+
     private void CalculateTotals()
     {
         SubTotal = SubOrderItems.Sum(x => x.SubTotal);

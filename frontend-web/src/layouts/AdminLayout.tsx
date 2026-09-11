@@ -15,7 +15,8 @@ import {
 	CreditCard,
 	Truck,
 	Menu,
-	X
+	X,
+	LayoutDashboard,
 } from "lucide-react";
 import { useAuthStore, authApi } from "@/domains/auth";
 
@@ -38,6 +39,7 @@ export default function AdminLayout() {
 	};
 
 	const navItems = [
+		{ to: "/admin/overview", label: "Tổng quan & Thống kê", icon: LayoutDashboard },
 		{ to: "/admin/products", label: "Quản lý sản phẩm", icon: ShoppingBag },
 		{ to: "/admin/banners", label: "Quản lý Banner", icon: ImageIcon },
 		{ to: "/admin/orders", label: "Quản lý đơn hàng", icon: Package },

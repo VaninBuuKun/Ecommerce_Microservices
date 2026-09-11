@@ -51,6 +51,8 @@ public class SubOrderStateMachine : MassTransitStateMachine<SubOrderSagaState>
                     context.Saga.CustomerId = context.Message.CustomerId;
                     context.Saga.ShopId = context.Message.ShopId;
                     context.Saga.TotalAmount = context.Message.TotalAmount;
+                    context.Saga.CommissionRate = context.Message.CommissionRate;
+                    context.Saga.CommissionFee = context.Message.CommissionFee;
                     context.Saga.IsOnlinePayment = context.Message.IsOnlinePayment;
                     context.Saga.CreatedDate = DateTime.UtcNow;
                     context.Saga.ItemsJson = System.Text.Json.JsonSerializer.Serialize(context.Message.OrderItems);

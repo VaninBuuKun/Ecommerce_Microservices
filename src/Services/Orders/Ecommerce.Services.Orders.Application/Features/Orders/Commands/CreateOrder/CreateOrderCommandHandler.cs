@@ -132,9 +132,13 @@ public class CreateOrderCommandHandler(
                 order.SetShippingFee(shopShipping.Key, (long)shopShipping.Value);
             }
 
-            // Áp dụng Voucher & Giảm giá cho từng Shop
+            // Áp dụng Voucher, Giảm giá & Tính Snapshot Hoa hồng sàn cho từng Shop
             var voucherRepo = unitOfWork.Repository<Voucher, long>();
             var voucherUsageRepo = unitOfWork.Repository<VoucherUsage, Guid>();
+
+            var commissionConfigRepo = unitOfWork.Repository<PlatformCommissionConfig, long>();
+            var commissionConfig = await commissionConfigRepo.FirstOrDefaultAsync(c => true, null, cancellationToken);
+            var commissionRate = commissionConfig?.RatePercentage ?? 5.0m;
 
             var subOrders = order.GetSubOrders().ToList();
             foreach (var subOrder in subOrders)
@@ -150,6 +154,11 @@ public class CreateOrderCommandHandler(
                 }
 
                 order.ApplyDiscounts(shopId, (long)sellerDiscount, (long)platformDiscountForShop);
+
+                // Snapshot phí hoa hồng sàn (Financial Immutability)
+                var gross = subOrder.GrandTotal;
+                var commissionFee = (long)Math.Round(gross * (commissionRate / 100m), MidpointRounding.AwayFromZero);
+                order.SetCommission(shopId, commissionRate, commissionFee);
 
                 long? shopVoucherId = checkoutSession.ShopVoucherIds.TryGetValue(shopId, out var svId) ? svId : (long?)null;
                 order.ApplyVoucherIds(shopId, shopVoucherId, checkoutSession.PlatformVoucherId);
@@ -223,6 +232,8 @@ public class CreateOrderCommandHandler(
                 CustomerId = subOrder.CustomerId,
                 ShopId = subOrder.ShopId,
                 TotalAmount = subOrder.GrandTotal,
+                CommissionRate = subOrder.CommissionRate,
+                CommissionFee = subOrder.CommissionFee,
                 ShippingAddress = order.ShippingAddress,
                 RecipientName = order.RecipientName,
                 RecipientPhone = order.RecipientPhone,

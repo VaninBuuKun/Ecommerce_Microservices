@@ -8,10 +8,13 @@ using BuildingBlocks.Shared.Commons;
 using BuildingBlocks.Shared.Enums;
 using Ecommerce.Services.Orders.Application.Commons.Dtos.Payments;
 using Ecommerce.Services.Orders.Application.Services;
+using Microsoft.Extensions.Logging;
 
 namespace Ecommerce.Services.Orders.Infrastructure.GrpcClients;
 
-public class PaymentClientService(PaymentGrpc.PaymentGrpcClient client) : IPaymentService
+public class PaymentClientService(
+    PaymentGrpc.PaymentGrpcClient client,
+    ILogger<PaymentClientService> logger) : IPaymentService
 {
     public async Task<Result<string?>> CreatePaymentAsync(long orderId, decimal amount, string paymentProvider, CancellationToken cancellationToken = default)
     {

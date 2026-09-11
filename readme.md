@@ -20,7 +20,8 @@ An enterprise-grade **Marketplace Ecommerce Platform** built with modern **Micro
         ├──► Sellers.Api      (REST 5042 / gRPC 5043) ──► PostgreSQL
         ├──► Identity.Api     (REST 5027 / gRPC 5028) ──► PostgreSQL
         ├──► Notifications.Api(REST 5080 / gRPC 5081) ──► PostgreSQL
-        └──► Recommendations.Api(REST 5090 / gRPC 5091) ──► PostgreSQL
+        ├──► Recommendations.Api(REST 5090 / gRPC 5091) ──► PostgreSQL
+        └──► Analytics.Api    (REST 5095 / gRPC 5096) ──► PostgreSQL
 
 [ Synchronous Communication ]
 gRPC + Protocol Buffers
@@ -39,12 +40,13 @@ Saga State Machine + Transactional Outbox
 | **Catalog.Api**       | 5001 | 5002 | PostgreSQL | Product Catalog, SKU Variants, Inventory, Ratings & Reviews, Smart Search |
 | **Cart.Api**          | 5004 | 5005 | Redis      | Shopping Cart, Shop Grouping                                |
 | **Orders.Api**        | 5007 | 5008 | PostgreSQL | Orders, SubOrders, Vouchers, Refund Workflow                |
-| **Identity.Api**      | 5027 | 5028 | PostgreSQL | Authentication, Authorization, OAuth2/OIDC, User Addresses  |
+| **Identity.Api**      | 5027 | 5028 | PostgreSQL | Authentication, Authorization, OAuth2/OIDC, User Addresses, User Count |
 | **Sellers.Api**       | 5042 | 5043 | PostgreSQL | KYC Verification, Shop Management, Pickup Addresses, Follow |
 | **Payments.Api**      | 5052 | 5053 | PostgreSQL | VNPay, MoMo, COD, Seller Wallets, Withdrawals               |
 | **Shippings.Api**     | 5070 | 5071 | PostgreSQL | GHN Integration, Shipping Rates, Delivery Tracking          |
 | **Notifications.Api** | 5080 | 5081 | PostgreSQL | SignalR Realtime Notifications                              |
 | **Recommendations.Api** | 5090 | 5091 | PostgreSQL | AI Product Recommendations (Similar, For-You, Trending), View Tracking |
+| **Analytics.Api**     | 5095 | 5096 | PostgreSQL | Seller & Admin Analytics, Daily Revenue Timeline, Top Products Materialization |
 
 ---
 
@@ -62,8 +64,7 @@ Saga State Machine + Transactional Outbox
 * Shop creation after successful KYC approval.
 * Shop profile management (name, description, logo, address).
 * **Streamlined Pickup Address**: Normalized location architecture using clean numeric identifiers (`ProvinceId`, `DistrictId`, `WardId`, `AddressLine`) adhering to `Identity.Api` standards and eliminating redundant text columns.
-* Shop activate / suspend / ban (Admin).
-* Follow / Unfollow shops (Customer).
+* Follow / Unfollow shops (Customer) & Follower Management: Database-backed follow tracking in `FollowedShops`, follower count badge, shop followers query endpoint (`GET /api/shop/{shopId}/followers`) with date filtering and pagination, customer order history navigation without modal, and redesigned modern follow button.
 
 ### Seller Wallet
 

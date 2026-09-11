@@ -34,7 +34,7 @@ export function ProductDescription({ description, attributesJson }: ProductDescr
 			{/* Product Specification Attributes Table */}
 			{attributes.length > 0 && (
 				<div>
-					<h2 className="text-xs font-bold text-brand-dark uppercase tracking-wider mb-3 border-b border-brand-border pb-2 flex items-center gap-1.5">
+					<h2 className="text-sm font-black text-brand-dark uppercase tracking-wider mb-3 border-b border-brand-border/60 pb-2.5 flex items-center gap-2">
 						<Layers className="w-4 h-4 text-brand-primary-deep" />
 						Thông số sản phẩm
 					</h2>
@@ -62,7 +62,7 @@ export function ProductDescription({ description, attributesJson }: ProductDescr
 
 			{/* Product Description Section */}
 			<div>
-				<h2 className="text-xs font-bold text-brand-dark uppercase tracking-wider mb-3 border-b border-brand-border pb-2">
+				<h2 className="text-sm font-black text-brand-dark uppercase tracking-wider mb-3 border-b border-brand-border/60 pb-2.5">
 					Mô tả sản phẩm
 				</h2>
 

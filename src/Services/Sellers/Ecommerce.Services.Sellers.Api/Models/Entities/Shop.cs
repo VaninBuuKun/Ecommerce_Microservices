@@ -44,6 +44,8 @@ public class Shop : EntityTrackingBase<long>
     
     public ShopStatus Status { get; set; } = ShopStatus.Active;
 
+    public virtual ICollection<FollowedShop> Followers { get; set; } = new List<FollowedShop>();
+
     private Shop() {}
 
     public Shop(long ownerUserId, string name, string description,string? logoUrl = null)

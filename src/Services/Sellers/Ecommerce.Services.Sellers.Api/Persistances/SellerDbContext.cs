@@ -20,6 +20,10 @@ public class SellerDbContext(DbContextOptions<SellerDbContext> options, IInMemor
         {
             entity.HasKey(f => f.Id);
             entity.HasIndex(f => new { f.CustomerId, f.ShopId }).IsUnique();
+            entity.HasOne(f => f.Shop)
+                .WithMany(s => s.Followers)
+                .HasForeignKey(f => f.ShopId)
+                .OnDelete(DeleteBehavior.Cascade);
         });
 
 

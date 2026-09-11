@@ -1,306 +1,99 @@
-- [x] Tối Ưu UX Trí Tuệ Khi Cuộn Trang (Viewport Lazy Loading & Scroll Reveal) & Phân Biệt Trực Quan Icon / Badge Landing Page (`BestSellersSection.tsx`, `InterestedProductsSection.tsx`, `TodayRecommendationsSection.tsx`, `LandingPage.tsx`):
-  - **Mục tiêu**: Giải quyết triệt để vấn đề "nói lướt tới một đoạn mới show mà vừa vào đã hiện hoặc hiện text trống", đồng thời phân biệt trực quan hoàn toàn biểu tượng giữa mục "Sản phẩm bán chạy" và "Hot trend hôm nay".
-  - **Khắc phục lỗi hiển thị trống & Cơ chế Lazy-load thực sự**:
-    - **Nguyên nhân gốc**: Trước đây `useInView` để `margin: "250px"` khiến trình duyệt kích hoạt query trước khi người dùng kịp cuộn tới. Đồng thời, khi `enabled: isInView` là `false` thì TanStack Query trả về `isLoading = false`, dẫn đến điều kiện `productsList.length === 0 && !isLoading` bị thỏa mãn ngay lập tức và làm chớp dòng chữ *"Hiện chưa có sản phẩm nào được hiển thị"*.
-    - **Giải pháp**:
-      - Chuyển `margin` của `useInView` về `-40px` (yêu cầu section thực sự bước vào màn hình 40px mới kích hoạt load).
-      - Định nghĩa biến cờ `isWaitingForFetch = !isInView || isLoading;`, duy trì hiển thị khung xương Skeleton mượt mà (6-12 items shimmer) trong suốt thời gian người dùng chưa cuộn tới hoặc dữ liệu đang tải, triệt tiêu hoàn toàn hiện tượng chớp text rỗng.
-      - Bọc các section trong `motion.section` với hiệu ứng trồi mượt `initial={{ opacity: 0, y: 24 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, margin: "-40px" }} transition={{ duration: 0.45, ease: "easeOut" }}`.
-  - **Phân biệt trực quan Icon & Chủ đề các Section**:
-    - [BestSellersSection.tsx](file:///home/vanmuzic/Projects/Ecommerce_Microservices/frontend-web/src/domains/catalog/components/landing/BestSellersSection.tsx): Thay icon `Flame` bằng icon chiếc cúp vô địch `Trophy` vàng kim (`fill-amber-400 text-amber-500` trên nền `bg-amber-50 border-amber-200`) kèm badge *"Top Bán Chạy"*.
-    - [InterestedProductsSection.tsx](file:///home/vanmuzic/Projects/Ecommerce_Microservices/frontend-web/src/domains/catalog/components/landing/InterestedProductsSection.tsx): Thay icon `Flame` bằng icon biểu đồ tăng trưởng `TrendingUp` hồng sen (`text-rose-500 stroke-[2.5]` trên nền `bg-rose-50 border-rose-200`) kèm badge *"Trending 24h"*.
-    - [TodayRecommendationsSection.tsx](file:///home/vanmuzic/Projects/Ecommerce_Microservices/frontend-web/src/domains/catalog/components/landing/TodayRecommendationsSection.tsx): Duy trì biểu tượng sao thông minh `Sparkles` tượng trưng cho thuật toán gợi ý AI/Cá nhân hóa.
-  - **Dọn dẹp layout**: Loại bỏ import thừa `NewArrivalsSection` trong [LandingPage.tsx](file:///home/vanmuzic/Projects/Ecommerce_Microservices/frontend-web/src/apps/customer/pages/LandingPage.tsx).
-  - **Kiểm Thử & Biên Dịch**: `npm run build` $\rightarrow$ ✅ Built in 690ms (0 errors).
+- [x] Khắc Phục Triệt Để Hiện Tượng Bị Đăng Xuất Khi Restart Server (Silent Refresh Trên FE, Chống Xóa Session Do Lỗi Mạng & Chuẩn Hóa Cặp Khóa Ký/DataProtection Trên Identity Service):
+  - **Mục tiêu & Kết quả hoàn thành**:
+    1. **Frontend Auth Resilience (`AuthProvider.tsx`)**:
+       - Cơ chế **Silent Refresh** khi khởi động: Khi mở trang hoặc F5, nếu `accessToken` null hoặc hết hạn (`!isAuthenticated(token)`), `AuthProvider` chủ động gọi `authService.refresh()` để đổi lấy `accessToken` mới từ HttpOnly Cookie 7 ngày (`refresh_token`) trước khi các guard chuyển hướng đến `/login`.
+       - Bảo vệ session khi restart server / lỗi mạng: Thay thế cơ chế xóa sạch session bừa bãi khi `currentUserQuery.isError` bằng kiểm tra nghiêm ngặt `(error as any)?.response?.status === 401`. Nếu là Network Error (`ERR_CONNECTION_REFUSED` do server đang restart) hoặc 5xx, tuyệt đối **không** gọi `clearState()`, giữ nguyên session người dùng.
+    2. **Frontend Axios Interceptor (`axiosInstance.ts`) & Query Retry (`useAuth.ts`)**:
+       - `axiosInstance.ts`: Refresh promise error handler chỉ xóa session (`clearState()`) khi server từ chối xác thực bằng HTTP 401 hoặc 400. Network error trong lúc refresh sẽ không làm mất session.
+       - `useCurrentUserQuery`: Bổ sung cấu hình retry 2 lần đối với lỗi mạng / server rebooting để tự động phục hồi ngay khi backend sẵn sàng.
+    3. **Backend Cryptographic & Key Persistence (`Identity.Api`)**:
+       - `InfrastructureConfiguration.cs`: Cấu hình ASP.NET Core Data Protection cố định (`PersistKeysToFileSystem` tại `AppContext.BaseDirectory/dataprotection-keys` với `SetApplicationName("EcommerceMicroservices")`), đảm bảo payload refresh token trong bảng `PersistedGrants` của PostgreSQL luôn giải mã được qua các lần restart.
+       - Chỉ định đường dẫn cố định cho `AddDeveloperSigningCredential` tới `AppContext.BaseDirectory/tempkey.jwk` và bổ sung MSBuild item group copy `tempkey.jwk` (`PreserveNewest`) trong `Identity.Api.csproj`, tránh việc sinh khóa RSA mới làm vô hiệu hóa token cũ.
+  - **Kiểm Thử & Biên Dịch**:
+    - Backend: `dotnet build Microservices.sln` -> Build succeeded (0 errors).
+    - Frontend: `npm run build` -> Vite production build succeeded in 913ms (0 errors).
 
-- [x] Tối Ưu Hiệu Năng & Tinh Chỉnh Thuật Toán Recommendation (Cố Định 18 Items/Trang, Tối Đa 6 Trang / 108 Items, Page 1 Always Re-compute & Update Redis, Page >= 2 Pure Redis Pool):
-  - **Mục tiêu**: Chuẩn hóa luồng hoạt động của thuật toán gợi ý theo phản hồi người dùng: Cố định `pageSize = 18`, loại bỏ hoàn toàn `limit`, giới hạn tối đa 6 trang ($6 \times 18 = 108$ sản phẩm, cho phép bấm "Xem thêm" đúng 5 lần).
-  - **Quy Tắc Thuật Toán & Redis Pool (`Recommendations.Api`)**:
-    - **Page = 1**: Luôn luôn bỏ qua cache cũ, chạy thuật toán tính toán scoring/ranking tươi mới nhất từ database (lịch sử mua, wishlist, view 30 ngày) để sinh candidate pool tối đa 108 sản phẩm. Lưu snapshot pool này vào Redis (`reco:pool:for-you:{identifier}` TTL 2h, `reco:pool:trending` TTL 1h). Trả về chunk 18 sản phẩm đầu tiên (`Take(18)`).
-    - **Page >= 2**: Đọc trực tiếp từ Redis candidate pool đã sinh ở Page 1 và cắt chunk `.Skip((page - 1) * 18).Take(18)` với tốc độ tức thì 1-2ms, không query DB hay tính lại điểm.
-    - **Cơ chế Chịu Lỗi (Fault-tolerant)**: Nếu `page >= 2` mà Redis pool trống (do restart server hoặc cache expire), backend tự động sinh lại pool 108 sản phẩm, lưu vào Redis và trả về chunk của trang đó thay vì báo lỗi 500 làm hỏng UI.
-    - **Giới hạn 6 trang (5 lần xem thêm)**: Khi `page >= 6` hoặc `page * 18 >= pool.Count`, backend trả về `HasNext = false` $\rightarrow$ Frontend tắt nút "Xem thêm" và báo "Đã hiển thị tất cả sản phẩm gợi ý hôm nay (108 sản phẩm)".
-  - **Frontend Integration (ACO Architecture - `domains/catalog`)**:
-    - [recommendationApi.ts](file:///home/vanmuzic/Projects/Ecommerce_Microservices/frontend-web/src/domains/catalog/api/recommendationApi.ts): Nhận `page` trực tiếp (`page = 1, 2...`), không còn `limit` hay `pageSize`.
-    - [useRecommendations.ts](file:///home/vanmuzic/Projects/Ecommerce_Microservices/frontend-web/src/domains/catalog/hooks/useRecommendations.ts): `useInfinitePersonalizedRecommendationsQuery` cấu hình `getNextPageParam` dừng lại khi `page >= 6` hoặc `!hasNext`.
-    - [TodayRecommendationsSection.tsx](file:///home/vanmuzic/Projects/Ecommerce_Microservices/frontend-web/src/domains/catalog/components/landing/TodayRecommendationsSection.tsx): Nút "Xem thêm" gọi `fetchNextPage()`, hiển thị thông điệp kết thúc trang trọng khi đạt mốc 108 sản phẩm.
-    - [HomePage.tsx](file:///home/vanmuzic/Projects/Ecommerce_Microservices/frontend-web/src/apps/customer/pages/HomePage.tsx): Đồng bộ gọi `usePersonalizedRecommendationsQuery(1)` và `useTrendingProductsQuery(1)`.
+- [x] Triển Khai Cơ Chế Financial Snapshot Phí Hoa Hồng Sàn Vào SubOrder & Saga, Đưa PlatformCommissionConfig Về Order Service (Triệt Tiêu gRPC Hop), Refactor SellerRevenueConsumer & Chuẩn Hóa Kế Toán Analytics:
+  - **Mục tiêu & Kết quả hoàn thành**:
+    1. **Kiến trúc Financial Snapshot & Quản Lý Phí Hoa Hồng Nội Bộ Tại Orders Service**:
+       - `PlatformCommissionConfig.cs`: Đưa thực thể cấu hình hoa hồng sàn về `Orders.Domain` và `OrderDbContext` (`OrdersDb`), loại bỏ hoàn toàn việc gọi gRPC sang Payments khi tạo đơn hàng.
+       - `AdminCommissionController.cs` (`Orders.Api`): Cung cấp API `GET /api/admin/commission` và `PUT /api/admin/commission` với CQRS MediatR (`GetPlatformCommissionQuery`, `UpdatePlatformCommissionCommand`).
+       - `CreateOrderCommandHandler.cs`: Đọc trực tiếp cấu hình hoa hồng từ repository nội bộ trong cùng Unit of Work (latency 0ms), tính toán và snapshot vào `SubOrder`.
+       - `SubOrder.cs`: Thêm 2 trường snapshot `CommissionRate` (decimal) và `CommissionFee` (long - VND) cùng computed property `NetRevenue => GrandTotal - CommissionFee`. Thêm method `SetCommission(rate, fee)`.
+       - `Order.cs`: Thêm method `SetCommission(shopId, rate, fee)`.
+       - `SubOrderSagaState.cs` & `SubOrderStateMachine.cs`: Thêm và gán `CommissionRate`, `CommissionFee` vào Saga state khi nhận `SubOrderCreatedEvent`.
+       - `CompleteSubOrderCommandHandler.cs` & `OrderJobService.cs`: Truyền trọn vẹn `CommissionRate`, `CommissionFee`, `NetRevenue` từ `SubOrder` vào `SubOrderCompletedEvent`.
+       - `GetSubOrderDetailQuery.cs` & Handler: Bổ sung `CommissionRate`, `CommissionFee`, `NetRevenue` vào DTO chi tiết đơn cho Seller xem.
+       - Dọn dẹp: Bỏ RPC `GetPlatformCommissionRate` khỏi `payment.proto`, `PaymentGrpcServer.cs`, và `PaymentClientService.cs`.
+    2. **Refactor Quyết Toán Ví Người Bán & Xóa Bỏ Dữ Liệu Thừa (`Payments.Api`)**:
+       - `SellerRevenueConsumer.cs`: Đọc trực tiếp snapshot `CommissionFee`, `CommissionRate`, `NetRevenue` từ `SubOrderCompletedEvent` để cộng `netRevenue` vào ví Shop Owner và ghi nhận `WalletTransaction`.
+       - Xóa bỏ hoàn toàn thao tác ghi và bảng `RevenueRecords` (thừa thãi, không có API nào đọc).
+       - Xóa bỏ `AdminCommissionController`, `CommissionService`, `ICommissionService`, `PlatformCommissionConfig` khỏi `Payments.Api`.
+    3. **Chuẩn Hóa Kế Toán Sàn TMĐT (`Analytics.Api`)**:
+       - `DailyPlatformRevenue.cs`: Bổ sung `TotalGmv` (tổng giá trị giao dịch), `PlatformDiscountAmount` (voucher trợ giá), `NetPlatformRevenue` (doanh thu thuần sàn = `PlatformRevenue - PlatformDiscountAmount`).
+       - `SubOrderCompletedAnalyticsConsumer.cs`: Sửa lỗi tính doanh thu sàn bằng `msg.TotalAmount`. Tách biệt rành mạch GMV toàn sàn, Doanh thu hoa hồng sàn thu được (`msg.CommissionFee`), Voucher sàn trợ giá (`msg.PlatformDiscount`), và Doanh thu thực nhận của Shop (`msg.NetRevenue`).
+       - `AdminAnalyticsDtos.cs` & `AdminAnalyticsService.cs`: Cung cấp đầy đủ chỉ số GMV, Gross Commission, Voucher Burn, và Net Commission Revenue cho Overview và Revenue Chart.
+    4. **EF Core Migrations**:
+       - `OrderDbContext`: Tạo & apply migration `Add_Commission_Snapshot_To_SubOrder` và `Add_PlatformCommissionConfig_To_Orders`.
+       - `AnalyticsDbContext`: Tạo & apply migration `Add_Platform_Financial_Metrics`.
+       - `PaymentDbContext`: Tạo & apply migration `Remove_Redundant_Commission_And_RevenueRecord` (drop bảng `RevenueRecords` và `PlatformCommissionConfigs`).
   - **Kiểm Thử & Biên Dịch**:
-    - Backend: `dotnet build Microservices.sln` $\rightarrow$ ✅ Build succeeded (0 errors).
-    - Frontend: `npm run build` $\rightarrow$ ✅ Built in 959ms (0 errors).
-- [x] Tích Hợp Frontend Toàn Diện Cho Hệ Thống Gợi Ý Sản Phẩm (Landing Page & Product Detail) & Cơ Chế Đồng Bộ Dữ Liệu CatalogDb Sang RecommendationDb:
-  - **Mục tiêu**: Kết nối giao diện người dùng (Landing Page và Product Detail Page) với hệ thống microservice `Recommendations.Api` mới triển khai, đảm bảo luồng gợi ý sản phẩm tương tự, cá nhân hóa, hot trend và theo dõi lượt xem hoạt động mượt mà. Đồng thời cung cấp cơ chế đồng bộ dữ liệu sản phẩm & danh mục từ `CatalogDb` sang `RecommendationDb` (đã đồng bộ đủ 129 danh mục và 180 sản phẩm).
-  - **Backend Synchronization (`Recommendations.Api`)**:
-    - Xây dựng `IDataSyncService` và [DataSyncService.cs](file:///home/vanmuzic/Projects/Ecommerce_Microservices/src/Services/Recommendations/Ecommerce.Services.Recommendations.Api/Services/DataSyncService.cs) hỗ trợ đồng bộ on-demand toàn bộ danh mục và sản phẩm từ `CatalogDb` sang các bảng materialized trong `RecommendationDb`.
-    - Thêm endpoint `POST /api/recommendations/sync` trong `RecommendationsController.cs` cho phép kích hoạt đồng bộ bất cứ lúc nào qua API.
-    - Duy trì script thực thi nhanh [sync_recommendations.sh](file:///home/vanmuzic/Projects/Ecommerce_Microservices/QueryDb/sync_recommendations.sh) qua PostgreSQL COPY stream.
-    - Test kiểm chứng thực tế: API `GET /api/recommendations/trending`, `GET /api/recommendations/similar/{id}`, `GET /api/recommendations/for-you` phản hồi dữ liệu tức thì (10-50ms) và cache Redis chuẩn.
-  - **Frontend Integration (ACO Architecture - `domains/catalog`)**:
-    - **Types**: Bổ sung `RecommendedProduct`, `RecommendationResponse`, `TrackProductViewRequest`, `ProductViewStats` vào [catalog.types.ts](file:///home/vanmuzic/Projects/Ecommerce_Microservices/frontend-web/src/domains/catalog/types/catalog.types.ts).
-    - **API Client**: Xây dựng [recommendationApi.ts](file:///home/vanmuzic/Projects/Ecommerce_Microservices/frontend-web/src/domains/catalog/api/recommendationApi.ts) sử dụng `import { api } from "@/core"` và tự động truyền session ID (`X-Session-Id`) cho người dùng vãng lai (guest).
-    - **Hooks**: Xây dựng [useRecommendations.ts](file:///home/vanmuzic/Projects/Ecommerce_Microservices/frontend-web/src/domains/catalog/hooks/useRecommendations.ts) với các React Query hooks: `useSimilarProductsQuery`, `usePersonalizedRecommendationsQuery`, `useTrendingProductsQuery`, `useProductViewStatsQuery`, `useTrackProductViewMutation`, `useSyncRecommendationsMutation`.
-    - **Landing Page Integration**:
-      - [TodayRecommendationsSection.tsx](file:///home/vanmuzic/Projects/Ecommerce_Microservices/frontend-web/src/domains/catalog/components/landing/TodayRecommendationsSection.tsx): Kết nối `usePersonalizedRecommendationsQuery` với fallback danh mục công khai, hiển thị badge cá nhân hóa.
-      - [InterestedProductsSection.tsx](file:///home/vanmuzic/Projects/Ecommerce_Microservices/frontend-web/src/domains/catalog/components/landing/InterestedProductsSection.tsx): Kết nối `useTrendingProductsQuery` hiển thị danh sách hot trend dựa trên điểm view 24h, mua hàng 7 ngày và wishlist.
-      - [HomePage.tsx](file:///home/vanmuzic/Projects/Ecommerce_Microservices/frontend-web/src/apps/customer/pages/HomePage.tsx): Kết nối cả 2 mục `#trending-products` và `#suggested-products`, loại bỏ toast debug `toast.success("Hello")`, chuẩn hóa format tiền tệ VNĐ.
-    - **Product Detail Page Integration**:
-      - [RelatedProduct.tsx](file:///home/vanmuzic/Projects/Ecommerce_Microservices/frontend-web/src/domains/catalog/components/details/RelatedProduct.tsx): Chuyển sang dùng `useSimilarProductsQuery(currentProductId)` hiển thị sản phẩm tương tự dựa trên độ tương đồng danh mục, mức giá và thuộc tính (Content-based), tự động fallback an toàn.
-      - [ProductDetailPage.tsx](file:///home/vanmuzic/Projects/Ecommerce_Microservices/frontend-web/src/apps/customer/pages/ProductDetailPage.tsx): Tích hợp `useTrackProductViewMutation` ghi nhận lượt xem khi mở trang và tự động đo thời gian lưu lại trên trang (dwell time) khi người dùng rời đi (tối thiểu 2s).
+    - Solution build: `dotnet build` -> Build succeeded (0 errors).
+    - Database migrations: `dotnet ef database update` cho cả 2 DbContext thành công.
+
+- [x] Hoàn Thiện Seller Followers View, Tái Sử Dụng OrdersView Theo CustomerId, Header Bảng Chuẩn ProductTable, Bộ Lọc Thời Gian Cuốn Lịch, Triển Khai Backend Follow Shop API & Thiết Kế Lại Nút Follow Shop:
+  - **Mục tiêu & Kết quả hoàn thành**:
+    1. **SellerFollowersView (`SellerFollowersView.tsx`)**:
+       - Hiển thị ID khách hàng (`ID: #{follower.userId}`) thay vì email/username.
+       - Xóa bỏ popup Modal xem chi tiết đơn. Chuyển sang tái sử dụng trực tiếp component `OrdersView` với `customerId={selectedFollower.userId}` và nút "Quay lại người theo dõi" (`onBack={() => setSelectedFollower(null)}`).
+       - Đồng bộ style tên cột bảng (`thead tr`) thành `border-b border-brand-border bg-brand-light-soft/50 text-brand-muted font-bold text-xs` (chuẩn ProductTable).
+       - Xóa bỏ thẻ KPI "Tỷ lệ tương tác", giữ lại 2 thẻ gọn gàng: Tổng Người Theo Dõi & Mới Theo Dõi (`rounded-md`).
+       - Bổ sung bộ lọc thời gian chọn ngày trong quá khứ (cuốn lịch / `<input type="date" />`) lọc các lượt theo dõi từ ngày đã chọn đến hiện tại kèm bộ nút chọn nhanh (Tất cả, 7 ngày qua), có pagination đầy đủ.
+    2. **OrdersView (`OrdersView.tsx`)**:
+       - Đồng bộ style `thead tr` sang `bg-brand-light-soft/50 text-brand-muted font-bold text-xs`.
+       - Chuẩn hóa toàn bộ `rounded-xl` sang `rounded-md`.
+       - Nhận props `{ customerId?: number; onBack?: () => void }` và hỗ trợ URL search param `?customerId=...`.
+       - Hiển thị banner thông báo đang lọc đơn của khách hàng kèm nút "Quay lại người theo dõi" và nút "Xóa lọc".
+    3. **Backend Follow Shop API (`Sellers.Api` & `Orders.Api`)**:
+       - `FollowedShop.cs` & `Shop.cs`: Thêm Navigation Property `Shop` và `ICollection<FollowedShop> Followers`.
+       - `SellerDbContext.cs`: Thiết lập ràng buộc khóa ngoại `HasOne(f => f.Shop).WithMany(s => s.Followers).HasForeignKey(f => f.ShopId).OnDelete(DeleteBehavior.Cascade)`.
+       - **EF Core Migration**: Tạo và áp dụng migration `AddShopForeignKeyToFollowedShop` trên PostgreSQL `SellerDb`, tự động sinh Foreign Key constraint và Index trên `ShopId`.
+       - `ShopService.cs`: Tối ưu `GetFollowedShopsAsync` sử dụng Navigation Property và subquery projection `f.Shop.Followers.Count()` trong 1 query SQL duy nhất (triệt tiêu hoàn toàn N+1 và loại bỏ các bước join / dictionary thủ công).
+       - `ShopFollowersController.cs`: Cấp phép `[AllowAnonymous]` cho `CheckFollowStatus` và thêm endpoint `GET /api/shop/{shopId}/followers`, `GET /api/shop/{shopId}/followers-count`.
+       - `Orders.Api`: Cập nhật `GetSubOrdersByShopQuery`, `GetSubOrdersByShopQueryHandler`, `OrdersController` hỗ trợ lọc theo `customerId`.
+    4. **Thiết kế lại nút Follow Shop (`FollowShopButton.tsx` & `ShopProfilePublicPage.tsx`)**:
+       - Thiết kế lại với Framer Motion, hiệu ứng chuyển động, trạng thái `Đang theo dõi` (hover đổi sang `Bỏ theo dõi`), spinner `Loader2` khi đang toggle, và badge hiển thị số lượng follower.
+       - Tích hợp số lượng người theo dõi trên header của `ShopProfilePublicPage.tsx`.
   - **Kiểm Thử & Biên Dịch**:
-    - Backend: `dotnet build Microservices.sln` $\rightarrow$ ✅ Build succeeded (0 errors).
-    - Frontend: `npm run build` (`frontend-web`) $\rightarrow$ ✅ Built in 666ms (0 errors).
-    - TypeScript: `npx tsc --noEmit` $\rightarrow$ ✅ Clean (0 errors).
-- [x] Thiết Kế & Triển Khai Hoàn Chỉnh Phase 1: Recommendations.Api — Microservice Gợi Ý Sản Phẩm (Service Layer Pattern, Event-Driven Data Materialization):
-  - **Mục tiêu**: Tách hoàn toàn hệ thống gợi ý sản phẩm thành Microservice độc lập (`Recommendations.Api`), chạy trên port REST `5090` / gRPC `5091`, sử dụng database riêng `RecommendationDb` (PostgreSQL). Toàn bộ dữ liệu được trải sẵn (materialized) qua MassTransit integration events, 100% không gọi gRPC sang các service khác khi truy vấn gợi ý.
-  - **Backend Implementation (Service Layer Pattern)**:
-    - **Models & Entities**: Xây dựng 5 thực thể materialized: `MaterializedProduct` (ProductId, ShopId, CategoryId, Name, Description, Price, DiscountPrice, AttributesJson, Sold, AverageRating, ReviewCount, IsActive, LastSyncedAt), `MaterializedCategory` (CategoryId, Name, ParentId, Level), `ProductView` (view tracking theo User / Session), `UserPurchaseHistory` (lịch sử mua theo SubOrderCompletedEvent), `UserWishlistItem` (wishlist snapshot theo WishlistToggledEvent).
-    - **Persistence**: `RecommendationDbContext` kế thừa `EfDbContextBase`, cấu hình PostgreSQL index tối ưu truy vấn theo `CategoryId`, `ShopId`, `IsActive`, `Sold`, `AverageRating`, `ViewedAt`.
-    - **Integration Events**:
-      - Bổ sung `CustomerId`, `ProductId`, `CategoryId` vào [SubOrderCompletedEvent.cs](file:///home/vanmuzic/Projects/Ecommerce_Microservices/src/Services/Orders/Ecommerce.Services.Orders.Contracts/Events/SubOrderCompletedEvent.cs). Cập nhật các producer trong `Orders.Infrastructure` và `CompleteSubOrderCommandHandler`.
-      - Khởi tạo 7 integration events mới trong `BuildingBlocks.Shared/Events/`: `ProductCreatedEvent`, `ProductUpdatedEvent`, `ProductDeletedEvent`, `ProductStatusChangedEvent`, `ProductReviewCreatedEvent`, `WishlistToggledEvent`, `CategoryTreeSyncEvent`.
-      - Tích hợp phát event từ các command handler trong `Catalog.Api`: `CreateProductCommandHandler`, `UpdateProductCommandHandler`, `DeleteProductCommandHandler`, `ToggleProductStatusCommandHandler`, `CreateProductReviewCommandHandler`, `ToggleWishlistCommandHandler`, `CreateCategoryCommandHandler`, `UpdateCategoryCommandHandler`, `DeleteCategoryCommandHandler`.
-    - **Data Materialization Consumers**: Xây dựng 8 consumer MassTransit trong `Recommendations.Api`: `ProductCreatedConsumer`, `ProductUpdatedConsumer`, `ProductDeletedConsumer`, `ProductStatusChangedConsumer`, `ProductReviewCreatedConsumer`, `SubOrderCompletedConsumer`, `WishlistToggledConsumer`, `CategorySyncConsumer`.
-    - **Services & Thuật toán Scoring**:
-      1. `SimilarProducts`: Thuật toán chấm điểm theo trọng số Content-Based (Same Category 0.35, Same Shop 0.10, Price Proximity 0.20, Attribute Overlap Jaccard 0.20, Popularity Boost 0.15), cache Redis 6 giờ.
-      2. `PersonalizedFeed`: Thuật toán Hybrid kết hợp lịch sử mua (0.40), wishlist (0.20), lịch sử xem (0.25), lọc bỏ sản phẩm đã mua, fallback cho guest user, cache Redis 2 giờ.
-      3. `TrendingProducts`: Chấm điểm tổng hợp lượt xem 24h (x1), mua hàng 7 ngày (x5), wishlist 7 ngày (x2), review rating, cache Redis 1 giờ.
-      4. `ProductViewService`: Ghi nhận lượt xem sản phẩm, tích hợp throttle 30 phút qua Redis key `view:throttle:{userId/sessionId}:{productId}` chống spam DB.
-    - **Controllers**:
-      - `RecommendationsController`: `GET /api/recommendations/similar/{productId}`, `GET /api/recommendations/for-you`, `GET /api/recommendations/trending`.
-      - `ProductViewsController`: `POST /api/product-views`, `GET /api/product-views/{productId}/stats`.
-  - **Infrastructure & YARP Gateway**:
-    - Thêm project `Ecommerce.Services.Recommendations.Api` vào `Microservices.sln`.
-    - Thêm routes `/api/recommendations/*`, `/api/product-views/*` và cluster `recommendation-cluster` (`http://localhost:5090`) vào [appsettings.json](file:///home/vanmuzic/Projects/Ecommerce_Microservices/src/ApiGateway/Ecommerce.ApiGateway/appsettings.json) của API Gateway.
-    - Cập nhật [docker-compose.yaml](file:///home/vanmuzic/Projects/Ecommerce_Microservices/src/docker-compose.yaml) thêm `RecommendationDb,AnalyticsDb` vào `POSTGRES_MULTIPLE_DATABASES`.
-    - Thêm context `recommendations` vào script [update-db.sh](file:///home/vanmuzic/Projects/Ecommerce_Microservices/update-db.sh) và tài liệu `SKILL.md`.
-    - Tạo migration EF Core `InitialRecommendationDb` cho `RecommendationDbContext`.
+    - Backend: `dotnet build Microservices.sln` -> Build succeeded (0 errors).
+    - Database Migration: `dotnet ef database update --project src/Services/Sellers/Ecommerce.Services.Sellers.Api --context SellerDbContext` -> Done.
+    - Frontend: `npm run build` & `npx tsc --noEmit` -> Build succeeded (0 errors).
+
+- [x] Nâng Cấp Toàn Diện Seller Center & Báo Cáo Thống Kê Doanh Thu (Đánh Giá Sản Phẩm Chọn Product Trước Kèm OrderId, Quản Lý Followers Kèm Lazy Order History Modal, Chat Trong Sidebar, Biểu Đồ Doanh Thu Spline Curve SVG, Filter Năm/Tháng/Hôm Nay/3 Ngày/Tuần/Sản Phẩm, Biểu Đồ Số Đơn & Hiệu Suất Từng Món, Bo Góc rounded-md, Thống Nhất Cho Cả Admin):
+  - **Mục tiêu & Yêu cầu hoàn thành**:
+    1. **Sidebar & Routing Seller (`SellerLayout.tsx`, `SellerDashboardPage.tsx`)**:
+       - Thêm liên kết trực tiếp "Trò chuyện với khách" vào sidebar với icon `CommentOutlined`, trỏ trực tiếp đến trang chat hoàn chỉnh có sẵn (`/chat?seller=true`).
+       - Bổ sung sublink "Đánh giá sản phẩm" (`/seller/dashboard/reviews`), "Người theo dõi" (`/seller/dashboard/followers`), và "Doanh thu" (`/seller/dashboard/revenue`).
+       - Thay thế `Overview` cũ bằng việc trỏ mặc định vào dashboard doanh thu & thống kê hoàn chỉnh (`RevenueView`).
+       - Chuẩn hóa breadcrumbs phản ánh chính xác từng trang chức năng.
+    2. **Quản lý Đánh giá sản phẩm (`SellerReviewsView.tsx`)**:
+       - Luồng chọn sản phẩm trước (Product-first): Hiển thị lưới sản phẩm với thumbnail, giá, điểm trung bình ⭐ và số lượng đánh giá để người bán chọn sản phẩm cần xem.
+       - Khi chọn sản phẩm: Hiển thị tóm tắt sản phẩm, phân bổ mức sao, bộ lọc theo sao (Tất cả, 5, 4, 3, 2, 1), lọc trạng thái phản hồi (Tất cả, Chưa phản hồi, Đã phản hồi), ô tìm kiếm nội dung/mã đơn.
+       - Từng đánh giá hiển thị thông tin người mua, ngày, phân loại hàng, **Mã đơn hàng liên kết (`orderId`, ví dụ: `#ORD-2026-98124`)** theo yêu cầu, ảnh đính kèm nếu có.
+       - Khu vực Phản hồi người bán: Cho phép nhập và gửi phản hồi trực tiếp, hiển thị phản hồi đã gửi. Phân trang mượt mà.
+    3. **Quản lý Khách hàng theo dõi (`SellerFollowersView.tsx`)**:
+       - Hiển thị 3 KPI thống kê: Tổng người theo dõi, Mới theo dõi (30 ngày), Tỷ lệ tương tác.
+       - Bảng danh sách followers với avatar, tên, username, ngày theo dõi, trạng thái hoạt động.
+    4. **Báo cáo Doanh thu & Thống kê nâng cao (`ShopAnalyticsDashboard.tsx`, `RevenueView.tsx`)**:
+       - Chuẩn hóa header & description đồng bộ với các trang khác trong Seller Center; **toàn bộ thẻ div/card dùng `rounded-md`**.
+       - Bộ lọc đa năng: Preset nhanh ("Hôm nay", "3 ngày qua", "Tuần này", "Tháng này"), Dropdown Năm (trục X là tháng 1->12, tự ẩn tháng chưa diễn ra), Dropdown Tháng (trục X là ngày 1->28/30/31).
+       - Dropdown lọc theo sản phẩm: "Tất cả sản phẩm" (mặc định) hoặc chọn từng sản phẩm cụ thể.
+       - **Biểu đồ Spline Curve mượt mà (Cubic Bezier SVG)**: Hiển thị tiêu đề `Doanh Thu Tháng X: [Số tiền]đ` (số tiền nổi bật đỏ/accent giống ảnh mẫu), các mốc trục Y (0, 90k, 180k, 270k, 360k...), các điểm node có hiệu ứng phát sáng hover tooltip, legend `--o-- Doanh_thu`.
+       - **Biểu đồ Thống kê Số lượng đơn đặt hàng**: Trend đơn hàng kèm phân bổ Hoàn thành / Đang giao / Đã hủy.
+       - **Biểu đồ Hiệu suất từng món hàng**: 3 tabs chuyển đổi (Doanh thu từng món, Số đơn đặt hàng từng món, Số lượng sản phẩm bán được) với thanh progress bar trực quan.
+       - Phân bổ kênh thanh toán: COD, Ví MoMo, VNPAY-QR, Ví Shop.
+       - Tích hợp Mock Data engine phong phú cho phép quan sát trực quan ngay lập tức.
+    5. **Thống nhất cho cả Admin (`AdminOverviewView.tsx`)**:
+       - Tích hợp `ShopAnalyticsDashboard` vào Admin Overview kèm dropdown chọn xem theo từng shop hoặc toàn sàn.
   - **Kiểm Thử & Biên Dịch**:
-    - Biên dịch thành công toàn bộ solution: `dotnet build Microservices.sln` $\rightarrow$ ✅ Build succeeded (0 errors).
-- [x] Mở Rộng & Seed Toàn Diện 21 Hồ Sơ Seller KYC Với 4 Trạng Thái Chuẩn E-commerce (`SeedDataExtensions.cs` ở cả Sellers.Api & Identity.Api, `seed_seller_kyc.sql`):
-  - **Mục tiêu**: Bổ sung đầy đủ hồ sơ định danh người bán (Seller KYC) phục vụ kiểm thử quản trị `/admin/kyc` (tab mặc định là Chờ duyệt `Submitted`), quy trình nộp duyệt KYC, từ chối kèm lý do và lưu nháp.
-  - **Triển khai trong Code C#**:
-    - Cập nhật [SeedDataExtensions.cs](file:///home/vanmuzic/Projects/Ecommerce_Microservices/src/Services/Identity/Identity.Api/Extensions/SeedDataExtensions.cs) (Identity.Api): Seed thêm 11 nhân vật Naruto (User IDs 12 -> 22) gồm Tsunade, Orochimaru, Nagato/Pain, Konan, Killer Bee, Tenten, Kiba, Rock Lee, Neji, Madara, Obito với role `Customer` và mật khẩu `password123`.
-    - Cập nhật [SeedDataExtensions.cs](file:///home/vanmuzic/Projects/Ecommerce_Microservices/src/Services/Sellers/Ecommerce.Services.Sellers.Api/Extensions/SeedDataExtensions.cs) (Sellers.Api): Khởi tạo 21 hồ sơ Seller KYC phân bổ đa dạng:
-      1. `Verified` (10 hồ sơ, User IDs 2 -> 11): Chủ 13 Shop Naruto hiện có, đủ điều kiện kinh doanh.
-      2. `Submitted` (6 hồ sơ, User IDs 12 -> 17): Đang chờ Admin duyệt trên `/admin/kyc`, sẵn sàng để thao tác Phê duyệt / Từ chối.
-      3. `Rejected` (3 hồ sơ, User IDs 18 -> 20): Bị từ chối kèm lý do chi tiết (ảnh mờ, che khuất khuôn mặt, giấy tờ hết hạn).
-      4. `Draft` (2 hồ sơ, User IDs 21 -> 22): Người bán lưu nháp hồ sơ.
-    - Bổ sung lệnh tự động đồng bộ sequence PostgreSQL cho bảng `SellerKycs`.
-  - **Script SQL Độc Lập & Thực Thi DB**:
-    - Tạo file [seed_seller_kyc.sql](file:///home/vanmuzic/Projects/Ecommerce_Microservices/QueryDb/seed_seller_kyc.sql) nạp trực tiếp vào `IdentityDb` và `SellerDb`.
-    - Đã thực thi thành công vào container `ecommerce_postgres_db`, database hiện có 22 users và 21 hồ sơ Seller KYC hoàn chỉnh.
-- [x] Thiết Kế & Triển Khai Cây Danh Mục 2 Cấp (19 Danh Mục Chính, 110 Danh Mục Con) & Nâng Cấp Toàn Diện CatalogDataSeeder (`CatalogCategorySeedData.cs`, `CatalogDataSeeder.cs`, `seed_categories.sql`):
-  - **Khởi tạo Cây danh mục 2 cấp chuẩn Thương mại điện tử**:
-    - Xây dựng [CatalogCategorySeedData.cs](file:///home/vanmuzic/Projects/Ecommerce_Microservices/src/Services/Catalogs/Ecommerce.Services.Catalog.Infrastructure/Persistence/CatalogCategorySeedData.cs) định nghĩa 19 danh mục chính (Điện Thoại & Máy Tính Bảng, Máy Tính & Laptop, Thiết Bị Điện Tử & Âm Thanh, Điện Gia Dụng, Thời Trang Nam, Thời Trang Nữ, Giày Dép Nam, Giày Dép Nữ, Túi Ví & Balo, Đồng Hồ & Trang Sức, Sắc Đẹp & Chăm Sóc Da, Sức Khỏe, Mẹ & Bé, Nhà Cửa & Đời Sống, Thể Thao, Ô Tô - Xe Máy, Sách & Văn Phòng Phẩm, Bách Hóa Online, Thú Cưng) cùng 110 danh mục con cấp 2.
-    - Toàn bộ danh mục được gắn URL ảnh đại diện CDN Unsplash chất lượng cao (`auto=format&fit=crop&q=80&w=200`) đồng bộ với giao diện Frontend `CategoryList.tsx` và `CategorySidebar.tsx`.
-  - **Nâng cấp CatalogDataSeeder**:
-    - Bổ sung `SeedCategoriesAsync()`: Tự động seed 19 danh mục cha và các danh mục con vào `CatalogDb` khi khởi động service, tự động xóa cache Redis key `catalog:categories:tree`.
-    - Bổ sung `SyncMissingProductCategoriesAsync()` & `MatchCategoryByProductName()`: Tự động phân tích tên sản phẩm và gán chính xác `CategoryId` vào danh mục con cấp 2 (Level-2 Subcategory) thay vì để `NULL`.
-    - Cải tiến `ParseCsvFile` & `ResolveCategoryId`: Tự động nhận diện từ khóa từng dòng sản phẩm CSV để phân loại sâu.
-  - **Tạo Script SQL & Thực Thi Trực Tiếp**:
-    - Tạo tệp script SQL độc lập [seed_categories.sql](file:///home/vanmuzic/Projects/Ecommerce_Microservices/QueryDb/seed_categories.sql) chứa toàn bộ câu lệnh nạp 129 danh mục và tự động ánh xạ sản phẩm.
-    - Đã nạp thành công vào PostgreSQL `CatalogDb`: 19 danh mục gốc + 110 danh mục con = 129 danh mục, 180 sản phẩm hiện có đã được map trọn vẹn (0 sản phẩm mồ côi `NULL`).
-    - Xóa cache Redis `catalog:categories:tree` trên container `ecommerce_cart_db` để API trả về dữ liệu mới ngay lập tức.
-- [x] Triển Khai Seed 13 Cửa Hàng Naruto (IDs 1->13) & Tinh Gọn Hoàn Toàn Địa Chỉ Lấy Hàng PickUpAddress (`Shop.cs`, `SellerDbContext.cs`, `SellerDtos.cs`, `ShopService.cs`, `SeedDataExtensions.cs`, `seller.types.ts`, `ProductDetailPage.tsx`):
-  - **Tinh gọn PickUpAddress & Xóa bỏ các cột chuỗi dư thừa (Province, District, Ward)**:
-    - Loại bỏ hoàn toàn 3 thuộc tính `Province`, `District`, `Ward` (dạng string) khỏi entity `PickUpAddress` trong [Shop.cs](file:///home/vanmuzic/Projects/Ecommerce_Microservices/src/Services/Sellers/Ecommerce.Services.Sellers.Api/Models/Entities/Shop.cs), chỉ lưu trữ các ID: `ProvinceId`, `DistrictId`, `WardId` (long) và `AddressLine`, đồng bộ chuẩn kiến trúc với `Identity.Api` (`UserAddress`).
-    - Cập nhật [SellerDbContext.cs](file:///home/vanmuzic/Projects/Ecommerce_Microservices/src/Services/Sellers/Ecommerce.Services.Sellers.Api/Persistances/SellerDbContext.cs): Bỏ cấu hình các cột chuỗi `PickUp_Province`, `PickUp_District`, `PickUp_Ward`, sửa `PickUp_WardId` thành `.IsRequired()` (bỏ `.HasMaxLength(20)` sai kiểu).
-    - Tạo EF Core Migration `RemoveStringLocationsFromPickUpAddress` và áp dụng trực tiếp vào database `SellerDb`, xóa triệt để 3 cột chuỗi dư thừa trong bảng `Shops`.
-    - Tinh giản `ShopDto` tại [SellerDtos.cs](file:///home/vanmuzic/Projects/Ecommerce_Microservices/src/Services/Sellers/Ecommerce.Services.Sellers.Api/Models/Dtos/SellerDtos.cs) và [MapsterMappingConfig.cs](file:///home/vanmuzic/Projects/Ecommerce_Microservices/src/Services/Sellers/Ecommerce.Services.Sellers.Api/Configurations/MapsterMappingConfig.cs), loại bỏ overhead gọi gRPC tra cứu địa chỉ trong `ShopService.UpdateShopAsync`.
-    - Đồng bộ Frontend: Loại bỏ các trường string thừa trong `Shop` & `ShopDto` tại [seller.types.ts](file:///home/vanmuzic/Projects/Ecommerce_Microservices/frontend-web/src/domains/seller/types/seller.types.ts), dùng query phân giải địa chỉ động `useResolveLocationsQuery([shop.wardId])` trong [ProductDetailPage.tsx](file:///home/vanmuzic/Projects/Ecommerce_Microservices/frontend-web/src/apps/customer/pages/ProductDetailPage.tsx).
-  - **Seed dữ liệu 13 Cửa hàng Naruto (IDs 1-13) & Verified Seller KYC**:
-    - Xây dựng [SeedDataExtensions.cs](file:///home/vanmuzic/Projects/Ecommerce_Microservices/src/Services/Sellers/Ecommerce.Services.Sellers.Api/Extensions/SeedDataExtensions.cs) tại `Sellers.Api` khởi tạo 13 shop gắn với các tổ chức / làng / gia tộc Naruto (Akatsuki, Làng Lá, Tiệm mì Ichiraku, Làng Cát, Làng Mây, Làng Sương Mù, Làng Mưa, Uchiha, Hyuga, Tsunade, Orochimaru, Tenten, Inuzuka).
-    - Phân bổ 13 `WardId` chia đều từ 850 đến 11050 (dưới mốc tối đa 11159), liên kết chính xác với `DistrictId` và `ProvinceId` thực tế từ `ShippingDb`.
-    - Đặt các `AddressLine` vui nhộn, đậm chất anime Naruto (Hang đá Akatsuki Thung lũng tận cùng, Tượng Hokage, Ngõ Mì Ramen, Tháp Kazekage bão cát...).
-    - Tự động seed 10 hồ sơ `SellerKyc` trạng thái `Verified` cho các chủ shop (User IDs 2 -> 11).
-    - Tích hợp tự động chạy seed vào `Program.cs` của `Identity.Api` và `Sellers.Api`, đồng bộ identity sequence PostgreSQL để các shop mới tự tăng từ 14.
-- [x] Tinh Chỉnh Cẩm Nang Di Chuyển Dữ Liệu & Hướng Dẫn AWS S3 + Database Update (`MIGRATION_AND_R2_SETUP_GUIDE.md`):
-  - **Nội dung điều chỉnh theo yêu cầu**:
-    - Lược bỏ hoàn toàn phần Cloudflare R2 và Postman.
-    - Hướng dẫn chi tiết, ngắn gọn cách thiết lập AWS S3 (Bucket, Bucket Policy, CORS, IAM User AccessKey/SecretKey) và cấu hình `StorageSettings` trong `appsettings.Developer.json`.
-    - Hướng dẫn di chuyển dữ liệu media từ MinIO máy cũ lên AWS S3 bằng `rclone` và `mc mirror`.
-    - Cung cấp script 1-click export 7 PostgreSQL databases từ container `ecommerce_postgres_db` và restore ở máy mới.
-    - Bổ sung hướng dẫn tự động cập nhật Database Migrations bằng script [update-db.sh](file:///home/vanmuzic/Projects/Ecommerce_Microservices/update-db.sh) cho toàn bộ 8 DbContexts.
-- [x] Tạo Script Tự Động Cập Nhật Database Migration Hàng Loạt Cho Toàn Bộ Microservices (`update-db.sh`, `SKILL.md`):
-  - **Mục tiêu**: Tự động hóa toàn bộ việc quét và chạy `dotnet ef database update` cho 8 DbContexts trên toàn bộ 7 microservices (bao gồm cả Duende IdentityServer `PersistedGrantDbContext`).
-  - **Chi tiết triển khai**:
-    - Tạo file script thực thi [update-db.sh](file:///home/vanmuzic/Projects/Ecommerce_Microservices/update-db.sh) tại root với phân quyền `chmod +x`.
-    - Hỗ trợ chạy đồng loạt tất cả 8 DbContexts (`./update-db.sh`) hoặc chọn riêng từng service qua tham số (`./update-db.sh identity`, `duende`, `catalog`, `orders`, `sellers`, `payments`, `shippings`, `notifications`).
-    - Hỗ trợ format màu trực quan (CYAN, GREEN, RED, YELLOW), đo thời gian thực thi từng context, tổng kết số lượng thành công/thất bại và báo cáo chi tiết.
-    - Cập nhật tài liệu kỹ năng [SKILL.md](file:///home/vanmuzic/Projects/Ecommerce_Microservices/.agents/skills/db-migration/SKILL.md) bổ sung đầy đủ danh sách lệnh cho 8 DbContexts.
-- [x] Thiết Kế & Triển Khai Kiến Trúc Cấu Hình Ghi Đè Developer (Cascading Developer AppSettings Architecture) Cho Toàn Bộ Microservices:
-  - **Vấn đề cốt lõi**: Đưa trực tiếp API keys (Momo Sandbox, VNPay HashSecret, GHN API Token, Gmail App Password) vào `appsettings.json` rồi commit lên Git dẫn đến rủi ro bảo mật nghiêm trọng (bị lộ secret, cảnh báo secret scanning của GitHub). Đồng thời việc tạo quá nhiều file `.example` gây rác dự án khi `appsettings.json` đã được viết mẫu sẵn placeholder.
-  - **Giải pháp tinh gọn & chuẩn xác**:
-    1. **Tầng 1 - `appsettings.json` (Base & Example / Commit lên Git)**: Đóng vai trò vừa là khung sườn ứng dụng (Kestrel ports, Serilog log levels, Yarp ReverseProxy routes, CORS, AllowedHosts, DB default local), vừa là file mẫu chứa đầy đủ placeholder trực quan (`YOUR_MOMO_SECRET_KEY`, `YOUR_GHN_API_TOKEN`, `YOUR_GMAIL_APP_PASSWORD`). Bỏ hoàn toàn các file `*.example` thừa.
-    2. **Tầng 2 - `appsettings.Developer.json` (File ghi đè cục bộ / Nằm trong `.gitignore`)**: Chứa thông tin secret thực tế của developer chạy local. Developer chỉ cần ghi đúng các key muốn ghi đè.
-    3. **Cơ chế nạp tự động qua `BuildingBlocks.Logging` (`CustomLoggingExtensions.cs`)**:
-       - Bổ sung `builder.AddCustomConfiguration()` gọi `builder.Configuration.AddJsonFile("appsettings.Developer.json", optional: true, reloadOnChange: true).AddJsonFile("appsettings.Local.json", optional: true, reloadOnChange: true)`.
-       - Tích hợp trực tiếp vào `AddCustomSerilog` $\rightarrow$ Toàn bộ 9 service tự động có tính năng nạp ghi đè `appsettings.Developer.json` với Deep Merge mà không cần sửa bất kỳ file `Program.cs` nào.
-    4. **Môi trường Production / CI-CD**: Sử dụng biến môi trường (Environment Variables) theo chuẩn 12-Factor App (`ConnectionStrings__Database`, `Momo__SecretKey`...) ghi đè lên các tầng file.
-  - **Kiểm thử**: Đã xóa sạch toàn bộ các file `appsettings.Local.example.json`, đổi tên các file secret sang `appsettings.Developer.json`, cập nhật `.gitignore` (`*.Developer.json`), và biên dịch thành công `BuildingBlocks.Logging` (0 errors).
-- [x] Khắc Phục Triệt Để Lỗi Dịch Chuyển Giao Diện (Layout Shift 0px) & Giật Lắc Khi Bấm Chuyển Tabs Đơn Hàng (`ProfileOrderTabs.tsx`, `index.css`):
-  - **Nguyên nhân gốc rễ**:
-    1. **Hiện tượng giật layout do thanh cuộn dọc biến mất (Scrollbar Toggling / CLS)**: Khi chuyển giữa tab có danh sách đơn dài (chiều cao trang > 100vh $\rightarrow$ xuất hiện thanh cuộn dọc chiếm 15-17px) và tab rỗng (chiều cao trang $\le$ 100vh $\rightarrow$ thanh cuộn dọc biến mất), container `max-w-6xl mx-auto` căn giữa bị dịch chuyển sang phải ~8px rồi bật giật lại khi danh sách đơn xuất hiện lại.
-    2. **Hiện tượng giật cục bộ trong thanh tab do đổi font weight (`font-bold` $\leftrightarrow$ `font-extrabold`)**: Khi tab được chọn (`isActive`), class đổi từ `font-bold` (700) sang `font-extrabold` (800) làm độ rộng của chữ trong tab giãn nở 3-5px. Kết hợp với `transition-all` làm các tab lân cận bị đẩy sang phải trong 150ms rồi giật lại.
-  - **Giải pháp toàn diện**:
-    1. **Khóa thanh cuộn bằng `scrollbar-gutter: stable` (`index.css`)**: Thêm `scrollbar-gutter: stable;` cho thẻ `html` (kèm fallback `@supports not (scrollbar-gutter: stable) { html { overflow-y: scroll; } }`). Đảm bảo không gian thanh cuộn luôn được dự trữ cố định, triệt tiêu 100% hiện tượng dịch chuyển ngang toàn trang của `mx-auto`.
-    2. **Cố định kích thước & Chuẩn hóa hiệu ứng Tab (`ProfileOrderTabs.tsx`)**:
-       - Giữ nguyên `font-bold` đồng nhất cho cả 2 trạng thái Active và Inactive, xóa bỏ hoàn toàn việc chuyển sang `font-extrabold` gây co giãn nút.
-       - Thay thế `transition-all` bằng `transition-colors` (chỉ chuyển màu chữ, viền và nền, giữ nguyên 100% hình học kích thước).
-       - Khôi phục pill badge đếm số lượng đơn hàng với `font-bold` và `transition-colors` ổn định.
-       - Bổ sung class `.no-scrollbar` ẩn thanh cuộn ngang thô trên tab bar.
-  - **Kiểm Thử Thực Tế**:
-    - Sử dụng browser test đo đạc tọa độ X trước và sau khi click qua lại giữa cả 9 tabs: Header (57px), Sidebar (200px), Nút Làm mới (834px), Ô tìm kiếm (571px), các tab 1..9 đều giữ nguyên pixel cố định $\rightarrow$ **0px Layout Shift**!
-    - Frontend build: `npm run build` $\rightarrow$ ✅ Succeeded in 1.00s, 0 errors.
-- [x] Khắc Phục Triệt Để Lỗi "Maximum update depth exceeded" / Throttling Navigation Do Vòng Lặp Điều Hướng Vô Tận Giữa LoginPage và Route Guards Khi JWT Hết Hạn (`useAuthStore.ts`, `LoginPage.tsx`, `RequireAuth.tsx`, `RequireAdmin.tsx`, `useAuth.ts`):
-  - **Nguyên nhân gốc rễ của lỗi React Loop**:
-    1. Khi JWT Access Token trong `localStorage` hết hạn, các component bảo vệ route (`RequireAuth`, `RequireAdmin`) sử dụng hàm `isAuthenticated(token)` để kiểm tra thời hạn (`Date.now() >= exp * 1000`). Nhận thấy token đã hết hạn, Guard kích hoạt chuyển hướng người dùng về `/login?redirect=...`.
-    2. Tại `LoginPage.tsx`, `useEffect` trước đây chỉ kiểm tra điều kiện `if (accessToken)` (vẫn còn lưu chuỗi token cũ trong Zustand/localStorage) mà KHÔNG kiểm tra tính hợp lệ qua `isAuthenticated(accessToken)`. Do đó, `LoginPage` ngộ nhận người dùng đã đăng nhập và lập tức gọi `navigate(redirectParam, { replace: true })` ngược lại trang vừa bị chặn.
-    3. Trang được bảo vệ lại lập tức phát hiện token hết hạn và đẩy về `/login`, tạo ra hiện tượng bóng bàn điều hướng vô tận (ping-pong redirect loop) hàng trăm lần trong một giây dẫn tới trình duyệt cảnh báo `Throttling navigation to prevent the browser from hanging` và React ném ngoại lệ `Maximum update depth exceeded`.
-  - **Cơ Chế Bảo Vệ Đa Tầng Triệt Để**:
-    1. **Khởi tạo Auth Store An Toàn (`useAuthStore.ts`)**:
-       - Bổ sung hàm kiểm tra `getInitialAccessToken()`: Kiểm tra `isAuthenticated(token)` ngay thời điểm khởi tạo Zustand Store. Nếu token rỗng hoặc đã hết hạn, tự động xóa sạch `accessToken`, `refreshToken`, `user` khỏi `localStorage` và khởi tạo `accessToken: null`.
-    2. **Xử Lý Ngắt Vòng Lặp Tại `LoginPage.tsx`**:
-       - Trong `useEffect`: Bắt buộc kiểm tra `if (accessToken && isAuthenticated(accessToken))`. Nếu có token nhưng đã hết hạn, chủ động gọi `clearState()` và hủy bỏ hoàn toàn việc điều hướng, giữ người dùng ở lại giao diện đăng nhập bình thường.
-       - Chuẩn hóa URL chuyển hướng `safeDestination`: Chặn tự chuyển hướng ngược về các trang xác thực (`/login`, `/register`, `/forgot-password`, `/reset-password`).
-       - Phân quyền Admin: Nếu URL chuyển tiếp (`redirectParam`) thuộc `/admin` nhưng người dùng không có vai trò Admin, tự động chuyển hướng về trang chủ `/` thay vì đưa vào `/admin` (chống vòng lặp với `RequireAdmin`).
-       - Cập nhật luồng đăng nhập thành công (`onSubmit`) sử dụng chung logic phân giải điểm đến an toàn.
-    3. **Dọn Sạch State Tại Route Guards (`RequireAuth.tsx`, `RequireAdmin.tsx`)**:
-       - Trước khi chuyển hướng về `/login`, Guard kiểm tra nếu `accessToken` tồn tại trong state nhưng không còn hợp lệ (`!isAuthenticated(accessToken)`), lập tức gọi `useAuthStore.getState().clearState()` để dọn sạch state rác trước khi đổi trang.
-    4. **Ngăn Ngừa Request 401 Không Cần Thiết (`useAuth.ts`)**:
-       - Thiết lập điều kiện `enabled: authed` cho React Query, trong đó `authed = Boolean(accessToken) && isAuthenticated(accessToken)`. Ngăn chặn việc gửi request `GET /api/users/me` với token chết lên backend.
-       - Chuẩn hóa import `import { api } from "@/core";`.
-  - **Kiểm Thử & Biên Dịch**:
-    - Frontend: `npm run build` (`frontend-web`) $\rightarrow$ ✅ Succeeded in 760ms, 4,272 modules transformed, 0 Error.
-- [x] Tách Biệt Rõ Ràng Trạng Thái Đã Giao (Delivered) & Hoàn Thành (Completed), Sửa Lệch Badge Đơn Hàng, Thêm Đầy Đủ 9 Tabs ProfileOrderTabs Kèm Đếm Số Lượng & Hiển Thị Chuẩn Trạng Thái Vận Đơn:
-  - **Khắc Phục Nhầm Lẫn Giữa Trạng Thái Đã Giao & Đã Hoàn Thành (`VoucherHelpers.tsx`)**:
-    - **Nguyên nhân**: Trước đây `case "Delivered"` bị gộp chung với `case "Completed"` trả về text *"Đã hoàn thành"*, khiến cho các đơn hàng vừa giao xong (`Delivered`) hiển thị sai thành đã hoàn tất hóa đơn (`Completed`).
-    - **Giải pháp**: Tách bạch 2 trạng thái rõ ràng:
-      - `Delivered` $\rightarrow$ Badge màu Teal/Xanh mòng két: *"Đã giao hàng"*.
-      - `Completed` $\rightarrow$ Badge màu Emerald: *"Đã hoàn thành"*.
-      - `Returning` $\rightarrow$ Badge màu Orange: *"Đang trả hàng"*.
-      - `Refunded` $\rightarrow$ Badge màu Rose: *"Đã hoàn tiền"*.
-  - **Sửa Triệt Để Lỗi Lệch / Vênh Badge Đơn Hàng (`VoucherHelpers.tsx`, `ProfileOrderTabs.tsx`, `CustomerOrderDetailView.tsx`, `OrdersView.tsx`)**:
-    - **Nguyên nhân**: Lớp CSS cũ dùng `inline-block py-0.8 text-[10px]` (lỗi class Tailwind `py-0.8` không tồn tại dẫn đến padding dọc bằng 0, chữ bị lệch baseline) và thẻ cha thiếu `shrink-0`/`items-center`.
-    - **Giải pháp**: Chuẩn hóa toàn bộ badge sang `inline-flex items-center justify-center px-2.5 py-0.5 text-[11px] font-bold rounded-md leading-none shadow-2xs whitespace-nowrap`, căn giữa hoàn hảo theo cả chiều dọc và ngang, bổ sung `shrink-0 flex items-center ml-2` trên container thẻ đơn hàng.
-  - **Mở Rộng Đầy Đủ 9 Tabs Đơn Hàng & Thêm Badge Đếm Số Lượng (`ProfileOrderTabs.tsx`)**:
-    - Bổ sung 3 tab còn thiếu: **"Hoàn thành"** (`Completed`), **"Đang trả hàng"** (`Returning`), và **"Trả hàng"** (`Refunded`), nâng tổng số lên 9 tabs chuẩn quy trình thương mại điện tử:
-      `Tất cả đơn`, `Chờ thanh toán`, `Đang xử lý`, `Vận chuyển`, `Đã giao`, `Hoàn thành`, `Đang trả hàng`, `Trả hàng`, `Đã hủy`.
-    - Tinh chỉnh kích thước (`py-2.5 px-3 text-xs gap-1`) và thanh cuộn mượt không hiện scrollbar thô.
-    - Hiển thị pill badge đếm số lượng đơn hàng thực tế cho từng tab (`count > 0`).
-  - **Hiển Thị Đúng Trạng Thái Kiện Hàng Trong Chi Tiết Đơn Hàng (`CustomerOrderDetailView.tsx`)**:
-    - Bổ sung hàm tiện ích `getShipmentStatusBadge`: ánh xạ mã trạng thái số nguyên của bảng vận chuyển (1..6) sang badge tiếng Việt rõ ràng (*"Chờ lấy hàng"*, *"Đang vận chuyển"*, *"Giao hàng thành công"*, *"Đã hoàn trả"*, *"Đã hủy"*, *"Thất bại"*).
-    - Thay thế text in số thô `Trạng thái kiện hàng: {shipment.status}` bằng badge chuẩn `getShipmentStatusBadge(shipment.status)`.
-    - Ràng buộc nút "Đã nhận hàng thành công" (`canCustomerCompleteOrRefund`): chỉ khả dụng khi đơn hàng đã ở trạng thái `Delivered`.
-  - **Đồng Bộ Bộ Lọc Trạng Thái & Nút Thao Tác Cho Người Bán / Quản Trị (`OrdersView.tsx`, `AdminOrdersView.tsx`)**:
-    - Thêm các tùy chọn `Returning` ("Đang trả hàng") và `Refunded` ("Đã hoàn tiền") vào dropdown bộ lọc của Seller và Admin.
-    - Bổ sung nút hành động "Chuẩn bị hàng" (`handleOpenPackaging`) trực tiếp trên từng hàng của bảng đơn hàng khi trạng thái là `Processing`.
-    - Khóa cell trạng thái với `whitespace-nowrap` chống co giật giao diện.
-  - **Kiểm Thử & Biên Dịch**:
-    - Frontend: `npm run build` (`frontend-web`) $\rightarrow$ ✅ Succeeded in 729ms, 0 errors.
-- [x] Tinh Giản 6 Trạng Thái Vận Chuyển (ShipmentStatus), Xử Lý Chuyển Trạng Thái Tuần Tự Phía Webhook & Cập Nhật Giao Diện AdminShipmentsView:
-  - **Tinh Giản Enum Trạng Thái Vận Chuyển (`ShipmentStatus.cs`, `Shipment.cs`)**:
-    - Rút gọn enum vận chuyển từ 10 trạng thái cồng kềnh thành 6 trạng thái chuẩn:
-      - `ReadyToPick = 1`: Đã tạo đơn thành công, chờ/đang lấy hàng từ Shop (gom nhóm Created, ReadyToPick, Picking).
-      - `InTransit = 2`: Đang vận chuyển (đã rời kho lấy / đang trung chuyển / đang giao).
-      - `Delivered = 3`: Giao hàng thành công (Terminal State).
-      - `Returned = 4`: Đã hoàn trả hàng về Shop thành công (Terminal State).
-      - `Cancelled = 5`: Đã hủy đơn vận chuyển (Terminal State).
-      - `Failed = 6`: Lỗi / Tạo đơn ĐVVC thất bại (Terminal State).
-  - **Chuẩn Hóa Xử Lý Webhook & Kiểm Soát Chuyển Trạng Thái Tuần Tự (`WebhooksController.cs`)**:
-    - Ánh xạ linh hoạt chuỗi trạng thái từ đơn vị vận chuyển (GHN) về enum chuẩn:
-      - `ready_to_pick`, `readytopick`, `picking`, `storing` $\rightarrow$ `ShipmentStatus.ReadyToPick`.
-      - `delivering`, `in_transit`, `intransit`, `transporting` $\rightarrow$ `ShipmentStatus.InTransit`.
-      - `delivered` $\rightarrow$ `ShipmentStatus.Delivered`.
-      - `cancel`, `cancelled` $\rightarrow$ `ShipmentStatus.Cancelled`.
-      - `return`, `returned` $\rightarrow$ `ShipmentStatus.Returned`.
-    - Chặn cập nhật khi đơn hàng đã ở trạng thái kết thúc (Terminal State: `Delivered`, `Cancelled`, `Returned`, `Failed`), trả về HTTP 400 Bad Request kèm thông báo tiếng Việt rõ ràng.
-    - Ép buộc quy trình chuyển trạng thái giao nhận tuần tự:
-      - Chỉ cho phép chuyển sang `InTransit` khi trạng thái hiện tại là `ReadyToPick`.
-      - Chỉ cho phép chuyển sang `Delivered` khi trạng thái hiện tại là `InTransit`.
-      - Ngăn chặn nhảy cóc trạng thái (ví dụ từ `ReadyToPick` nhảy thẳng sang `Delivered`), trả về HTTP 400 Bad Request giải thích nguyên nhân.
-  - **Cập Nhật Giao Diện Quản Trị Vận Chuyển Phía Frontend (`AdminShipmentsView.tsx`)**:
-    - Chuẩn hóa Axios Client: Chuyển đổi import sang `import { api } from "@/core";`.
-    - Hiển thị badge trạng thái chính xác theo 6 trạng thái mới: 1: Chờ lấy hàng, 2: Đang vận chuyển, 3: Giao hàng thành công, 4: Đã hoàn trả, 5: Đã hủy, 6: Thất bại.
-    - Tự động lọc tùy chọn cập nhật (Dropdown trong Modal Mô phỏng Webhook):
-      - Đơn hàng đang ở "Chờ lấy hàng" (`ReadyToPick`): Chỉ hiển thị tùy chọn "Đang vận chuyển" (`delivering`).
-      - Đơn hàng đang ở "Đang vận chuyển" (`InTransit`): Chỉ hiển thị tùy chọn "Giao hàng thành công" (`delivered`).
-      - Đơn hàng ở trạng thái kết thúc: Khóa thao tác và hiển thị nhãn "Đơn hàng đã ở trạng thái kết thúc".
-    - Nút thao tác nhanh trên từng hàng trong bảng danh sách:
-      - Với đơn `ReadyToPick`: Hiển thị nút "Vận chuyển" (kích hoạt webhook chuyển sang `delivering`).
-      - Với đơn `InTransit`: Hiển thị nút "Giao hàng" (kích hoạt webhook chuyển sang `delivered`).
-      - Với đơn đã kết thúc (`Delivered`, `Returned`, `Cancelled`, `Failed`): Hiển thị badge xám "Hoàn tất" và vô hiệu hóa nút chuyển.
-    - Modal Popups: Bọc toàn bộ modal (Mô phỏng Webhook và Xem lịch trình đơn hàng) qua `createPortal(..., document.body)` với `z-[10000]` chống tràn layout.
-  - **Kiểm Thử & Biên Dịch**:
-    - Backend: `dotnet build src/Services/Shippings/Ecommerce.Services.Shippings.Api/Ecommerce.Services.Shippings.Api.csproj -t:Compile` $\rightarrow$ ✅ Succeeded, 0 Error.
-    - Frontend: `npm run build` (`frontend-web`) $\rightarrow$ ✅ Succeeded in 897ms, 0 Error.
-- [x] Sửa Lỗi Tạo Voucher Trùng Lặp (FE Debounce & BE Unique Index), Nâng z-index Toast, Validate Biến Thể & Pipeline Exception (Catalog.Api), Tối Ưu UX ProductDetailPage, Chống Ghi Đè Khi Edit, Tách Query Handler & Chuyển Đổi Kích Thước/Khối Lượng Sang Số Nguyên (`int`) Kèm EF Core Migrations:
-  - **Khắc Phục Tạo Trùng Lặp Voucher (Double Submission) & Ràng Buộc Mã Duy Nhất (`AdminVouchersView.tsx`, `CouponsView.tsx`, `OrderDbContext.cs`)**:
-    - **Nguyên nhân**: Frontend không debounce hoặc disable nút Lưu khi mutation đang gửi; Backend chưa có unique constraint cho `Voucher.Code` khiến double-click tạo ra 2 bản ghi cùng mã code.
-    - **Giải pháp**:
-      - Bổ sung guard check `isPending` và disable submit button kèm spinner `Loader2` trong `AdminVouchersView.tsx` và `CouponsView.tsx`.
-      - Bổ sung `entity.HasIndex(v => v.Code).IsUnique();` trong `OrderDbContext.cs`.
-      - Dọn dẹp bản ghi trùng lặp cũ trong `OrderDb` và áp dụng migration `Update_Metrics_To_Int_And_Voucher_Code_Unique`.
-  - **Nâng Cấp `z-index` Cho Toast Thông Báo (`index.css`, `App.tsx`)**:
-    - Thiết lập `z-index: 999999 !important` cho `.Toastify__toast-container` trong `index.css` và `App.tsx`, đảm bảo thông báo Toast luôn nổi lên trên cùng, không bị các modal Portal che khuất (đặc biệt là Modal Chat `z-[10000]` - `z-[10002]`).
-  - **Pipeline Exception Handling & Validate Giá Giảm < Giá Bán (`Catalog.Api`, `BuildingBlocks.Web`, `ProductVariantSection.tsx`, `EditProductPage.tsx`)**:
-    - `BuildingBlocks.Web`: Thêm phương thức mở rộng `UseBuildingBlocksMiddlewares` đăng ký `GlobalExceptionMiddleware`.
-    - `Catalog.Api` & `Orders.Api`: Đăng ký `app.UseBuildingBlocksMiddlewares();` trong `Program.cs`. `GlobalExceptionMiddleware` bắt `FluentValidationException` từ MediatR `ValidationBehavior` và trả về HTTP 400 Bad Request tiếng Việt thay vì lỗi 500 Unhandled Exception.
-    - `UpdateMultiVariantsCommandValidator` & `UpdateSingleVariantCommandValidator`: Bổ sung rule `.LessThan(v => v.Price).When(...).WithMessage("Giá giảm phải nhỏ hơn giá bán.")`.
-    - `ProductVariantSection.tsx` & `EditProductPage.tsx`: Validate chặn trước khi submit; Bulk Update tự động bỏ qua biến thể không hợp lệ và cảnh báo `toast.warn`; hiển thị viền đỏ và text lỗi `"Phải nhỏ hơn giá bán"`.
-  - **Tối Ưu Hiển Thị Chi Tiết Sản Phẩm (`ProductDetailPage.tsx`, `ProductPrice.tsx`, `ProductOptions.tsx`)**:
-    - Giá hiển thị cố định đúng 1 dòng (`whitespace-nowrap min-h-[52px]`), không nhảy dòng hay làm phình to box chứa giá.
-    - Hiển thị khoảng giá giảm `minDiscountPrice - maxDiscountPrice` kèm khoảng phần trăm `(-min% ~ -max%)` trên cùng dòng; gỡ bỏ giá gạch ngang và badge giảm giá tách rời.
-    - Nhóm phân loại 2 (tierIndex > 0): Hoàn toàn không render thẻ `<img>`, chỉ Option 1 mới hiển thị thumbnail.
-    - Kiểm tra tổ hợp biến thể theo thời gian thực: Tự động làm mờ, gạch ngang và vô hiệu hóa click (`opacity-40 cursor-not-allowed pointer-events-none line-through`) đối với phân loại không có biến thể tương ứng hoặc đã hết hàng (`availableStock <= 0`).
-  - **Chiến Lược Query & Mutation Chống Ghi Đè Khi Đang Edit (`EditProductPage.tsx`)**:
-    - Thêm ref `hasInitializedRef` bảo vệ form hydration; chỉ khởi tạo form từ server data 1 lần duy nhất khi load trang hoặc đổi ID sản phẩm, tuyệt đối không để background query refetch ghi đè dữ liệu khi người dùng đang nhập dở.
-  - **Tách Riêng Query Handler Theo CQRS (`GetSubOrderDetailQueryHandler.cs`)**:
-    - Tạo file riêng `GetSubOrderDetailQueryHandler.cs` trong `Features/Orders/Queries/GetSubOrderDetail/`, dọn dẹp `GetSubOrderDetailQuery.cs` chỉ chứa record và DTO theo đúng quy chuẩn kiến trúc dự án.
-  - **Chuyển Đổi Toàn Bộ Kích Thước & Khối Lượng Sang Số Nguyên (`int` / `int32`) Phục Vụ GHN & Sửa Lỗi Float**:
-    - Chuyển `Weight` (grams), `Length`, `Width`, `Height` (cm) từ `double` sang `int` trên các entity `SubOrderItem`, `Product`, `Shipment`, domain methods, constructors, DTOs, và các consumers.
-    - Chuẩn hóa toàn bộ Protobuf contracts (`product.proto`, `shipping.proto`, `cart.proto`): chuyển `weight`, `length`, `width`, `height` từ `double` sang `int32`.
-    - Đồng bộ `ShippingGrpcServer.cs`, `CartClientService.cs`, `ProductGrpcService.cs` map trực tiếp `int` không cần ép kiểu `(int)Math.Round`.
-    - Frontend: Bọc `Math.round(...)` khi tính toán kích thước, thể tích và khối lượng kiện hàng đóng gói trong `OrdersView.tsx`, `PackageReadyModal.tsx`, `CustomerOrderDetailView.tsx`, triệt tiêu hoàn toàn số thực dài `144.29999999999998`.
-    - Tạo và cập nhật thành công 3 EF Core Migrations lên PostgreSQL:
-      - `Orders.Api`: `Update_Metrics_To_Int_And_Voucher_Code_Unique`
-      - `Catalog.Api`: `Update_Product_Metrics_To_Int`
-      - `Shippings.Api`: `Update_Shipment_Metrics_To_Int`
-  - **Kiểm Thử & Biên Dịch**:
-    - Backend: `dotnet build Microservices.sln` $\rightarrow$ ✅ Build Succeeded, 0 Error.
-    - Frontend: `npm run build` (`frontend-web`) $\rightarrow$ ✅ Built in 616ms, 0 Error.
-- [x] Phân Quyền Route Frontend Rõ Ràng (`AppRoutes.tsx`, `RequireAuth.tsx`, `RequireAdmin.tsx`, `authHelper.ts`) & Khắc Phục Triệt Để Lỗi PostgreSQL Connection Timeout 15s Khi Đọc Stream Trên Toàn Bộ Microservices:
-  - **Phân Quyền Route & Điều Hướng Đăng Nhập Frontend (`AppRoutes.tsx`, `RequireAuth.tsx`, `RequireAdmin.tsx`, `authHelper.ts`)**:
-    - **Vấn đề**: Các trang cá nhân và người bán (`/cart`, `/checkout`, `/wishlist`, `/chat`, `/profile`, `/orders`, `/orders/:subOrderId`, `/seller`, `/seller/register`, `/seller/*`) trước đây chưa có route guard, nếu người dùng chưa đăng nhập truy cập bằng link sẽ bị crash hoặc hiện màn hình lỗi kết nối do thiếu accessToken. Ngoài ra, `/admin/*` khi chưa đăng nhập lại bị redirect về `/` thay vì trang login.
-    - **Giải pháp**:
-      - Xây dựng component `RequireAuth`: kiểm tra `accessToken` và `isAuthenticated(token)` (kèm hạn dùng JWT exp). Nếu chưa đăng nhập, tự động chuyển hướng về `/login?redirect=${encodeURIComponent(location.pathname + location.search)}` và lưu `state: { from: location }`.
-      - Xây dựng component `RequireAdmin`: kiểm tra `isAuthenticated()` và `checkIsAdmin()`. Nếu chưa login $\rightarrow$ chuyển về `/login?redirect=/admin`; nếu đã login nhưng không phải Admin $\rightarrow$ thông báo toast "Bạn không có quyền truy cập vào trang Quản trị" và chuyển hướng về `/`.
-      - Cấu trúc lại `AppRoutes.tsx` tách bạch 4 nhóm rõ ràng: Public Routes, Customer Protected Routes (bọc `RequireAuth`), Seller Protected Routes (bọc `RequireAuth`), Admin Protected Routes (bọc `RequireAdmin`), và Auth Routes (`/login`, `/register`...).
-      - Thử nghiệm biên dịch: `npm run build` (`frontend-web`) $\rightarrow$ ✅ Succeeded (1.27s), 0 error.
-  - **Sửa Triệt Để Lỗi Database Timeout (`System.TimeoutException: Timeout during reading attempt`) Khi Đọc Stream Trên Hầu Như Các Services (`Sellers`, `Orders`, `Payments`, `Shippings`, `Identity`, `Notifications`, `Catalogs`)**:
-    - **Nguyên nhân gốc**: PostgreSQL chạy trong Docker container, ánh xạ port `5433:5432`. Trong `appsettings.json`, các service cấu hình `Host=localhost;Port=5433`. Trên Windows 10/11 chạy Docker Desktop (WSL2), `localhost` được phân giải ra IPv6 `[::1]`. Khi Npgsql mở kết nối stream, proxy IPv6 của Docker Desktop/WSL2 nhận TCP SYN ban đầu nhưng bị drop hoặc nghẽn luồng byte trả về từ container PostgreSQL Linux, khiến `NpgsqlReadBuffer.EnsureLong` bị treo chờ 15s và văng `Timeout during reading attempt` ở `BusOutboxDeliveryService` hoặc DbContext.
-    - **Giải pháp**:
-      - Đổi `Host=localhost;Port=5433` thành `Host=127.0.0.1;Port=5433` trong chuỗi kết nối `ConnectionStrings:Database` của cả 7 microservices (`Sellers`, `Orders`, `Payments`, `Shippings`, `Identity`, `Notifications`, `Catalogs`).
-      - Chạy kiểm chứng thực tế: `Sellers.Api` và `Orders.Api` khởi động kết nối ngay lập tức, `BusOutboxDeliveryService` hoạt động liên tục và trơn tru không còn bất kỳ timeout nào.
-      - Biên dịch solution: `dotnet build Microservices.sln` $\rightarrow$ ✅ 0 Error.
-- [x] Khắc Phục Triệt Để Lỗi Không Gửi Được Tin Nhắn Trong Mini Chat & Sửa Lỗi Hở Viền Review Ảnh/Video (`ChatMiniModal.tsx`, `ChatImageViewer.tsx`, `useChatStore.ts`, `chat.constants.ts`):
-  - **Sửa Lỗi Không Gửi Được Tin Nhắn Trong Mini Chat (`ChatMiniModal.tsx`, `chat.constants.ts`, `useChatStore.ts`)**:
-    - **Nguyên nhân gốc**:
-      1) Khi người dùng mở chat với shop (`openChatWithShop`), `isSeller` trong store có thể đang mang giá trị `true` do lưu trong `localStorage`. Hàm cũ không reset `isSeller` về `false` và gán `buyerUserId = 0`, khiến logic cũ tính `recipientId = isSeller ? activeRoom.buyerUserId : activeRoom.shopId` ra kết quả bằng `0`. Hub backend kiểm tra `recipientId <= 0` hoặc sai vai trò dẫn tới từ chối hoặc lỗi.
-      2) `targetRoomId` khi phòng chưa có GUID hợp lệ (ví dụ: `room-shop-12`) bị truyền `null` thay vì chuỗi GUID rỗng `"00000000-0000-0000-0000-000000000000"`, gây bất tương thích với Hub dispatcher.
-      3) `useChatStore.setMessages` ban đầu chỉ nhận array thuần `ChatMessageDto[]`. Khi `ChatMiniModal` gọi dạng functional updater `setMessages((prev) => ...)`, Zustand lưu trực tiếp hàm updater vào state thay vì mảng tin nhắn, dẫn tới crash hoặc mất tin nhắn.
-    - **Giải pháp toàn diện**:
-      - Bổ sung hàm tiện ích `getChatParticipantInfo(activeRoom, currentUserId, isSeller)` trong `chat.constants.ts`: tự động phân giải chính xác `recipientId` và `senderRole` cho cả 2 vai trò Buyer và Seller, đảm bảo `recipientId` không bao giờ bằng `0` hoặc `NaN`.
-      - Đồng bộ tham số `targetRoomId = isValidGuid(activeRoom.roomId) ? activeRoom.roomId : "00000000-0000-0000-0000-000000000000"` cho tất cả các luồng gửi tin nhắn (Văn bản, Nhóm Ảnh, Nhóm Video, Nhãn dán 3D, Ảnh GIF) giống 100% với `ChatPage.tsx`.
-      - Nâng cấp `setMessages` trong `useChatStore.ts` hỗ trợ an toàn `ChatMessageDto[] | ((prev: ChatMessageDto[]) => ChatMessageDto[])`.
-      - Trong `openChatWithShop`: Luôn chủ động reset `isSeller: false`, `selectedShop: null`, và cập nhật `localStorage: buu_chat_is_seller = false`.
-      - Cách ly và bảo vệ `tempMsgs` theo từng `roomId`: khi chuyển phòng hoặc tải lại lịch sử, chỉ giữ tin nhắn tạm thời của chính phòng chat đó.
-  - **Khắc Phục Lỗi FE Khi Review Ảnh/Video (`ChatImageViewer.tsx`)**:
-    - **Nguyên nhân gốc**: Trong phiên bản trước, `.yarl__thumbnails_container` bị thu hẹp chiều ngang bằng CSS `max-width: calc(100% - 160px); margin: 0 auto`. Do Lightbox xếp carousel và thumbnail theo chiều dọc bên trong flex container, việc thu hẹp thumbnail container tạo ra khoảng hở trong suốt ở 2 góc đáy màn hình, khiến thanh nhập liệu màu trắng của khung chat bên dưới bị lộ ra ngoài.
-    - **Giải pháp toàn diện**:
-      - Mở rộng dải thumbnails phủ trọn 100% bề ngang: `width: 100% !important; max-width: 100% !important; margin: 0 !important; background-color: rgba(0, 0, 0, 0.96) !important; padding: 12px 90px !important; box-sizing: border-box !important;`.
-      - Phủ nền đen mờ `rgba(0, 0, 0, 0.96)` đồng nhất trên toàn bộ `.yarl__portal`, `.yarl__root`, `.yarl__container`, `.yarl__thumbnails`, và `.yarl__thumbnails_container`.
-      - Đưa Lightbox vào portal `document.body` tránh bị ảnh hưởng bởi stacking context hoặc padding của modal cha.
-      - Giữ nguyên toàn bộ tính năng cao cấp: các nút điều hướng Trái/Phải dạng tròn floating nổi giữa màn hình (bấm padding 2 bên không bị nhảy slide), click backdrop ngoài ảnh/video tự động đóng, nút Close góc trên hoạt động tin cậy, chống duplicate audio cho video (`autoPlay: false`, tự động pause và reset khi đổi slide).
-  - **Kiểm Thử & Biên Dịch**:
-    - Frontend: `npm run build` (`frontend-web`) $\rightarrow$ ✅ Succeeded (901ms), 4,272 modules transformed, 0 error.
+    - Frontend: `npm run build` $\rightarrow$ ✅ Built in 923ms (0 errors); `npx tsc --noEmit` $\rightarrow$ ✅ Clean (0 errors).

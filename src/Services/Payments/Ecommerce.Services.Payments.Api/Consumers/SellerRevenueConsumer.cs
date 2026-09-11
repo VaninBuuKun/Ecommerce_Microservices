@@ -25,13 +25,24 @@ public class SellerRevenueConsumer(
 
         try
         {
-            // 1. Lấy tỷ lệ hoa hồng sàn hiện tại
-            var configRepo = unitOfWork.Repository<PlatformCommissionConfig, long>();
-            var commissionConfig = await configRepo.FirstOrDefaultAsync(c => true);
-            var commissionRate = commissionConfig?.RatePercentage ?? 5.0m;
+            // 1. Sử dụng trực tiếp snapshot từ SubOrderCompletedEvent (đã chốt cứng lúc tạo đơn, bất biến)
+            decimal commissionRate;
+            decimal commissionAmount;
+            decimal netRevenue;
 
-            var commissionAmount = Math.Round(grossRevenue * (commissionRate / 100m), 2);
-            var netRevenue = grossRevenue - commissionAmount;
+            if (@event.CommissionFee > 0 || @event.NetRevenue > 0)
+            {
+                commissionRate = @event.CommissionRate > 0 ? @event.CommissionRate : 5.0m;
+                commissionAmount = @event.CommissionFee;
+                netRevenue = @event.NetRevenue > 0 ? @event.NetRevenue : (grossRevenue - commissionAmount);
+            }
+            else
+            {
+                // Fallback cho các đơn hàng cũ tạo trước khi áp dụng tính năng snapshot
+                commissionRate = 5.0m;
+                commissionAmount = Math.Round(grossRevenue * (commissionRate / 100m), MidpointRounding.AwayFromZero);
+                netRevenue = grossRevenue - commissionAmount;
+            }
 
             logger.LogInformation("Processing SubOrderCompletedEvent. ShopId: {ShopId}, Gross: {Gross}, Rate: {Rate}%, Commission: {Commission}, Net: {Net}, SubOrderId: {SubOrderId}",
                 @event.ShopId, grossRevenue, commissionRate, commissionAmount, netRevenue, @event.SubOrderId);
@@ -51,7 +62,6 @@ public class SellerRevenueConsumer(
             var ownerUserId = shopInfo.OwnerUserId;
             var walletRepo = unitOfWork.Repository<Wallet, long>();
             var transactionRepo = unitOfWork.Repository<WalletTransaction, Guid>();
-            var revenueRecordRepo = unitOfWork.Repository<RevenueRecord, long>();
 
             // 3. Tìm ví của chủ shop
             var wallet = await walletRepo.FirstOrDefaultAsync(w => w.UserId == ownerUserId);
@@ -71,20 +81,7 @@ public class SellerRevenueConsumer(
             wallet.Balance += netRevenue;
             walletRepo.Update(wallet);
 
-            // 5. Tạo bản ghi RevenueRecord đối soát
-            var revenueRecord = new RevenueRecord
-            {
-                SubOrderId = @event.SubOrderId,
-                ShopId = @event.ShopId,
-                GrossAmount = grossRevenue,
-                PlatformDiscountAmount = @event.PlatformDiscount,
-                CommissionRatePercentage = commissionRate,
-                CommissionAmount = commissionAmount,
-                NetAmount = netRevenue
-            };
-            revenueRecordRepo.Add(revenueRecord);
-
-            // 6. Tạo giao dịch biến động số dư
+            // 5. Tạo giao dịch biến động số dư ghi nhận sổ cái đối soát ví
             var transaction = new WalletTransaction
             {
                 WalletId = wallet.Id,

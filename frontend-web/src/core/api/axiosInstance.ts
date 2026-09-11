@@ -47,8 +47,13 @@ api.interceptors.response.use(
       if (!refreshPromise) {
         refreshPromise = authService
           .refresh()
-          .catch(() => {
-            useAuthStore.getState().clearState();
+          .catch((refreshErr: any) => {
+            const status = refreshErr?.response?.status;
+            // Chỉ xóa session khi refresh token thực sự bị server từ chối (401 hoặc 400)
+            // Không xóa session khi server đang restart / mất kết nối mạng
+            if (status === 401 || status === 400) {
+              useAuthStore.getState().clearState();
+            }
             return null;
           })
           .finally(() => {
@@ -59,7 +64,6 @@ api.interceptors.response.use(
       const newAccessToken = await refreshPromise;
 
       if (!newAccessToken) {
-        useAuthStore.getState().clearState();
         return Promise.reject(error);
       }
 

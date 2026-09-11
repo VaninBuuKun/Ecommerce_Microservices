@@ -117,9 +117,10 @@ public class OrdersController(ICurrentUserService currentUserService, IInMemoryB
         [FromQuery] int pageNumber = 1, 
         [FromQuery] int pageSize = 5, 
         [FromQuery] string? status = null,
+        [FromQuery] long? customerId = null,
         CancellationToken cancellationToken = default)
     {
-        var result = await _sender.SendAsync(new GetSubOrdersByShopQuery(shopId, UserId, pageNumber, pageSize, status), cancellationToken);
+        var result = await _sender.SendAsync(new GetSubOrdersByShopQuery(shopId, UserId, pageNumber, pageSize, status, customerId), cancellationToken);
 
         return result.IsSuccess 
             ? Ok(result) 

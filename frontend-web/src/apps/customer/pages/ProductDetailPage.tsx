@@ -638,8 +638,8 @@ export default function ProductDetailPage() {
 										<Star
 											key={idx}
 											className={`w-3.5 h-3.5 ${idx < Math.round(product.averageRating || 0)
-													? "fill-brand-primary stroke-brand-primary"
-													: "text-gray-300 stroke-gray-300"
+												? "fill-brand-primary stroke-brand-primary"
+												: "text-gray-300 stroke-gray-300"
 												}`}
 										/>
 									))}
@@ -786,8 +786,8 @@ export default function ProductDetailPage() {
 			</div>
 
 			{/* Shop Information Card */}
-			<div className="bg-white rounded-md border border-brand-border shadow-sm p-5 mb-6 flex flex-col md:flex-row items-center justify-between gap-6 text-left">
-				<div className="flex items-center gap-4">
+			<div className="bg-white rounded-md border border-brand-border shadow-sm p-5 mb-6 flex flex-col md:flex-row max-width-[300px] items-center justify-between text-left">
+				<div className="flex items-center gap-4 max-w-150">
 					<div
 						onClick={() => navigate(`/shops/${product.shopId}`)}
 						className="w-16 h-16 rounded-md overflow-hidden bg-brand-light-soft border border-brand-border shrink-0 flex items-center justify-center cursor-pointer hover:opacity-85 transition-all shadow-2xs"

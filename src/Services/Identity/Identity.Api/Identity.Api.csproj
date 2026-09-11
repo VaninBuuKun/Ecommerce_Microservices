@@ -35,6 +35,12 @@
     </ItemGroup>
 
     <ItemGroup>
+      <None Update="tempkey.jwk">
+        <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      </None>
+    </ItemGroup>
+
+    <ItemGroup>
       <_ContentIncludedByDefault Remove="Pages\Account\Create\Index.cshtml" />
       <_ContentIncludedByDefault Remove="Pages\Auth\AccessDenied.cshtml" />
       <_ContentIncludedByDefault Remove="Pages\Auth\Login\Index.cshtml" />

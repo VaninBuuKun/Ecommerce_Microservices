@@ -1,4 +1,4 @@
-import { Star, Sparkles } from "lucide-react";
+import { Star, BrainCircuit } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useSimilarProductsQuery, useProductsQuery } from "@/domains/catalog";
 
@@ -42,11 +42,10 @@ export function RelatedProducts({
 				{[1, 2, 3, 4, 5].map((s) => (
 					<Star
 						key={s}
-						className={`w-2.5 h-2.5 ${
-							s <= rounded
-								? "fill-amber-400 text-amber-400 stroke-amber-400"
-								: "fill-gray-200 text-gray-200 stroke-gray-200"
-						}`}
+						className={`w-2.5 h-2.5 ${s <= rounded
+							? "fill-amber-400 text-amber-400 stroke-amber-400"
+							: "fill-gray-200 text-gray-200 stroke-gray-200"
+							}`}
 					/>
 				))}
 			</div>
@@ -55,7 +54,7 @@ export function RelatedProducts({
 
 	if (isLoading) {
 		return (
-			<div className="bg-white rounded-md border border-brand-border/70 shadow-2xs p-4 text-left">
+			<div className="bg-white rounded-md border border-brand-border/70 shadow-sm p-4 text-left mb-6">
 				<div className="h-4 w-36 bg-gray-200 rounded animate-pulse mb-4" />
 				<div className="grid grid-cols-2 md:grid-cols-4 gap-3">
 					{Array.from({ length: 4 }).map((_, i) => (
@@ -72,16 +71,16 @@ export function RelatedProducts({
 	if (finalProducts.length === 0) return null;
 
 	return (
-		<div className="bg-white rounded-md border border-brand-border/70 shadow-2xs p-4 md:p-5 text-left space-y-3.5">
+		<div className="bg-white rounded-md border border-brand-border/70 shadow-sm p-4 md:p-5 text-left space-y-3.5 mb-6">
 			<div className="flex items-center justify-between border-b border-brand-border/60 pb-2.5">
 				<div className="flex items-center gap-1.5">
-					<Sparkles className="w-4 h-4 text-brand-primary fill-brand-primary/20" />
-					<h2 className="text-xs font-black text-brand-dark uppercase tracking-wider">
-						Sản phẩm tương tự
+					<h2 className="text-sm font-black text-brand-dark uppercase tracking-wider">
+						SẢN PHẨM TƯƠNG TỰ
 					</h2>
 				</div>
 				{recoItems.length > 0 && (
-					<span className="text-[10px] font-bold text-brand-muted bg-brand-light px-2 py-0.5 rounded-full border border-brand-border">
+					<span className="text-[11px] font-extrabold bg-gradient-to-r from-violet-500/10 via-purple-500/10 to-pink-500/10 text-purple-700 border border-purple-200/80 px-2.5 py-0.5 rounded-full flex items-center gap-1.5 shadow-2xs">
+						<BrainCircuit className="w-3.5 h-3.5 text-purple-600" />
 						Gợi ý thông minh
 					</span>
 				)}

@@ -69,6 +69,31 @@ namespace Ecommerce.Services.Orders.Infrastructure.Persistence.Migrations
                     b.ToTable("Orders");
                 });
 
+            modelBuilder.Entity("Ecommerce.Services.Orders.Domain.PlatformCommissionConfig", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+
+                    b.Property<DateTimeOffset>("CreatedDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTimeOffset?>("LastModifiedDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<decimal>("RatePercentage")
+                        .HasColumnType("decimal(5,2)");
+
+                    b.Property<long?>("UpdatedByUserId")
+                        .HasColumnType("bigint");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("PlatformCommissionConfigs");
+                });
+
             modelBuilder.Entity("Ecommerce.Services.Orders.Domain.RefundRequest", b =>
                 {
                     b.Property<long>("Id")
@@ -208,6 +233,12 @@ namespace Ecommerce.Services.Orders.Infrastructure.Persistence.Migrations
                 {
                     b.Property<long>("Id")
                         .HasColumnType("bigint");
+
+                    b.Property<long>("CommissionFee")
+                        .HasColumnType("bigint");
+
+                    b.Property<decimal>("CommissionRate")
+                        .HasColumnType("decimal(5,2)");
 
                     b.Property<DateTimeOffset>("CreatedDate")
                         .HasColumnType("timestamp with time zone");
@@ -428,6 +459,12 @@ namespace Ecommerce.Services.Orders.Infrastructure.Persistence.Migrations
                     b.Property<Guid>("CorrelationId")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
+
+                    b.Property<long>("CommissionFee")
+                        .HasColumnType("bigint");
+
+                    b.Property<decimal>("CommissionRate")
+                        .HasColumnType("decimal(5,2)");
 
                     b.Property<DateTime>("CreatedDate")
                         .HasColumnType("timestamp with time zone");

@@ -1,5 +1,6 @@
 import { Routes, Route, Navigate } from "react-router-dom";
 import { 
+	AdminOverviewView,
 	AdminProductsView, 
 	AdminOrdersView, 
 	AdminShipmentsView, 
@@ -17,7 +18,8 @@ import {
 export default function AdminDashboardPage() {
 	return (
 		<Routes>
-			<Route index element={<Navigate to="products" replace />} />
+			<Route index element={<Navigate to="overview" replace />} />
+			<Route path="overview" element={<AdminOverviewView />} />
 			<Route path="products" element={<AdminProductsView />} />
 			<Route path="banners" element={<AdminBannersView />} />
 			<Route path="orders" element={<AdminOrdersView />} />

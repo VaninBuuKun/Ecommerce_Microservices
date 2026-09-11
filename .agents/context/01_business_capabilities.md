@@ -25,17 +25,25 @@ This document provides a detailed breakdown of all implemented backend APIs, gRP
 - **gRPC Server**: `CartGrpcServer` exposes cart item queries for Order Checkout.
 
 ## 3. Order Service (PostgreSQL)
-- **Entities**: Order, SubOrder, SubOrderItem, Voucher, RefundRequest.
+- **Entities**: Order, SubOrder, SubOrderItem, Voucher, RefundRequest, PlatformCommissionConfig.
+- **Financial Snapshot Architecture**:
+  - `PlatformCommissionConfig` (RatePercentage, UpdatedByUserId) is maintained directly in `OrdersDb` for fast 0ms checkout lookups without inter-service network calls.
+  - `SubOrder` snapshots `CommissionRate` (decimal) and `CommissionFee` (long) at creation time, with computed property `NetRevenue => GrandTotal - CommissionFee`.
+  - `SubOrderSagaState` in MassTransit Saga stores snapshotted `CommissionRate` and `CommissionFee`.
+  - `SubOrderCreatedEvent` & `SubOrderCompletedEvent` propagate `CommissionRate`, `CommissionFee`, and `NetRevenue` across services.
 - **Commands**:
   - `CalOrderGrandTotalCommandHandler`: Calculates item prices, shop vouchers, platform vouchers, and GHN shipping fees.
-  - `CreateOrderCommandHandler`: Creates parent Order and splits into SubOrders per Shop.
+  - `CreateOrderCommandHandler`: Reads active commission rate directly from local `PlatformCommissionConfig`, calculates exact commission fee per sub-order, snapshots to `SubOrder`, and publishes `SubOrderCreatedEvent` (zero gRPC latency).
+  - `UpdatePlatformCommissionCommandHandler` (`PUT /api/admin/commission`)
   - `SellerConfirmSubOrderCommandHandler`, `SellerRejectSubOrderCommandHandler`, `SellerPackageReadyCommandHandler`
-  - `CompleteSubOrderCommandHandler`, `CancelSubOrderCommandHandler`
+  - `CompleteSubOrderCommandHandler`: Emits `SubOrderCompletedEvent` with pre-calculated financial snapshot metrics.
+  - `CancelSubOrderCommandHandler`
   - `CreateRefundCommandHandler`: Supports List<string> Medias for refund evidence images.
   - `ApproveRefundCommandHandler`, `RejectRefundCommandHandler`, `CancelRefundCommandHandler`
   - `CreateVoucherCommandHandler`, `UpdateVoucherCommandHandler` (Unique index on `Voucher.Code`)
 - **Queries**:
-  - `GetOrderByIdQueryHandler`, `GetSubOrdersQuery`, `GetSubOrdersByShopQueryHandler`, `GetSubOrderDetailQueryHandler`
+  - `GetPlatformCommissionQueryHandler` (`GET /api/admin/commission`)
+  - `GetOrderByIdQueryHandler`, `GetSubOrdersQuery`, `GetSubOrdersByShopQueryHandler`, `GetSubOrderDetailQueryHandler` (Exposes `CommissionRate`, `CommissionFee`, `NetRevenue` for Seller transparency)
   - `GetCompletedSubOrderCountForProductQueryHandler` (gRPC)
   - `GetVouchersQueryHandler`, `GetAvailableVouchersQueryHandler`
   - `GetMyRefundsQueryHandler`, `GetShopRefundsQueryHandler`
@@ -46,11 +54,14 @@ This document provides a detailed breakdown of all implemented backend APIs, gRP
   - `RegisterKycCommandHandler`, `WithdrawKycDraftCommand`, `ApproveKycCommandHandler`
   - `CreateShopCommandHandler`, `UpdateShopCommandHandler`
   - `ActivateShopCommandHandler`, `SuspendShopCommandHandler`, `BanShopCommandHandler`
-  - `ToggleFollowShopCommandHandler` (`POST /api/shops/{shopId}/follow`)
+  - `ToggleFollowShopCommandHandler` / `ToggleFollowShopAsync` (`POST /api/shop/{shopId}/follow`)
+  - `GetFollowedShopsAsync` (`GET /api/shop/followed`)
+  - `CheckFollowStatusAsync` (`GET /api/shop/{shopId}/follow-status` [AllowAnonymous])
+  - `GetShopFollowersAsync` (`GET /api/shop/{shopId}/followers` with pagination & `fromDate` filter)
+  - `GetFollowersCountAsync` (`GET /api/shop/{shopId}/followers-count` [AllowAnonymous])
 - **Queries**:
   - `GetMyKycQuery`, `GetMySellerProfileQuery`, `GetPublicShopByIdQuery`, `GetPublicShopsByOwnerIdQuery`
   - `GetAllShopsQueryHandler` (CQRS Query `GET /api/shop/all` for Admin with pagination, search & status filter)
-  - `GetFollowedShopsQueryHandler` (`GET /api/shops/followed`), `CheckFollowShopStatusQueryHandler` (`GET /api/shops/{shopId}/follow-status`)
   - `ValidateShopOwnerQueryHandler` (gRPC), `GetShopsByIdsQueryHandler` (gRPC), `GetShopShippingInfoQueryHandler` (gRPC)
 - **Seeding**:
   - `SeedDataExtensions`: Seeds 13 Naruto-themed Shops (IDs 1-13) with realistic `WardId`/`DistrictId`/`ProvinceId` and 10 verified `SellerKyc` profiles.
@@ -64,7 +75,7 @@ This document provides a detailed breakdown of all implemented backend APIs, gRP
   - `CreateWithdrawal`, `CompleteWithdrawal`, `AdminRejectWithdrawal`
 - **Queries & Consumers**:
   - `GetPaymentMethodByIdQueryHandler` (gRPC), `GetPaymentByOrderIdQueryHandler` (gRPC), `CheckShopWalletQueryHandler` (gRPC)
-  - `SellerRevenueConsumer`: Automatically credits Shop Wallet on `SubOrder` delivery completion.
+  - `SellerRevenueConsumer`: Uses pre-calculated snapshot `NetRevenue` and `CommissionFee` from `SubOrderCompletedEvent` to credit wallet and record ledger transactions without dynamic recalculation.
   - `RefundSubOrderConsumer`: Automatically refunds money to customer wallet/gateway on refund approval.
 
 ## 6. Shippings Service (PostgreSQL)
@@ -79,7 +90,10 @@ This document provides a detailed breakdown of all implemented backend APIs, gRP
 ## 7. Identity Service (PostgreSQL)
 - OAuth2 / OIDC JWT Authentication, `UserAddresses` CRUD.
 - **Custom Resource Owner Password Validator**: Validates `IsActive` (`account_disabled`), `IsLockedOutAsync` (`account_locked`), and invalid credentials with corresponding Gateway error responses.
-- **Users & Roles Management**: `UsersController` (`POST /api/users` Admin Create User, `POST /api/users/{id}/lock` & `unlock` synced with `IsActive`), `RolesController` (Full Role CRUD for Admin: `Admin`, `Manager`, `User`, `Staff`).
+- **Users & Roles Management**: `UsersController` (`POST /api/users` Admin Create User, `POST /api/users/{id}/lock` & `unlock` synced with `IsActive`, `GET /api/users/count` for fast user count query), `RolesController` (Full Role CRUD for Admin: `Admin`, `Manager`, `User`, `Staff`).
+- **Cryptographic & Token Persistence Architecture**:
+  - `DataProtection`: Persists key ring to `AppContext.BaseDirectory/dataprotection-keys` with fixed `SetApplicationName("EcommerceMicroservices")` so refresh token payloads in `PersistedGrants` can always be decrypted across service restarts.
+  - `IdentityServer`: Persists signing credentials (`tempkey.jwk`) to `AppContext.BaseDirectory` with `PreserveNewest` MSBuild copy rule, preventing signing key regeneration and token invalidation on restarts.
 
 ## 8. Recommendations Service (PostgreSQL - Port REST 5090 / gRPC 5091)
 - **Architecture**: Service Layer Pattern, Event-Driven Data Materialization (No gRPC calls during queries, 100% reading from local denormalized tables).
@@ -106,27 +120,53 @@ This document provides a detailed breakdown of all implemented backend APIs, gRP
   - `WishlistToggledConsumer`: Syncs user wishlist items from `WishlistToggledEvent`.
   - `CategorySyncConsumer`: Synchronizes hierarchical category tree from `CategoryTreeSyncEvent`.
 
-## 9. Notifications Service (PostgreSQL - Port REST 5080 / gRPC 5081)
+## 9. Analytics Service (PostgreSQL - Port REST 5095 / gRPC 5096)
+- **Architecture**: Service Layer Pattern, Event-Driven Data Materialization, local database `AnalyticsDb`.
+- **Entities**:
+  - `DailyShopRevenue` (Id, ShopId, Date, Revenue [Net Payout], OrderCount, CompletedOrderCount, UpdatedDate)
+  - `DailyPlatformRevenue` (Id, Date, TotalGmv, PlatformRevenue [Gross Commission], PlatformDiscountAmount, NetPlatformRevenue [Net Commission Profit], TotalOrders, UpdatedDate)
+  - `ShopProductStats` (Id, ShopId, ProductId, SoldQuantity, Revenue, UpdatedDate)
+- **Consumers**:
+  - `SubOrderCompletedAnalyticsConsumer`: Materializes accurate e-commerce accounting metrics (splits GMV, Gross Platform Commission, Voucher Burn, and Net Shop Revenue) from `SubOrderCompletedEvent`.
+  - `SubOrderStatusChangedAnalyticsConsumer`: Listens to order status updates.
+- **Controllers & APIs**:
+  - `SellerAnalyticsController` (`/api/analytics/shops/{shopId}`):
+    - `GET /overview`: Today's revenue, month's revenue, order counts, product counts, average rating.
+    - `GET /revenue-chart?period=7d|30d`: Continuous daily revenue timeline points.
+    - `GET /top-products?limit=10`: Top products sorted by sold quantity and revenue.
+  - `AdminAnalyticsController` (`/api/analytics/admin`):
+    - `GET /overview`: Total shops, total orders, platform revenue, GMV, net platform revenue, platform voucher burn, today's new orders.
+    - `GET /revenue-chart?period=7d|30d`: Continuous daily platform revenue timeline points with GMV and Net metrics.
+
+## 10. Notifications Service (PostgreSQL - Port REST 5080 / gRPC 5081)
 - Email notifications, SMTP, system alerts, real-time SignalR Hub.
 
-## 10. Frontend ACO Architecture (Apps - Components - Domains)
+## 11. Frontend ACO Architecture (Apps - Components - Domains)
 - **Directory Structure**:
   - `src/apps/`: Entry pages for customer (`/`, `/cart`, `/checkout`, `/products/:id`), seller (`/seller/select-shop`, `/seller/:shopId/dashboard`), auth (`/login`, `/register`), admin (`/admin`).
-  - `src/domains/`: Domain logic grouped by boundary (`auth`, `catalog`, `cart`, `order`, `seller`, `kyc`, `address`, `wallet`, `shipping`). Contains `api/`, `hooks/`, `stores/`, `types/`, `components/`.
+  - `src/domains/`: Domain logic grouped by boundary (`auth`, `catalog`, `cart`, `order`, `seller`, `kyc`, `address`, `wallet`, `shipping`, `admin`). Contains `api/`, `hooks/`, `stores/`, `types/`, `components/`.
   - `src/shared/`: Cross-cutting utilities, helpers (`formatPrice`, `formatStock`, `authHelper`).
-- **Recommendation System Integration**:
-  - `recommendationApi.ts`: Client functions supporting pagination parameters (`getSimilarProducts`, `getPersonalizedRecommendations`, `getTrendingProducts`, `syncCatalogData`, `trackProductView`, `getProductViewStats`).
-  - `useRecommendations.ts`: TanStack Query hooks (`useSimilarProductsQuery`, `usePersonalizedRecommendationsQuery`, `useInfinitePersonalizedRecommendationsQuery`, `useTrendingProductsQuery`, `useTrackProductViewMutation`, `useProductViewStatsQuery`, `useSyncRecommendationsMutation`).
-  - `LandingPage.tsx`:
-    - `BestSellersSection`: Powered by `useBestSellersQuery` with golden `Trophy` icon, "Top Bán Chạy" badge, and `motion.section` scroll-reveal animation.
-    - `TodayRecommendationsSection`: Powered by `useInfinitePersonalizedRecommendationsQuery` (Fixed 18-item progressive chunks, max 6 pages = 108 products) with `useInView(margin: "-40px")` lazy viewport loading, persistent skeleton placeholders, and `Sparkles` icon.
-    - `InterestedProductsSection`: Powered by `useTrendingProductsQuery` with `useInView(margin: "-40px")` lazy loading, `TrendingUp` icon, and "Trending 24h" badge.
-  - `HomePage.tsx`:
-    - `#trending-products`: Powered by `useTrendingProductsQuery`.
-    - `#suggested-products`: Powered by `usePersonalizedRecommendationsQuery`.
-  - `ProductDetailPage.tsx` & `RelatedProduct.tsx`:
-    - `RelatedProducts`: Powered by `useSimilarProductsQuery` (Content-based similar products with fallback).
-    - View & Dwell Time Tracking: `useTrackProductViewMutation` fires on mount and logs session dwell duration on unmount (min 2 seconds).
+- **Frontend Auth Resilience & Silent Refresh Flow**:
+  - `AuthProvider.tsx`: Automatic **Silent Refresh** on initial application mount when `accessToken` is null or expired. Proactively calls `/api/app-auth/refresh` to exchange the 7-day HttpOnly `refresh_token` cookie for a fresh access token without interrupting the user.
+  - **Network Error & Server Restart Protection**: Replaces naive `currentUserQuery.isError` session clearing with strict `status === 401` checking. Server reboots, temporary connection drops, and 5xx errors no longer log the user out.
+  - `axiosInstance.ts`: Refresh promise error handler only wipes state on HTTP 401/400 rejections from the auth endpoint, ignoring transient network failures.
+  - `useCurrentUserQuery`: Configured with automatic retries for transient network failures.
+- **Product Detail Page Standardization**:
+  - `ProductReviewsSection.tsx`: Wrapped in standard card (`bg-white rounded-md border border-brand-border shadow-sm p-4 md:p-5 mb-6 text-left space-y-6`), uniform title `text-sm font-black text-brand-dark uppercase tracking-wider` ("ĐÁNH GIÁ SẢN PHẨM"), warm amber customer ratings badge (`Star` icon, smaller font `text-[11px]`).
+  - `RelatedProduct.tsx`: Uniform title `text-sm font-black text-brand-dark uppercase tracking-wider` ("SẢN PHẨM TƯƠNG TỰ"), upgraded smart recommendation badge with `BrainCircuit` AI circuit icon and vibrant gradient (`text-[11px]`).
+  - `ProductDescription.tsx`: Uniform titles `text-sm font-black text-brand-dark uppercase tracking-wider` for "THÔNG SỐ SẢN PHẨM" and "MÔ TẢ SẢN PHẨM".
+- **Single-Point Mock / Real Data Toggles**:
+  - `recommendationApi.ts`: `USE_MOCK_RECOMMENDATIONS = false` (toggles mock vs real `/recommendations/...` calls).
+  - `analyticsConfig.ts`: `USE_MOCK_ANALYTICS = false` (toggles mock vs real `/analytics/...` calls).
+- **Seller Center & Unified Analytics Architecture**:
+  - `ShopAnalyticsDashboard.tsx`: Unified, responsive SVG Spline Curve (Cubic Bezier) chart engine. Displays header milestone `Doanh Thu Tháng X: [Số tiền]đ` with glowing interactive node points and tooltips, multi-dimensional filters: time presets ("Hôm nay", "3 ngày", "Tuần này", "Tháng này"), Year selector (months 1..12, auto-excluding future months), Month selector (days 1..28/30/31 matching screenshot), and Product filter ("Tất cả sản phẩm" or specific product). Includes Orders Count Trend chart and Product Performance breakdown (Revenue, Orders, Quantity sold). All cards and containers strictly styled with `rounded-md`.
+  - `SellerReviewsView.tsx`: Product-first review management flow. Seller selects product first -> displays complete review list with star breakdown, star rating filters (All, 5⭐, 4⭐, 3⭐, 2⭐, 1⭐), reply status filters (Unreplied, Replied), keyword search, order ID badge (`#ORD-...`) for each review, inline seller reply form with instant submission, and pagination.
+  - `SellerFollowersView.tsx`: Shop followers management view featuring 3 KPI metrics, search, new follower filter (< 7 days), followers table with activity status, direct chat shortcut, and lazy order history query modal triggered on clicking "Xem chi tiết đơn" (using `createPortal` with `z-10000`).
+  - `RevenueView.tsx`: Standardized header and description, wallet balance cards (`rounded-md`), integrated with `ShopAnalyticsDashboard`.
+  - `SellerLayout.tsx`: Added "Trò chuyện với khách" directly into sidebar nav (`/seller/dashboard/chat`), added sublinks for "Đánh giá sản phẩm" (`/seller/dashboard/reviews`), "Người theo dõi" (`/seller/dashboard/followers`), and accurate breadcrumbs.
+  - `AdminOverviewView.tsx`: Integrated unified `ShopAnalyticsDashboard` with shop selector dropdown, allowing Admin to inspect statistics platform-wide or drilled down to any individual shop.
+
+
 
 
 

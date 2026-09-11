@@ -28,7 +28,12 @@ export function useCurrentUserQuery() {
 			return userData;
 		},
 		enabled: authed,
-		retry: false,
+		retry: (failureCount, error: any) => {
+			// Không retry nếu lỗi 401 vì Axios interceptor đã xử lý refresh
+			if (error?.response?.status === 401) return false;
+			// Nếu rớt mạng hoặc server đang khởi động lại, retry tối đa 2 lần
+			return failureCount < 2;
+		},
 		staleTime: 1000 * 60 * 5,
 	});
 }

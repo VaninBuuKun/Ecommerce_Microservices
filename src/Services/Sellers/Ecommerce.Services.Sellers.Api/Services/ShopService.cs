@@ -70,7 +70,9 @@ public class ShopService(
         if (shop.OwnerUserId != userId)
             return Result<ShopDto>.Failure("Bạn không có quyền truy cập cửa hàng này.");
 
-        return Result<ShopDto>.Success(mapper.Map<ShopDto>(shop));
+        var dto = mapper.Map<ShopDto>(shop);
+        dto.FollowerCount = await dbContext.FollowedShops.CountAsync(f => f.ShopId == id);
+        return Result<ShopDto>.Success(dto);
     }
 
     public async Task<Result<ShopDto>> GetPublicShopByIdAsync(long id)
@@ -79,7 +81,9 @@ public class ShopService(
         if (shop == null || shop.Status != ShopStatus.Active)
             return Result<ShopDto>.Failure("Cửa hàng không tồn tại hoặc đã ngưng hoạt động.");
 
-        return Result<ShopDto>.Success(mapper.Map<ShopDto>(shop));
+        var dto = mapper.Map<ShopDto>(shop);
+        dto.FollowerCount = await dbContext.FollowedShops.CountAsync(f => f.ShopId == id);
+        return Result<ShopDto>.Success(dto);
     }
 
     public async Task<Result<List<ShopDto>>> GetPublicShopsByOwnerIdAsync(long ownerUserId)
@@ -238,16 +242,98 @@ public class ShopService(
 
     public async Task<Result<bool>> ToggleFollowShopAsync(long customerId, long shopId)
     {
-        return Result<bool>.Success(true);
+        var shopExists = await dbContext.Shops.AnyAsync(s => s.Id == shopId);
+        if (!shopExists)
+        {
+            return Result<bool>.Failure("Cửa hàng không tồn tại.");
+        }
+
+        var existingFollow = await dbContext.FollowedShops
+            .FirstOrDefaultAsync(f => f.CustomerId == customerId && f.ShopId == shopId);
+
+        if (existingFollow != null)
+        {
+            dbContext.FollowedShops.Remove(existingFollow);
+            await dbContext.SaveChangesAsync();
+            return Result<bool>.Success(false); // Un-followed
+        }
+        else
+        {
+            var follow = new FollowedShop(customerId, shopId);
+            await dbContext.FollowedShops.AddAsync(follow);
+            await dbContext.SaveChangesAsync();
+            return Result<bool>.Success(true); // Followed
+        }
     }
 
     public async Task<Result<List<ShopDto>>> GetFollowedShopsAsync(long customerId)
     {
-        return Result<List<ShopDto>>.Success([]);
+        var followedShops = await dbContext.FollowedShops
+            .AsNoTracking()
+            .Where(f => f.CustomerId == customerId)
+            .OrderByDescending(f => f.CreatedAt)
+            .Select(f => new
+            {
+                Shop = f.Shop,
+                FollowerCount = f.Shop.Followers.Count()
+            })
+            .ToListAsync();
+
+        if (!followedShops.Any())
+        {
+            return Result<List<ShopDto>>.Success([]);
+        }
+
+        var dtos = followedShops.Select(x =>
+        {
+            var dto = mapper.Map<ShopDto>(x.Shop);
+            dto.FollowerCount = x.FollowerCount;
+            return dto;
+        }).ToList();
+
+        return Result<List<ShopDto>>.Success(dtos);
     }
 
     public async Task<Result<bool>> CheckFollowStatusAsync(long customerId, long shopId)
     {
-        return Result<bool>.Success(false);
+        if (customerId <= 0)
+        {
+            return Result<bool>.Success(false);
+        }
+
+        var isFollowing = await dbContext.FollowedShops
+            .AnyAsync(f => f.CustomerId == customerId && f.ShopId == shopId);
+
+        return Result<bool>.Success(isFollowing);
+    }
+
+    public async Task<Result<PagedResult<ShopFollowerDto>>> GetShopFollowersAsync(long shopId, int pageNumber, int pageSize, DateTime? fromDate = null)
+    {
+        var query = dbContext.FollowedShops.Where(f => f.ShopId == shopId);
+        if (fromDate.HasValue)
+        {
+            query = query.Where(f => f.CreatedAt >= fromDate.Value);
+        }
+
+        var totalCount = await query.CountAsync();
+        var items = await query.OrderByDescending(f => f.CreatedAt)
+            .Skip((pageNumber - 1) * pageSize)
+            .Take(pageSize)
+            .Select(f => new ShopFollowerDto
+            {
+                Id = f.Id.ToString(),
+                CustomerId = f.CustomerId,
+                ShopId = f.ShopId,
+                FollowedAt = f.CreatedAt
+            })
+            .ToListAsync();
+
+        return Result<PagedResult<ShopFollowerDto>>.Success(new PagedResult<ShopFollowerDto>(items, totalCount, pageNumber, pageSize));
+    }
+
+    public async Task<Result<int>> GetShopFollowersCountAsync(long shopId)
+    {
+        var count = await dbContext.FollowedShops.CountAsync(f => f.ShopId == shopId);
+        return Result<int>.Success(count);
     }
 }

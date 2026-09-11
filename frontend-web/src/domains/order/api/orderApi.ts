@@ -64,13 +64,17 @@ export const orderApi = {
 		shopId: number,
 		pageNumber = 1,
 		pageSize = 5,
-		status?: string
+		status?: string,
+		customerId?: number
 	): Promise<any> => {
 		const params = new URLSearchParams();
 		params.append("pageNumber", String(pageNumber));
 		params.append("pageSize", String(pageSize));
 		if (status && status !== "All") {
 			params.append("status", status);
+		}
+		if (customerId && customerId > 0) {
+			params.append("customerId", String(customerId));
 		}
 		const response = await api.get(`/orders/shop/${shopId}/suborders?${params.toString()}`);
 		return response.data?.value || response.data;

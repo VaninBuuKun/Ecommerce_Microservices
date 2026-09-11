@@ -14,4 +14,7 @@ export * from "./components/AdminShopsView";
 export * from "./components/AdminKycView";
 export * from "./components/AdminBannersView";
 export * from "./components/AdminPaymentMethodsView";
+export * from "./components/AdminOverviewView";
+export * from "./api/adminAnalyticsApi";
+export * from "./hooks/useAdminAnalytics";
 

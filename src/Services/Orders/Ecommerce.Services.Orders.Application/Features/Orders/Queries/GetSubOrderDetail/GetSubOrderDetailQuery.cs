@@ -18,6 +18,9 @@ public class SubOrderDetailDto
     public decimal SellerDiscount { get; set; }
     public decimal PlatformDiscount { get; set; }
     public decimal GrandTotal { get; set; }
+    public decimal CommissionRate { get; set; }
+    public long CommissionFee { get; set; }
+    public long NetRevenue { get; set; }
     public string Status { get; set; } = string.Empty;
     public bool IsOnlinePayment { get; set; }
     public DateTimeOffset CreatedDate { get; set; }

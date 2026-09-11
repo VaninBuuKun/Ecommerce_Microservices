@@ -45,6 +45,8 @@ namespace Ecommerce.Services.Sellers.Api.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("ShopId");
+
                     b.HasIndex("CustomerId", "ShopId")
                         .IsUnique();
 
@@ -306,6 +308,17 @@ namespace Ecommerce.Services.Sellers.Api.Migrations
                     b.ToTable("OutboxState");
                 });
 
+            modelBuilder.Entity("Ecommerce.Services.Sellers.Api.Models.Entities.FollowedShop", b =>
+                {
+                    b.HasOne("Ecommerce.Services.Sellers.Api.Models.Entities.Shop", "Shop")
+                        .WithMany("Followers")
+                        .HasForeignKey("ShopId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Shop");
+                });
+
             modelBuilder.Entity("Ecommerce.Services.Sellers.Api.Models.Entities.Shop", b =>
                 {
                     b.OwnsOne("Ecommerce.Services.Sellers.Api.Models.Entities.PickUpAddress", "PickUpAddress", b1 =>
@@ -364,6 +377,11 @@ namespace Ecommerce.Services.Sellers.Api.Migrations
                         .WithMany()
                         .HasForeignKey("InboxMessageId", "InboxConsumerId")
                         .HasPrincipalKey("MessageId", "ConsumerId");
+                });
+
+            modelBuilder.Entity("Ecommerce.Services.Sellers.Api.Models.Entities.Shop", b =>
+                {
+                    b.Navigation("Followers");
                 });
 #pragma warning restore 612, 618
         }

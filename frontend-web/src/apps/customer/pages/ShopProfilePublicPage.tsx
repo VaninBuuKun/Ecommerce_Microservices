@@ -1,7 +1,7 @@
 import { useState, useMemo } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { MapPin, ShoppingBag, Star, Loader2, ArrowLeft, ChevronRight, Store } from "lucide-react";
+import { MapPin, ShoppingBag, Star, Loader2, ArrowLeft, ChevronRight, Store, Users } from "lucide-react";
 import { FollowShopButton, usePublicShopQuery } from "@/domains/seller";
 import { useInfiniteProductsQuery } from "@/domains/catalog";
 
@@ -102,6 +102,13 @@ export default function ShopProfilePublicPage() {
               </div>
               <div className="flex items-center gap-1.5">
                 <span className="w-1.5 h-1.5 rounded-full bg-brand-border" />
+                <Users className="w-3.5 h-3.5 text-brand-primary shrink-0" />
+                <span>
+                  Người theo dõi: <strong className="font-bold text-brand-dark">{shop.followerCount ?? 0}</strong>
+                </span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <span className="w-1.5 h-1.5 rounded-full bg-brand-border" />
                 <span>Chủ sở hữu: </span>
                 <button
                   onClick={() => navigate(`/users/${shop.ownerUserId}`)}
@@ -116,7 +123,7 @@ export default function ShopProfilePublicPage() {
 
         {/* NÚT THEO DÕI SHOP */}
         <div className="shrink-0">
-          <FollowShopButton shopId={shop.id} variant="primary" />
+          <FollowShopButton shopId={shop.id} variant="primary" followerCount={shop.followerCount} />
         </div>
       </div>
 

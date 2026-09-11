@@ -18,6 +18,7 @@ public class OrderDbContext(DbContextOptions<OrderDbContext> options, IInMemoryB
     public DbSet<RefundRequestItem> RefundRequestItems { get; set; }
     public DbSet<Voucher> Vouchers { get; set; }
     public DbSet<VoucherUsage> VoucherUsages { get; set; }
+    public DbSet<PlatformCommissionConfig> PlatformCommissionConfigs { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -31,6 +32,8 @@ public class OrderDbContext(DbContextOptions<OrderDbContext> options, IInMemoryB
         {
             entity.HasKey(x => x.CorrelationId);
             entity.Property(x => x.TotalAmount).HasColumnType("decimal(18,2)");
+            entity.Property(x => x.CommissionRate).HasColumnType("decimal(5,2)");
+            entity.Property(x => x.CommissionFee).HasColumnType("bigint");
             entity.Property(x => x.FailureReason).HasMaxLength(255).IsRequired(false);
             entity.Property(x => x.ItemsJson).IsRequired(false);
             entity.Property(x => x.ShippingAddress).HasMaxLength(500).IsRequired(false);
@@ -65,6 +68,8 @@ public class OrderDbContext(DbContextOptions<OrderDbContext> options, IInMemoryB
             entity.Property(s => s.SellerDiscount).HasColumnType("bigint");
             entity.Property(s => s.PlatformDiscount).HasColumnType("bigint");
             entity.Property(s => s.GrandTotal).HasColumnType("bigint");
+            entity.Property(s => s.CommissionRate).HasColumnType("decimal(5,2)");
+            entity.Property(s => s.CommissionFee).HasColumnType("bigint");
             
             entity.HasMany(s => s.SubOrderItems)
                   .WithOne(i => i.SubOrder)
@@ -130,6 +135,12 @@ public class OrderDbContext(DbContextOptions<OrderDbContext> options, IInMemoryB
                 .WithMany()
                 .HasForeignKey(vu => vu.VoucherId)
                 .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<PlatformCommissionConfig>(entity =>
+        {
+            entity.HasKey(c => c.Id);
+            entity.Property(c => c.RatePercentage).HasColumnType("decimal(5,2)");
         });
     }
 }

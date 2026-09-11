@@ -22,4 +22,6 @@ public interface IUserService
     Task<Result> ForgotPasswordAsync(ForgotPasswordRequest request);
     Task<Result> ResetPasswordWithOtpAsync(ResetPasswordWithOtpRequest request);
     Task RegisterOrUpdateDeviceAsync(long userId, string email, bool isRegistration = false);
+    Task<long> GetUserCountAsync();
 }
+

@@ -1,7 +1,7 @@
 using System;
 using BuildingBlocks.Shared.Domains;
 
-namespace Ecommerce.Services.Payments.Api.Models.Entities;
+namespace Ecommerce.Services.Orders.Domain;
 
 public class PlatformCommissionConfig : EntityTrackingBase<long>
 {
