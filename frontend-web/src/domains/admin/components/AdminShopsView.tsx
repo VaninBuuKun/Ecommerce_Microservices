@@ -72,8 +72,8 @@ export function AdminShopsView() {
 		<div className="space-y-4 text-left font-sans animate-in fade-in duration-200">
 			<div className="flex justify-between items-center pb-2.5 border-b border-brand-border">
 				<div>
-					<h2 className="text-sm font-black text-brand-dark uppercase tracking-wide">Quản lý gian hàng (Shops)</h2>
-					<p className="text-[10px] text-brand-muted font-bold mt-0.5">Danh sách các cửa hàng người bán hoạt động kinh doanh trên hệ thống</p>
+					<h2 className="text-4 font-black text-brand-dark uppercase tracking-wider">Quản lý gian hàng (Shops)</h2>
+					<p className="text-[12px] text-brand-muted font-bold mt-0.5">Danh sách các cửa hàng người bán hoạt động kinh doanh trên hệ thống</p>
 				</div>
 				<button onClick={fetchShops} className="p-1.5 text-brand-muted hover:text-brand-dark rounded hover:bg-brand-light-soft transition-colors cursor-pointer border-none bg-transparent" title="Làm mới">
 					<RefreshCw className="w-4 h-4" />

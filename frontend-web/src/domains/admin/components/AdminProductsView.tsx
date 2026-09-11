@@ -27,10 +27,10 @@ export function AdminProductsView() {
 			{/* Header */}
 			<div className="flex justify-between items-center pb-2.5 border-b border-brand-border">
 				<div>
-					<h2 className="text-sm font-black text-brand-dark uppercase tracking-wide">
+					<h2 className="text-4 font-black text-brand-dark uppercase tracking-wider">
 						Quản lý sản phẩm hệ thống
 					</h2>
-					<p className="text-[10px] text-brand-muted font-bold mt-0.5">
+					<p className="text-[12px] text-brand-muted font-bold mt-0.5">
 						Danh sách toàn bộ các sản phẩm của tất cả các gian hàng trên sàn
 					</p>
 				</div>

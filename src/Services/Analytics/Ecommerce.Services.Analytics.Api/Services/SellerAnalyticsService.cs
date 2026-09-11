@@ -17,30 +17,31 @@ public class SellerAnalyticsService(AnalyticsDbContext dbContext) : ISellerAnaly
         var today = DateOnly.FromDateTime(DateTime.UtcNow);
         var firstDayOfMonth = new DateOnly(today.Year, today.Month, 1);
 
-        var todayStat = await dbContext.DailyShopRevenues
-            .AsNoTracking()
-            .FirstOrDefaultAsync(r => r.ShopId == shopId && r.Date == today, cancellationToken);
-
-        var monthRevenue = await dbContext.DailyShopRevenues
-            .AsNoTracking()
-            .Where(r => r.ShopId == shopId && r.Date >= firstDayOfMonth && r.Date <= today)
-            .SumAsync(r => (long?)r.Revenue, cancellationToken) ?? 0;
-
-        var totalOrders = await dbContext.DailyShopRevenues
+        // 1. Gom các thống kê hôm nay, tháng này và toàn thời gian vào 1 query duy nhất (1 await thay vì 3 awaits)
+        var shopStats = await dbContext.DailyShopRevenues
             .AsNoTracking()
             .Where(r => r.ShopId == shopId)
-            .SumAsync(r => (int?)r.OrderCount, cancellationToken) ?? 0;
+            .GroupBy(_ => 1)
+            .Select(g => new
+            {
+                TotalOrders = g.Sum(r => (int?)r.OrderCount) ?? 0,
+                MonthRevenue = g.Sum(r => r.Date >= firstDayOfMonth && r.Date <= today ? (long?)r.Revenue : 0) ?? 0,
+                TodayRevenue = g.Sum(r => r.Date == today ? (long?)r.Revenue : 0) ?? 0,
+                TodayOrders = g.Sum(r => r.Date == today ? (int?)r.OrderCount : 0) ?? 0
+            })
+            .FirstOrDefaultAsync(cancellationToken);
 
+        // 2. Đếm số lượng sản phẩm của shop (1 await)
         var totalProducts = await dbContext.ShopProductStats
             .AsNoTracking()
             .CountAsync(p => p.ShopId == shopId, cancellationToken);
 
         return new SellerOverviewDto
         {
-            TodayRevenue = todayStat?.Revenue ?? 0,
-            MonthRevenue = monthRevenue,
-            TotalOrders = totalOrders,
-            TodayOrders = todayStat?.OrderCount ?? 0,
+            TodayRevenue = shopStats?.TodayRevenue ?? 0,
+            MonthRevenue = shopStats?.MonthRevenue ?? 0,
+            TotalOrders = shopStats?.TotalOrders ?? 0,
+            TodayOrders = shopStats?.TodayOrders ?? 0,
             PendingOrders = 0,
             TotalProducts = totalProducts > 0 ? totalProducts : 1,
             AverageRating = 4.8,

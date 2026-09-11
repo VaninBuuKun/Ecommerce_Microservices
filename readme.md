@@ -288,6 +288,28 @@ ReadyToPick (Chờ lấy hàng) → InTransit (Đang vận chuyển) → Deliver
 
 ---
 
+## 📊 Financial Analytics & Business Intelligence (`Analytics.Api`)
+
+### Real-Time Financial & Revenue Materialization
+* **Event-Driven Metric Aggregation**: Listens to `SubOrderCompletedEvent` and `SubOrderStatusChangedEvent` via MassTransit to asynchronously record transactional metrics into pre-aggregated read models (`DailyPlatformRevenues`, `DailyShopRevenues`, `ShopProductStats`).
+* **Marketplace Financial Accounting**:
+  * **GMV (Gross Merchandise Value)**: Tracks the total monetary volume of all completed marketplace transactions.
+  * **Gross Platform Commission**: Accurately accounts for marketplace service fees earned per order based on snapshotted commission rates.
+  * **Voucher Subsidies & Net Platform Profit**: Tracks platform voucher expenditure to compute true net marketplace earnings.
+  * **Seller Net Payouts**: Clear reconciliation between gross transaction values, commission deductions, and net seller earnings.
+* **Single-Roundtrip High-Performance Read Models**: Overview endpoints utilize consolidated database aggregations to compute multi-metric financial summaries in a single round-trip, minimizing I/O latency under heavy dashboard traffic.
+
+### Seller & Admin Dashboards
+* **Seller Center Analytics (`/seller/dashboard/revenue`)**:
+  * Daily revenue and order trendline charts with preset filtering (Today, 3 days, 7 days, 30 days, Custom Year/Month).
+  * Product-level performance breakdown: Revenue per product, units sold, and order volume rankings.
+  * Order fulfillment status distribution and customer acquisition insights.
+* **Platform Admin Overview (`/admin`)**:
+  * High-level executive overview: Total registered shops, cumulative orders, gross commission, net revenue profit, and voucher subsidy burn.
+  * Multi-period platform revenue timelines (7d / 30d) for ecosystem financial health monitoring.
+
+---
+
 ## 🔔 Real-time Notifications, Chat & Email
 
 ### Real-time Messaging & Floating Chat

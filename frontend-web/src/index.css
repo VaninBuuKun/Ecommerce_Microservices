@@ -21,6 +21,11 @@
   --color-brand-border-strong: #c7c7c7; /* Hairline Strong */
 }
 
+@utility text-4 {
+  font-size: 14px;
+  line-height: 1.25rem;
+}
+
 :root {
   color-scheme: light;
   background-color: var(--color-brand-light);

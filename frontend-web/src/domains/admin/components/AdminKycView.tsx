@@ -134,10 +134,10 @@ export function AdminKycView() {
 			{/* Header Bar */}
 			<div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 pb-2.5 border-b border-brand-border">
 				<div>
-					<h2 className="text-sm font-black text-brand-dark uppercase tracking-wide">
+					<h2 className="text-4 font-black text-brand-dark uppercase tracking-wider">
 						Phê duyệt định danh KYC
 					</h2>
-					<p className="text-[10px] text-brand-muted font-bold mt-0.5">
+					<p className="text-[12px] text-brand-muted font-bold mt-0.5">
 						Xác thực thông tin căn cước công dân của các chủ shop để mở quyền bán hàng
 					</p>
 				</div>

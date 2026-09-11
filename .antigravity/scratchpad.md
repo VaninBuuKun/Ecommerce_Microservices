@@ -1,3 +1,28 @@
+- [x] Tối Ưu Hóa Query Tổng Hợp Trong Analytics Service (Gom 6 Query Sum/Select Riêng Biệt Thành 1 Câu SQL Duy Nhất Với GroupBy(_ => 1)):
+  - **Mục tiêu & Kết quả hoàn thành**:
+    1. **Tối ưu AdminAnalyticsService (`AdminAnalyticsService.cs`)**:
+       - Trước đây: `GetOverviewAsync` thực hiện tới 7 lệnh `await` riêng biệt (1 lệnh đếm số shop qua gRPC + 5 lệnh `SumAsync` độc lập trên `DailyPlatformRevenues` + 1 lệnh `FirstOrDefaultAsync` lấy số liệu hôm nay). Dẫn đến 6 round-trip mạng tới PostgreSQL dù đều cùng truy vấn trên 1 bảng `DailyPlatformRevenues`.
+       - Sau khi tối ưu: Gom toàn bộ 6 câu query trên bảng `DailyPlatformRevenues` thành **1 câu SQL duy nhất** thông qua EF Core `GroupBy(_ => 1)`.
+       - PostgreSQL biên dịch thành 1 câu SQL `SELECT COALESCE(sum(...), 0)... COALESCE(sum(CASE WHEN "Date" = @today THEN ... ELSE 0 END), 0) FROM "DailyPlatformRevenues" GROUP BY 1`.
+       - Giảm từ 7 `await` xuống còn đúng **2 `await`** (1 gRPC đếm shop + 1 SQL query duy nhất trên AnalyticsDb), giảm 83% round-trip I/O.
+    2. **Tối ưu SellerAnalyticsService (`SellerAnalyticsService.cs`)**:
+       - Trước đây: `GetOverviewAsync` gọi 3 query riêng biệt tới `DailyShopRevenues` (`todayStat`, `monthRevenue`, `totalOrders`).
+       - Sau khi tối ưu: Gom thành 1 query `GroupBy(_ => 1)` có điều kiện (conditional sum theo `Date = today` và `Date >= monthStart`), giảm từ 4 `await` xuống còn **2 `await`**.
+  - **Kiểm Thử & Biên Dịch**:
+    - Solution Build: `dotnet build Microservices.sln` -> Build succeeded (0 errors).
+    - Đã xác thực SQL execution translation trên PostgreSQL `AnalyticsDb`.
+
+- [x] Thống Nhất Kích Thước Title & Description Cho Tất Cả Các Views Admin Theo Chuẩn AdminBannersView (text-4 / text-[12px]):
+  - **Mục tiêu & Kết quả hoàn thành**:
+    1. **Chuẩn hóa Header & Typography Toàn Bộ 14 Admin Views**:
+       - `index.css`: Bổ sung `@utility text-4 { font-size: 14px; line-height: 1.25rem; }` trong Tailwind CSS v4, đảm bảo class `text-4` tạo ra font-size 14px chuẩn xác và đồng nhất 100%.
+       - `AdminOverviewView.tsx`: Căn chỉnh lại Header đồng bộ với các view khác: Title viết hoa `text-4 font-black text-brand-dark uppercase tracking-wider` ("TỔNG QUAN & THỐNG KÊ HỆ THỐNG") và Description `text-[12px] text-brand-muted font-bold mt-0.5`.
+       - Đồng bộ toàn diện 13 Admin Views còn lại (`AdminBannersView`, `AdminCategoriesView`, `AdminKycView`, `AdminOrdersView`, `AdminPaymentMethodsView`, `AdminProductsView`, `AdminRefundsView`, `AdminShipmentsView`, `AdminShopsView`, `AdminUsersView`, `AdminVouchersView`, `AdminWalletsDashboardView`, `AdminWithdrawsView`):
+         - Title: `text-4 font-black text-brand-dark uppercase tracking-wider`
+         - Description: `text-[12px] text-brand-muted font-bold mt-0.5`
+  - **Kiểm Thử & Biên Dịch**:
+    - Frontend: `npm run build` -> Vite production build succeeded in 692ms (0 errors).
+
 - [x] Khắc Phục Triệt Để Hiện Tượng Bị Đăng Xuất Khi Restart Server (Silent Refresh Trên FE, Chống Xóa Session Do Lỗi Mạng & Chuẩn Hóa Cặp Khóa Ký/DataProtection Trên Identity Service):
   - **Mục tiêu & Kết quả hoàn thành**:
     1. **Frontend Auth Resilience (`AuthProvider.tsx`)**:

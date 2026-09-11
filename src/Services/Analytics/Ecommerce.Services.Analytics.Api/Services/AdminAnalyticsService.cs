@@ -16,45 +16,37 @@ public class AdminAnalyticsService(AnalyticsDbContext dbContext) : IAdminAnalyti
     {
         var today = DateOnly.FromDateTime(DateTime.UtcNow);
 
+        // 1. Đếm tổng số shop duy nhất đã phát sinh dữ liệu (1 await)
         var totalShops = await dbContext.DailyShopRevenues
             .AsNoTracking()
             .Select(r => r.ShopId)
             .Distinct()
             .CountAsync(cancellationToken);
 
-        var totalOrders = await dbContext.DailyPlatformRevenues
+        // 2. Gom toàn bộ 5 phép tính SUM và số đơn hôm nay vào 1 câu SQL duy nhất (1 await thay vì 6 awaits)
+        var platformStats = await dbContext.DailyPlatformRevenues
             .AsNoTracking()
-            .SumAsync(r => (int?)r.TotalOrders, cancellationToken) ?? 0;
-
-        var platformRevenue = await dbContext.DailyPlatformRevenues
-            .AsNoTracking()
-            .SumAsync(r => (long?)r.PlatformRevenue, cancellationToken) ?? 0;
-
-        var totalGmv = await dbContext.DailyPlatformRevenues
-            .AsNoTracking()
-            .SumAsync(r => (long?)r.TotalGmv, cancellationToken) ?? 0;
-
-        var netPlatformRevenue = await dbContext.DailyPlatformRevenues
-            .AsNoTracking()
-            .SumAsync(r => (long?)r.NetPlatformRevenue, cancellationToken) ?? 0;
-
-        var platformDiscountAmount = await dbContext.DailyPlatformRevenues
-            .AsNoTracking()
-            .SumAsync(r => (long?)r.PlatformDiscountAmount, cancellationToken) ?? 0;
-
-        var todayStat = await dbContext.DailyPlatformRevenues
-            .AsNoTracking()
-            .FirstOrDefaultAsync(r => r.Date == today, cancellationToken);
+            .GroupBy(_ => 1)
+            .Select(g => new
+            {
+                TotalOrders = g.Sum(r => (int?)r.TotalOrders) ?? 0,
+                PlatformRevenue = g.Sum(r => (long?)r.PlatformRevenue) ?? 0,
+                TotalGmv = g.Sum(r => (long?)r.TotalGmv) ?? 0,
+                NetPlatformRevenue = g.Sum(r => (long?)r.NetPlatformRevenue) ?? 0,
+                PlatformDiscountAmount = g.Sum(r => (long?)r.PlatformDiscountAmount) ?? 0,
+                TodayNewOrders = g.Sum(r => r.Date == today ? (int?)r.TotalOrders : 0) ?? 0
+            })
+            .FirstOrDefaultAsync(cancellationToken);
 
         return new AdminOverviewDto
         {
             TotalShops = totalShops > 0 ? totalShops : 13,
-            TotalOrders = totalOrders > 0 ? totalOrders : 85,
-            PlatformRevenue = platformRevenue,
-            TotalGmv = totalGmv,
-            NetPlatformRevenue = netPlatformRevenue,
-            PlatformDiscountAmount = platformDiscountAmount,
-            TodayNewOrders = todayStat?.TotalOrders ?? 0
+            TotalOrders = (platformStats?.TotalOrders ?? 0) > 0 ? platformStats!.TotalOrders : 85,
+            PlatformRevenue = platformStats?.PlatformRevenue ?? 0,
+            TotalGmv = platformStats?.TotalGmv ?? 0,
+            NetPlatformRevenue = platformStats?.NetPlatformRevenue ?? 0,
+            PlatformDiscountAmount = platformStats?.PlatformDiscountAmount ?? 0,
+            TodayNewOrders = platformStats?.TodayNewOrders ?? 0
         };
     }
 

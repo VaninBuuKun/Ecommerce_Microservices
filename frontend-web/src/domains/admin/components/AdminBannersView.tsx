@@ -1,21 +1,21 @@
 import { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
-import { 
-	bannerApi, 
-	type BannerDto, 
-	type CreateBannerRequest, 
-	type UpdateBannerRequest 
+import {
+	bannerApi,
+	type BannerDto,
+	type CreateBannerRequest,
+	type UpdateBannerRequest
 } from "../api/bannerApi";
-import { 
-	Plus, 
-	Pencil, 
-	Trash2, 
-	RefreshCw, 
-	Loader2, 
-	Eye, 
-	CheckCircle2, 
-	XCircle, 
-	ArrowRight, 
+import {
+	Plus,
+	Pencil,
+	Trash2,
+	RefreshCw,
+	Loader2,
+	Eye,
+	CheckCircle2,
+	XCircle,
+	ArrowRight,
 	ExternalLink,
 	X,
 	Image as ImageIcon,
@@ -120,12 +120,12 @@ export function AdminBannersView() {
 	const [banners, setBanners] = useState<BannerDto[]>([]);
 	const [isLoading, setIsLoading] = useState(true);
 	const [isSubmitting, setIsSubmitting] = useState(false);
-	
+
 	// Modals
 	const [modalMode, setModalMode] = useState<"create" | "edit" | null>(null);
 	const [editingBanner, setEditingBanner] = useState<BannerDto | null>(null);
 	const [deleteBannerId, setDeleteBannerId] = useState<number | null>(null);
-	
+
 	// Modal Bật Hiển Thị & Nhập Vị Trí
 	const [activeModalBanner, setActiveModalBanner] = useState<BannerDto | null>(null);
 	const [insertPositionInput, setInsertPositionInput] = useState<string>("");
@@ -200,7 +200,7 @@ export function AdminBannersView() {
 		setImageUrl(b.imageUrl);
 		setButtonText(b.buttonText);
 		setTargetUrl(b.targetUrl);
-		
+
 		// Parse chuỗi gradient đã lưu nếu có thể
 		const rawGradient = b.themeGradient || "";
 		const matchedPreset = GRADIENT_PRESETS.find(p => p.className === rawGradient);
@@ -356,10 +356,10 @@ export function AdminBannersView() {
 			{/* TOP HEADER BAR */}
 			<div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-brand-border pb-4">
 				<div>
-					<h1 className="text-sm font-black text-brand-dark uppercase tracking-wider">
+					<h1 className="text-4 font-black text-brand-dark uppercase tracking-wider">
 						Quản lý Banner Trang chủ
 					</h1>
-					<p className="text-[10px] text-brand-muted font-bold mt-0.5">
+					<p className="text-[12px] text-brand-muted font-bold mt-0.5">
 						Tùy chỉnh các chiến dịch Banner động, phối màu Tailwind Gradient và sắp xếp thứ tự hiển thị
 					</p>
 				</div>
@@ -386,22 +386,20 @@ export function AdminBannersView() {
 			<div className="flex items-center gap-1 border-b border-brand-border">
 				<button
 					onClick={() => setActiveTab("list")}
-					className={`px-4 py-2 text-xs font-bold flex items-center gap-1.5 border-b-2 transition-all cursor-pointer ${
-						activeTab === "list"
-							? "border-brand-primary text-brand-primary bg-brand-primary/5"
-							: "border-transparent text-brand-muted hover:text-brand-dark"
-					}`}
+					className={`px-4 py-2 text-xs font-bold flex items-center gap-1.5 border-b-2 transition-all cursor-pointer ${activeTab === "list"
+						? "border-brand-primary text-brand-primary bg-brand-primary/5"
+						: "border-transparent text-brand-muted hover:text-brand-dark"
+						}`}
 				>
 					<LayoutGrid className="w-3.5 h-3.5" />
 					Danh sách Banner ({banners.length})
 				</button>
 				<button
 					onClick={() => setActiveTab("reorder")}
-					className={`px-4 py-2 text-xs font-bold flex items-center gap-1.5 border-b-2 transition-all cursor-pointer ${
-						activeTab === "reorder"
-							? "border-brand-primary text-brand-primary bg-brand-primary/5"
-							: "border-transparent text-brand-muted hover:text-brand-dark"
-					}`}
+					className={`px-4 py-2 text-xs font-bold flex items-center gap-1.5 border-b-2 transition-all cursor-pointer ${activeTab === "reorder"
+						? "border-brand-primary text-brand-primary bg-brand-primary/5"
+						: "border-transparent text-brand-muted hover:text-brand-dark"
+						}`}
 				>
 					<ListOrdered className="w-3.5 h-3.5" />
 					Thứ tự hiển thị ({banners.filter(b => b.isActive).length} đang bật)
@@ -498,11 +496,10 @@ export function AdminBannersView() {
 											<td className="py-2.5 px-4 text-center">
 												<button
 													onClick={() => handleStatusClick(b)}
-													className={`px-2 py-0.5 rounded text-[9px] font-black uppercase border transition-colors cursor-pointer inline-block ${
-														b.isActive
-															? "bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100"
-															: "bg-red-50 text-red-700 border border-red-200 hover:bg-red-100"
-													}`}
+													className={`px-2 py-0.5 rounded text-[9px] font-black uppercase border transition-colors cursor-pointer inline-block ${b.isActive
+														? "bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100"
+														: "bg-red-50 text-red-700 border border-red-200 hover:bg-red-100"
+														}`}
 													title="Nhấn để đổi trạng thái Hiển thị / Ẩn"
 												>
 													{b.isActive ? "Hiển thị" : "Đã ẩn"}
@@ -577,11 +574,10 @@ export function AdminBannersView() {
 									onDragStart={() => handleDragStart(idx)}
 									onDragOver={(e) => handleDragOver(e, idx)}
 									onDragEnd={handleDragEnd}
-									className={`flex items-center justify-between p-3 border rounded bg-white transition-all cursor-move ${
-										draggedIndex === idx 
-											? "border-brand-primary bg-brand-primary/5 shadow-md scale-[1.01]" 
-											: "border-brand-border hover:border-brand-primary/50"
-									}`}
+									className={`flex items-center justify-between p-3 border rounded bg-white transition-all cursor-move ${draggedIndex === idx
+										? "border-brand-primary bg-brand-primary/5 shadow-md scale-[1.01]"
+										: "border-brand-border hover:border-brand-primary/50"
+										}`}
 								>
 									<div className="flex items-center gap-3">
 										<GripVertical className="w-4 h-4 text-brand-muted shrink-0" />
@@ -827,11 +823,10 @@ export function AdminBannersView() {
 												key={idx}
 												type="button"
 												onClick={() => applyPreset(preset)}
-												className={`px-2.5 py-1 rounded text-[11px] font-bold border flex items-center gap-1.5 transition-all cursor-pointer bg-white ${
-													computedGradientClass === preset.className
-														? "border-brand-primary text-brand-primary bg-brand-primary/5 ring-1 ring-brand-primary"
-														: "border-brand-border text-brand-dark hover:border-brand-primary/50"
-												}`}
+												className={`px-2.5 py-1 rounded text-[11px] font-bold border flex items-center gap-1.5 transition-all cursor-pointer bg-white ${computedGradientClass === preset.className
+													? "border-brand-primary text-brand-primary bg-brand-primary/5 ring-1 ring-brand-primary"
+													: "border-brand-border text-brand-dark hover:border-brand-primary/50"
+													}`}
 											>
 												<span className={`w-3 h-3 rounded-full ${preset.className} shrink-0`} />
 												<span>{preset.label.split("(")[0]}</span>
@@ -851,11 +846,10 @@ export function AdminBannersView() {
 												key={dir.value}
 												type="button"
 												onClick={() => setGradientDirection(dir.value)}
-												className={`px-2.5 py-1 rounded text-[11px] font-bold border transition-all cursor-pointer ${
-													gradientDirection === dir.value
-														? "bg-brand-primary text-white border-brand-primary shadow-2xs"
-														: "bg-white text-brand-dark border-brand-border hover:bg-brand-light-soft"
-												}`}
+												className={`px-2.5 py-1 rounded text-[11px] font-bold border transition-all cursor-pointer ${gradientDirection === dir.value
+													? "bg-brand-primary text-white border-brand-primary shadow-2xs"
+													: "bg-white text-brand-dark border-brand-border hover:bg-brand-light-soft"
+													}`}
 											>
 												{dir.label}
 											</button>
@@ -874,11 +868,10 @@ export function AdminBannersView() {
 												key={c.name}
 												type="button"
 												onClick={() => setFromColor(c.from)}
-												className={`px-2 py-1 rounded text-[10px] font-bold border flex items-center gap-1 transition-all cursor-pointer bg-white ${
-													fromColor === c.from
-														? "border-brand-primary ring-1 ring-brand-primary text-brand-dark font-black shadow-2xs"
-														: "border-brand-border text-brand-muted hover:text-brand-dark"
-												}`}
+												className={`px-2 py-1 rounded text-[10px] font-bold border flex items-center gap-1 transition-all cursor-pointer bg-white ${fromColor === c.from
+													? "border-brand-primary ring-1 ring-brand-primary text-brand-dark font-black shadow-2xs"
+													: "border-brand-border text-brand-muted hover:text-brand-dark"
+													}`}
 											>
 												<span className={`w-2.5 h-2.5 rounded-full ${c.bg}`} />
 												{c.name}
@@ -891,7 +884,7 @@ export function AdminBannersView() {
 								<div className="space-y-1 pt-1 border-t border-brand-border/60">
 									<div className="flex items-center justify-between">
 										<label className="text-[10px] font-bold text-brand-muted uppercase flex items-center gap-1.5">
-											4. Màu Chuyển Giữa (Via Color): 
+											4. Màu Chuyển Giữa (Via Color):
 											{hasViaColor ? (
 												<span className="text-brand-dark font-mono font-bold lowercase">{viaColor}</span>
 											) : (
@@ -913,11 +906,10 @@ export function AdminBannersView() {
 													key={c.name}
 													type="button"
 													onClick={() => setViaColor(c.via)}
-													className={`px-2 py-1 rounded text-[10px] font-bold border flex items-center gap-1 transition-all cursor-pointer bg-white ${
-														viaColor === c.via
-															? "border-brand-primary ring-1 ring-brand-primary text-brand-dark font-black shadow-2xs"
-															: "border-brand-border text-brand-muted hover:text-brand-dark"
-													}`}
+													className={`px-2 py-1 rounded text-[10px] font-bold border flex items-center gap-1 transition-all cursor-pointer bg-white ${viaColor === c.via
+														? "border-brand-primary ring-1 ring-brand-primary text-brand-dark font-black shadow-2xs"
+														: "border-brand-border text-brand-muted hover:text-brand-dark"
+														}`}
 												>
 													<span className={`w-2.5 h-2.5 rounded-full ${c.bg}`} />
 													{c.name}
@@ -938,11 +930,10 @@ export function AdminBannersView() {
 												key={c.name}
 												type="button"
 												onClick={() => setToColor(c.to)}
-												className={`px-2 py-1 rounded text-[10px] font-bold border flex items-center gap-1 transition-all cursor-pointer bg-white ${
-													toColor === c.to
-														? "border-brand-primary ring-1 ring-brand-primary text-brand-dark font-black shadow-2xs"
-														: "border-brand-border text-brand-muted hover:text-brand-dark"
-												}`}
+												className={`px-2 py-1 rounded text-[10px] font-bold border flex items-center gap-1 transition-all cursor-pointer bg-white ${toColor === c.to
+													? "border-brand-primary ring-1 ring-brand-primary text-brand-dark font-black shadow-2xs"
+													: "border-brand-border text-brand-muted hover:text-brand-dark"
+													}`}
 											>
 												<span className={`w-2.5 h-2.5 rounded-full ${c.bg}`} />
 												{c.name}

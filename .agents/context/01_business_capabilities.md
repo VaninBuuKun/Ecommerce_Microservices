@@ -122,6 +122,9 @@ This document provides a detailed breakdown of all implemented backend APIs, gRP
 
 ## 9. Analytics Service (PostgreSQL - Port REST 5095 / gRPC 5096)
 - **Architecture**: Service Layer Pattern, Event-Driven Data Materialization, local database `AnalyticsDb`.
+- **Query Optimization (Consolidated Aggregations)**:
+  - `AdminAnalyticsService.GetOverviewAsync`: Consolidated 6 separate database round-trips (`TotalOrders`, `PlatformRevenue`, `TotalGmv`, `NetPlatformRevenue`, `PlatformDiscountAmount`, and today's stat) into a single SQL aggregation query using `GroupBy(_ => 1)` with conditional sums (`CASE WHEN "Date" = @today THEN ...`). Reduced from 7 `await`s to 2 `await`s.
+  - `SellerAnalyticsService.GetOverviewAsync`: Consolidated 3 separate queries on `DailyShopRevenues` (today's stat, month-to-date revenue, total orders) into a single SQL aggregation query using `GroupBy(_ => 1)`.
 - **Entities**:
   - `DailyShopRevenue` (Id, ShopId, Date, Revenue [Net Payout], OrderCount, CompletedOrderCount, UpdatedDate)
   - `DailyPlatformRevenue` (Id, Date, TotalGmv, PlatformRevenue [Gross Commission], PlatformDiscountAmount, NetPlatformRevenue [Net Commission Profit], TotalOrders, UpdatedDate)

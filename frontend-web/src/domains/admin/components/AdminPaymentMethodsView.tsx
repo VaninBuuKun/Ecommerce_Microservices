@@ -130,10 +130,10 @@ export function AdminPaymentMethodsView() {
 			{/* HEADER */}
 			<div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-brand-border pb-4">
 				<div>
-					<h1 className="text-sm font-black text-brand-dark uppercase tracking-wide">
+					<h1 className="text-4 font-black text-brand-dark uppercase tracking-wider">
 						Quản lý Phương thức thanh toán
 					</h1>
-					<p className="text-[10px] text-brand-muted font-bold mt-0.5">
+					<p className="text-[12px] text-brand-muted font-bold mt-0.5">
 						Quản lý danh sách các cổng thanh toán (COD, MoMo, VNPay, Ví điện tử...) cho khách hàng khi đặt hàng
 					</p>
 				</div>

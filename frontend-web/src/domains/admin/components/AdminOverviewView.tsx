@@ -36,13 +36,13 @@ export function AdminOverviewView() {
 	return (
 		<div className="space-y-6 text-left font-sans animate-in fade-in duration-300">
 			{/* Page Header */}
-			<div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-brand-border/60 pb-4">
+			<div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-brand-border pb-4">
 				<div>
-					<h1 className="text-xl font-black text-brand-dark tracking-tight">
-						Tổng Quan & Thống Kê Hệ Thống
+					<h1 className="text-4 font-black text-brand-dark uppercase tracking-wider">
+						Tổng quan & Thống kê hệ thống
 					</h1>
-					<p className="text-xs text-brand-muted font-medium mt-0.5">
-						Theo dõi hiệu suất vận hành toàn sàn, doanh thu và tăng trưởng người dùng thời gian thực.
+					<p className="text-[12px] text-brand-muted font-bold mt-0.5">
+						Theo dõi hiệu suất vận hành toàn sàn, doanh thu và tăng trưởng người dùng thời gian thực
 					</p>
 				</div>
 				<span className="self-start sm:self-auto px-3 py-1 bg-emerald-50 text-emerald-700 border border-emerald-200 text-xs font-black rounded-md flex items-center gap-1.5 shadow-2xs">
