@@ -43,6 +43,7 @@ Saga State Machine + Transactional Outbox
 | **Payments.Api**      | 5052 | 5053 | PostgreSQL | VNPay, MoMo, COD, Seller Wallets, Withdrawals               |
 | **Shippings.Api**     | 5070 | 5071 | PostgreSQL | GHN Integration, Shipping Rates, Delivery Tracking          |
 | **Notifications.Api** | 5080 | —    | PostgreSQL | SignalR Realtime Notifications                              |
+| **Recommendations.Api** | 5090 | 5091 | PostgreSQL | AI Product Recommendations (Similar, For-You, Trending), View Tracking |
 
 ---
 
@@ -251,6 +252,25 @@ ReadyToPick (Chờ lấy hàng) → InTransit (Đang vận chuyển) → Deliver
 * `Manager` — Operations, catalog, order processing, and merchant verification.
 * `Staff` — Customer support, order inspection, and verification assistance.
 * `User` — Marketplace customer and seller shop owner.
+
+---
+
+## 🤖 Smart Recommendations & View Analytics
+
+### Recommendation Engine (`Recommendations.Api`)
+* **Service Layer Architecture**: Independent microservice running on port REST 5090 / gRPC 5091 with zero inter-service gRPC latency during queries.
+* **Event-Driven Data Materialization**: Real-time sync via 8 MassTransit event consumers (`ProductCreated`, `ProductUpdated`, `ProductDeleted`, `ProductStatusChanged`, `ProductReviewCreated`, `SubOrderCompleted`, `WishlistToggled`, `CategoryTreeSync`).
+* **Content-Based Similarity**: Multi-factor similarity scoring (Category 35%, Shop 10%, Price Proximity 20%, Attribute Jaccard 20%, Popularity Boost 15%) for Product Detail pages (`GET /api/recommendations/similar/{productId}`).
+* **Personalized Hybrid Feed**: Customer-specific feed weighting purchase history (40%), wishlists (20%), and 30-day views (25%) with cold-start fallback (`GET /api/recommendations/for-you`).
+* **Real-time Trending**: Live trending product scoring combining 24-hour views (x1), 7-day purchases (x5), 7-day wishlist adds (x2), and review ratings (`GET /api/recommendations/trending`).
+* **Anti-Spam View Tracking**: Endpoint `POST /api/product-views` with 30-minute Redis throttle per user/session, capturing page dwell time on unmount.
+* **Performance & Scalability Optimization**:
+  - **Progressive Chunk Pagination**: Fixed payload chunks (18 items per page) on `for-you` and `trending`, avoiding payload bloat over the wire on successive clicks.
+  - **Precomputed Candidate Pool Caching**: Scores candidate pool once in Redis (`reco:pool:for-you:{id}` TTL 2h, `reco:pool:trending` TTL 1h); subsequent pages sliced via `.Skip().Take()` in ~2ms without re-querying the database.
+  - **Viewport Lazy Loading**: Framer-motion `useInView` triggers data fetching only when scrolled near the section, saving initial page load bandwidth.
+* **Frontend ACO Integration**:
+  - Landing Page: `TodayRecommendationsSection` (`useInfinitePersonalizedRecommendationsQuery` + `useInView`) and `InterestedProductsSection` (`useTrendingProductsQuery` + `useInView` + loading skeleton).
+  - Product Detail Page: `RelatedProducts` (`useSimilarProductsQuery`) and automated view duration tracking (`useTrackProductViewMutation`).
 
 ---
 

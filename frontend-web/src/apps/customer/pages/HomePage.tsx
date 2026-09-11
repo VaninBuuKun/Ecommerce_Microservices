@@ -7,8 +7,12 @@ import {
 	Star,
 	Tag,
 } from "lucide-react";
-import { CategoryList, useProductsQuery } from "@/domains/catalog";
-import { toast } from "react-toastify";
+import {
+	CategoryList,
+	useProductsQuery,
+	usePersonalizedRecommendationsQuery,
+	useTrendingProductsQuery,
+} from "@/domains/catalog";
 
 export default function HomePage() {
 	const navigate = useNavigate();
@@ -18,11 +22,25 @@ export default function HomePage() {
 			element.scrollIntoView({ behavior: "smooth" });
 		}
 	};
-	// Load actual active products from public catalog API
+
+	// 1. Gợi ý cá nhân hóa từ Recommendation Service (page 1: 18 sản phẩm)
+	const { data: personalizedData } = usePersonalizedRecommendationsQuery(1);
+	// 2. Hot trend từ Recommendation Service (page 1: 18 sản phẩm)
+	const { data: trendingData } = useTrendingProductsQuery(1);
+	// 3. Fallback catalog products
 	const { data: publicProductsData } = useProductsQuery({
 		limit: 10,
 	});
-	const suggestedList = publicProductsData?.items || [];
+
+	const suggestedList =
+		personalizedData?.items && personalizedData.items.length > 0
+			? personalizedData.items
+			: publicProductsData?.items || [];
+
+	const trendingList =
+		trendingData?.items && trendingData.items.length > 0
+			? trendingData.items
+			: publicProductsData?.items || [];
 
 	return (
 		<div className="min-h-screen flex flex-col bg-brand-light overflow-x-hidden scroll-smooth">
@@ -60,10 +78,7 @@ export default function HomePage() {
 						<div className="flex flex-wrap items-center gap-3 pt-4">
 							{/* Nút 1: Khám phá sản phẩm (dẫn mượt đến gợi ý dành cho bạn) */}
 							<button
-								onClick={() => {
-									toast.success("Hello");
-									scrollToSection("suggested-products");
-								}}
+								onClick={() => scrollToSection("suggested-products")}
 								className="inline-flex items-center gap-2 bg-brand-primary text-brand-dark px-5 py-2.5 rounded-sm font-medium text-sm hover:bg-brand-primary-deep transition-all duration-200 shadow-sm cursor-pointer"
 							>
 								Khám phá sản phẩm
@@ -152,6 +167,64 @@ export default function HomePage() {
 							</h2>
 						</div>
 					</div>
+
+					<div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4">
+						{trendingList.map((p: any) => {
+							const hasDiscount = p.discountPrice && p.discountPrice > 0 && p.discountPrice < p.price;
+							const activePrice = hasDiscount ? p.discountPrice : p.price;
+
+							return (
+								<motion.div
+									whileHover={{ y: -4 }}
+									key={p.id}
+									onClick={() => navigate(`/products/${p.id}`)}
+									className="group flex flex-col bg-white rounded-lg overflow-hidden border border-brand-border hover:shadow-[0_6px_20px_rgba(0,0,0,0.06)] transition-all duration-200 relative cursor-pointer"
+								>
+									<div className="aspect-square w-full overflow-hidden relative bg-brand-light border-b border-brand-border">
+										<img
+											src={p.thumbnailUrl || "https://images.unsplash.com/photo-1523275335684-37898b6baf30?auto=format&fit=crop&q=80&w=300"}
+											className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+										/>
+										<span className="absolute top-2 left-2 bg-rose-600 text-white text-[8px] font-bold uppercase px-2 py-0.5 rounded-sm tracking-wider">
+											HOT TREND
+										</span>
+									</div>
+
+									<div className="p-3.5 flex-1 flex flex-col text-left justify-between space-y-2.5">
+										<div className="space-y-0.5">
+											<span className="text-[8px] text-brand-muted font-bold uppercase tracking-wider">
+												BUU STORE
+											</span>
+											<h3 className="font-bold text-brand-dark text-xs group-hover:text-brand-primary transition-colors line-clamp-1">
+												{p.name}
+											</h3>
+										</div>
+										<div className="flex items-center gap-1">
+											<Star className="w-3 h-3 fill-brand-primary stroke-brand-primary" />
+											<span className="text-[11px] font-bold text-brand-dark">
+												{p.averageRating}
+											</span>
+											<span className="text-[9px] text-brand-muted">
+												({p.reviewCount || 0})
+											</span>
+										</div>
+										<div className="flex items-center justify-between pt-2 border-t border-brand-border">
+											<div className="flex flex-col">
+												<span className="font-bold text-brand-dark text-xs">
+													{Number(activePrice).toLocaleString("vi-VN")}đ
+												</span>
+												{hasDiscount && (
+													<span className="text-[9px] text-brand-muted line-through">
+														{Number(p.price).toLocaleString("vi-VN")}đ
+													</span>
+												)}
+											</div>
+										</div>
+									</div>
+								</motion.div>
+							);
+						})}
+					</div>
 				</div>
 			</section>
 
@@ -172,54 +245,61 @@ export default function HomePage() {
 				</div>
 
 				<div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4">
-					{suggestedList.map((p: any) => (
-						<motion.div
-							whileHover={{ y: -4 }}
-							key={p.id}
-							onClick={() => navigate(`/products/${p.id}`)}
-							className="group flex flex-col bg-white rounded-lg overflow-hidden border border-brand-border hover:shadow-[0_6px_20px_rgba(0,0,0,0.06)] transition-all duration-200 relative cursor-pointer"
-						>
-							<div className="aspect-square w-full overflow-hidden relative bg-brand-light border-b border-brand-border">
-								<img
-									src={p.thumbnailUrl}
-									className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-								/>
-								<span className="absolute top-2 left-2 bg-brand-primary text-brand-dark text-[8px] font-bold uppercase px-2 py-0.5 rounded-sm tracking-wider">
-									{p.tag ?? "Best seller"}
-								</span>
-							</div>
+					{suggestedList.map((p: any) => {
+						const hasDiscount = p.discountPrice && p.discountPrice > 0 && p.discountPrice < p.price;
+						const activePrice = hasDiscount ? p.discountPrice : p.price;
 
-							<div className="p-3.5 flex-1 flex flex-col text-left justify-between space-y-2.5">
-								<div className="space-y-0.5">
-									<span className="text-[8px] text-brand-muted font-bold uppercase tracking-wider">
-										BUU STORE
-									</span>
-									<h3 className="font-bold text-brand-dark text-xs group-hover:text-brand-primary transition-colors line-clamp-1">
-										{p.name}
-									</h3>
-								</div>
-								<div className="flex items-center gap-1">
-									<Star className="w-3 h-3 fill-brand-primary stroke-brand-primary" />
-									<span className="text-[11px] font-bold text-brand-dark">
-										{p.averageRating}
-									</span>
-									<span className="text-[9px] text-brand-muted">
-										({p.reviewCount})
+						return (
+							<motion.div
+								whileHover={{ y: -4 }}
+								key={p.id}
+								onClick={() => navigate(`/products/${p.id}`)}
+								className="group flex flex-col bg-white rounded-lg overflow-hidden border border-brand-border hover:shadow-[0_6px_20px_rgba(0,0,0,0.06)] transition-all duration-200 relative cursor-pointer"
+							>
+								<div className="aspect-square w-full overflow-hidden relative bg-brand-light border-b border-brand-border">
+									<img
+										src={p.thumbnailUrl || "https://images.unsplash.com/photo-1523275335684-37898b6baf30?auto=format&fit=crop&q=80&w=300"}
+										className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+									/>
+									<span className="absolute top-2 left-2 bg-brand-primary text-brand-dark text-[8px] font-bold uppercase px-2 py-0.5 rounded-sm tracking-wider">
+										{p.recommendationReason ? "Gợi ý" : "Best seller"}
 									</span>
 								</div>
-								<div className="flex items-center justify-between pt-2 border-t border-brand-border">
-									<div className="flex flex-col">
-										<span className="font-bold text-brand-dark text-xs">
-											{p.discountPrice}
+
+								<div className="p-3.5 flex-1 flex flex-col text-left justify-between space-y-2.5">
+									<div className="space-y-0.5">
+										<span className="text-[8px] text-brand-muted font-bold uppercase tracking-wider">
+											BUU STORE
 										</span>
-										<span className="text-[9px] text-brand-muted line-through">
-											{p.price}
+										<h3 className="font-bold text-brand-dark text-xs group-hover:text-brand-primary transition-colors line-clamp-1">
+											{p.name}
+										</h3>
+									</div>
+									<div className="flex items-center gap-1">
+										<Star className="w-3 h-3 fill-brand-primary stroke-brand-primary" />
+										<span className="text-[11px] font-bold text-brand-dark">
+											{p.averageRating}
+										</span>
+										<span className="text-[9px] text-brand-muted">
+											({p.reviewCount || 0})
 										</span>
 									</div>
+									<div className="flex items-center justify-between pt-2 border-t border-brand-border">
+										<div className="flex flex-col">
+											<span className="font-bold text-brand-dark text-xs">
+												{Number(activePrice).toLocaleString("vi-VN")}đ
+											</span>
+											{hasDiscount && (
+												<span className="text-[9px] text-brand-muted line-through">
+													{Number(p.price).toLocaleString("vi-VN")}đ
+												</span>
+											)}
+										</div>
+									</div>
 								</div>
-							</div>
-						</motion.div>
-					))}
+							</motion.div>
+						);
+					})}
 				</div>
 			</section>
 

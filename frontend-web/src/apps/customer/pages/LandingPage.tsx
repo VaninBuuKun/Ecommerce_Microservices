@@ -3,7 +3,6 @@ import {
 	HeroBannerSection,
 	FlashSaleSection,
 	BestSellersSection,
-	NewArrivalsSection,
 	InterestedProductsSection,
 	TodayRecommendationsSection,
 } from "@/domains/catalog";
@@ -34,9 +33,6 @@ export default function LandingPage() {
 
 					{/* 3. SECTION: SẢN PHẨM BÁN CHẠY (BEST SELLERS) */}
 					<BestSellersSection />
-
-					{/* 4. SECTION: HÀNG MỚI VỀ (NEW ARRIVALS) */}
-					<NewArrivalsSection />
 
 					{/* 5. SECTION: SẢN PHẨM BẠN QUAN TÂM (INTERESTED PRODUCTS) */}
 					<InterestedProductsSection />

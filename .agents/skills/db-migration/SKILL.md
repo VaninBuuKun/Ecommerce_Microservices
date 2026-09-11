@@ -57,5 +57,9 @@ dotnet ef database update --project src/Services/Shippings/Ecommerce.Services.Sh
 # 8. Notifications Service (NotificationDbContext)
 dotnet ef migrations add <MigrationName> --project src/Services/Notifications/Ecommerce.Services.Notifications.Api --context NotificationDbContext
 dotnet ef database update --project src/Services/Notifications/Ecommerce.Services.Notifications.Api --context NotificationDbContext
+
+# 9. Recommendations Service (RecommendationDbContext)
+dotnet ef migrations add <MigrationName> --project src/Services/Recommendations/Ecommerce.Services.Recommendations.Api --context RecommendationDbContext
+dotnet ef database update --project src/Services/Recommendations/Ecommerce.Services.Recommendations.Api --context RecommendationDbContext
 ```
 

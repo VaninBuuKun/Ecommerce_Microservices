@@ -3,6 +3,8 @@ using BuildingBlocks.Auth;
 using BuildingBlocks.Shared.Commons;
 using BuildingBlocks.Shared.Enums;
 using BuildingBlocks.Shared.InfrastructureInterfaces.Persistence.EFCore;
+using BuildingBlocks.Shared.Events;
+using BuildingBlocks.Shared.InfrastructureInterfaces.Messaging;
 using Ecommerce.Services.Catalog.Application.Commons.Dtos.Products;
 using Ecommerce.Services.Catalog.Application.Commons.Interfaces;
 using Ecommerce.Services.Catalog.Domain;
@@ -17,6 +19,7 @@ public class UpdateProductCommandHandler(
     IEfUnitOfWork unitOfWork,
     ISellerService sellerService,
     ICurrentUserService currentUserService,
+    IEventPublisher eventPublisher,
     ILogger<UpdateProductCommandHandler> logger, 
     IMapper mapper
 ) : CommandHandler<UpdateProductCommand, ProductResponse>
@@ -111,6 +114,30 @@ public class UpdateProductCommandHandler(
 
             _productRepository.Update(existsProduct);
             await unitOfWork.SaveChangesAsync(cancellationToken);
+
+            try
+            {
+                await eventPublisher.PublishAsync(new ProductUpdatedEvent
+                {
+                    ProductId = existsProduct.Id,
+                    ShopId = existsProduct.ShopId,
+                    Name = existsProduct.Name,
+                    Description = existsProduct.Description,
+                    CategoryId = existsProduct.CategoryId,
+                    Price = existsProduct.Price,
+                    DiscountPrice = existsProduct.DiscountPrice,
+                    ThumbnailUrl = existsProduct.ThumbnailUrl,
+                    AttributesJson = existsProduct.AttributesJson,
+                    Sold = existsProduct.Sold,
+                    AverageRating = existsProduct.AverageRating,
+                    IsActive = existsProduct.Status == ProductStatus.Active,
+                    UpdatedAt = DateTime.UtcNow
+                }, cancellationToken);
+            }
+            catch (Exception pubEx)
+            {
+                logger.LogError(pubEx, "Failed to publish ProductUpdatedEvent for product {ProductId}", existsProduct.Id);
+            }
             
             var response = mapper.Map<ProductResponse>(existsProduct);
             return Result<ProductResponse>.Success(response);

@@ -65,7 +65,7 @@ try
     {
         var userManager = scope.ServiceProvider.GetRequiredService<UserManager<AppUser>>();
         var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole<long>>>();
-        await SeedDataExtensions.SeedUserAndRoleAsync(userManager, roleManager);
+        await SeedIdentityExtensions.SeedUserAndRoleAsync(userManager, roleManager);
     }
 
     app.Run();

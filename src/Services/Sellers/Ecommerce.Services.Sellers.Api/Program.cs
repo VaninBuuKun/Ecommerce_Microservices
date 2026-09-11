@@ -46,11 +46,11 @@ try
 
     app.MapControllers();
 
-    using (var scope = app.Services.CreateScope())
-    {
-        var dbContext = scope.ServiceProvider.GetRequiredService<SellerDbContext>();
-        await Ecommerce.Services.Sellers.Api.Extensions.SeedDataExtensions.SeedShopsAsync(dbContext);
-    }
+    // using (var scope = app.Services.CreateScope())
+    // {
+    //     var dbContext = scope.ServiceProvider.GetRequiredService<SellerDbContext>();
+    //     await Ecommerce.Services.Sellers.Api.Extensions.SeedDataExtensions.SeedShopsAsync(dbContext);
+    // }
 
     app.Run();
 }

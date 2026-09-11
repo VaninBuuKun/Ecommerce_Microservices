@@ -28,7 +28,7 @@ services:
       # Database mặc định PostgreSQL tạo khi khởi động.
       - POSTGRES_DB=OrderDb
   
-      - POSTGRES_MULTIPLE_DATABASES=IdentityDb,PaymentDb,SellerDb,ShippingDb,CatalogDb
+      - POSTGRES_MULTIPLE_DATABASES=IdentityDb,PaymentDb,SellerDb,ShippingDb,CatalogDb,RecommendationDb,AnalyticsDb
     
     ports:
       - "5433:5432"

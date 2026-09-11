@@ -85,6 +85,8 @@ seed-all.bat
 .scratch/
 scratch/
 **/scratch/
+.antigravity/scratchpad.md
+scratchpad.md
 
 # VS Code C# Dev Tools - Auto-generated runners
 .vscodecsdt/Runners/

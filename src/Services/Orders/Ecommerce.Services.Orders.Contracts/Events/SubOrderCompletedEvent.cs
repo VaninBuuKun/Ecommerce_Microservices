@@ -15,11 +15,14 @@ public class SubOrderCompletedEvent : IIntegrationEvent
     /// Doanh thu thực tế người bán nhận = TotalAmount - PlatformDiscount.
     /// </summary>
     public long PlatformDiscount { get; init; }
+    public long CustomerId { get; init; }
     public List<SubOrderCompletedItemContract> Items { get; init; } = new();
 }
 
 public class SubOrderCompletedItemContract
 {
     public long VariantId { get; init; }
+    public long ProductId { get; init; }
+    public long? CategoryId { get; init; }
     public int Quantity { get; init; }
 }

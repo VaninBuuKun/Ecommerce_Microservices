@@ -1,3 +1,81 @@
+- [x] Tối Ưu UX Trí Tuệ Khi Cuộn Trang (Viewport Lazy Loading & Scroll Reveal) & Phân Biệt Trực Quan Icon / Badge Landing Page (`BestSellersSection.tsx`, `InterestedProductsSection.tsx`, `TodayRecommendationsSection.tsx`, `LandingPage.tsx`):
+  - **Mục tiêu**: Giải quyết triệt để vấn đề "nói lướt tới một đoạn mới show mà vừa vào đã hiện hoặc hiện text trống", đồng thời phân biệt trực quan hoàn toàn biểu tượng giữa mục "Sản phẩm bán chạy" và "Hot trend hôm nay".
+  - **Khắc phục lỗi hiển thị trống & Cơ chế Lazy-load thực sự**:
+    - **Nguyên nhân gốc**: Trước đây `useInView` để `margin: "250px"` khiến trình duyệt kích hoạt query trước khi người dùng kịp cuộn tới. Đồng thời, khi `enabled: isInView` là `false` thì TanStack Query trả về `isLoading = false`, dẫn đến điều kiện `productsList.length === 0 && !isLoading` bị thỏa mãn ngay lập tức và làm chớp dòng chữ *"Hiện chưa có sản phẩm nào được hiển thị"*.
+    - **Giải pháp**:
+      - Chuyển `margin` của `useInView` về `-40px` (yêu cầu section thực sự bước vào màn hình 40px mới kích hoạt load).
+      - Định nghĩa biến cờ `isWaitingForFetch = !isInView || isLoading;`, duy trì hiển thị khung xương Skeleton mượt mà (6-12 items shimmer) trong suốt thời gian người dùng chưa cuộn tới hoặc dữ liệu đang tải, triệt tiêu hoàn toàn hiện tượng chớp text rỗng.
+      - Bọc các section trong `motion.section` với hiệu ứng trồi mượt `initial={{ opacity: 0, y: 24 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, margin: "-40px" }} transition={{ duration: 0.45, ease: "easeOut" }}`.
+  - **Phân biệt trực quan Icon & Chủ đề các Section**:
+    - [BestSellersSection.tsx](file:///home/vanmuzic/Projects/Ecommerce_Microservices/frontend-web/src/domains/catalog/components/landing/BestSellersSection.tsx): Thay icon `Flame` bằng icon chiếc cúp vô địch `Trophy` vàng kim (`fill-amber-400 text-amber-500` trên nền `bg-amber-50 border-amber-200`) kèm badge *"Top Bán Chạy"*.
+    - [InterestedProductsSection.tsx](file:///home/vanmuzic/Projects/Ecommerce_Microservices/frontend-web/src/domains/catalog/components/landing/InterestedProductsSection.tsx): Thay icon `Flame` bằng icon biểu đồ tăng trưởng `TrendingUp` hồng sen (`text-rose-500 stroke-[2.5]` trên nền `bg-rose-50 border-rose-200`) kèm badge *"Trending 24h"*.
+    - [TodayRecommendationsSection.tsx](file:///home/vanmuzic/Projects/Ecommerce_Microservices/frontend-web/src/domains/catalog/components/landing/TodayRecommendationsSection.tsx): Duy trì biểu tượng sao thông minh `Sparkles` tượng trưng cho thuật toán gợi ý AI/Cá nhân hóa.
+  - **Dọn dẹp layout**: Loại bỏ import thừa `NewArrivalsSection` trong [LandingPage.tsx](file:///home/vanmuzic/Projects/Ecommerce_Microservices/frontend-web/src/apps/customer/pages/LandingPage.tsx).
+  - **Kiểm Thử & Biên Dịch**: `npm run build` $\rightarrow$ ✅ Built in 690ms (0 errors).
+
+- [x] Tối Ưu Hiệu Năng & Tinh Chỉnh Thuật Toán Recommendation (Cố Định 18 Items/Trang, Tối Đa 6 Trang / 108 Items, Page 1 Always Re-compute & Update Redis, Page >= 2 Pure Redis Pool):
+  - **Mục tiêu**: Chuẩn hóa luồng hoạt động của thuật toán gợi ý theo phản hồi người dùng: Cố định `pageSize = 18`, loại bỏ hoàn toàn `limit`, giới hạn tối đa 6 trang ($6 \times 18 = 108$ sản phẩm, cho phép bấm "Xem thêm" đúng 5 lần).
+  - **Quy Tắc Thuật Toán & Redis Pool (`Recommendations.Api`)**:
+    - **Page = 1**: Luôn luôn bỏ qua cache cũ, chạy thuật toán tính toán scoring/ranking tươi mới nhất từ database (lịch sử mua, wishlist, view 30 ngày) để sinh candidate pool tối đa 108 sản phẩm. Lưu snapshot pool này vào Redis (`reco:pool:for-you:{identifier}` TTL 2h, `reco:pool:trending` TTL 1h). Trả về chunk 18 sản phẩm đầu tiên (`Take(18)`).
+    - **Page >= 2**: Đọc trực tiếp từ Redis candidate pool đã sinh ở Page 1 và cắt chunk `.Skip((page - 1) * 18).Take(18)` với tốc độ tức thì 1-2ms, không query DB hay tính lại điểm.
+    - **Cơ chế Chịu Lỗi (Fault-tolerant)**: Nếu `page >= 2` mà Redis pool trống (do restart server hoặc cache expire), backend tự động sinh lại pool 108 sản phẩm, lưu vào Redis và trả về chunk của trang đó thay vì báo lỗi 500 làm hỏng UI.
+    - **Giới hạn 6 trang (5 lần xem thêm)**: Khi `page >= 6` hoặc `page * 18 >= pool.Count`, backend trả về `HasNext = false` $\rightarrow$ Frontend tắt nút "Xem thêm" và báo "Đã hiển thị tất cả sản phẩm gợi ý hôm nay (108 sản phẩm)".
+  - **Frontend Integration (ACO Architecture - `domains/catalog`)**:
+    - [recommendationApi.ts](file:///home/vanmuzic/Projects/Ecommerce_Microservices/frontend-web/src/domains/catalog/api/recommendationApi.ts): Nhận `page` trực tiếp (`page = 1, 2...`), không còn `limit` hay `pageSize`.
+    - [useRecommendations.ts](file:///home/vanmuzic/Projects/Ecommerce_Microservices/frontend-web/src/domains/catalog/hooks/useRecommendations.ts): `useInfinitePersonalizedRecommendationsQuery` cấu hình `getNextPageParam` dừng lại khi `page >= 6` hoặc `!hasNext`.
+    - [TodayRecommendationsSection.tsx](file:///home/vanmuzic/Projects/Ecommerce_Microservices/frontend-web/src/domains/catalog/components/landing/TodayRecommendationsSection.tsx): Nút "Xem thêm" gọi `fetchNextPage()`, hiển thị thông điệp kết thúc trang trọng khi đạt mốc 108 sản phẩm.
+    - [HomePage.tsx](file:///home/vanmuzic/Projects/Ecommerce_Microservices/frontend-web/src/apps/customer/pages/HomePage.tsx): Đồng bộ gọi `usePersonalizedRecommendationsQuery(1)` và `useTrendingProductsQuery(1)`.
+  - **Kiểm Thử & Biên Dịch**:
+    - Backend: `dotnet build Microservices.sln` $\rightarrow$ ✅ Build succeeded (0 errors).
+    - Frontend: `npm run build` $\rightarrow$ ✅ Built in 959ms (0 errors).
+- [x] Tích Hợp Frontend Toàn Diện Cho Hệ Thống Gợi Ý Sản Phẩm (Landing Page & Product Detail) & Cơ Chế Đồng Bộ Dữ Liệu CatalogDb Sang RecommendationDb:
+  - **Mục tiêu**: Kết nối giao diện người dùng (Landing Page và Product Detail Page) với hệ thống microservice `Recommendations.Api` mới triển khai, đảm bảo luồng gợi ý sản phẩm tương tự, cá nhân hóa, hot trend và theo dõi lượt xem hoạt động mượt mà. Đồng thời cung cấp cơ chế đồng bộ dữ liệu sản phẩm & danh mục từ `CatalogDb` sang `RecommendationDb` (đã đồng bộ đủ 129 danh mục và 180 sản phẩm).
+  - **Backend Synchronization (`Recommendations.Api`)**:
+    - Xây dựng `IDataSyncService` và [DataSyncService.cs](file:///home/vanmuzic/Projects/Ecommerce_Microservices/src/Services/Recommendations/Ecommerce.Services.Recommendations.Api/Services/DataSyncService.cs) hỗ trợ đồng bộ on-demand toàn bộ danh mục và sản phẩm từ `CatalogDb` sang các bảng materialized trong `RecommendationDb`.
+    - Thêm endpoint `POST /api/recommendations/sync` trong `RecommendationsController.cs` cho phép kích hoạt đồng bộ bất cứ lúc nào qua API.
+    - Duy trì script thực thi nhanh [sync_recommendations.sh](file:///home/vanmuzic/Projects/Ecommerce_Microservices/QueryDb/sync_recommendations.sh) qua PostgreSQL COPY stream.
+    - Test kiểm chứng thực tế: API `GET /api/recommendations/trending`, `GET /api/recommendations/similar/{id}`, `GET /api/recommendations/for-you` phản hồi dữ liệu tức thì (10-50ms) và cache Redis chuẩn.
+  - **Frontend Integration (ACO Architecture - `domains/catalog`)**:
+    - **Types**: Bổ sung `RecommendedProduct`, `RecommendationResponse`, `TrackProductViewRequest`, `ProductViewStats` vào [catalog.types.ts](file:///home/vanmuzic/Projects/Ecommerce_Microservices/frontend-web/src/domains/catalog/types/catalog.types.ts).
+    - **API Client**: Xây dựng [recommendationApi.ts](file:///home/vanmuzic/Projects/Ecommerce_Microservices/frontend-web/src/domains/catalog/api/recommendationApi.ts) sử dụng `import { api } from "@/core"` và tự động truyền session ID (`X-Session-Id`) cho người dùng vãng lai (guest).
+    - **Hooks**: Xây dựng [useRecommendations.ts](file:///home/vanmuzic/Projects/Ecommerce_Microservices/frontend-web/src/domains/catalog/hooks/useRecommendations.ts) với các React Query hooks: `useSimilarProductsQuery`, `usePersonalizedRecommendationsQuery`, `useTrendingProductsQuery`, `useProductViewStatsQuery`, `useTrackProductViewMutation`, `useSyncRecommendationsMutation`.
+    - **Landing Page Integration**:
+      - [TodayRecommendationsSection.tsx](file:///home/vanmuzic/Projects/Ecommerce_Microservices/frontend-web/src/domains/catalog/components/landing/TodayRecommendationsSection.tsx): Kết nối `usePersonalizedRecommendationsQuery` với fallback danh mục công khai, hiển thị badge cá nhân hóa.
+      - [InterestedProductsSection.tsx](file:///home/vanmuzic/Projects/Ecommerce_Microservices/frontend-web/src/domains/catalog/components/landing/InterestedProductsSection.tsx): Kết nối `useTrendingProductsQuery` hiển thị danh sách hot trend dựa trên điểm view 24h, mua hàng 7 ngày và wishlist.
+      - [HomePage.tsx](file:///home/vanmuzic/Projects/Ecommerce_Microservices/frontend-web/src/apps/customer/pages/HomePage.tsx): Kết nối cả 2 mục `#trending-products` và `#suggested-products`, loại bỏ toast debug `toast.success("Hello")`, chuẩn hóa format tiền tệ VNĐ.
+    - **Product Detail Page Integration**:
+      - [RelatedProduct.tsx](file:///home/vanmuzic/Projects/Ecommerce_Microservices/frontend-web/src/domains/catalog/components/details/RelatedProduct.tsx): Chuyển sang dùng `useSimilarProductsQuery(currentProductId)` hiển thị sản phẩm tương tự dựa trên độ tương đồng danh mục, mức giá và thuộc tính (Content-based), tự động fallback an toàn.
+      - [ProductDetailPage.tsx](file:///home/vanmuzic/Projects/Ecommerce_Microservices/frontend-web/src/apps/customer/pages/ProductDetailPage.tsx): Tích hợp `useTrackProductViewMutation` ghi nhận lượt xem khi mở trang và tự động đo thời gian lưu lại trên trang (dwell time) khi người dùng rời đi (tối thiểu 2s).
+  - **Kiểm Thử & Biên Dịch**:
+    - Backend: `dotnet build Microservices.sln` $\rightarrow$ ✅ Build succeeded (0 errors).
+    - Frontend: `npm run build` (`frontend-web`) $\rightarrow$ ✅ Built in 666ms (0 errors).
+    - TypeScript: `npx tsc --noEmit` $\rightarrow$ ✅ Clean (0 errors).
+- [x] Thiết Kế & Triển Khai Hoàn Chỉnh Phase 1: Recommendations.Api — Microservice Gợi Ý Sản Phẩm (Service Layer Pattern, Event-Driven Data Materialization):
+  - **Mục tiêu**: Tách hoàn toàn hệ thống gợi ý sản phẩm thành Microservice độc lập (`Recommendations.Api`), chạy trên port REST `5090` / gRPC `5091`, sử dụng database riêng `RecommendationDb` (PostgreSQL). Toàn bộ dữ liệu được trải sẵn (materialized) qua MassTransit integration events, 100% không gọi gRPC sang các service khác khi truy vấn gợi ý.
+  - **Backend Implementation (Service Layer Pattern)**:
+    - **Models & Entities**: Xây dựng 5 thực thể materialized: `MaterializedProduct` (ProductId, ShopId, CategoryId, Name, Description, Price, DiscountPrice, AttributesJson, Sold, AverageRating, ReviewCount, IsActive, LastSyncedAt), `MaterializedCategory` (CategoryId, Name, ParentId, Level), `ProductView` (view tracking theo User / Session), `UserPurchaseHistory` (lịch sử mua theo SubOrderCompletedEvent), `UserWishlistItem` (wishlist snapshot theo WishlistToggledEvent).
+    - **Persistence**: `RecommendationDbContext` kế thừa `EfDbContextBase`, cấu hình PostgreSQL index tối ưu truy vấn theo `CategoryId`, `ShopId`, `IsActive`, `Sold`, `AverageRating`, `ViewedAt`.
+    - **Integration Events**:
+      - Bổ sung `CustomerId`, `ProductId`, `CategoryId` vào [SubOrderCompletedEvent.cs](file:///home/vanmuzic/Projects/Ecommerce_Microservices/src/Services/Orders/Ecommerce.Services.Orders.Contracts/Events/SubOrderCompletedEvent.cs). Cập nhật các producer trong `Orders.Infrastructure` và `CompleteSubOrderCommandHandler`.
+      - Khởi tạo 7 integration events mới trong `BuildingBlocks.Shared/Events/`: `ProductCreatedEvent`, `ProductUpdatedEvent`, `ProductDeletedEvent`, `ProductStatusChangedEvent`, `ProductReviewCreatedEvent`, `WishlistToggledEvent`, `CategoryTreeSyncEvent`.
+      - Tích hợp phát event từ các command handler trong `Catalog.Api`: `CreateProductCommandHandler`, `UpdateProductCommandHandler`, `DeleteProductCommandHandler`, `ToggleProductStatusCommandHandler`, `CreateProductReviewCommandHandler`, `ToggleWishlistCommandHandler`, `CreateCategoryCommandHandler`, `UpdateCategoryCommandHandler`, `DeleteCategoryCommandHandler`.
+    - **Data Materialization Consumers**: Xây dựng 8 consumer MassTransit trong `Recommendations.Api`: `ProductCreatedConsumer`, `ProductUpdatedConsumer`, `ProductDeletedConsumer`, `ProductStatusChangedConsumer`, `ProductReviewCreatedConsumer`, `SubOrderCompletedConsumer`, `WishlistToggledConsumer`, `CategorySyncConsumer`.
+    - **Services & Thuật toán Scoring**:
+      1. `SimilarProducts`: Thuật toán chấm điểm theo trọng số Content-Based (Same Category 0.35, Same Shop 0.10, Price Proximity 0.20, Attribute Overlap Jaccard 0.20, Popularity Boost 0.15), cache Redis 6 giờ.
+      2. `PersonalizedFeed`: Thuật toán Hybrid kết hợp lịch sử mua (0.40), wishlist (0.20), lịch sử xem (0.25), lọc bỏ sản phẩm đã mua, fallback cho guest user, cache Redis 2 giờ.
+      3. `TrendingProducts`: Chấm điểm tổng hợp lượt xem 24h (x1), mua hàng 7 ngày (x5), wishlist 7 ngày (x2), review rating, cache Redis 1 giờ.
+      4. `ProductViewService`: Ghi nhận lượt xem sản phẩm, tích hợp throttle 30 phút qua Redis key `view:throttle:{userId/sessionId}:{productId}` chống spam DB.
+    - **Controllers**:
+      - `RecommendationsController`: `GET /api/recommendations/similar/{productId}`, `GET /api/recommendations/for-you`, `GET /api/recommendations/trending`.
+      - `ProductViewsController`: `POST /api/product-views`, `GET /api/product-views/{productId}/stats`.
+  - **Infrastructure & YARP Gateway**:
+    - Thêm project `Ecommerce.Services.Recommendations.Api` vào `Microservices.sln`.
+    - Thêm routes `/api/recommendations/*`, `/api/product-views/*` và cluster `recommendation-cluster` (`http://localhost:5090`) vào [appsettings.json](file:///home/vanmuzic/Projects/Ecommerce_Microservices/src/ApiGateway/Ecommerce.ApiGateway/appsettings.json) của API Gateway.
+    - Cập nhật [docker-compose.yaml](file:///home/vanmuzic/Projects/Ecommerce_Microservices/src/docker-compose.yaml) thêm `RecommendationDb,AnalyticsDb` vào `POSTGRES_MULTIPLE_DATABASES`.
+    - Thêm context `recommendations` vào script [update-db.sh](file:///home/vanmuzic/Projects/Ecommerce_Microservices/update-db.sh) và tài liệu `SKILL.md`.
+    - Tạo migration EF Core `InitialRecommendationDb` cho `RecommendationDbContext`.
+  - **Kiểm Thử & Biên Dịch**:
+    - Biên dịch thành công toàn bộ solution: `dotnet build Microservices.sln` $\rightarrow$ ✅ Build succeeded (0 errors).
 - [x] Mở Rộng & Seed Toàn Diện 21 Hồ Sơ Seller KYC Với 4 Trạng Thái Chuẩn E-commerce (`SeedDataExtensions.cs` ở cả Sellers.Api & Identity.Api, `seed_seller_kyc.sql`):
   - **Mục tiêu**: Bổ sung đầy đủ hồ sơ định danh người bán (Seller KYC) phục vụ kiểm thử quản trị `/admin/kyc` (tab mặc định là Chờ duyệt `Submitted`), quy trình nộp duyệt KYC, từ chối kèm lý do và lưu nháp.
   - **Triển khai trong Code C#**:

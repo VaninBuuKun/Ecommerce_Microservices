@@ -3,7 +3,7 @@ using Microsoft.AspNetCore.Identity;
 
 namespace Identity.Extensions;
 
-public static class SeedDataExtensions
+public static class SeedIdentityExtensions
 {
     public static async Task SeedUserAndRoleAsync(
         UserManager<AppUser> userManager,

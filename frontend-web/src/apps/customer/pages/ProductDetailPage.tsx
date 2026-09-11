@@ -27,6 +27,7 @@ import {
 	ProductReviewsSection,
 	WishlistButton,
 	ProductImageModal,
+	useTrackProductViewMutation,
 } from "@/domains/catalog";
 
 import { useSellerProfileQuery, usePublicShopQuery } from "@/domains/seller";
@@ -46,6 +47,27 @@ export default function ProductDetailPage() {
 	const { openAuthModal } = useAuthModalStore();
 	const { data: product, isLoading, isError } = useProductByIdQuery(id);
 	const { data: shop } = usePublicShopQuery(product?.shopId ? Number(product.shopId) : undefined);
+	const trackViewMutation = useTrackProductViewMutation();
+
+	// Theo dõi lượt xem & dwell time cho hệ thống gợi ý sản phẩm
+	useEffect(() => {
+		if (!id) return;
+		const startTime = Date.now();
+
+		// Ghi nhận lượt xem sản phẩm ban đầu
+		trackViewMutation.mutate({ productId: id });
+
+		// Ghi nhận dwell time khi người dùng rời trang (nếu ở lại >= 2 giây)
+		return () => {
+			const durationSeconds = Math.round((Date.now() - startTime) / 1000);
+			if (durationSeconds >= 2) {
+				trackViewMutation.mutate({
+					productId: id,
+					durationSeconds: Math.min(durationSeconds, 3600),
+				});
+			}
+		};
+	}, [id]);
 
 	const shopWardId = Number(shop?.wardId || 0);
 	const { data: resolvedLocations } = useResolveLocationsQuery(shopWardId > 0 ? [shopWardId] : []);

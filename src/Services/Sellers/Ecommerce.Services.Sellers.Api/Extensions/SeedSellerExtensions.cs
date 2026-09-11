@@ -8,7 +8,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Ecommerce.Services.Sellers.Api.Extensions;
 
-public static class SeedDataExtensions
+public static class SeedSellerExtensions
 {
     public static async Task SeedShopsAsync(SellerDbContext dbContext)
     {
@@ -44,6 +44,13 @@ public static class SeedDataExtensions
             new { UserId = 21L, IdCard = "001200000021", Status = KycStatus.Draft, RejectReason = (string?)null }, // Neji Hyuga
             new { UserId = 22L, IdCard = "001200000022", Status = KycStatus.Draft, RejectReason = (string?)null }  // Obito Uchiha
         };
+
+        var isExist = await dbContext.SellerKycs.AnyAsync();
+
+        if (isExist)
+        {
+            return;
+        }
 
         foreach (var item in kycSeeds)
         {

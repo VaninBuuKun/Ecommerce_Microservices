@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { Flame, Star, ChevronLeft, ChevronRight } from "lucide-react";
+import { Trophy, Star, ChevronLeft, ChevronRight } from "lucide-react";
 import { useBestSellersQuery } from "../../hooks/useCatalog";
 import { useSliderGesture } from "./useSliderGesture";
 
@@ -9,7 +9,7 @@ export function BestSellersSection() {
 	const navigate = useNavigate();
 	const [bestSellerSlide, setBestSellerSlide] = useState(0);
 
-	const { data: topProductsData } = useBestSellersQuery(18);
+	const { data: topProductsData, isLoading } = useBestSellersQuery(18);
 
 	const allBestSellers = topProductsData?.items || [];
 
@@ -47,22 +47,43 @@ export function BestSellersSection() {
 	};
 
 	return (
-		<section className="bg-white border border-brand-border/70 rounded-xl p-3.5 md:p-4 shadow-2xs space-y-3.5 relative">
+		<motion.section
+			initial={{ opacity: 0, y: 24 }}
+			whileInView={{ opacity: 1, y: 0 }}
+			viewport={{ once: true, margin: "-40px" }}
+			transition={{ duration: 0.45, ease: "easeOut" }}
+			className="bg-white border border-brand-border/70 rounded-xl p-3.5 md:p-4 shadow-2xs space-y-3.5 relative"
+		>
 			<div className="flex items-center gap-2 text-left border-b border-brand-border/60 pb-2.5">
-				<div className="p-1.5 bg-rose-50 text-rose-600 rounded-lg border border-rose-200">
-					<Flame className="w-4 h-4 fill-rose-500 text-rose-500" />
+				<div className="p-1.5 bg-amber-50 text-amber-600 rounded-lg border border-amber-200">
+					<Trophy className="w-4 h-4 fill-amber-400 text-amber-500" />
 				</div>
 				<div>
-					<h2 className="text-xs font-black text-brand-dark uppercase tracking-wide">
-						Sản phẩm bán chạy
-					</h2>
+					<div className="flex items-center gap-2">
+						<h2 className="text-xs font-black text-brand-dark uppercase tracking-wide">
+							Sản phẩm bán chạy
+						</h2>
+						<span className="text-[9px] font-extrabold text-amber-700 bg-amber-100/80 px-2 py-0.5 rounded-full">
+							Top Bán Chạy
+						</span>
+					</div>
 					<p className="text-[10px] text-brand-muted font-bold">
-						Top sản phẩm được săn đón nhất
+						Top sản phẩm dẫn đầu về lượt bán trên toàn sàn
 					</p>
 				</div>
 			</div>
 
-			<div className="relative" {...containerProps}>
+			{isLoading && allBestSellers.length === 0 ? (
+				<div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+					{Array.from({ length: 6 }).map((_, idx) => (
+						<div
+							key={idx}
+							className="h-60 bg-slate-100 rounded-lg animate-pulse"
+						/>
+					))}
+				</div>
+			) : (
+				<div className="relative" {...containerProps}>
 				{bestSellerSlide > 0 && (
 					<button
 						onClick={() => setBestSellerSlide((prev) => prev - 1)}
@@ -164,7 +185,8 @@ export function BestSellersSection() {
 						<ChevronRight className="w-4 h-4" />
 					</button>
 				)}
-			</div>
-		</section>
+				</div>
+			)}
+		</motion.section>
 	);
 }
