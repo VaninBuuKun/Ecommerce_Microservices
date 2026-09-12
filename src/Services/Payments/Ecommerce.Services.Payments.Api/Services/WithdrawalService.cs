@@ -85,6 +85,7 @@ public class WithdrawalService(IEfUnitOfWork unitOfWork, IMapper mapper, IEventP
         await unitOfWork.SaveChangesAsync();
 
         var dto = mapper.Map<WithdrawalRequestDto>(withdrawal);
+        dto.IconUrl = WalletService.GetBankIconUrl(dto.BankName);
         return Result<WithdrawalRequestDto>.Success(dto);
     }
 
@@ -93,6 +94,7 @@ public class WithdrawalService(IEfUnitOfWork unitOfWork, IMapper mapper, IEventP
         var withdrawals = await _withdrawalRepository.GetAllAsync(w => w.UserId == userId);
         var ordered = withdrawals.OrderByDescending(w => w.CreatedDate).ToList();
         var dtos = mapper.Map<List<WithdrawalRequestDto>>(ordered);
+        dtos.ForEach(d => d.IconUrl = WalletService.GetBankIconUrl(d.BankName));
         return Result<List<WithdrawalRequestDto>>.Success(dtos);
     }
 
@@ -110,6 +112,7 @@ public class WithdrawalService(IEfUnitOfWork unitOfWork, IMapper mapper, IEventP
 
         var ordered = withdrawals.OrderByDescending(w => w.CreatedDate).ToList();
         var dtos = mapper.Map<List<WithdrawalRequestDto>>(ordered);
+        dtos.ForEach(d => d.IconUrl = WalletService.GetBankIconUrl(d.BankName));
         return Result<List<WithdrawalRequestDto>>.Success(dtos);
     }
 

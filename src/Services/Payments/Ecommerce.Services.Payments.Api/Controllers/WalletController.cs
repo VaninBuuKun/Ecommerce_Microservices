@@ -69,6 +69,20 @@ public class WalletController(IWalletService walletService, ICurrentUserService 
         return StatusCode(result.GetHttpStatusCode(), result.Message);
     }
 
+    [HttpDelete("bank-accounts/{id:long}")]
+    public async Task<IActionResult> DeleteBankAccount([FromRoute] long id)
+    {
+        var userId = currentUserService.UserId;
+        var result = await walletService.DeleteBankAccount(userId, id);
+
+        if (result.IsSuccess)
+        {
+            return NoContent();
+        }
+
+        return StatusCode(result.GetHttpStatusCode(), result.Message);
+    }
+
     [HttpGet("bank-accounts")]
     public async Task<IActionResult> GetBankAccounts()
     {
@@ -81,6 +95,14 @@ public class WalletController(IWalletService walletService, ICurrentUserService 
         }
 
         return StatusCode(result.GetHttpStatusCode(), result.Message);
+    }
+
+    [HttpGet("supported-banks")]
+    [AllowAnonymous]
+    public async Task<IActionResult> GetSupportedBanks()
+    {
+        var result = await walletService.GetSupportedBanks();
+        return Ok(result.Value);
     }
 
     [HttpGet("transactions")]

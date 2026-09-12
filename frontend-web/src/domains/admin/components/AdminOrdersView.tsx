@@ -55,7 +55,7 @@ export function AdminOrdersView() {
 			<div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 pb-2.5 border-b border-brand-border">
 				<div>
 					<h2 className="text-4 font-black text-brand-dark uppercase tracking-wider flex items-center gap-2">
-						<ShoppingBag className="w-4 h-4 text-brand-primary" />
+						{/* <ShoppingBag className="w-4 h-4 text-brand-primary" /> */}
 						Quản lý Đơn hàng Toàn Sàn
 					</h2>
 					<p className="text-[12px] text-brand-muted font-bold mt-0.5">

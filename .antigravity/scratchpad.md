@@ -1,3 +1,64 @@
+- [x] Nâng Cấp Modal Quản Lý Tài Khoản Ngân Hàng: Bổ Sung Chức Năng Xóa Tài Khoản (Backend + Frontend), Mở Rộng Kích Thước Modal (max-w-2xl), Hiển Thị Logo Dưới Ô Chọn Kèm Checkbox Đặt Mặc Định Bên Phải:
+  - **Mục tiêu & Kết quả hoàn thành**:
+    1. **Backend Payments Service (`WalletService.cs`, `WalletController.cs`, `IWalletService.cs`)**:
+       - Triển khai phương thức `DeleteBankAccount(userId, bankAccountId)` trong `WalletService`:
+         - Kiểm tra quyền sở hữu tài khoản thuộc về ví người dùng.
+         - Ràng buộc an toàn: Không cho phép xóa tài khoản ngân hàng duy nhất (yêu cầu thêm tài khoản mới trước khi xóa).
+         - Tự động chuyển một tài khoản còn lại thành mặc định nếu tài khoản bị xóa đang là mặc định.
+       - Thêm API endpoint `DELETE /api/wallet/bank-accounts/{id:long}` trong `WalletController`.
+    2. **Frontend Web (`BankAccountManagerModal.tsx`, `WalletTab.tsx`, `orderApi.ts`, `walletApi.ts`, `useOrders.ts`)**:
+       - Thêm hàm gọi API `deleteBankAccount` trong cả `orderApi.ts` và `walletApi.ts`.
+       - Tạo hook mutation `useDeleteBankAccountMutation` với cơ chế invalidate query `["userBankAccounts"]`.
+       - Mở rộng kích thước Modal: Tăng từ `max-w-xl` lên `max-w-2xl`, tạo không gian thoáng đãng và trực quan.
+        - Tái cấu trúc Layout Form Thêm/Sửa thành 1 hàng duy nhất bên dưới các ô nhập liệu:
+          - Dưới ô select: Ô hiển thị logo ngân hàng (w-10 h-10 object-contain).
+          - Kế bên phải: Checkbox "Đặt làm mặc định".
+          - Phải cùng: Bộ nút "Hủy" và "Xác nhận".
+        - Thêm nút Xóa với icon `Trash2` (màu đỏ nhẹ rose-50, hover rose-100) kế bên nút "Sửa" cho từng dòng tài khoản trong danh sách kèm xác nhận và trạng thái `deletePending`.
+  - **Kiểm Thử & Biên Dịch**:
+    - Backend: `dotnet build Microservices.sln` -> Build succeeded (0 errors).
+    - Frontend: `npx tsc --noEmit` & `npm run build` -> Build succeeded in 1.11s (0 errors).
+
+- [x] Bổ Sung IconUrl Cho Danh Sách Ngân Hàng Hỗ Trợ Tại WalletService & Hiển Thị Logo Ngân Hàng Trong BankAccountManagerModal:
+  - **Mục tiêu & Kết quả hoàn thành**:
+    1. **Backend Payments Service (`WalletService.cs`, `WithdrawalService.cs`, `WalletController.cs`)**:
+       - Cấu trúc lại `AllowedBanks` trong `WalletService.cs` từ `HashSet<string>` thành `Dictionary<string, SupportedBankInfo>` với đầy đủ `Name`, `Code`, và `IconUrl` từ CDN VietQR (Vietcombank, Techcombank, MB Bank, ACB, BIDV, VietinBank, Agribank, Sacombank, VPBank, TPBank, VIB, HDBank).
+       - Thêm helper method `GetBankIconUrl(string? bankName)` tra cứu logo nhanh chóng theo tên ngân hàng.
+       - Cập nhật `BankAccountDto.cs` và `WithdrawalRequestDto.cs` bổ sung trường `IconUrl`.
+       - Tự động map `dto.IconUrl = GetBankIconUrl(bankAccount.BankName)` trong các hàm `AddBankAccount`, `GetBankAccounts`, `UpdateBankAccount`, `CreateWithdrawal`, `GetMyWithdrawals`, `GetAllWithdrawals`.
+       - Thêm endpoint `GET /api/wallet/supported-banks` (`[AllowAnonymous]`) trả về danh sách ngân hàng hỗ trợ kèm logo và mã code.
+    2. **Frontend Web (`BankAccountManagerModal.tsx`, `BankAccountCard.tsx`, `WithdrawRequestModal.tsx`, `wallet.types.ts`)**:
+       - `wallet.types.ts`: Bổ sung `iconUrl?: string` cho `BankAccountDto` và `WithdrawalRequestDto`.
+       - `BankAccountManagerModal.tsx`:
+         - Hiển thị logo ngân hàng (`acc.iconUrl || matchedBank?.logo`) với bo góc `rounded-md`, border chuẩn, background `bg-slate-50`, và `onError` fallback an toàn trong danh sách tài khoản.
+         - Thêm xem trước (preview thumbnail) logo ngân hàng ngay cạnh dropdown khi người dùng chọn ngân hàng lúc thêm mới hoặc chỉnh sửa tài khoản.
+       - `BankAccountCard.tsx`: Hiển thị logo ngân hàng kế bên tên ngân hàng ở thẻ "Tài khoản mặc định".
+       - `WithdrawRequestModal.tsx`: Hiển thị logo ngân hàng tại khối "Tài khoản nhận tiền mặc định" khi tạo yêu cầu rút tiền.
+  - **Kiểm Thử & Biên Dịch**:
+    - Backend: `dotnet build Microservices.sln` -> Build succeeded (0 errors).
+    - Frontend: `npx tsc --noEmit` & `npm run build` -> Build succeeded in 822ms (0 errors).
+
+- [x] Xây Dựng & Chuẩn Hóa Bộ Tiêu Chuẩn Đặt Tên Git Commit Cho Dự Án (docs/COMMIT_CONVENTION.md):
+  - **Mục tiêu & Kết quả hoàn thành**:
+    1. **Tài liệu chuẩn hóa (`docs/COMMIT_CONVENTION.md`)**:
+       - Soạn thảo bộ quy chuẩn đặt tên Git Commit toàn diện theo chuẩn **Conventional Commits v1.0.0**.
+       - Định nghĩa chi tiết cấu trúc 3 phần: `<type>(<scope>): <subject>`, `[optional body]`, `[optional footer(s)]`.
+       - Định nghĩa danh sách commit `type` (`feat`, `fix`, `refactor`, `perf`, `style`, `docs`, `test`, `chore`, `build`, `ci`, `revert`) kèm phân loại tác động Semantic Versioning.
+       - Định nghĩa danh mục `scope` cụ thể, sát sườn với kiến trúc dự án:
+         - Backend Microservices: `catalog`, `cart`, `orders`, `identity`, `sellers`, `payments`, `shippings`, `notifications`, `recommendations`, `analytics`, `gateway`, `buildingblocks`.
+         - Frontend Web: `customer-ui`, `seller-ui`, `admin-ui`, `auth-ui`, `shared-ui`, domain scopes (`domain-cart`, `domain-order`, ...).
+         - Hạ tầng & DB: `db`, `docker`, `telemetry`, `rabbitmq`.
+         - Tài liệu & Cấu hình: `docs`, `readme`, `config`.
+       - Quy tắc viết Subject: Thể mệnh lệnh (imperative mood), viết thường, không có dấu chấm câu cuối, quy tắc độ dài 50/72.
+       - Quy tắc Breaking Changes (`!` hoặc `BREAKING CHANGE:`) và liên kết issue/PR footers (`Closes #123`, `Refs #456`).
+       - Bảng so sánh commit Sai (Bad) vs Đúng (Good) kèm giải thích chi tiết.
+       - Ví dụ thực tế gắn liền với CQRS MediatR, gRPC, EF Core Migrations, và React 19 Frontend.
+       - Quy chuẩn đặt tên Git Branch: `feature/*`, `fix/*`, `refactor/*`, `perf/*`, `docs/*`, `hotfix/*`.
+       - Kèm script Bash Git Hook mẫu (`.git/hooks/commit-msg`) để tự động kiểm tra cú pháp commit trên máy lập trình viên.
+    2. **Đồng bộ tài liệu dự án**:
+       - Cập nhật [readme.md](file:///home/vanmuzic/Projects/Ecommerce_Microservices/readme.md) với mục *Documentation & Guidelines* dẫn tới `docs/COMMIT_CONVENTION.md`.
+       - Cập nhật [.agents/rules/02_coding_standards.md](file:///home/vanmuzic/Projects/Ecommerce_Microservices/.agents/rules/02_coding_standards.md) với mục quy chuẩn Git Commit & Branching.
+
 - [x] Tối Ưu Hóa Query Tổng Hợp Trong Analytics Service (Gom 6 Query Sum/Select Riêng Biệt Thành 1 Câu SQL Duy Nhất Với GroupBy(_ => 1)):
   - **Mục tiêu & Kết quả hoàn thành**:
     1. **Tối ưu AdminAnalyticsService (`AdminAnalyticsService.cs`)**:

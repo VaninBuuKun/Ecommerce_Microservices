@@ -522,6 +522,13 @@ This deployment includes:
 
 ---
 
+# 📚 Documentation & Guidelines
+
+* [Git Commit Conventions](file:///home/vanmuzic/Projects/Ecommerce_Microservices/docs/COMMIT_CONVENTION.md) - Standardized commit formats, scopes, and Git workflows.
+* [Migration & AWS Setup Guide](file:///home/vanmuzic/Projects/Ecommerce_Microservices/docs/MIGRATION_AND_AWS_SETUP_GUIDE.md) - Database migrations and cloud setup guide.
+
+---
+
 # 📄 License
 
 This project is developed for learning, portfolio, and enterprise-scale ecommerce architecture experimentation.

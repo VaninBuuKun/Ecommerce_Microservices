@@ -271,6 +271,16 @@ export function useUpdateBankAccountMutation() {
 	});
 }
 
+export function useDeleteBankAccountMutation() {
+	const queryClient = useQueryClient();
+	return useMutation({
+		mutationFn: (id: number) => orderApi.deleteBankAccount(id),
+		onSuccess: () => {
+			queryClient.invalidateQueries({ queryKey: ["userBankAccounts"] });
+		},
+	});
+}
+
 export function useMyRefundsQuery() {
 	return useQuery({
 		queryKey: ["myRefundRequests"],

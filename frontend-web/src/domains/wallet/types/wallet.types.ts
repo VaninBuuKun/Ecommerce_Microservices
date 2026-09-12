@@ -9,10 +9,14 @@ export interface WalletDto {
 
 export interface BankAccountDto {
   id: number;
+  walletId?: number;
   bankName: string;
-  accountNumber: string;
-  accountHolderName: string;
+  accountNumber?: string;
+  bankAccountNumber?: string;
+  accountHolderName?: string;
+  bankAccountHolder?: string;
   isDefault: boolean;
+  iconUrl?: string;
 }
 
 export interface WalletTransactionDto {
@@ -30,7 +34,10 @@ export interface WithdrawalRequestDto {
   amount: number;
   status: string;
   bankName: string;
-  accountNumber: string;
-  accountHolderName: string;
+  accountNumber?: string;
+  bankAccountNumber?: string;
+  accountHolderName?: string;
+  bankAccountHolder?: string;
   createdAt: string;
+  iconUrl?: string;
 }

@@ -178,6 +178,12 @@ export const orderApi = {
 		return response.data;
 	},
 
+	// Xóa tài khoản ngân hàng liên kết
+	deleteBankAccount: async (id: number): Promise<any> => {
+		const response = await api.delete(`/wallet/bank-accounts/${id}`);
+		return response.data;
+	},
+
 	// Lấy danh sách yêu cầu hoàn tiền của khách hàng hiện tại
 	getMyRefunds: async (): Promise<any[]> => {
 		const response = await api.get("/refunds/my-requests");

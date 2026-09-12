@@ -90,7 +90,7 @@ public class SellerRevenueConsumer(
                 Reason = TransactionReason.SellerRevenue,
                 BalanceAfter = wallet.Balance,
                 ReferenceId = @event.SubOrderId.ToString(),
-                Description = $"Cộng doanh thu đơn hàng {@event.SubOrderId} hoàn tất. (Doanh thu: {grossRevenue:N0}đ - Hoa hồng sàn {commissionRate}%: {commissionAmount:N0}đ = Thực nhận: {netRevenue:N0}đ)"
+                Description = $"Cộng doanh thu đơn hàng {@event.SubOrderId} hoàn tất. (Doanh thu: {grossRevenue:N0}đ - Hoa hồng sàn {commissionRate}%: {commissionAmount:N0}đ - Thực nhận: {netRevenue:N0}đ)"
             };
             transactionRepo.Add(transaction);
 

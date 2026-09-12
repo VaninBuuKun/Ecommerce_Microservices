@@ -36,7 +36,7 @@ export function WithdrawRequestsTable({
 
 	return (
 		<div className="space-y-3 animate-in fade-in duration-200">
-			<div className="border border-brand-border rounded-2xl bg-white overflow-hidden shadow-sm">
+			<div className="border border-brand-border rounded-md bg-white overflow-hidden shadow-sm">
 				{withdrawsLoading ? (
 					<div className="flex justify-center items-center py-12 text-xs text-brand-muted gap-2">
 						<Loader2 className="w-4 h-4 animate-spin text-brand-primary" />
@@ -109,9 +109,8 @@ export function WithdrawRequestsTable({
 							<button
 								key={i}
 								onClick={() => setWithdrawPage(i + 1)}
-								className={`w-7 h-7 rounded-lg transition-all cursor-pointer border-none ${
-									withdrawPage === i + 1 ? "bg-brand-dark text-white font-mono" : "bg-transparent text-brand-muted hover:bg-brand-light-soft"
-								}`}
+								className={`w-7 h-7 rounded-lg transition-all cursor-pointer border-none ${withdrawPage === i + 1 ? "bg-brand-dark text-white font-mono" : "bg-transparent text-brand-muted hover:bg-brand-light-soft"
+									}`}
 							>
 								{i + 1}
 							</button>
@@ -130,12 +129,12 @@ export function WithdrawRequestsTable({
 			{/* ADMIN FEEDBACK DETAIL MODAL */}
 			{selectedItem && (
 				<div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-brand-dark/40 backdrop-blur-xs font-sans">
-					<div className="bg-white rounded-2xl max-w-sm w-full border border-brand-border p-5 shadow-2xl space-y-4 text-left">
+					<div className="bg-white rounded-md max-w-sm w-full border border-brand-border p-5 shadow-2xl space-y-4 text-left">
 						<div className="flex justify-between items-center border-b border-brand-border pb-3">
 							<h3 className="font-black text-brand-dark text-xs uppercase tracking-wide flex items-center gap-1.5">
 								Phản hồi từ Ban Quản Trị
 							</h3>
-							<button 
+							<button
 								onClick={() => setSelectedItem(null)}
 								className="text-brand-muted hover:text-brand-dark cursor-pointer font-black text-sm border-none bg-transparent"
 							>
@@ -155,16 +154,16 @@ export function WithdrawRequestsTable({
 								<span className="text-[10px] text-brand-muted uppercase block">Minh chứng chuyển khoản:</span>
 								{selectedItem.proofImageUrl ? (
 									<div className="space-y-2 mt-1">
-										<a 
-											href={selectedItem.proofImageUrl} 
-											target="_blank" 
-											rel="noreferrer" 
+										<a
+											href={selectedItem.proofImageUrl}
+											target="_blank"
+											rel="noreferrer"
 											className="block max-w-[150px] border border-brand-border rounded-xl overflow-hidden shadow-xs hover:opacity-90 transition-all"
 										>
-											<img 
-												src={selectedItem.proofImageUrl} 
-												alt="Minh chứng chuyển khoản" 
-												className="w-full h-auto object-cover" 
+											<img
+												src={selectedItem.proofImageUrl}
+												alt="Minh chứng chuyển khoản"
+												className="w-full h-auto object-cover"
 											/>
 										</a>
 										<p className="text-[9px] text-brand-muted font-medium flex items-center gap-1">

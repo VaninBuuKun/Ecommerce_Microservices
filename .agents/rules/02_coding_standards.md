@@ -46,9 +46,19 @@
 
 ---
 
-## 3. Session End Auto-Sync Protocol (Mandatory Agent Rule)
+## 3. Git Commit & Branching Standards (Conventional Commits v1.0.0)
+
+- **Commit Message Format**: `<type>(<scope>): <subject>` (Header $\le$ 72 chars, imperative mood, lowercase, no ending period).
+- **Commit Types**: `feat`, `fix`, `refactor`, `perf`, `style`, `docs`, `test`, `chore`, `build`, `ci`, `revert`.
+- **Scopes**: Service/Domain-specific (`catalog`, `cart`, `orders`, `payments`, `sellers`, `customer-ui`, `seller-ui`, `admin-ui`, `db`, etc.).
+- **Branch Naming**: `feature/<name>`, `fix/<name>`, `refactor/<name>`, `perf/<name>`, `docs/<name>`.
+- **Full Guide**: Detailed documentation is located at [COMMIT_CONVENTION.md](file:///home/vanmuzic/Projects/Ecommerce_Microservices/docs/COMMIT_CONVENTION.md).
+
+---
+
+## 4. Session End Auto-Sync Protocol (Mandatory Agent Rule)
 At the end of every conversation session or task completion, the AI Agent MUST:
 1. **Check for New Capabilities**: If new Handlers, Endpoints, Consumers, or UI pages were built, update `.agents/context/01_business_capabilities.md` and `readme.md`.
-2. **Check for New Rules / Patterns**: If new architectural decisions or coding standards were established, update `.agents/rules/*.md` and `AGENTS.md`.
+2. **Check for New Rules / Patterns**: If new architectural decisions or coding standards were established, update `.agents/rules/*.md` và `AGENTS.md`.
 3. **Check Workflow & Diagrams**: If transaction flows changed, update `.agents/context/03_checkout_flow.md`.
 4. **Log Scratchpad State**: Record working progress in `.antigravity/scratchpad.md`.

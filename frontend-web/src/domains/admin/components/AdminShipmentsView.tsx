@@ -504,8 +504,8 @@ export function AdminShipmentsView() {
 								✕
 							</button>
 						</div>
-						
-						
+
+
 						{isTerminalStatus(selectedShipment.status) ? (
 							<div className="p-3 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-600 flex items-center gap-2">
 								<AlertCircle className="w-4 h-4 text-slate-400 shrink-0" />

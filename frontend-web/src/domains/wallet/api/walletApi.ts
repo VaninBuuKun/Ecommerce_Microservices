@@ -31,6 +31,11 @@ export const walletApi = {
     return res.data;
   },
 
+  deleteBankAccount: async (id: number): Promise<any> => {
+    const res = await api.delete(`/wallet/bank-accounts/${id}`);
+    return res.data;
+  },
+
   createWithdrawal: async (data: { amount: number; bankAccountId: number }): Promise<any> => {
     const res = await api.post("/withdrawals", data);
     return res.data;
