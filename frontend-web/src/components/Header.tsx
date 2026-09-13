@@ -13,6 +13,7 @@ import {
 	X,
 	Trash2,
 	ArrowRight,
+	ShieldCheck,
 } from "lucide-react";
 import { authService, useAuthStore } from "@/domains/auth";
 import { useCartQuery } from "@/domains/cart";
@@ -207,11 +208,11 @@ export default function Header() {
 								"https://cdn-icons-png.flaticon.com/512/3081/3081986.png";
 						}}
 					/>
-					{isSystemAdmin && (
-						<span className="px-2 py-0.5 bg-amber-100 text-amber-800 border border-amber-200 text-[8px] font-black uppercase rounded animate-pulse">
-							Admin Mode
-						</span>
-					)}
+					{/*{isSystemAdmin && (*/}
+					{/*	<span className="px-2 py-0.5 bg-amber-100 text-amber-800 border border-amber-200 text-[8px] font-black uppercase rounded animate-pulse">*/}
+					{/*		Admin Mode*/}
+					{/*	</span>*/}
+					{/*)}*/}
 				</Link>
 
 				{/* Thanh Search thông minh (Ẩn khi đang ở trang /chat) */}
@@ -742,29 +743,51 @@ export default function Header() {
 									</div>
 
 									<div className="space-y-0.5 text-left">
-										<Link
-											to="/profile"
-											className="flex items-center gap-2.5 w-full px-2 py-2 rounded text-sm text-brand-dark hover:bg-brand-light-soft hover:text-brand-primary transition-colors"
-										>
-											<Settings className="w-4 h-4 text-brand-muted" />
-											Tài khoản của tôi
-										</Link>
+										{isSystemAdmin ? (
+											<>
+												<Link
+													to="/admin"
+													className="flex items-center gap-2.5 w-full px-2 py-2 rounded text-sm font-bold text-amber-800 bg-amber-50 hover:bg-amber-100 transition-colors"
+												>
+													<ShieldCheck className="w-4 h-4 text-amber-600" />
+													Trang Quản trị (Admin)
+												</Link>
 
-										<Link
-											to="/orders"
-											className="flex items-center gap-2.5 w-full px-2 py-2 rounded text-sm text-brand-dark hover:bg-brand-light-soft hover:text-brand-primary transition-colors"
-										>
-											<Package className="w-4 h-4 text-brand-muted" />
-											Đơn hàng của tôi
-										</Link>
+												<Link
+													to="/profile"
+													className="flex items-center gap-2.5 w-full px-2 py-2 rounded text-sm text-brand-dark hover:bg-brand-light-soft hover:text-brand-primary transition-colors"
+												>
+													<Settings className="w-4 h-4 text-brand-muted" />
+													Thông tin tài khoản
+												</Link>
+											</>
+										) : (
+											<>
+												<Link
+													to="/profile"
+													className="flex items-center gap-2.5 w-full px-2 py-2 rounded text-sm text-brand-dark hover:bg-brand-light-soft hover:text-brand-primary transition-colors"
+												>
+													<Settings className="w-4 h-4 text-brand-muted" />
+													Tài khoản của tôi
+												</Link>
 
-										<Link
-											to="/wishlist"
-											className="flex items-center gap-2.5 w-full px-2 py-2 rounded text-sm text-brand-dark hover:bg-brand-light-soft hover:text-brand-primary transition-colors"
-										>
-											<Heart className="w-4 h-4 text-rose-500" />
-											Sản phẩm yêu thích
-										</Link>
+												<Link
+													to="/orders"
+													className="flex items-center gap-2.5 w-full px-2 py-2 rounded text-sm text-brand-dark hover:bg-brand-light-soft hover:text-brand-primary transition-colors"
+												>
+													<Package className="w-4 h-4 text-brand-muted" />
+													Đơn hàng của tôi
+												</Link>
+
+												<Link
+													to="/wishlist"
+													className="flex items-center gap-2.5 w-full px-2 py-2 rounded text-sm text-brand-dark hover:bg-brand-light-soft hover:text-brand-primary transition-colors"
+												>
+													<Heart className="w-4 h-4 text-rose-500" />
+													Sản phẩm yêu thích
+												</Link>
+											</>
+										)}
 
 										<div className="h-px bg-brand-border my-1.5" />
 

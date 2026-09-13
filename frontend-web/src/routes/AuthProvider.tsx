@@ -1,6 +1,7 @@
 import { useEffect, useState, type ReactNode } from "react";
-import { useAuthStore, useCurrentUserQuery, authService } from "@/domains/auth";
-import { isAuthenticated } from "@/shared/utils/authHelper";
+import { useAuthStore, useCurrentUserQuery } from "@/domains/auth";
+import { parseJwt, isAuthenticated } from "@/shared/utils/authHelper";
+import { refreshAccessToken } from "@/core";
 
 interface AuthProviderProps {
 	children: ReactNode;
@@ -14,24 +15,15 @@ export default function AuthProvider({ children }: AuthProviderProps) {
 		return !token || !isAuthenticated(token);
 	});
 
-	// Silent refresh khi vừa vào app (nếu có cookie refresh_token 7 ngày còn hạn)
+	// 1. Silent refresh khi vừa vào app (nếu có cookie refresh_token 7 ngày còn hạn)
 	useEffect(() => {
 		if (!isSilentRefreshing) return;
 
 		let isMounted = true;
-		authService
-			.refresh()
+		refreshAccessToken()
 			.then((newToken) => {
 				if (isMounted && newToken) {
 					setAccessToken(newToken);
-				}
-			})
-			.catch((err) => {
-				// Chỉ clearState khi server trả về 401/400 (hết hạn hoặc không có cookie)
-				// Không clear khi là Network Error (máy chủ đang restart)
-				const status = err?.response?.status;
-				if (status === 401 || status === 400) {
-					clearState();
 				}
 			})
 			.finally(() => {
@@ -42,6 +34,66 @@ export default function AuthProvider({ children }: AuthProviderProps) {
 
 		return () => {
 			isMounted = false;
+		};
+	}, []);
+
+	// 2. Proactive Refresh Timer: Chủ động làm mới accessToken trước khi hết hạn 5 phút
+	useEffect(() => {
+		if (!accessToken) return;
+
+		const payload = parseJwt(accessToken);
+		if (!payload?.exp || typeof payload.exp !== "number") return;
+
+		const remainingMs = payload.exp * 1000 - Date.now();
+		if (remainingMs <= 0) {
+			// Đã quá hạn, làm mới ngay lập tức
+			refreshAccessToken();
+			return;
+		}
+
+		// Đặt hẹn giờ làm mới trước khi hết hạn 5 phút (hoặc 80% thời gian nếu còn dưới 5 phút)
+		const refreshBufferMs = 5 * 60 * 1000;
+		const delay = remainingMs > refreshBufferMs
+			? remainingMs - refreshBufferMs
+			: Math.max(5000, remainingMs * 0.8);
+
+		const timerId = setTimeout(() => {
+			refreshAccessToken();
+		}, delay);
+
+		return () => {
+			clearTimeout(timerId);
+		};
+	}, [accessToken]);
+
+	// 3. Xử lý khi người dùng quay lại tab hoặc mở lại nắp máy tính (visibilitychange & focus)
+	useEffect(() => {
+		const checkAndRefreshIfNeeded = () => {
+			const token = useAuthStore.getState().accessToken;
+			if (!token) return;
+
+			const payload = parseJwt(token);
+			if (!payload?.exp || typeof payload.exp !== "number") return;
+
+			const remainingMs = payload.exp * 1000 - Date.now();
+			// Nếu token đã hết hạn hoặc sắp hết hạn trong vòng 2 phút -> làm mới ngay
+			if (remainingMs < 2 * 60 * 1000) {
+				refreshAccessToken();
+			}
+		};
+
+		const onVisibilityChange = () => {
+			if (document.visibilityState === "visible") {
+				checkAndRefreshIfNeeded();
+			}
+		};
+
+		document.addEventListener("visibilitychange", onVisibilityChange);
+		window.addEventListener("focus", checkAndRefreshIfNeeded);
+
+		return () => {
+			document.removeEventListener("visibilitychange", onVisibilityChange);
+			window.removeEventListener("focus", checkAndRefreshIfNeeded);
 		};
 	}, []);
 

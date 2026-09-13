@@ -1,4 +1,4 @@
-import api from "@/core/api/axiosInstance"
+import { api, refreshAccessToken, authClient } from "@/core";
 import { useAuthStore } from "../stores/useAuthStore";
 import { useSellerStore } from "@/domains/seller/stores/sellerStore";
 import { useChatStore } from "@/domains/notification/stores/useChatStore";
@@ -136,18 +136,13 @@ export const authService = {
   },
 
   async refresh(): Promise<string> {
-    const response = await api.post("/app-auth/refresh");
-    const data = response.data?.value || response.data;
-    const accessToken = data?.accessToken || data;
-    if (accessToken) {
-      useAuthStore.getState().setAccessToken(accessToken);
-    }
-    return accessToken;
+    const token = await refreshAccessToken();
+    return token || "";
   },
 
   async logout(): Promise<void> {
     try {
-      await api.post("/app-auth/logout");
+      await authClient.post("/app-auth/logout");
     } catch (error) {
       console.error("Lỗi khi gọi API logout trên server:", error);
     } finally {

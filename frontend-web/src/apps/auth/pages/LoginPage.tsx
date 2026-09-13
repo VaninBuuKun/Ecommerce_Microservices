@@ -6,6 +6,8 @@ import { Terminal, Eye, EyeOff } from "lucide-react";
 import { toast } from "react-toastify";
 import { checkIsAdmin, isAuthenticated } from "@/shared/utils/authHelper";
 
+import { refreshAccessToken } from "@/core";
+
 interface FormValues {
 	username: string;
 	password: string;
@@ -42,9 +44,13 @@ export default function LoginPage() {
 	useEffect(() => {
 		if (!accessToken) return;
 
-		// Nếu token đã hết hạn hoặc không hợp lệ -> xóa sạch để người dùng đăng nhập lại an toàn
+		// Nếu token đã hết hạn, thử refresh trước khi xóa session
 		if (!isAuthenticated(accessToken)) {
-			clearState();
+			refreshAccessToken().then((newToken) => {
+				if (!newToken) {
+					clearState();
+				}
+			});
 			return;
 		}
 

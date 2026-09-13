@@ -157,10 +157,15 @@ This document provides a detailed breakdown of all implemented backend APIs, gRP
   - `src/domains/`: Domain logic grouped by boundary (`auth`, `catalog`, `cart`, `order`, `seller`, `kyc`, `address`, `wallet`, `shipping`, `admin`). Contains `api/`, `hooks/`, `stores/`, `types/`, `components/`.
   - `src/shared/`: Cross-cutting utilities, helpers (`formatPrice`, `formatStock`, `authHelper`).
 - **Frontend Auth Resilience & Silent Refresh Flow**:
-  - `AuthProvider.tsx`: Automatic **Silent Refresh** on initial application mount when `accessToken` is null or expired. Proactively calls `/api/app-auth/refresh` to exchange the 7-day HttpOnly `refresh_token` cookie for a fresh access token without interrupting the user.
+  - `AuthProvider.tsx` & `tokenRefresh.ts`: Automatic **Silent Refresh** (both reactive on 401 via Axios interceptor with Singleton Promise mutex lock and proactive 55-minute timer + tab focus/visibility wake-up sync). Exchanges the 7-day HttpOnly `refresh_token` cookie for a fresh access token seamlessly, protecting IdentityServer Token Rotation without prematurely logging out the user. Route guards (`RequireAuth`, `RequireAdmin`) never destroy sessions client-side on expired tokens.
   - **Network Error & Server Restart Protection**: Replaces naive `currentUserQuery.isError` session clearing with strict `status === 401` checking. Server reboots, temporary connection drops, and 5xx errors no longer log the user out.
   - `axiosInstance.ts`: Refresh promise error handler only wipes state on HTTP 401/400 rejections from the auth endpoint, ignoring transient network failures.
   - `useCurrentUserQuery`: Configured with automatic retries for transient network failures.
+- **Role-based Route Guards & Separation**:
+  - `RequireAuth`: Bắt buộc đăng nhập.
+  - `RequireAdmin`: Bắt buộc quyền Quản trị viên (`Admin`).
+  - `RequireNonAdmin`: Khóa các trang đặc thù của Khách hàng (`/cart`, `/checkout`, `/wishlist`, `/orders`) và Người bán (`/seller`, `/seller/*`) đối với tài khoản Admin, tự động chuyển hướng về `/admin` (hoặc `/admin/orders`).
+  - `Header.tsx`: Ẩn giỏ hàng, danh sách yêu thích và kênh người bán khi là Admin; tùy biến menu avatar dành riêng cho quản trị viên.
 - **Product Detail Page Standardization**:
   - `ProductReviewsSection.tsx`: Wrapped in standard card (`bg-white rounded-md border border-brand-border shadow-sm p-4 md:p-5 mb-6 text-left space-y-6`), uniform title `text-sm font-black text-brand-dark uppercase tracking-wider` ("ĐÁNH GIÁ SẢN PHẨM"), warm amber customer ratings badge (`Star` icon, smaller font `text-[11px]`).
   - `RelatedProduct.tsx`: Uniform title `text-sm font-black text-brand-dark uppercase tracking-wider` ("SẢN PHẨM TƯƠNG TỰ"), upgraded smart recommendation badge with `BrainCircuit` AI circuit icon and vibrant gradient (`text-[11px]`).

@@ -1,3 +1,44 @@
+- [x] Phân Quyền & Khóa Các Trang Riêng Biệt Khỏi Tài Khoản Quản Trị Viên (Admin) (RequireNonAdmin Guard Cho Seller & Customer Routes, Ẩn Cart/Wishlist/Orders Dropdown Trong Header):
+  - **Mục tiêu & Kết quả hoàn thành**:
+    1. **Tạo Mới Route Guard `RequireNonAdmin.tsx`**:
+       - Ngăn chặn tài khoản Admin truy cập các trang đặc thù của Khách hàng hoặc Người bán khi gõ trực tiếp URL.
+       - Tự động hiển thị Toast thông báo và chuyển hướng (redirect) an toàn về Trang Quản Trị `/admin` (hoặc `/admin/orders`).
+    2. **Cấu Hình Phân Tuyến Tuyệt Đối Tại `AppRoutes.tsx`**:
+       - **Kênh Người Bán (`/seller`, `/seller/register`, `/seller/dashboard/*`, `/seller/:shopId/dashboard/*`)**: Bọc qua `RequireNonAdmin`. Admin bị chặn và chuyển hướng về `/admin` với thông báo `"Tài khoản Quản trị viên không thể truy cập Kênh người bán. Vui lòng quản lý tại Trang Quản trị."`.
+       - **Trang Mua Sắm Khách Hàng (`/cart`, `/checkout`, `/wishlist`)**: Bọc qua `RequireNonAdmin`. Admin bị chặn và chuyển hướng về `/admin` với thông báo `"Tài khoản Quản trị viên không sử dụng tính năng giỏ hàng & sản phẩm yêu thích."`.
+       - **Đơn Hàng Cá Nhân (`/orders`, `/orders/:subOrderId`)**: Bọc qua `RequireNonAdmin` với `redirectTo="/admin/orders"`. Admin truy cập sẽ tự động chuyển sang trang Quản trị đơn hàng toàn sàn.
+    3. **Tối Ưu Menu Người Dùng Trong `Header.tsx`**:
+       - Khi `isSystemAdmin = true`: Menu dropdown khi click Avatar hiển thị chuyên biệt cho Admin:
+         - Nổi bật nút `Trang Quản trị (Admin)` (`/admin` với icon `ShieldCheck`).
+         - Nút `Thông tin tài khoản` (`/profile` với icon `Settings`).
+         - Ẩn hoàn toàn 2 mục không phù hợp `Đơn hàng của tôi` và `Sản phẩm yêu thích`.
+  - **Kiểm Thử & Biên Dịch**:
+    - Frontend Build: `npm run build` -> Vite build succeeded in 720ms (0 errors).
+    - Frontend Lint: `npm run lint` -> 0 errors.
+
+- [x] Khắc Phục Triệt Để Lỗi Tự Động Đăng Xuất Khi Hết Hạn AccessToken Trên Frontend (Bỏ ClearState Trong Route Guards, Tách authClient & tokenRefresh Singleton Tránh Circular Dependency, Cấu Hình Interceptor 401 & Proactive Refresh Timer):
+  - **Mục tiêu & Kết quả hoàn thành**:
+    1. **Khắc Phục Lỗi Tự Động Đăng Xuất Do Route Guards (`RequireAuth.tsx`, `RequireAdmin.tsx`, `authHelper.ts`)**:
+       - Xóa bỏ logic `if (!isAuthenticated(token)) clearState()` trong các route guards.
+       - Sửa `RequireAuth` và `RequireAdmin` chỉ chuyển hướng sang Login khi người dùng thực sự không có `accessToken` (`!accessToken`).
+       - Sửa `checkIsAdmin(token)` kiểm tra trực tiếp payload role mà không phụ thuộc vào việc token hết hạn theo đồng hồ client, ngăn chặn việc admin bị văng về trang chủ khi token đang chờ refresh.
+    2. **Xóa Bỏ Circular Dependency & Tách Module Độc Lập (`tokenRefresh.ts`)**:
+       - Tạo `src/core/api/tokenRefresh.ts` với `authClient` độc lập (`withCredentials: true`, timeout 10s, không gắn Bearer Token Interceptor để tránh gửi kèm token hết hạn lên server).
+       - Cung cấp hàm `refreshAccessToken()` với cơ chế Singleton Promise (Mutex lock), ngăn chặn race condition khi nhiều request đồng thời gặp 401 và bảo vệ quy tắc Token Rotation (`TokenUsage.OneTimeOnly`) của IdentityServer.
+       - Chỉ gọi `clearState()` đăng xuất an toàn khi server thực sự từ chối Refresh Token (401 hoặc 400).
+    3. **Chuẩn Hóa Axios Interceptor 401 (`axiosInstance.ts`) & Auth Service (`authApi.ts`)**:
+       - Bắt mã lỗi 401, tạm giữ request, gọi `refreshAccessToken()`, gán `Authorization: Bearer <newAccessToken>` vào request cũ và retry tự động.
+       - `authService.refresh()` và `authService.logout()` ủy quyền trực tiếp qua `refreshAccessToken()` và `authClient`.
+    4. **Bổ Sung Proactive Silent Refresh Timer & Tab Focus Sync (`AuthProvider.tsx`)**:
+       - Hẹn giờ tự động làm mới `accessToken` trước khi hết hạn 5 phút (ở phút thứ 55).
+       - Lắng nghe `visibilitychange` và `window.focus` để chủ động làm mới token ngay khi người dùng mở lại tab/máy tính nếu token còn dưới 2 phút hoặc đã hết hạn.
+    5. **Tối Ưu `useCurrentUserQuery` (`useAuth.ts`) & `LoginPage.tsx`**:
+       - Đặt `enabled: Boolean(accessToken)` để query không bị tắt đột ngột khi token vừa chạm mốc hết hạn.
+       - `LoginPage.tsx`: Thử `refreshAccessToken()` trước khi xóa session nếu người dùng mở trang login khi session cookie vẫn còn hạn.
+  - **Kiểm Thử & Biên Dịch**:
+    - Frontend Build: `npm run build` -> Vite build succeeded in 714ms (0 errors).
+    - Frontend Lint: `npm run lint` -> 0 errors.
+
 - [x] Phân Tách ShopAnalyticsDashboard Thành 6 Sub-Components, Đổi Vị Trí Search (Trái) & Filter (Phải), Sửa Lỗi Runtime selectedProduct, Tinh Gọn RevenueView & Bổ Sung Nút Phân Tích AdminShopsView:
   - **Mục tiêu & Kết quả hoàn thành**:
     1. **Phân Tách Module `ShopAnalyticsDashboard.tsx` (Giảm từ 1442 dòng xuống ~320 dòng)**:
