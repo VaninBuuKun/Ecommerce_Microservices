@@ -156,9 +156,19 @@ public class CreateOrderCommandHandler(
                 order.ApplyDiscounts(shopId, (long)sellerDiscount, (long)platformDiscountForShop);
 
                 // Snapshot phí hoa hồng sàn (Financial Immutability)
-                var gross = subOrder.GrandTotal;
-                var commissionFee = (long)Math.Round(gross * (commissionRate / 100m), MidpointRounding.AwayFromZero);
+                // Tiền hoa hồng tính trên giá trị hàng hóa của shop sau giảm giá shop, không tính trên phí ship
+                var shopMerchandiseGross = Math.Max(0, subOrder.SubTotal - (long)sellerDiscount);
+                var commissionFee = (long)Math.Round(shopMerchandiseGross * (commissionRate / 100m), MidpointRounding.AwayFromZero);
                 order.SetCommission(shopId, commissionRate, commissionFee);
+
+                // Snapshot thông tin Shop (ShopName, ShopLogoUrl)
+                string shopName = checkoutSession.ShopNames != null && checkoutSession.ShopNames.TryGetValue(shopId, out var sn) && !string.IsNullOrWhiteSpace(sn)
+                    ? sn
+                    : $"Cửa hàng #{shopId}";
+                string? shopLogoUrl = checkoutSession.ShopLogoUrls != null && checkoutSession.ShopLogoUrls.TryGetValue(shopId, out var sl)
+                    ? sl
+                    : null;
+                order.SetShopInfo(shopId, shopName, shopLogoUrl);
 
                 long? shopVoucherId = checkoutSession.ShopVoucherIds.TryGetValue(shopId, out var svId) ? svId : (long?)null;
                 order.ApplyVoucherIds(shopId, shopVoucherId, checkoutSession.PlatformVoucherId);

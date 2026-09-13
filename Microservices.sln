@@ -73,6 +73,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "QueryDb", "QueryDb", "{9D57
 		QueryDb\PaymentService.sql = QueryDb\PaymentService.sql
 		QueryDb\OrderService.sql = QueryDb\OrderService.sql
 		QueryDb\RecommandationService.sql = QueryDb\RecommandationService.sql
+		QueryDb\AnalyticsService.sql = QueryDb\AnalyticsService.sql
 	EndProjectSection
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Identity", "Identity", "{FFF8B124-DA0A-4225-8888-6E5327A517E7}"

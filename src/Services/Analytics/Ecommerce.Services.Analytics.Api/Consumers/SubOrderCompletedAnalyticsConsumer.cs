@@ -87,10 +87,17 @@ public class SubOrderCompletedAnalyticsConsumer(
         // 3. Update ShopProductStats
         if (msg.Items != null && msg.Items.Count > 0)
         {
+            var totalItemsSubTotal = msg.Items.Sum(x => (decimal)x.UnitPrice * x.Quantity);
+
             foreach (var item in msg.Items)
             {
                 var prodStat = await dbContext.ShopProductStats
                     .FirstOrDefaultAsync(p => p.ShopId == msg.ShopId && p.ProductId == item.ProductId, context.CancellationToken);
+
+                var itemSubTotal = (decimal)item.UnitPrice * item.Quantity;
+                var itemRevenue = totalItemsSubTotal > 0
+                    ? (long)Math.Round((itemSubTotal / totalItemsSubTotal) * actualShopRevenue, MidpointRounding.AwayFromZero)
+                    : (actualShopRevenue / msg.Items.Count);
 
                 if (prodStat == null)
                 {
@@ -98,15 +105,25 @@ public class SubOrderCompletedAnalyticsConsumer(
                     {
                         ShopId = msg.ShopId,
                         ProductId = item.ProductId,
+                        ProductName = !string.IsNullOrWhiteSpace(item.ProductName) ? item.ProductName : $"Sản phẩm #{item.ProductId}",
+                        ThumbnailUrl = item.ThumbnailUrl,
                         SoldQuantity = item.Quantity,
-                        Revenue = actualShopRevenue,
+                        Revenue = itemRevenue,
                         UpdatedDate = DateTimeOffset.UtcNow
                     });
                 }
                 else
                 {
                     prodStat.SoldQuantity += item.Quantity;
-                    prodStat.Revenue += actualShopRevenue;
+                    prodStat.Revenue += itemRevenue;
+                    if (!string.IsNullOrWhiteSpace(item.ProductName))
+                    {
+                        prodStat.ProductName = item.ProductName;
+                    }
+                    if (!string.IsNullOrWhiteSpace(item.ThumbnailUrl))
+                    {
+                        prodStat.ThumbnailUrl = item.ThumbnailUrl;
+                    }
                     prodStat.UpdatedDate = DateTimeOffset.UtcNow;
                 }
             }

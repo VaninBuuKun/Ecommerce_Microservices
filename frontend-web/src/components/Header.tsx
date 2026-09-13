@@ -402,16 +402,16 @@ export default function Header() {
 													)}
 
 												{/* Footer Action */}
-												<div className="border-t border-slate-100 pt-2.5 text-center">
-													<button
-														type="button"
-														onClick={() => handleExecuteSearch()}
-														className="w-full py-2.5 text-xs text-brand-dark font-black hover:bg-brand-primary-deep rounded-none transition-all border-none bg-brand-primary cursor-pointer flex items-center justify-center gap-1.5 shadow-2xs"
-													>
-														<span>Xem tất cả kết quả cho "{searchQuery}"</span>
-														<ArrowRight className="w-3.5 h-3.5" />
-													</button>
-												</div>
+												{/*<div className="border-t border-slate-100 pt-2.5 text-center">*/}
+												{/*	<button*/}
+												{/*		type="button"*/}
+												{/*		onClick={() => handleExecuteSearch()}*/}
+												{/*		className="w-full py-2.5 text-xs text-brand-dark font-black hover:bg-brand-primary-deep rounded-none transition-all border-none bg-brand-primary cursor-pointer flex items-center justify-center gap-1.5 shadow-2xs"*/}
+												{/*	>*/}
+												{/*		<span>Xem tất cả kết quả cho "{searchQuery}"</span>*/}
+												{/*		<ArrowRight className="w-3.5 h-3.5" />*/}
+												{/*	</button>*/}
+												{/*</div>*/}
 											</>
 										)}
 									</div>

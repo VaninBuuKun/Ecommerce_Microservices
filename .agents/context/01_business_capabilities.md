@@ -29,11 +29,12 @@ This document provides a detailed breakdown of all implemented backend APIs, gRP
 - **Financial Snapshot Architecture**:
   - `PlatformCommissionConfig` (RatePercentage, UpdatedByUserId) is maintained directly in `OrdersDb` for fast 0ms checkout lookups without inter-service network calls.
   - `SubOrder` snapshots `CommissionRate` (decimal) and `CommissionFee` (long) at creation time, with computed property `NetRevenue => GrandTotal - CommissionFee`.
+  - `SubOrder` snapshots `ShopName` (string) and `ShopLogoUrl` (string?) at checkout creation time from `CheckoutSession` / Sellers service, eliminating runtime gRPC hops on queries.
   - `SubOrderSagaState` in MassTransit Saga stores snapshotted `CommissionRate` and `CommissionFee`.
   - `SubOrderCreatedEvent` & `SubOrderCompletedEvent` propagate `CommissionRate`, `CommissionFee`, and `NetRevenue` across services.
 - **Commands**:
-  - `CalOrderGrandTotalCommandHandler`: Calculates item prices, shop vouchers, platform vouchers, and GHN shipping fees.
-  - `CreateOrderCommandHandler`: Reads active commission rate directly from local `PlatformCommissionConfig`, calculates exact commission fee per sub-order, snapshots to `SubOrder`, and publishes `SubOrderCreatedEvent` (zero gRPC latency).
+  - `CalOrderGrandTotalCommandHandler`: Calculates item prices, shop vouchers, platform vouchers, and GHN shipping fees. Snapshots `ShopNames` and `ShopLogoUrls` into Redis `CheckoutSession`.
+  - `CreateOrderCommandHandler`: Reads active commission rate directly from local `PlatformCommissionConfig`, snapshots `ShopName` and `ShopLogoUrl` into `SubOrder`, calculates exact commission fee per sub-order, and publishes `SubOrderCreatedEvent` (zero gRPC latency).
   - `UpdatePlatformCommissionCommandHandler` (`PUT /api/admin/commission`)
   - `SellerConfirmSubOrderCommandHandler`, `SellerRejectSubOrderCommandHandler`, `SellerPackageReadyCommandHandler`
   - `CompleteSubOrderCommandHandler`: Emits `SubOrderCompletedEvent` with pre-calculated financial snapshot metrics.
@@ -43,7 +44,7 @@ This document provides a detailed breakdown of all implemented backend APIs, gRP
   - `CreateVoucherCommandHandler`, `UpdateVoucherCommandHandler` (Unique index on `Voucher.Code`)
 - **Queries**:
   - `GetPlatformCommissionQueryHandler` (`GET /api/admin/commission`)
-  - `GetOrderByIdQueryHandler`, `GetSubOrdersQuery`, `GetSubOrdersByShopQueryHandler`, `GetSubOrderDetailQueryHandler` (Exposes `CommissionRate`, `CommissionFee`, `NetRevenue` for Seller transparency)
+  - `GetOrderByIdQueryHandler`, `GetSubOrdersQuery`, `GetSubOrdersByShopQueryHandler`, `GetSubOrderDetailQueryHandler` (Exposes snapshotted `ShopName`, `ShopLogoUrl`, `CommissionRate`, `CommissionFee`, `NetRevenue` for Seller and Customer transparency)
   - `GetCompletedSubOrderCountForProductQueryHandler` (gRPC)
   - `GetVouchersQueryHandler`, `GetAvailableVouchersQueryHandler`
   - `GetMyRefundsQueryHandler`, `GetShopRefundsQueryHandler`
@@ -128,18 +129,24 @@ This document provides a detailed breakdown of all implemented backend APIs, gRP
 - **Entities**:
   - `DailyShopRevenue` (Id, ShopId, Date, Revenue [Net Payout], OrderCount, CompletedOrderCount, UpdatedDate)
   - `DailyPlatformRevenue` (Id, Date, TotalGmv, PlatformRevenue [Gross Commission], PlatformDiscountAmount, NetPlatformRevenue [Net Commission Profit], TotalOrders, UpdatedDate)
-  - `ShopProductStats` (Id, ShopId, ProductId, SoldQuantity, Revenue, UpdatedDate)
+  - `ShopProductStats` (Id, ShopId, ProductId, ProductName, ThumbnailUrl, SoldQuantity, Revenue, UpdatedDate)
+- **Financial Accounting & Revenue Calculation**:
+  - Shipping fee is excluded from shop revenue and kept by platform to settle with 3rd-party logistics (GHN).
+  - Shop net revenue is strictly calculated as `(SubTotal - SellerDiscount) - CommissionFee`.
+  - Commission fee is computed on the actual shop merchandise value `SubTotal - SellerDiscount` (not grand total with shipping).
+  - In `ShopProductStats`, sub-order net revenue is allocated proportionally among item line items based on `UnitPrice * Quantity`.
 - **Consumers**:
-  - `SubOrderCompletedAnalyticsConsumer`: Materializes accurate e-commerce accounting metrics (splits GMV, Gross Platform Commission, Voucher Burn, and Net Shop Revenue) from `SubOrderCompletedEvent`.
+  - `SubOrderCompletedAnalyticsConsumer`: Materializes accurate e-commerce accounting metrics (splits GMV, Gross Platform Commission, Voucher Burn, and Net Shop Revenue) from `SubOrderCompletedEvent`. Snapshots `ProductName` and `ThumbnailUrl` into `ShopProductStats`.
   - `SubOrderStatusChangedAnalyticsConsumer`: Listens to order status updates.
 - **Controllers & APIs**:
   - `SellerAnalyticsController` (`/api/analytics/shops/{shopId}`):
     - `GET /overview`: Today's revenue, month's revenue, order counts, product counts, average rating.
-    - `GET /revenue-chart?period=7d|30d`: Continuous daily revenue timeline points.
-    - `GET /top-products?limit=10`: Top products sorted by sold quantity and revenue.
+    - `GET /revenue-chart?period=7d|30d&year=&month=`: Continuous daily revenue timeline points with period, specific year (12-month aggregation), and specific month (daily points) filtering.
+    - `GET /top-products?limit=25`: Top products sorted by sold quantity and revenue with `ProductName` and `ThumbnailUrl`.
   - `AdminAnalyticsController` (`/api/analytics/admin`):
     - `GET /overview`: Total shops, total orders, platform revenue, GMV, net platform revenue, platform voucher burn, today's new orders.
-    - `GET /revenue-chart?period=7d|30d`: Continuous daily platform revenue timeline points with GMV and Net metrics.
+    - `GET /revenue-chart?period=7d|30d&year=&month=`: Continuous daily platform revenue timeline points with GMV, Net metrics, and year/month drilldown support.
+    - `GET /top-products?limit=25`: Platform-wide top products aggregated across all shops with `ProductName` and `ThumbnailUrl`.
 
 ## 10. Notifications Service (PostgreSQL - Port REST 5080 / gRPC 5081)
 - Email notifications, SMTP, system alerts, real-time SignalR Hub.
@@ -162,12 +169,21 @@ This document provides a detailed breakdown of all implemented backend APIs, gRP
   - `recommendationApi.ts`: `USE_MOCK_RECOMMENDATIONS = false` (toggles mock vs real `/recommendations/...` calls).
   - `analyticsConfig.ts`: `USE_MOCK_ANALYTICS = false` (toggles mock vs real `/analytics/...` calls).
 - **Seller Center & Unified Analytics Architecture**:
-  - `ShopAnalyticsDashboard.tsx`: Unified, responsive SVG Spline Curve (Cubic Bezier) chart engine. Displays header milestone `Doanh Thu Tháng X: [Số tiền]đ` with glowing interactive node points and tooltips, multi-dimensional filters: time presets ("Hôm nay", "3 ngày", "Tuần này", "Tháng này"), Year selector (months 1..12, auto-excluding future months), Month selector (days 1..28/30/31 matching screenshot), and Product filter ("Tất cả sản phẩm" or specific product). Includes Orders Count Trend chart and Product Performance breakdown (Revenue, Orders, Quantity sold). All cards and containers strictly styled with `rounded-md`.
-  - `SellerReviewsView.tsx`: Product-first review management flow. Seller selects product first -> displays complete review list with star breakdown, star rating filters (All, 5⭐, 4⭐, 3⭐, 2⭐, 1⭐), reply status filters (Unreplied, Replied), keyword search, order ID badge (`#ORD-...`) for each review, inline seller reply form with instant submission, and pagination.
-  - `SellerFollowersView.tsx`: Shop followers management view featuring 3 KPI metrics, search, new follower filter (< 7 days), followers table with activity status, direct chat shortcut, and lazy order history query modal triggered on clicking "Xem chi tiết đơn" (using `createPortal` with `z-10000`).
-  - `RevenueView.tsx`: Standardized header and description, wallet balance cards (`rounded-md`), integrated with `ShopAnalyticsDashboard`.
+  - `ShopAnalyticsDashboard.tsx`: Decomposed into clean, modular sub-components under `src/domains/seller/components/analytics/` (`AnalyticsFilterBar`, `AnalyticsKpiCards`, `AnalyticsRevenueChart`, `AnalyticsOrderChart`, `AnalyticsProductPerformance`, `AnalyticsPaymentChannels`).
+    - `AnalyticsFilterBar`: Left side contains debounced (300ms) database product search with case-insensitive lowercase matching, returning thumbnails, names, IDs, prices, and "+ Thêm" action. Right side contains time preset dropdown (Hôm nay, 3 ngày qua, 7 ngày qua, Tự chỉnh) and product filter dropdown (Shop Top 10 + added items). When "Tự chỉnh" is chosen, displays Month (1-12) and Year selectors below with "Xem phân tích" button.
+    - `AnalyticsKpiCards`: 3 dynamic KPI cards (Tổng Doanh Thu with average daily revenue formatted as subtitle, Số Đơn Đặt Hàng, Sản Phẩm Đã Bán) updated 100% dynamically based on the selected timeframe.
+    - `AnalyticsRevenueChart`: Interactive SVG Spline Bezier curve with hover tooltip, custom waiting card, and empty states.
+    - `AnalyticsOrderChart`: Daily order volume bar chart with fulfillment status distribution.
+    - `AnalyticsProductPerformance`: Ranked product list with tabs (Doanh thu, Số đơn, Số lượng bán).
+    - `AnalyticsPaymentChannels`: Overview of supported payment channels.
+  - `RevenueView.tsx`: Streamlined view by removing static cumulative wallet cards ("Tổng Doanh Số Tích Lũy", "Số Đơn Giao Thành Công", "Số Dư Ví Rút Được", "Số Dư Đang Đóng Băng") so all metrics update exclusively according to the chosen time filter.
+  - `ProductView.tsx` & `ProductRow.tsx`: Fixed product analyst action navigation by passing `onAnalytics` prop through `ProductTable` and `ProductRow` to route directly to `/seller/${shopId}/dashboard/revenue?productId=${productId}`.
+  - `SellerFollowersView.tsx`: Streamlined shop followers management view. Removed the "Hoạt động gần nhất" column, removed quick filter buttons "Tất cả" and "7 ngày qua", defaulting to all followers with a calendar date picker defining the start date filter.
+  - `SellerReviewsView.tsx`: Product-first review management flow. Seller selects product first -> displays complete review list with star breakdown, star rating filters, reply status filters, keyword search, order ID badge (`#ORD-...`), inline seller reply form, and pagination.
   - `SellerLayout.tsx`: Added "Trò chuyện với khách" directly into sidebar nav (`/seller/dashboard/chat`), added sublinks for "Đánh giá sản phẩm" (`/seller/dashboard/reviews`), "Người theo dõi" (`/seller/dashboard/followers`), and accurate breadcrumbs.
-  - `AdminOverviewView.tsx`: Integrated unified `ShopAnalyticsDashboard` with shop selector dropdown, allowing Admin to inspect statistics platform-wide or drilled down to any individual shop.
+  - `AdminOverviewView.tsx`: Removed redundant "Doanh Thu Toàn Sàn" card in the top row (clean 3-card grid: Tổng Người Dùng, Tổng Đơn Hàng, Tổng Cửa Hàng). Removed internal shop select box; defaults to platform-wide statistics. Supports `?shopId=...` URL parameter with an active shop banner and "← Quay lại Toàn Sàn" action button.
+  - `AdminShopsView.tsx`: Added an "Analyst" action button (icon `BarChart3`) in the shop action column, navigating directly to `/admin/overview?shopId=${s.id}`.
+
 
 
 

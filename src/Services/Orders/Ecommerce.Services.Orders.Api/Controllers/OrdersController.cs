@@ -38,7 +38,8 @@ public class OrdersController(ICurrentUserService currentUserService, IInMemoryB
     [Authorize]
     public async Task<IActionResult> GetSubOrdersByCustomer(long customerId, CancellationToken cancellationToken)
     {
-        var targetCustomerId = customerId > 0 ? customerId : UserId;
+        var isAdmin = currentUserService.IsAdmin;
+        var targetCustomerId = (customerId > 0 && isAdmin) ? customerId : UserId;
         var result = await _sender.SendAsync(new GetSubOrdersQuery(targetCustomerId), cancellationToken);
 
         return result.IsSuccess 

@@ -8,8 +8,10 @@ import {
 	CornerDownRight,
 	RefreshCw,
 	ShoppingBag,
+	Store,
 } from "lucide-react";
 import { toast } from "react-toastify";
+import { useAuthStore } from "@/domains/auth";
 import { useBuyNowOrReorder } from "@/domains/cart";
 import {
 	useCustomerOrdersQuery,
@@ -21,6 +23,8 @@ import { CustomerOrderDetailView } from "./CustomerOrderDetailView";
 
 export function MyOrdersTab({ customerId }: { customerId?: number }) {
 	const navigate = useNavigate();
+	const { user } = useAuthStore();
+	const effectiveCustomerId = customerId ?? (user?.id ? Number(user.id) : undefined);
 	const { buyNowOrReorder } = useBuyNowOrReorder();
 	const [isReorderingId, setIsReorderingId] = useState<string | null>(null);
 
@@ -28,7 +32,7 @@ export function MyOrdersTab({ customerId }: { customerId?: number }) {
 		data: customerOrders = [],
 		isLoading: ordersLoading,
 		refetch,
-	} = useCustomerOrdersQuery(customerId || 1);
+	} = useCustomerOrdersQuery(effectiveCustomerId);
 
 	const [orderTab, setOrderTab] = useState("All");
 	const [searchQuery, setSearchQuery] = useState("");
@@ -170,7 +174,18 @@ export function MyOrdersTab({ customerId }: { customerId?: number }) {
 						>
 							{/* Shop header and status */}
 							<div className="flex justify-between items-center bg-brand-light-soft/50 border-b border-brand-border px-4 py-2.5">
-								<div className="flex items-center gap-2 min-w-0">
+								<div className="flex items-center gap-2.5 min-w-0">
+									{/*{order.shopLogoUrl ? (*/}
+									{/*	<img*/}
+									{/*		src={order.shopLogoUrl}*/}
+									{/*		alt={order.shopName || "Shop Logo"}*/}
+									{/*		className="w-8 h-8 object-cover border border-brand-border shrink-0"*/}
+									{/*	/>*/}
+									{/*) : (*/}
+									{/*	<div className="w-6 h-6 rounded-full bg-brand-primary/10 border border-brand-primary/20 flex items-center justify-center shrink-0">*/}
+									{/*		<Store className="w-3.5 h-3.5 text-brand-primary" />*/}
+									{/*	</div>*/}
+									{/*)}*/}
 									<span className="font-extrabold text-brand-dark text-xs uppercase tracking-wider truncate">
 										{order.shopName || `Shop #${order.shopId || 1}`}
 									</span>
@@ -202,10 +217,18 @@ export function MyOrdersTab({ customerId }: { customerId?: number }) {
 															"https://via.placeholder.com/150"
 														}
 														alt={item.productName}
-														className="w-14 h-14 object-cover rounded-md border border-brand-border shrink-0"
+														className="w-14 h-14 object-cover rounded-md border border-brand-border shrink-0 cursor-pointer hover:opacity-85 transition-opacity"
+														onClick={() => {
+															if (item.productId) navigate(`/products/${item.productId}`);
+														}}
 													/>
 													<div className="flex-1 min-w-0">
-														<h4 className="font-extrabold text-brand-dark text-xs truncate">
+														<h4 
+															className="font-extrabold text-brand-dark text-xs truncate cursor-pointer hover:text-brand-primary transition-colors"
+															onClick={() => {
+																if (item.productId) navigate(`/products/${item.productId}`);
+															}}
+														>
 															{item.productName}
 														</h4>
 														{item.variantName && (

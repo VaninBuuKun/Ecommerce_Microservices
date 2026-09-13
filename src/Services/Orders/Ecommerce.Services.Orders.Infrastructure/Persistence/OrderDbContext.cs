@@ -70,6 +70,8 @@ public class OrderDbContext(DbContextOptions<OrderDbContext> options, IInMemoryB
             entity.Property(s => s.GrandTotal).HasColumnType("bigint");
             entity.Property(s => s.CommissionRate).HasColumnType("decimal(5,2)");
             entity.Property(s => s.CommissionFee).HasColumnType("bigint");
+            entity.Property(s => s.ShopName).HasMaxLength(255).IsRequired(false);
+            entity.Property(s => s.ShopLogoUrl).HasMaxLength(500).IsRequired(false);
             
             entity.HasMany(s => s.SubOrderItems)
                   .WithOne(i => i.SubOrder)

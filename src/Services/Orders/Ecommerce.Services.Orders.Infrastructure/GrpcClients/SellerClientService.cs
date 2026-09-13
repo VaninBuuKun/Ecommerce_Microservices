@@ -70,7 +70,8 @@ public class SellerClientService(
                 WardId = response.WardId,
                 DistrictId = response.DistrictId,
                 ProvinceId = response.ProvinceId,
-                RecipientName = response.RecipientName
+                RecipientName = response.RecipientName,
+                LogoUrl = response.LogoUrl
             });
         }
         catch (RpcException ex)
@@ -110,7 +111,8 @@ public class SellerClientService(
                 WardId = info.WardId,
                 DistrictId = info.DistrictId,
                 ProvinceId = info.ProvinceId,
-                RecipientName = info.RecipientName
+                RecipientName = info.RecipientName,
+                LogoUrl = info.LogoUrl
             }).ToList();
 
             return Result<List<ShopShippingInfoDto>>.Success(result);

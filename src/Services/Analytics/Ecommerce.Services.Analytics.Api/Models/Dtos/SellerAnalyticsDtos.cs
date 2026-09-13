@@ -28,6 +28,7 @@ public class TopProductDto
     [JsonConverter(typeof(LongToStringJsonConverter))]
     public long ProductId { get; set; }
     public string Name { get; set; } = string.Empty;
+    public string? ThumbnailUrl { get; set; }
     public int SoldQuantity { get; set; }
     public long Revenue { get; set; }
 }

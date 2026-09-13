@@ -60,7 +60,10 @@ public class CompleteSubOrderCommandHandler(
                 {
                     VariantId = i.VariantId,
                     ProductId = i.ProductId,
-                    Quantity = i.Quantity
+                    Quantity = i.Quantity,
+                    UnitPrice = i.UnitPrice,
+                    ProductName = i.ProductName,
+                    ThumbnailUrl = i.ThumbnailUrl
                 }).ToList()
             }, cancellationToken);
 

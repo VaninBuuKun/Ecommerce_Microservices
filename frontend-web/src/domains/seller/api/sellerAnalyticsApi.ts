@@ -1,66 +1,102 @@
 import { api } from "@/core";
-import { isMockAnalyticsEnabled } from "@/core/config/analyticsConfig";
-import {
-	mockSellerOverview,
-	mockSellerRevenue7d,
-	mockSellerRevenue30d,
-	mockSellerTopProducts,
-} from "./mockSellerAnalytics";
-import type {
-	SellerOverviewData,
-	RevenueChartPoint,
-	TopProductItem,
-} from "./mockSellerAnalytics";
 
-export type { SellerOverviewData, RevenueChartPoint, TopProductItem };
+export interface SellerOverviewData {
+	todayRevenue: number;
+	monthRevenue: number;
+	totalOrders: number;
+	todayOrders: number;
+	pendingOrders: number;
+	totalProducts: number;
+	averageRating: number;
+	totalFollowers: number;
+}
+
+export interface RevenueChartPoint {
+	date: string;
+	revenue: number;
+	orderCount: number;
+}
+
+export interface TopProductItem {
+	productId: string | number;
+	name: string;
+	thumbnailUrl?: string;
+	soldQuantity: number;
+	revenue: number;
+}
+
+export interface SellerRevenueChartParams {
+	period?: string;
+	year?: number;
+	month?: number;
+}
 
 export const sellerAnalyticsApi = {
 	getOverview: async (shopId: string | number): Promise<SellerOverviewData> => {
-		if (isMockAnalyticsEnabled()) {
-			return mockSellerOverview;
-		}
 		try {
 			const res = await api.get<SellerOverviewData>(`/analytics/shops/${shopId}/overview`);
-			return res.data;
+			const raw = res.data;
+			return {
+				todayRevenue: Number(raw?.todayRevenue || 0),
+				monthRevenue: Number(raw?.monthRevenue || 0),
+				totalOrders: Number(raw?.totalOrders || 0),
+				todayOrders: Number(raw?.todayOrders || 0),
+				pendingOrders: Number(raw?.pendingOrders || 0),
+				totalProducts: Number(raw?.totalProducts || 0),
+				averageRating: Number(raw?.averageRating || 5.0),
+				totalFollowers: Number(raw?.totalFollowers || 0),
+			};
 		} catch (err) {
-			console.warn("Analytics API unavailable, falling back to mock overview:", err);
-			return mockSellerOverview;
+			console.error("Lỗi khi tải thống kê tổng quan shop:", err);
+			return {
+				todayRevenue: 0,
+				monthRevenue: 0,
+				totalOrders: 0,
+				todayOrders: 0,
+				pendingOrders: 0,
+				totalProducts: 0,
+				averageRating: 5.0,
+				totalFollowers: 0,
+			};
 		}
 	},
 
 	getRevenueChart: async (
 		shopId: string | number,
-		period: "7d" | "30d" = "7d"
+		params?: SellerRevenueChartParams | string
 	): Promise<RevenueChartPoint[]> => {
-		if (isMockAnalyticsEnabled()) {
-			return period === "30d" ? mockSellerRevenue30d : mockSellerRevenue7d;
-		}
 		try {
+			const queryParams = typeof params === "string" ? { period: params } : params;
 			const res = await api.get<RevenueChartPoint[]>(`/analytics/shops/${shopId}/revenue-chart`, {
-				params: { period },
+				params: queryParams,
 			});
-			return res.data;
+			return (res.data || []).map((p) => ({
+				...p,
+				revenue: Number(p.revenue || 0),
+				orderCount: Number(p.orderCount || 0),
+			}));
 		} catch (err) {
-			console.warn("Analytics API unavailable, falling back to mock chart:", err);
-			return period === "30d" ? mockSellerRevenue30d : mockSellerRevenue7d;
+			console.error("Lỗi khi tải biểu đồ doanh thu shop:", err);
+			return [];
 		}
 	},
 
 	getTopProducts: async (
 		shopId: string | number,
-		limit: number = 5
+		limit: number = 25
 	): Promise<TopProductItem[]> => {
-		if (isMockAnalyticsEnabled()) {
-			return mockSellerTopProducts.slice(0, limit);
-		}
 		try {
 			const res = await api.get<TopProductItem[]>(`/analytics/shops/${shopId}/top-products`, {
 				params: { limit },
 			});
-			return res.data;
+			return (res.data || []).map((p) => ({
+				...p,
+				soldQuantity: Number(p.soldQuantity || 0),
+				revenue: Number(p.revenue || 0),
+			}));
 		} catch (err) {
-			console.warn("Analytics API unavailable, falling back to mock top products:", err);
-			return mockSellerTopProducts.slice(0, limit);
+			console.error("Lỗi khi tải top sản phẩm shop:", err);
+			return [];
 		}
 	},
 };

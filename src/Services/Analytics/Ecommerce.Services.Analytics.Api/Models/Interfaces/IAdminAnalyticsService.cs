@@ -8,5 +8,6 @@ namespace Ecommerce.Services.Analytics.Api.Models.Interfaces;
 public interface IAdminAnalyticsService
 {
     Task<AdminOverviewDto> GetOverviewAsync(CancellationToken cancellationToken = default);
-    Task<List<AdminRevenueChartDto>> GetRevenueChartAsync(string period = "7d", CancellationToken cancellationToken = default);
+    Task<List<AdminRevenueChartDto>> GetRevenueChartAsync(string period = "7d", int? year = null, int? month = null, CancellationToken cancellationToken = default);
+    Task<List<TopProductDto>> GetTopProductsAsync(int limit = 10, CancellationToken cancellationToken = default);
 }

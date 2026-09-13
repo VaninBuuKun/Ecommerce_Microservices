@@ -99,6 +99,15 @@ export function ProductsView() {
 		});
 	};
 
+	const handleViewAnalytics = (productId: string) => {
+		const targetShopId = numericShopId || activeShop?.id;
+		if (targetShopId) {
+			navigate(`/seller/${targetShopId}/dashboard/revenue?productId=${productId}`);
+		} else {
+			navigate(`/seller/dashboard/revenue?productId=${productId}`);
+		}
+	};
+
 	return (
 		<div className="space-y-4 text-left font-sans">
 			<div className="flex justify-between items-center pb-3 border-b border-brand-border">
@@ -145,6 +154,7 @@ export function ProductsView() {
 						products={data}
 						onEdit={handleEditProduct}
 						onDelete={handleDeleteProduct}
+						onAnalytics={handleViewAnalytics}
 						onToggleStatus={handleToggleStatus}
 						isDeleting={deleteProductMutation.isPending}
 						updatingStatusId={updatingStatusId}

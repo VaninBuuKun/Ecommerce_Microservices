@@ -1,37 +1,42 @@
-import { useState } from "react";
-import { Link } from "react-router-dom";
+import { useSearchParams, Link } from "react-router-dom";
 import {
 	Users,
-	DollarSign,
 	ShoppingBag,
 	Store,
 	TrendingUp,
 	ShieldAlert,
 	Package,
 	Wallet,
+	CreditCard,
 } from "lucide-react";
 import {
 	useAdminOverviewQuery,
 	useAdminUserCountQuery,
 } from "../hooks/useAdminAnalytics";
+import { useAdminShopsQuery } from "../hooks/useAdmin";
 import { ShopAnalyticsDashboard } from "@/domains/seller";
 
-// Danh sách các shop mẫu để Admin có thể xem thống kê riêng từng shop
-const ADMIN_SHOPS_LIST = [
-	{ id: 1, name: "Shop Bàn Phím Cơ Pro" },
-	{ id: 2, name: "Shop Phụ Kiện Gaming Gear" },
-	{ id: 3, name: "Shop Setup Công Thái Học" },
-];
-
 export function AdminOverviewView() {
-	const [selectedAdminShopId, setSelectedAdminShopId] = useState<string | number | null>(null);
+	const [searchParams, setSearchParams] = useSearchParams();
+	const urlShopId = searchParams.get("shopId");
+	const selectedAdminShopId = urlShopId ? urlShopId : null;
 
 	const { data: overview, isLoading: isOverviewLoading } = useAdminOverviewQuery();
 	const { data: userCount, isLoading: isUserCountLoading } = useAdminUserCountQuery();
+	const { data: shopsData, isLoading: isShopsLoading } = useAdminShopsQuery({ pageSize: 100 });
+
+	const availableShops = (shopsData?.items || []).map((s: any) => ({
+		id: s.id,
+		name: s.name || `Shop #${s.id}`,
+	}));
 
 	const currentShopName = selectedAdminShopId
-		? ADMIN_SHOPS_LIST.find((s) => String(s.id) === String(selectedAdminShopId))?.name || `Shop #${selectedAdminShopId}`
+		? availableShops.find((s) => String(s.id) === String(selectedAdminShopId))?.name || `Shop #${selectedAdminShopId}`
 		: "Toàn Sàn";
+
+	const totalShopsCount = typeof shopsData?.totalCount === "number"
+		? shopsData.totalCount
+		: (overview?.totalShops ?? 0);
 
 	return (
 		<div className="space-y-6 text-left font-sans animate-in fade-in duration-300">
@@ -51,8 +56,32 @@ export function AdminOverviewView() {
 				</span>
 			</div>
 
-			{/* 4 KPI Cards Nền Tảng (rounded-md) */}
-			<div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+			{/* Banner nếu đang lọc xem riêng theo Shop từ Shops View */}
+			{selectedAdminShopId && (
+				<div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 p-3 bg-amber-50 border border-amber-200 rounded-md text-xs font-bold text-brand-dark">
+					<div className="flex items-center gap-2">
+						<Store className="w-4 h-4 text-amber-600 shrink-0" />
+						<span>
+							Đang xem báo cáo phân tích riêng cho:{" "}
+							<strong className="text-amber-800">{currentShopName}</strong> (Shop ID: #{selectedAdminShopId})
+						</span>
+					</div>
+					<button
+						type="button"
+						onClick={() => {
+							const next = new URLSearchParams(searchParams);
+							next.delete("shopId");
+							setSearchParams(next);
+						}}
+						className="px-2.5 py-1 bg-white hover:bg-slate-100 border border-amber-300 rounded text-[11px] font-bold text-amber-800 cursor-pointer transition-colors shadow-2xs shrink-0"
+					>
+						← Quay lại Toàn Sàn
+					</button>
+				</div>
+			)}
+
+			{/* 3 KPI Cards Nền Tảng (Tổng Người Dùng, Tổng Đơn Hàng, Tổng Cửa Hàng) */}
+			<div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
 				{/* 1. Tổng Người Dùng (Từ Identity.Api) */}
 				<div className="bg-white border border-brand-border rounded-md p-4 shadow-xs space-y-1.5">
 					<div className="flex items-center justify-between text-brand-muted">
@@ -67,29 +96,11 @@ export function AdminOverviewView() {
 						{isUserCountLoading ? "..." : (userCount || 0).toLocaleString("vi-VN")}
 					</div>
 					<p className="text-[10px] text-blue-600 font-bold">
-						Đo trực tiếp từ Identity.Api
+						Tin tưởng sử dụng hệ thống
 					</p>
 				</div>
 
-				{/* 2. Doanh Thu Sàn */}
-				<div className="bg-white border border-brand-border rounded-md p-4 shadow-xs space-y-1.5">
-					<div className="flex items-center justify-between text-brand-muted">
-						<span className="text-[11px] font-bold uppercase tracking-wider text-slate-500">
-							Doanh Thu Toàn Sàn
-						</span>
-						<div className="w-8 h-8 rounded-md bg-amber-50 text-amber-600 flex items-center justify-center border border-amber-100">
-							<DollarSign className="w-4 h-4" />
-						</div>
-					</div>
-					<div className="text-xl font-black text-brand-dark">
-						{isOverviewLoading ? "..." : `${((overview?.platformRevenue || 0) / 1000000).toFixed(1)}M đ`}
-					</div>
-					<p className="text-[10px] text-emerald-600 font-bold">
-						Tích lũy từ tất cả đơn thành công
-					</p>
-				</div>
-
-				{/* 3. Tổng Đơn Hàng */}
+				{/* 2. Tổng Đơn Hàng */}
 				<div className="bg-white border border-brand-border rounded-md p-4 shadow-xs space-y-1.5">
 					<div className="flex items-center justify-between text-brand-muted">
 						<span className="text-[11px] font-bold uppercase tracking-wider text-slate-500">
@@ -107,7 +118,7 @@ export function AdminOverviewView() {
 					</p>
 				</div>
 
-				{/* 4. Tổng Số Shop */}
+				{/* 3. Tổng Số Shop */}
 				<div className="bg-white border border-brand-border rounded-md p-4 shadow-xs space-y-1.5">
 					<div className="flex items-center justify-between text-brand-muted">
 						<span className="text-[11px] font-bold uppercase tracking-wider text-slate-500">
@@ -118,7 +129,7 @@ export function AdminOverviewView() {
 						</div>
 					</div>
 					<div className="text-xl font-black text-brand-dark">
-						{isOverviewLoading ? "..." : (overview?.totalShops || 0).toLocaleString("vi-VN")} shop
+						{isShopsLoading ? "..." : totalShopsCount.toLocaleString("vi-VN")} shop
 					</div>
 					<p className="text-[10px] text-purple-600 font-bold">
 						Người bán đang hoạt động
@@ -126,13 +137,11 @@ export function AdminOverviewView() {
 				</div>
 			</div>
 
-			{/* BỘ BIỂU ĐỒ THỐNG KÊ THỐNG NHẤT (Có thể xem Toàn Sàn hoặc chọn xem từng Shop) */}
+			{/* BỘ BIỂU ĐỒ THỐNG KÊ THỐNG NHẤT (Mặc định Toàn Sàn, hoặc theo shopId) */}
 			<ShopAnalyticsDashboard
 				shopId={selectedAdminShopId}
 				shopName={currentShopName}
 				isAdminView={true}
-				availableShops={ADMIN_SHOPS_LIST}
-				onSelectShop={(id) => setSelectedAdminShopId(id)}
 			/>
 
 			{/* Lối Tắt Quản Trị Hệ Thống (rounded-md) */}
@@ -145,12 +154,12 @@ export function AdminOverviewView() {
 						to="/admin/kyc"
 						className="p-3 border border-brand-border hover:border-brand-primary rounded-md flex items-center gap-2.5 hover:bg-brand-primary/5 transition-colors group"
 					>
-						<div className="p-2 bg-amber-50 text-amber-600 rounded-md group-hover:scale-105 transition-transform">
+						<div className="p-2 bg-brand-light-soft rounded-md text-brand-primary-deep group-hover:bg-brand-primary group-hover:text-brand-dark transition-colors">
 							<ShieldAlert className="w-4 h-4" />
 						</div>
-						<div className="text-left">
-							<span className="text-xs font-black text-brand-dark block">Duyệt Seller KYC</span>
-							<span className="text-[10px] text-brand-muted">Hồ sơ định danh</span>
+						<div>
+							<span className="text-xs font-bold text-brand-dark block">Duyệt KYC</span>
+							<span className="text-[10px] text-brand-muted font-bold">Hồ sơ người bán</span>
 						</div>
 					</Link>
 
@@ -158,25 +167,12 @@ export function AdminOverviewView() {
 						to="/admin/products"
 						className="p-3 border border-brand-border hover:border-brand-primary rounded-md flex items-center gap-2.5 hover:bg-brand-primary/5 transition-colors group"
 					>
-						<div className="p-2 bg-blue-50 text-blue-600 rounded-md group-hover:scale-105 transition-transform">
+						<div className="p-2 bg-brand-light-soft rounded-md text-brand-primary-deep group-hover:bg-brand-primary group-hover:text-brand-dark transition-colors">
 							<Package className="w-4 h-4" />
 						</div>
-						<div className="text-left">
-							<span className="text-xs font-black text-brand-dark block">Quản lý Sản phẩm</span>
-							<span className="text-[10px] text-brand-muted">Duyệt / Ẩn sản phẩm</span>
-						</div>
-					</Link>
-
-					<Link
-						to="/admin/orders"
-						className="p-3 border border-brand-border hover:border-brand-primary rounded-md flex items-center gap-2.5 hover:bg-brand-primary/5 transition-colors group"
-					>
-						<div className="p-2 bg-emerald-50 text-emerald-600 rounded-md group-hover:scale-105 transition-transform">
-							<ShoppingBag className="w-4 h-4" />
-						</div>
-						<div className="text-left">
-							<span className="text-xs font-black text-brand-dark block">Quản lý Đơn hàng</span>
-							<span className="text-[10px] text-brand-muted">Vận đơn & Trạng thái</span>
+						<div>
+							<span className="text-xs font-bold text-brand-dark block">Kho Hàng Toàn Sàn</span>
+							<span className="text-[10px] text-brand-muted font-bold">Kiểm duyệt sản phẩm</span>
 						</div>
 					</Link>
 
@@ -184,12 +180,25 @@ export function AdminOverviewView() {
 						to="/admin/wallets"
 						className="p-3 border border-brand-border hover:border-brand-primary rounded-md flex items-center gap-2.5 hover:bg-brand-primary/5 transition-colors group"
 					>
-						<div className="p-2 bg-purple-50 text-purple-600 rounded-md group-hover:scale-105 transition-transform">
+						<div className="p-2 bg-brand-light-soft rounded-md text-brand-primary-deep group-hover:bg-brand-primary group-hover:text-brand-dark transition-colors">
 							<Wallet className="w-4 h-4" />
 						</div>
-						<div className="text-left">
-							<span className="text-xs font-black text-brand-dark block">Quản lý Ví Sàn</span>
-							<span className="text-[10px] text-brand-muted">Số dư & Quyết toán</span>
+						<div>
+							<span className="text-xs font-bold text-brand-dark block">Ví Tiền & Quyết Toán</span>
+							<span className="text-[10px] text-brand-muted font-bold">Số dư hệ thống</span>
+						</div>
+					</Link>
+
+					<Link
+						to="/admin/payment-methods"
+						className="p-3 border border-brand-border hover:border-brand-primary rounded-md flex items-center gap-2.5 hover:bg-brand-primary/5 transition-colors group"
+					>
+						<div className="p-2 bg-brand-light-soft rounded-md text-brand-primary-deep group-hover:bg-brand-primary group-hover:text-brand-dark transition-colors">
+							<CreditCard className="w-4 h-4" />
+						</div>
+						<div>
+							<span className="text-xs font-bold text-brand-dark block">Cổng Thanh Toán</span>
+							<span className="text-[10px] text-brand-muted font-bold">Cấu hình thanh toán</span>
 						</div>
 					</Link>
 				</div>

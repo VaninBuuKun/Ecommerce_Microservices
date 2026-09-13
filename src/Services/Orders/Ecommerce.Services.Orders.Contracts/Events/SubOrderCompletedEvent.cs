@@ -31,4 +31,7 @@ public class SubOrderCompletedItemContract
     public long ProductId { get; init; }
     public long? CategoryId { get; init; }
     public int Quantity { get; init; }
+    public decimal UnitPrice { get; init; }
+    public string ProductName { get; init; } = string.Empty;
+    public string? ThumbnailUrl { get; init; }
 }

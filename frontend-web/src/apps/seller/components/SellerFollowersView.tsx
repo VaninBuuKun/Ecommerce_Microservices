@@ -123,17 +123,6 @@ export function SellerFollowersView() {
 	const [currentPage, setCurrentPage] = useState(1);
 	const pageSize = 5;
 
-	// Xử lý bộ lọc nhanh 7 ngày / 30 ngày
-	const handleQuickFilter = (days: number) => {
-		const targetDate = new Date();
-		targetDate.setDate(targetDate.getDate() - days);
-		const yyyy = targetDate.getFullYear();
-		const mm = String(targetDate.getMonth() + 1).padStart(2, "0");
-		const dd = String(targetDate.getDate()).padStart(2, "0");
-		setStartDateFilter(`${yyyy}-${mm}-${dd}`);
-		setCurrentPage(1);
-	};
-
 	// Lọc danh sách người theo dõi
 	const filteredFollowers = useMemo(() => {
 		return MOCK_FOLLOWERS.filter((f) => {
@@ -238,35 +227,14 @@ export function SellerFollowersView() {
 					/>
 				</div>
 
-				{/* Bộ chọn thời gian: cuốn lịch + nút chọn nhanh */}
-				<div className="flex flex-wrap items-center gap-2">
-					<button
-						type="button"
-						onClick={() => {
-							setStartDateFilter("");
-							setCurrentPage(1);
-						}}
-						className={`px-3 py-1.5 rounded-md text-xs font-bold transition-colors cursor-pointer border ${
-							!startDateFilter
-								? "bg-brand-dark text-white border-brand-dark shadow-xs"
-								: "bg-white text-slate-600 border-slate-200 hover:bg-slate-50"
-						}`}
-					>
-						Tất cả
-					</button>
-
-					<button
-						type="button"
-						onClick={() => handleQuickFilter(7)}
-						className="px-3 py-1.5 rounded-md text-xs font-bold transition-colors cursor-pointer border bg-white text-slate-600 border-slate-200 hover:bg-slate-50"
-					>
-						7 ngày qua
-					</button>
-
-					{/* Date picker (Cuốn lịch) chọn thời điểm trong quá khứ */}
-					<div className="flex items-center gap-1.5 bg-slate-50 border border-brand-border rounded-md px-2.5 py-1 text-xs">
+				{/* Bộ chọn thời gian: cuốn lịch xác định ngày bắt đầu lọc */}
+				<div className="flex items-center gap-2">
+					{/* Date picker (Cuốn lịch) chọn ngày bắt đầu */}
+					<div className="flex items-center gap-1.5 bg-slate-50 border border-brand-border rounded-md px-2.5 py-1.5 text-xs shadow-2xs">
 						<Calendar className="w-3.5 h-3.5 text-brand-muted shrink-0" />
-						<span className="text-[11px] text-brand-muted font-semibold whitespace-nowrap">Từ ngày:</span>
+						<span className="text-[11px] text-brand-muted font-semibold whitespace-nowrap">
+							{startDateFilter ? "Từ ngày:" : "Lọc theo ngày:"}
+						</span>
 						<input
 							type="date"
 							value={startDateFilter}
@@ -277,8 +245,10 @@ export function SellerFollowersView() {
 							}}
 							className="text-xs bg-transparent text-brand-dark font-medium focus:outline-none cursor-pointer"
 						/>
-						{startDateFilter && (
+						{startDateFilter ? (
 							<span className="text-[10px] text-brand-muted font-bold whitespace-nowrap">đến nay</span>
+						) : (
+							<span className="text-[10px] text-slate-400 font-medium whitespace-nowrap">(Tất cả)</span>
 						)}
 						{startDateFilter && (
 							<button
@@ -287,10 +257,10 @@ export function SellerFollowersView() {
 									setStartDateFilter("");
 									setCurrentPage(1);
 								}}
-								className="text-slate-400 hover:text-slate-600 p-0.5 cursor-pointer"
-								title="Xóa bộ lọc ngày"
+								className="text-slate-400 hover:text-slate-600 p-0.5 cursor-pointer ml-1"
+								title="Xóa bộ lọc ngày (hiển thị tất cả)"
 							>
-								<X className="w-3 h-3" />
+								<X className="w-3.5 h-3.5" />
 							</button>
 						)}
 					</div>
@@ -305,14 +275,13 @@ export function SellerFollowersView() {
 							<tr className="border-b border-brand-border bg-brand-light-soft/50 text-brand-muted font-bold text-xs">
 								<th className="py-3 px-4">Khách hàng</th>
 								<th className="py-3 px-4">Ngày theo dõi</th>
-								<th className="py-3 px-4">Hoạt động gần nhất</th>
 								<th className="py-3 px-4 text-right">Thao tác</th>
 							</tr>
 						</thead>
 						<tbody className="divide-y divide-slate-100 font-normal">
 							{paginatedFollowers.length === 0 ? (
 								<tr>
-									<td colSpan={4} className="py-8 text-center text-xs text-brand-muted">
+									<td colSpan={3} className="py-8 text-center text-xs text-brand-muted">
 										Không tìm thấy người theo dõi nào phù hợp với bộ lọc.
 									</td>
 								</tr>
@@ -352,15 +321,7 @@ export function SellerFollowersView() {
 											</div>
 										</td>
 
-										{/* Cột 3: Trạng thái hoạt động */}
-										<td className="py-3 px-4">
-											<div className="flex items-center gap-1.5 text-slate-500 text-[11px]">
-												<span className="w-2 h-2 rounded-full bg-emerald-500 inline-block shrink-0" />
-												<span>{follower.lastActive}</span>
-											</div>
-										</td>
-
-										{/* Cột 4: Nút thao tác (Xem chi tiết đơn bằng OrdersView & Nhắn tin) */}
+										{/* Cột 3: Nút thao tác (Xem chi tiết đơn bằng OrdersView & Nhắn tin) */}
 										<td className="py-3 px-4 text-right">
 											<div className="flex items-center justify-end gap-2">
 												{/* Nút Xem chi tiết đơn: chuyển sang xem OrdersView có filter customerId */}

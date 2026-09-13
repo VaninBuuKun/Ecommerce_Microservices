@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import { isAuthenticated } from "@/shared/utils/authHelper";
+import { queryClient } from "@/shared/lib/react-query";
 
 export interface UserDto {
 	id: number;
@@ -71,8 +72,18 @@ export const useAuthStore = create<AuthState>((set) => ({
 	},
 
 	clearState: () => {
-		localStorage.removeItem("accessToken");
-		localStorage.removeItem("refreshToken");
+		try {
+			localStorage.removeItem("accessToken");
+			localStorage.removeItem("refreshToken");
+		} catch {}
+
 		set({ accessToken: null, refreshToken: null, user: null, isInitializing: false });
+
+		// Xóa toàn bộ cache TanStack Query để tránh lưu vết dữ liệu giữa các tài khoản
+		try {
+			queryClient.clear();
+		} catch (err) {
+			console.error("Lỗi khi clear queryClient:", err);
+		}
 	},
 }));

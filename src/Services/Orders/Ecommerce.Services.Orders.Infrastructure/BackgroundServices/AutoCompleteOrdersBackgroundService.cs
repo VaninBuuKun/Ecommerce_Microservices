@@ -81,7 +81,10 @@ public class AutoCompleteOrdersBackgroundService(
                 {
                     VariantId = i.VariantId,
                     ProductId = i.ProductId,
-                    Quantity = i.Quantity
+                    Quantity = i.Quantity,
+                    UnitPrice = i.UnitPrice,
+                    ProductName = i.ProductName,
+                    ThumbnailUrl = i.ThumbnailUrl
                 }).ToList();
 
                 // Publish event để cộng doanh thu cho Seller ở Payment Service
@@ -92,6 +95,9 @@ public class AutoCompleteOrdersBackgroundService(
                     CustomerId = subOrder.CustomerId,
                     TotalAmount = subOrder.GrandTotal,
                     PlatformDiscount = subOrder.PlatformDiscount,
+                    CommissionRate = subOrder.CommissionRate,
+                    CommissionFee = subOrder.CommissionFee,
+                    NetRevenue = subOrder.NetRevenue,
                     Items = orderItems
                 }, stoppingToken);
             }

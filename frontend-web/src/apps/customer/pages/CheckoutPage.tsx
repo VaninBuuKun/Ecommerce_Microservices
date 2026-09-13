@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
+import { useQueryClient } from "@tanstack/react-query";
 import {
 	MapPin,
 	Plus,
@@ -39,6 +40,7 @@ import {
 
 export default function CheckoutPage() {
 	const navigate = useNavigate();
+	const queryClient = useQueryClient();
 	const location = useLocation();
 	const idempotencyKeyRef = useRef<string>(
 		typeof crypto !== "undefined" && crypto.randomUUID ? crypto.randomUUID() : `idemp_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`
@@ -327,6 +329,9 @@ export default function CheckoutPage() {
 			},
 			{
 				onSuccess: (res: any) => {
+					queryClient.invalidateQueries({ queryKey: ["customerOrders"] });
+					queryClient.invalidateQueries({ queryKey: ["orders"] });
+					queryClient.invalidateQueries({ queryKey: ["cart"] });
 					const orderData = res?.value || res;
 					if (orderData?.paymentUrl) {
 						window.location.href = orderData.paymentUrl;

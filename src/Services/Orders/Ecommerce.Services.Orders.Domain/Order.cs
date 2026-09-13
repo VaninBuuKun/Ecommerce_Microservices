@@ -116,6 +116,12 @@ public sealed class Order : AggregateRoot<long>, IDateTracking
         existingShopSubOrder?.SetCommission(commissionRate, commissionFee);
     }
 
+    public void SetShopInfo(long shopId, string shopName, string? shopLogoUrl)
+    {
+        var existingShopSubOrder = SubOrderItems.FirstOrDefault(x => x.ShopId == shopId);
+        existingShopSubOrder?.SetShopInfo(shopName, shopLogoUrl);
+    }
+
     private void CalculateTotals()
     {
         SubTotal = SubOrderItems.Sum(x => x.SubTotal);

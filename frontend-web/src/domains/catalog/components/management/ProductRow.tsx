@@ -1,4 +1,5 @@
 import React from "react";
+import { useNavigate } from "react-router-dom";
 import {
 	ChevronDown,
 	ChevronRight,
@@ -7,6 +8,7 @@ import {
 	Play,
 	Pause,
 	Loader2,
+	BarChart3,
 } from "lucide-react";
 import { ProductVariantRow } from "./ProductVariantRow";
 import { formatPrice, formatStock } from "@/shared";
@@ -18,6 +20,7 @@ interface ProductRowProps {
 	onToggleExpand: (id: string) => void;
 	onEdit: (id: string) => void;
 	onDelete: (id: string) => void;
+	onAnalytics?: (id: string) => void;
 	onToggleStatus?: (id: string, currentStatus: string) => void;
 	isDeleting?: boolean;
 	isUpdatingStatus?: boolean;
@@ -29,10 +32,12 @@ export function ProductRow({
 	onToggleExpand,
 	onEdit,
 	onDelete,
+	onAnalytics,
 	onToggleStatus,
 	isDeleting,
 	isUpdatingStatus,
 }: ProductRowProps) {
+	const navigate = useNavigate();
 	const hasVariants = product.variants && product.variants.length > 0;
 
 	const totalStock = hasVariants && product.variants
@@ -134,6 +139,26 @@ export function ProductRow({
 								)}
 							</button>
 						)}
+
+						<button
+							type="button"
+							onClick={() => {
+								if (onAnalytics) {
+									onAnalytics(product.id);
+								} else {
+									const targetShopId = product.shopId;
+									if (targetShopId) {
+										navigate(`/seller/${targetShopId}/dashboard/revenue?productId=${product.id}`);
+									} else {
+										navigate(`/seller/dashboard/revenue?productId=${product.id}`);
+									}
+								}
+							}}
+							className="p-1.5 text-gray-400 hover:text-amber-600 hover:bg-amber-50 rounded-md cursor-pointer transition-colors"
+							title="Xem thống kê & phân tích sản phẩm này"
+						>
+							<BarChart3 className="w-4 h-4" />
+						</button>
 
 						<button
 							type="button"

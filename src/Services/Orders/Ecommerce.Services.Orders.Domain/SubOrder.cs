@@ -17,7 +17,11 @@ public class SubOrder : EntityTrackingBase<long>
 
     public decimal CommissionRate { get; private set; } // Tỷ lệ hoa hồng sàn snapshot (ví dụ: 5.0)
     public long CommissionFee { get; private set; }      // Số tiền hoa hồng sàn thu snapshot (VND)
-    public long NetRevenue => GrandTotal - CommissionFee; // Số tiền người bán thực nhận (VND)
+    public long NetRevenue => Math.Max(0, (SubTotal - SellerDiscount) - CommissionFee); // Số tiền người bán thực nhận (VND, tiền hàng trừ giảm giá và hoa hồng sàn, không gồm tiền ship)
+    
+    // Snapshot thông tin cửa hàng tại thời điểm đặt hàng
+    public string ShopName { get; private set; } = string.Empty;
+    public string? ShopLogoUrl { get; private set; }
     
     // Truy vết voucher đã áp dụng để hỗ trợ rollback khi hủy đơn
     public long? ShopVoucherId { get; private set; }
@@ -94,6 +98,16 @@ public class SubOrder : EntityTrackingBase<long>
             ShopVoucherId = shopVoucherId;
         if (platformVoucherId.HasValue)
             PlatformVoucherId = platformVoucherId;
+    }
+
+    /// <summary>
+    /// Snapshot tên và logo của cửa hàng tại thời điểm đặt hàng.
+    /// </summary>
+    public void SetShopInfo(string shopName, string? shopLogoUrl)
+    {
+        if (!string.IsNullOrWhiteSpace(shopName))
+            ShopName = shopName;
+        ShopLogoUrl = shopLogoUrl;
     }
 
     // ========== Status Transition Rules ==========

@@ -13,6 +13,8 @@ public class SubOrderDetailDto
     public long Id { get; set; }
     public long CustomerId { get; set; }
     public long ShopId { get; set; }
+    public string ShopName { get; set; } = string.Empty;
+    public string? ShopLogoUrl { get; set; }
     public decimal SubTotal { get; set; }
     public decimal ShippingFee { get; set; }
     public decimal SellerDiscount { get; set; }

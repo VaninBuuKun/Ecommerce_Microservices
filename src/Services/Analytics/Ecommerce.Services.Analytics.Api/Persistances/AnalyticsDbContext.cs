@@ -40,6 +40,8 @@ public class AnalyticsDbContext(DbContextOptions options, IInMemoryBus bus)
         {
             e.HasKey(s => s.Id);
             e.Property(s => s.Id).UseIdentityByDefaultColumn();
+            e.Property(s => s.ProductName).HasMaxLength(255).HasDefaultValue(string.Empty);
+            e.Property(s => s.ThumbnailUrl).HasMaxLength(1000);
             e.HasIndex(s => new { s.ShopId, s.ProductId }).IsUnique();
             e.HasIndex(s => new { s.ShopId, s.SoldQuantity });
         });

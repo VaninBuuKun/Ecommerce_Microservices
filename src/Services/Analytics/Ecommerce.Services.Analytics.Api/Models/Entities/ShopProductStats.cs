@@ -7,6 +7,8 @@ public class ShopProductStats : EntityBase<long>
 {
     public long ShopId { get; set; }
     public long ProductId { get; set; }
+    public string ProductName { get; set; } = string.Empty;
+    public string? ThumbnailUrl { get; set; }
     public int SoldQuantity { get; set; }
     public long Revenue { get; set; }
     public DateTimeOffset UpdatedDate { get; set; } = DateTimeOffset.UtcNow;

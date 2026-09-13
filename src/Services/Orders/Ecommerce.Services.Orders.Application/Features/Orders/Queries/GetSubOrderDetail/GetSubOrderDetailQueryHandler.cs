@@ -87,6 +87,8 @@ public class GetSubOrderDetailQueryHandler(
                 Id = subOrder.Id,
                 CustomerId = subOrder.CustomerId,
                 ShopId = subOrder.ShopId,
+                ShopName = !string.IsNullOrWhiteSpace(subOrder.ShopName) ? subOrder.ShopName : $"Cửa hàng #{subOrder.ShopId}",
+                ShopLogoUrl = subOrder.ShopLogoUrl,
                 SubTotal = subOrder.SubTotal,
                 ShippingFee = subOrder.ShippingFee,
                 SellerDiscount = subOrder.SellerDiscount,
