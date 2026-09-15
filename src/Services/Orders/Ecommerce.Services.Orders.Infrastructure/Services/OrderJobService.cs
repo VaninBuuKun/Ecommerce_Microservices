@@ -56,6 +56,7 @@ public class OrderJobService(
             CommissionRate = subOrder.CommissionRate,
             CommissionFee = subOrder.CommissionFee,
             NetRevenue = subOrder.NetRevenue,
+            ShippingFee = subOrder.ShippingFee,
             Items = items.Select(i => new SubOrderCompletedItemContract
             {
                 VariantId = i.VariantId,

@@ -182,7 +182,7 @@ export function AdminProductsView() {
 											<td className="p-3 text-center">
 												<button
 													type="button"
-													onClick={() => navigate(`/admin/overview?productId=${p.id}`)}
+													onClick={() => navigate(`/admin/overview?mode=product&productId=${p.id}`)}
 													className="p-1.5 text-gray-400 hover:text-amber-600 hover:bg-amber-50 rounded-md cursor-pointer transition-colors border-none bg-transparent inline-flex items-center justify-center"
 													title="Xem phân tích sản phẩm này"
 												>

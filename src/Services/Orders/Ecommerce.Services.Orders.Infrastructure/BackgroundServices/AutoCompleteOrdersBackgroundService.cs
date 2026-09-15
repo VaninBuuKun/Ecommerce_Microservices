@@ -98,6 +98,7 @@ public class AutoCompleteOrdersBackgroundService(
                     CommissionRate = subOrder.CommissionRate,
                     CommissionFee = subOrder.CommissionFee,
                     NetRevenue = subOrder.NetRevenue,
+                    ShippingFee = subOrder.ShippingFee,
                     Items = orderItems
                 }, stoppingToken);
             }

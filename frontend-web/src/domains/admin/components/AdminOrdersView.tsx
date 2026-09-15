@@ -1,9 +1,8 @@
-import React, { useState } from "react";
+import  { useState } from "react";
 import {
 	RefreshCw,
 	Eye,
 	Loader2,
-	ShoppingBag,
 	X,
 	ShieldAlert,
 } from "lucide-react";

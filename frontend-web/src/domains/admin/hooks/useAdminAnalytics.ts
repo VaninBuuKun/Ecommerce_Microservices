@@ -7,7 +7,17 @@ export const adminAnalyticsQueryKeys = {
 	overview: () => ["admin-analytics", "overview"] as const,
 	revenueChart: (params?: AdminRevenueChartParams | string) =>
 		["admin-analytics", "revenue-chart", params] as const,
-	topProducts: (limit?: number) => ["admin-analytics", "top-products", limit] as const,
+	topProducts: (
+		params?:
+			| { page?: number; pageSize?: number; limit?: number; parentCategoryId?: number | string }
+			| number
+	) => ["admin-analytics", "top-products", params] as const,
+	categories: (params?: { period?: string; year?: number; month?: number } | string) =>
+		["admin-analytics", "categories", params] as const,
+	productDetail: (productId?: string | number | null, period?: string) =>
+		["admin-analytics", "product-detail", productId, period] as const,
+	shopProducts: (shopId?: string | number | null, page?: number, pageSize?: number) =>
+		["admin-analytics", "shop-products", shopId, page, pageSize] as const,
 	userCount: () => ["admin-analytics", "user-count"] as const,
 };
 
@@ -27,10 +37,55 @@ export function useAdminRevenueChartQuery(params?: AdminRevenueChartParams | str
 	});
 }
 
-export function useAdminTopProductsQuery(limit: number = 10) {
+export function useAdminTopProductsQuery(
+	params?:
+		| {
+				page?: number;
+				pageSize?: number;
+				limit?: number;
+				parentCategoryId?: number | string;
+		  }
+		| number
+) {
 	return useQuery({
-		queryKey: adminAnalyticsQueryKeys.topProducts(limit),
-		queryFn: () => adminAnalyticsApi.getTopProducts(limit),
+		queryKey: adminAnalyticsQueryKeys.topProducts(params),
+		queryFn: () => adminAnalyticsApi.getTopProducts(params),
+		staleTime: 60 * 1000,
+	});
+}
+
+export function useAdminCategoriesQuery(params: { period?: string; year?: number; month?: number } | string = "7d") {
+	return useQuery({
+		queryKey: adminAnalyticsQueryKeys.categories(params),
+		queryFn: () => adminAnalyticsApi.getCategories(params),
+		staleTime: 60 * 1000,
+	});
+}
+
+export function useAdminProductDetailQuery(productId?: string | number | null, period: string = "7d") {
+	return useQuery({
+		queryKey: adminAnalyticsQueryKeys.productDetail(productId, period),
+		queryFn: () => {
+			if (!productId) return null;
+			return adminAnalyticsApi.getProductDetail(productId, period);
+		},
+		enabled: Boolean(productId),
+		staleTime: 60 * 1000,
+	});
+}
+
+export function useAdminShopProductsQuery(
+	shopId?: string | number | null,
+	page: number = 1,
+	pageSize: number = 15
+) {
+	return useQuery({
+		queryKey: adminAnalyticsQueryKeys.shopProducts(shopId, page, pageSize),
+		queryFn: () => {
+			if (!shopId) return { items: [], totalCount: 0, page: 1, pageSize: 15, totalPages: 1 };
+			return adminAnalyticsApi.getShopProducts(shopId, page, pageSize);
+		},
+		enabled: Boolean(shopId),
 		staleTime: 60 * 1000,
 	});
 }

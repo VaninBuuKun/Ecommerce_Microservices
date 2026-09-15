@@ -10,5 +10,8 @@ public class DailyShopRevenue : EntityBase<long>
     public long Revenue { get; set; }
     public int OrderCount { get; set; }
     public int CompletedOrderCount { get; set; }
+    public int CancelledOrderCount { get; set; }
+    public int RefundedOrderCount { get; set; }
+    public long RefundAmount { get; set; }
     public DateTimeOffset UpdatedDate { get; set; } = DateTimeOffset.UtcNow;
 }

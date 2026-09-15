@@ -197,7 +197,7 @@ export function AdminShopsView() {
 											<div className="flex items-center justify-center gap-1.5">
 												<button
 													type="button"
-													onClick={() => navigate(`/admin/overview?shopId=${s.id}`)}
+													onClick={() => navigate(`/admin/overview?mode=shop&shopId=${s.id}`)}
 													className="p-1.5 text-slate-400 hover:text-amber-600 hover:bg-amber-50 rounded-md cursor-pointer transition-colors border-none bg-transparent inline-flex items-center justify-center"
 													title="Xem báo cáo phân tích gian hàng này"
 												>

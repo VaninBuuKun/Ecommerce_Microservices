@@ -39,6 +39,26 @@ interface AnalyticsRevenueChartProps {
 	plotHeight: number;
 }
 
+// Hàm tính toán hiển thị nhãn trục X thông minh tránh đè chữ khi có nhiều mốc (tháng 28-31 ngày)
+export function shouldShowXAxisLabel(index: number, total: number): boolean {
+	if (total <= 8) return true;
+	if (total <= 14) return index % 2 === 0 || index === total - 1;
+
+	// Khi có từ 15 đến 31 mốc:
+	// Bước nhảy lý tưởng là 5 ngày (hiển thị khoảng 6-7 nhãn: ngày 1, 6, 11, 16, 21, 26, 31)
+	const step = Math.ceil((total - 1) / 6);
+
+	// Luôn hiển thị mốc đầu tiên và mốc cuối cùng
+	if (index === 0 || index === total - 1) return true;
+
+	if (index % step === 0) {
+		// Tránh bị trùng hoặc quá sát mốc cuối cùng (cách ít nhất 2 bước)
+		if (total - 1 - index < 2) return false;
+		return true;
+	}
+	return false;
+}
+
 export function AnalyticsRevenueChart({
 	preset,
 	chartTitle,
@@ -120,51 +140,52 @@ export function AnalyticsRevenueChart({
 						<button
 							type="button"
 							onClick={onApplyCustom}
-							className="px-4 py-1.5 bg-brand-primary hover:bg-brand-primary-deep text-brand-dark font-bold text-xs rounded-md shadow-xs transition-colors cursor-pointer border-none"
+							className="px-4 py-2 bg-brand-primary hover:bg-brand-primary-deep text-brand-dark font-bold text-xs rounded-md shadow-xs transition-all cursor-pointer border-none"
 						>
-							Xem phân tích Tháng {selectedMonth}/{selectedYear}
+							Xem phân tích ngay
 						</button>
 					</div>
 				) : isChartLoading ? (
-					<div className="h-64 flex flex-col items-center justify-center gap-2 text-xs text-brand-muted font-bold">
-						<Loader2 className="w-7 h-7 animate-spin text-brand-primary" />
-						<span>Đang tải dữ liệu biểu đồ...</span>
+					<div className="h-64 flex flex-col items-center justify-center gap-2">
+						<Loader2 className="w-6 h-6 animate-spin text-purple-600" />
+						<span className="text-xs text-brand-muted font-bold">Đang tải biểu đồ spline...</span>
 					</div>
 				) : chartData.length === 0 ? (
 					<div className="h-64 flex flex-col items-center justify-center gap-2 text-xs text-brand-muted font-bold">
 						<Inbox className="w-8 h-8 text-slate-300" />
-						<span>Chưa có dữ liệu giao dịch phát sinh trong kỳ này</span>
+						<span>Không có dữ liệu trong khoảng thời gian này</span>
 					</div>
 				) : (
-					<div className="min-w-[700px]">
+					<div className="relative">
 						<svg
 							viewBox={`0 0 ${svgWidth} ${svgHeight}`}
-							className="w-full h-64 overflow-visible"
+							className="w-full h-auto min-w-[500px]"
+							style={{ overflow: "visible" }}
 						>
 							<defs>
-								{/* Gradient nền tím / chàm mờ dần phía dưới curve */}
+								{/* Gradient cho vùng diện tích dưới đường cong */}
 								<linearGradient id="curveGradient" x1="0" y1="0" x2="0" y2="1">
-									<stop offset="0%" stopColor="#8b5cf6" stopOpacity="0.28" />
-									<stop offset="60%" stopColor="#6366f1" stopOpacity="0.08" />
-									<stop offset="100%" stopColor="#6366f1" stopOpacity="0.0" />
+									<stop offset="0%" stopColor="#7c3aed" stopOpacity="0.35" />
+									<stop offset="100%" stopColor="#7c3aed" stopOpacity="0.0" />
 								</linearGradient>
-								{/* Shadow filter cho điểm node */}
+
+								{/* Glow filter cho node điểm cao nhất */}
 								<filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
-									<feDropShadow dx="0" dy="2" stdDeviation="2" floodColor="#7c3aed" floodOpacity="0.4" />
+									<feDropShadow dx="0" dy="2" stdDeviation="2" floodColor="#7c3aed" floodOpacity="0.5" />
 								</filter>
 							</defs>
 
-							{/* Các đường Grid ngang + Nhãn giá trị trục Y */}
-							{yTicks.map((tick, idx) => (
-								<g key={idx}>
+							{/* Đường lưới ngang (Grid Lines) cho trục Y */}
+							{yTicks.map((tick, i) => (
+								<g key={i}>
 									<line
 										x1={paddingLeft}
 										y1={tick.y}
 										x2={svgWidth - paddingRight}
 										y2={tick.y}
 										stroke="#f1f5f9"
+										strokeDasharray={i === 0 ? "none" : "3 3"}
 										strokeWidth="1"
-										strokeDasharray={idx === 0 ? "0" : "3,3"}
 									/>
 									<text
 										x={paddingLeft - 10}
@@ -213,36 +234,59 @@ export function AnalyticsRevenueChart({
 							)}
 
 							{/* Các điểm node tương tác trên đường cong */}
+							{/* Các điểm node tương tác trên đường cong */}
 							{coords.map((c, i) => {
 								const isPeak = c.point.revenue > 0;
+								const isHovered = hoveredPoint?.point.fullDate === c.point.fullDate;
+								const showLabel = shouldShowXAxisLabel(i, coords.length);
+
 								return (
 									<g
 										key={i}
-										className="cursor-pointer group"
+										className="cursor-pointer"
 										onMouseEnter={() => setHoveredPoint({ point: c.point, x: c.x, y: c.y })}
 										onMouseLeave={() => setHoveredPoint(null)}
 									>
+										{/* Vùng bắt hover rộng rãi */}
 										<circle cx={c.x} cy={c.y} r="8" fill="transparent" />
+
+										{/* Điểm tròn trên đường cong */}
 										<circle
 											cx={c.x}
 											cy={c.y}
 											r={isPeak ? 4.5 : 2}
-											fill={isPeak ? "#ffffff" : "#7c3aed"}
+											fill={isPeak || isHovered ? "#ffffff" : "#7c3aed"}
 											stroke="#7c3aed"
-											strokeWidth={isPeak ? "2.5" : "1"}
-											filter={isPeak ? "url(#glow)" : undefined}
-											className="transition-transform group-hover:scale-150 duration-150"
+											strokeWidth={isPeak || isHovered ? "2.5" : "1"}
+											filter={isPeak || isHovered ? "url(#glow)" : undefined}
+											className="transition-all duration-150"
 										/>
-										<text
-											x={c.x}
-											y={paddingTop + plotHeight + 16}
-											textAnchor="middle"
-											fontSize="10"
-											fontWeight={isPeak ? "bold" : "normal"}
-											fill={isPeak ? "#475569" : "#94a3b8"}
-										>
-											{c.point.label}
-										</text>
+
+										{/* Vạch chia nhỏ (tick mark) trên trục X */}
+										{showLabel && (
+											<line
+												x1={c.x}
+												y1={paddingTop + plotHeight}
+												x2={c.x}
+												y2={paddingTop + plotHeight + 4}
+												stroke="#cbd5e1"
+												strokeWidth="1.5"
+											/>
+										)}
+
+										{/* Nhãn mốc thời gian */}
+										{showLabel && (
+											<text
+												x={c.x}
+												y={paddingTop + plotHeight + 16}
+												textAnchor="middle"
+												fontSize="10"
+												fontWeight={isHovered ? "bold" : "normal"}
+												fill={isHovered ? "#7c3aed" : "#94a3b8"}
+											>
+												{c.point.label}
+											</text>
+										)}
 									</g>
 								);
 							})}

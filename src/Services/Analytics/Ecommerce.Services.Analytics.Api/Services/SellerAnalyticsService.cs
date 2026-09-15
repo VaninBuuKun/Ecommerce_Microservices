@@ -25,6 +25,10 @@ public class SellerAnalyticsService(AnalyticsDbContext dbContext) : ISellerAnaly
             .Select(g => new
             {
                 TotalOrders = g.Sum(r => (int?)r.OrderCount) ?? 0,
+                CompletedOrders = g.Sum(r => (int?)r.CompletedOrderCount) ?? 0,
+                CancelledOrders = g.Sum(r => (int?)r.CancelledOrderCount) ?? 0,
+                RefundedOrders = g.Sum(r => (int?)r.RefundedOrderCount) ?? 0,
+                RefundAmount = g.Sum(r => (long?)r.RefundAmount) ?? 0,
                 MonthRevenue = g.Sum(r => r.Date >= firstDayOfMonth && r.Date <= today ? (long?)r.Revenue : 0) ?? 0,
                 TodayRevenue = g.Sum(r => r.Date == today ? (long?)r.Revenue : 0) ?? 0,
                 TodayOrders = g.Sum(r => r.Date == today ? (int?)r.OrderCount : 0) ?? 0
@@ -43,6 +47,10 @@ public class SellerAnalyticsService(AnalyticsDbContext dbContext) : ISellerAnaly
             TotalOrders = shopStats?.TotalOrders ?? 0,
             TodayOrders = shopStats?.TodayOrders ?? 0,
             PendingOrders = 0,
+            CompletedOrders = shopStats?.CompletedOrders ?? 0,
+            CancelledOrders = shopStats?.CancelledOrders ?? 0,
+            RefundedOrders = shopStats?.RefundedOrders ?? 0,
+            RefundAmount = shopStats?.RefundAmount ?? 0,
             TotalProducts = totalProducts,
             AverageRating = 5.0,
             TotalFollowers = 0
@@ -140,8 +148,10 @@ public class SellerAnalyticsService(AnalyticsDbContext dbContext) : ISellerAnaly
         return result;
     }
 
-    public async Task<List<TopProductDto>> GetTopProductsAsync(long shopId, int limit = 10, CancellationToken cancellationToken = default)
+    public async Task<List<TopProductDto>> GetTopProductsAsync(long shopId, int limit = 30, CancellationToken cancellationToken = default)
     {
+        limit = Math.Clamp(limit, 1, 30); // Tối đa 30 sản phẩm bán chạy của shop
+
         var items = await dbContext.ShopProductStats
             .AsNoTracking()
             .Where(p => p.ShopId == shopId)
@@ -152,10 +162,20 @@ public class SellerAnalyticsService(AnalyticsDbContext dbContext) : ISellerAnaly
                 ProductId = p.ProductId,
                 Name = !string.IsNullOrEmpty(p.ProductName) ? p.ProductName : $"Sản phẩm #{p.ProductId}",
                 ThumbnailUrl = p.ThumbnailUrl,
+                ParentCategoryId = p.ParentCategoryId,
                 SoldQuantity = p.SoldQuantity,
                 Revenue = p.Revenue
             })
             .ToListAsync(cancellationToken);
+
+        // Đảm bảo luôn có tên sản phẩm hiển thị
+        foreach (var item in items)
+        {
+            if (string.IsNullOrWhiteSpace(item.Name))
+            {
+                item.Name = $"Sản phẩm #{item.ProductId}";
+            }
+        }
 
         return items;
     }

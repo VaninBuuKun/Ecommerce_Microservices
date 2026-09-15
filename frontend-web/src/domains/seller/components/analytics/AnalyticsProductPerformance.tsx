@@ -97,7 +97,7 @@ export function AnalyticsProductPerformance({
 									? prod.orders
 									: prod.sold;
 
-						const barPercent = Math.max((currValue / topValue) * 100, 8);
+						const barPercent = currValue > 0 ? Math.max((currValue / topValue) * 100, 4) : 0;
 
 						return (
 							<div key={prod.id} className="space-y-1.5 p-2 rounded-md hover:bg-slate-50 transition-colors">

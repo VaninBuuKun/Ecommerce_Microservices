@@ -124,29 +124,34 @@ This document provides a detailed breakdown of all implemented backend APIs, gRP
 ## 9. Analytics Service (PostgreSQL - Port REST 5095 / gRPC 5096)
 - **Architecture**: Service Layer Pattern, Event-Driven Data Materialization, local database `AnalyticsDb`.
 - **Query Optimization (Consolidated Aggregations)**:
-  - `AdminAnalyticsService.GetOverviewAsync`: Consolidated 6 separate database round-trips (`TotalOrders`, `PlatformRevenue`, `TotalGmv`, `NetPlatformRevenue`, `PlatformDiscountAmount`, and today's stat) into a single SQL aggregation query using `GroupBy(_ => 1)` with conditional sums (`CASE WHEN "Date" = @today THEN ...`). Reduced from 7 `await`s to 2 `await`s.
-  - `SellerAnalyticsService.GetOverviewAsync`: Consolidated 3 separate queries on `DailyShopRevenues` (today's stat, month-to-date revenue, total orders) into a single SQL aggregation query using `GroupBy(_ => 1)`.
+  - `AdminAnalyticsService.GetOverviewAsync`: Consolidated separate database round-trips (`TotalOrders`, `PlatformRevenue`, `TotalGmv`, `NetPlatformRevenue`, `PlatformDiscountAmount`, `TotalShippingFee`, and today's stat) into a single SQL aggregation query using `GroupBy(_ => 1)` with conditional sums (`CASE WHEN "Date" = @today THEN ...`).
+  - `SellerAnalyticsService.GetOverviewAsync`: Consolidated queries on `DailyShopRevenues` (today's stat, month-to-date revenue, total orders, completed/refunded/cancelled counts, refund amount) into a single SQL aggregation query using `GroupBy(_ => 1)`.
 - **Entities**:
-  - `DailyShopRevenue` (Id, ShopId, Date, Revenue [Net Payout], OrderCount, CompletedOrderCount, UpdatedDate)
-  - `DailyPlatformRevenue` (Id, Date, TotalGmv, PlatformRevenue [Gross Commission], PlatformDiscountAmount, NetPlatformRevenue [Net Commission Profit], TotalOrders, UpdatedDate)
-  - `ShopProductStats` (Id, ShopId, ProductId, ProductName, ThumbnailUrl, SoldQuantity, Revenue, UpdatedDate)
-- **Financial Accounting & Revenue Calculation**:
-  - Shipping fee is excluded from shop revenue and kept by platform to settle with 3rd-party logistics (GHN).
+  - `DailyShopRevenue` (Id, ShopId, Date, Revenue [Net Payout], OrderCount, CompletedOrderCount, CancelledOrderCount, RefundedOrderCount, RefundAmount, UpdatedDate)
+  - `DailyPlatformRevenue` (Id, Date, TotalGmv, PlatformRevenue [Gross Commission], PlatformDiscountAmount, NetPlatformRevenue [Net Commission Profit], TotalOrders, TotalShippingFee, UpdatedDate)
+  - `DailyCategoryRevenue` (Id, Date, ParentCategoryId, Revenue, SoldQuantity, UpdatedDate) - Tinh gọn chỉ theo Ngành hàng cha (Parent Category), không lưu sub-category hay tên chuỗi trùng lặp.
+  - `ShopProductStats` (Id, ShopId, ProductId, ProductName, ThumbnailUrl, ParentCategoryId, SoldQuantity, Revenue, UpdatedDate) - Chỉ lưu `ParentCategoryId` phục vụ lọc/nhóm vĩ mô. Tên danh mục do Frontend tự động tra cứu từ cache cây danh mục (`catalog:categories:tree`).
+- **Financial Accounting & Logistics Settlement**:
+  - Shipping fee (`ShippingFee`) is collected by platform to settle with 3rd-party courier (GHN) and isolated in `DailyPlatformRevenue.TotalShippingFee`, separate from GMV and Net Platform Revenue.
   - Shop net revenue is strictly calculated as `(SubTotal - SellerDiscount) - CommissionFee`.
   - Commission fee is computed on the actual shop merchandise value `SubTotal - SellerDiscount` (not grand total with shipping).
-  - In `ShopProductStats`, sub-order net revenue is allocated proportionally among item line items based on `UnitPrice * Quantity`.
-- **Consumers**:
-  - `SubOrderCompletedAnalyticsConsumer`: Materializes accurate e-commerce accounting metrics (splits GMV, Gross Platform Commission, Voucher Burn, and Net Shop Revenue) from `SubOrderCompletedEvent`. Snapshots `ProductName` and `ThumbnailUrl` into `ShopProductStats`.
-  - `SubOrderStatusChangedAnalyticsConsumer`: Listens to order status updates.
+  - In `ShopProductStats`, sub-order net revenue is allocated proportionally among line items based on `UnitPrice * Quantity`.
+- **Event Consumers**:
+  - `SubOrderCompletedAnalyticsConsumer`: Materializes financial metrics (GMV, Gross Commission, Voucher Burn, Net Shop Revenue, Shipping Fee) from `SubOrderCompletedEvent`. Snapshots `ProductName`, `ThumbnailUrl`, `ParentCategoryId` into `ShopProductStats` and upserts into `DailyCategoryRevenue`.
+  - `SubOrderCancelledAnalyticsConsumer` [NEW]: Listens to `SubOrderRejectedEvent` and increments `CancelledOrderCount` in `DailyShopRevenue`.
+  - `RefundApprovedAnalyticsConsumer` [NEW]: Listens to `RefundApprovedEvent` and increments `RefundedOrderCount` and `RefundAmount` in `DailyShopRevenue`.
 - **Controllers & APIs**:
   - `SellerAnalyticsController` (`/api/analytics/shops/{shopId}`):
-    - `GET /overview`: Today's revenue, month's revenue, order counts, product counts, average rating.
-    - `GET /revenue-chart?period=7d|30d&year=&month=`: Continuous daily revenue timeline points with period, specific year (12-month aggregation), and specific month (daily points) filtering.
-    - `GET /top-products?limit=25`: Top products sorted by sold quantity and revenue with `ProductName` and `ThumbnailUrl`.
+    - `GET /overview`: Today's revenue, month's revenue, order counts (completed, cancelled, refunded), refund amount, product counts.
+    - `GET /revenue-chart?period=7d|30d&year=&month=`: Daily revenue timeline points with period, year, and month filtering.
+    - `GET /top-products?limit=30`: Top 30 products sorted by sold quantity and revenue (backend clamped `Math.Clamp(limit, 1, 30)`).
   - `AdminAnalyticsController` (`/api/analytics/admin`):
-    - `GET /overview`: Total shops, total orders, platform revenue, GMV, net platform revenue, platform voucher burn, today's new orders.
+    - `GET /overview`: Total shops, total orders, platform revenue, GMV, net platform revenue, total shipping fee (GHN), today's new orders.
     - `GET /revenue-chart?period=7d|30d&year=&month=`: Continuous daily platform revenue timeline points with GMV, Net metrics, and year/month drilldown support.
-    - `GET /top-products?limit=25`: Platform-wide top products aggregated across all shops with `ProductName` and `ThumbnailUrl`.
+    - `GET /top-products?page=1&pageSize=15`: Platform-wide top products with pagination (supports default Top 30 in 2 pages x 15 items, backend clamped `Math.Clamp(pageSize, 1, 30)`).
+    - `GET /categories?period=7d|30d|custom&year=&month=`: Parent category performance breakdown with revenue, orders, sold units, and platform percentage, supporting custom year/month filtering.
+    - `GET /products/{productId}`: Deep-dive product analytics with product details, stock, KPIs, and daily sales trendline.
+    - `GET /shops/{shopId}/products?page=1&pageSize=15`: Paginated product performance for a specific shop (backend clamped `Math.Clamp(pageSize, 1, 50)`).
 
 ## 10. Notifications Service (PostgreSQL - Port REST 5080 / gRPC 5081)
 - Email notifications, SMTP, system alerts, real-time SignalR Hub.
@@ -173,24 +178,42 @@ This document provides a detailed breakdown of all implemented backend APIs, gRP
 - **Single-Point Mock / Real Data Toggles**:
   - `recommendationApi.ts`: `USE_MOCK_RECOMMENDATIONS = false` (toggles mock vs real `/recommendations/...` calls).
   - `analyticsConfig.ts`: `USE_MOCK_ANALYTICS = false` (toggles mock vs real `/analytics/...` calls).
-- **Seller Center & Unified Analytics Architecture**:
-  - `ShopAnalyticsDashboard.tsx`: Decomposed into clean, modular sub-components under `src/domains/seller/components/analytics/` (`AnalyticsFilterBar`, `AnalyticsKpiCards`, `AnalyticsRevenueChart`, `AnalyticsOrderChart`, `AnalyticsProductPerformance`, `AnalyticsPaymentChannels`).
-    - `AnalyticsFilterBar`: Left side contains debounced (300ms) database product search with case-insensitive lowercase matching, returning thumbnails, names, IDs, prices, and "+ Thêm" action. Right side contains time preset dropdown (Hôm nay, 3 ngày qua, 7 ngày qua, Tự chỉnh) and product filter dropdown (Shop Top 10 + added items). When "Tự chỉnh" is chosen, displays Month (1-12) and Year selectors below with "Xem phân tích" button.
-    - `AnalyticsKpiCards`: 3 dynamic KPI cards (Tổng Doanh Thu with average daily revenue formatted as subtitle, Số Đơn Đặt Hàng, Sản Phẩm Đã Bán) updated 100% dynamically based on the selected timeframe.
-    - `AnalyticsRevenueChart`: Interactive SVG Spline Bezier curve with hover tooltip, custom waiting card, and empty states.
-    - `AnalyticsOrderChart`: Daily order volume bar chart with fulfillment status distribution.
-    - `AnalyticsProductPerformance`: Ranked product list with tabs (Doanh thu, Số đơn, Số lượng bán).
-    - `AnalyticsPaymentChannels`: Overview of supported payment channels.
-  - `RevenueView.tsx`: Streamlined view by removing static cumulative wallet cards ("Tổng Doanh Số Tích Lũy", "Số Đơn Giao Thành Công", "Số Dư Ví Rút Được", "Số Dư Đang Đóng Băng") so all metrics update exclusively according to the chosen time filter.
-  - `ProductView.tsx` & `ProductRow.tsx`: Fixed product analyst action navigation by passing `onAnalytics` prop through `ProductTable` and `ProductRow` to route directly to `/seller/${shopId}/dashboard/revenue?productId=${productId}`.
-  - `SellerFollowersView.tsx`: Streamlined shop followers management view. Removed the "Hoạt động gần nhất" column, removed quick filter buttons "Tất cả" and "7 ngày qua", defaulting to all followers with a calendar date picker defining the start date filter.
-  - `SellerReviewsView.tsx`: Product-first review management flow. Seller selects product first -> displays complete review list with star breakdown, star rating filters, reply status filters, keyword search, order ID badge (`#ORD-...`), inline seller reply form, and pagination.
-  - `SellerLayout.tsx`: Added "Trò chuyện với khách" directly into sidebar nav (`/seller/dashboard/chat`), added sublinks for "Đánh giá sản phẩm" (`/seller/dashboard/reviews`), "Người theo dõi" (`/seller/dashboard/followers`), and accurate breadcrumbs.
-  - `AdminOverviewView.tsx`: Removed redundant "Doanh Thu Toàn Sàn" card in the top row (clean 3-card grid: Tổng Người Dùng, Tổng Đơn Hàng, Tổng Cửa Hàng). Removed internal shop select box; defaults to platform-wide statistics. Supports `?shopId=...` URL parameter with an active shop banner and "← Quay lại Toàn Sàn" action button.
-  - `AdminShopsView.tsx`: Added an "Analyst" action button (icon `BarChart3`) in the shop action column, navigating directly to `/admin/overview?shopId=${s.id}`.
-
-
-
-
-
-
+- **Admin Overview & 4-Mode Analytics (Platform / Category / Shop / Product)**:
+  - `AdminAnalyticsFilterBar`:
+    - 4 Chế độ phân tích độc lập:
+      1. `Phân tích sàn`: Chỉ có bộ lọc mốc thời gian + nút "Áp dụng" (màu thương hiệu vàng/đen). Không còn chứa radio chọn danh mục.
+      2. `Phân tích ngành hàng`: Chứa bộ lọc Radio Check danh mục cha (viền đen 2px, khi chọn tô màu xanh ngọc emerald, triệt tiêu giật layout) + bộ lọc thời gian + nút "Áp dụng" màu ngọc bích emerald.
+      3. `Phân tích một shop`: Nhập mã Shop ID + bộ lọc thời gian + nút "Phân tích shop" màu tím.
+      4. `Phân tích một sản phẩm`: Nhập mã Product ID / dán URL sản phẩm + bộ lọc thời gian + nút "Phân tích sản phẩm" màu hổ phách.
+    - **Nút Hành Động Động Căn Phải Cùng**: Tự động vô hiệu hóa & chuyển sang màu xám ("Đã áp dụng" / "Đã phân tích") sau khi bấm; tự động sáng màu và mở khóa khi người dùng thay đổi filter hoặc chuyển tab.
+  - `AdminCategoryPerformanceTable` [NEW]:
+    - Component hiển thị bảng thống kê hiệu suất ngành hàng toàn sàn.
+    - Sử dụng React Query cache từ Catalog service (`useCategoriesQuery()`), tra cứu tên danh mục và icon/ảnh thu nhỏ trực tiếp từ cache mà backend chỉ cần trả về `categoryId`.
+    - Cột dữ liệu: Thứ hạng (#), Ngành hàng (ảnh, tên, mã định danh `#ID`), Số lượng đã bán (cái), Doanh thu (VND), Tỷ trọng đóng góp kèm thanh tiến trình trực quan, và nút hành động "Phân tích" (drill-down 1-click sang chế độ phân tích ngành hàng).
+  - `AdminOverviewView`: 4 thẻ KPI đồng bộ (`Tổng GMV`, `Doanh Thu Sàn`, `Phí Vận Chuyển Đơn Vị GHN`, `Tổng Đơn Hàng`).
+    - Chế độ Toàn Sàn: Biểu đồ đường cong Spline doanh thu sàn + Biểu đồ trạng thái đơn hàng + Bảng thống kê hiệu suất ngành hàng `AdminCategoryPerformanceTable` + Bảng Top 30 sản phẩm bán chạy nhất toàn sàn phân trang chuẩn xác (2 trang x 15 sản phẩm).
+    - Chế độ Ngành Hàng: Thẻ tóm tắt thông tin ngành hàng đang chọn (ảnh đại diện, tên, ID, đã bán trong kỳ, doanh thu ngành, tỷ trọng toàn sàn) + Bảng Top 30 sản phẩm bán chạy nhất thuộc ngành hàng đó phân trang (2 trang x 15 sản phẩm).
+    - Chế độ Shop: Thẻ KPI shop, biểu đồ doanh thu shop, biểu đồ trạng thái đơn hàng, và bảng toàn bộ sản phẩm của shop kèm phân trang.
+    - Chế độ Sản phẩm: Giao diện `AdminProductDeepDiveView` hiển thị thẻ sản phẩm (ảnh đại diện, tên, mã ID, giá, tồn kho, nhãn danh mục), 3 thẻ KPI chuyên biệt (Doanh số, Doanh thu, Lượt bán hôm nay) và biểu đồ xu hướng doanh thu hàng ngày.
+  - Điều hướng Deep-Linking:
+    - `AdminShopsView`: Nút "Phân tích" điều hướng trực tiếp sang `/admin/overview?mode=shop&shopId=${s.id}`.
+    - `AdminProductsView`: Nút "Phân tích" điều hướng trực tiếp sang `/admin/overview?mode=product&productId=${p.id}`.
+- **Seller Center Analytics Dashboard**:
+  - `ShopAnalyticsDashboard.tsx` & `AnalyticsFilterBar`:
+    - **2 Chế độ phân tích cho Người Bán**:
+      1. `Phân tích cửa hàng` (Mặc định): Không cần nhập ID, chỉ chọn mốc thời gian rồi nhấn nút "Áp dụng" để xem toàn bộ số liệu cửa hàng (KPI, Spline Chart, Biểu đồ đơn hàng, Bảng Top 30 sản phẩm).
+      2. `Phân tích một sản phẩm`: Nhập Product ID từ CSDL và chọn mốc thời gian. **Cơ chế tải trễ (Deferred Data Loading)**: Mới vào không hiển thị dữ liệu ngẫu nhiên, chỉ sau khi người bán nhập ID và nhấn "Áp dụng" thì mới hiển thị báo cáo chuyên sâu `AdminProductDeepDiveView`.
+    - **Nút "Áp Dụng" Tự Động Làm Xám & Kích Hoạt Lại**: Tự động disabled + xám khi đã bấm; tự sáng màu khi đổi thời gian hoặc đổi mã ID.
+  - `AnalyticsRevenueChart.tsx`: Biểu đồ Spline đường cong Bezier doanh thu. Áp dụng thuật toán chia mốc thông minh `shouldShowXAxisLabel` (hiển thị khoảng 6-7 nhãn ngày cách đều nhau kèm vạch chia tick mark, luôn có ngày đầu và ngày cuối tháng), triệt tiêu hoàn toàn lỗi trùng đè chữ trên trục X khi xem tháng 28-31 ngày. Hover node tương tác hiển thị tooltip đầy đủ số tiền và số đơn hàng cho từng ngày.
+  - `AnalyticsOrderChart`: Hiển thị số lượng đơn hàng theo trạng thái thực tế từ backend (Thành công, Hoàn trả kèm số tiền hoàn trả thật, Đã hủy), nhãn ngày cách đều đồng bộ với biểu đồ doanh thu.
+  - `RevenueView.tsx`: Tinh gọn các thẻ tĩnh tích lũy, 100% số liệu cập nhật phụ thuộc vào mốc thời gian được lọc.
+  - `SellerFollowersView.tsx`: Tinh gọn giao diện người theo dõi, hỗ trợ lọc theo ngày bắt đầu trên lịch.
+  - `SellerReviewsView.tsx`: Quy trình quản lý đánh giá ưu tiên chọn sản phẩm trước, hỗ trợ phân loại theo sao, trạng thái phản hồi và trả lời trực tiếp inline.
+- **User Profile Page (`UserProfilePage.tsx`)**:
+   - **Phân Quyền Tab Dành Cho Quản Trị Viên (`checkIsAdmin()`)**:
+     - Khi tài khoản đăng nhập là Quản trị viên (`isAdmin === true`), trang hồ sơ người dùng **chỉ hiển thị duy nhất 2 tab**: `Thông tin tài khoản` (`profile`) và `Thông báo` (`notifications`).
+     - Toàn bộ 4 tab đặc thù của người mua/người bán (`Địa chỉ nhận hàng`, `Đơn hàng của tôi`, `Quản lý ví`, `Yêu cầu hoàn tiền`) được ẩn hoàn toàn trên cả Sidebar lẫn Content view.
+     - Tự động fallback/chuyển hướng về tab `profile` nếu URL hoặc route có tham số tab không thuộc phạm vi cho phép của admin.
+   - **Quy Tắc Đơn Giản Hóa Trạng Thái Nút Bấm Analytics**:
+     - Khi thay đổi filter (ngành hàng, mốc thời gian, tháng/năm, mã shop/sản phẩm) hoặc chuyển tab (chế độ): Lập tức gọi `setIsApplied(false)`, nút sáng màu và bấm được bình thường.
+     - Khi được điều hướng sang một Shop ID mới ("qua cái mới rồi") từ bảng quản lý cửa hàng: Tự động reset `isApplied = false`, chấm dứt tình trạng kẹt chữ "Đã phân tích".

@@ -12,6 +12,7 @@ public class AnalyticsDbContext(DbContextOptions options, IInMemoryBus bus)
     public DbSet<DailyShopRevenue> DailyShopRevenues => Set<DailyShopRevenue>();
     public DbSet<DailyPlatformRevenue> DailyPlatformRevenues => Set<DailyPlatformRevenue>();
     public DbSet<ShopProductStats> ShopProductStats => Set<ShopProductStats>();
+    public DbSet<DailyCategoryRevenue> DailyCategoryRevenues => Set<DailyCategoryRevenue>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -44,6 +45,16 @@ public class AnalyticsDbContext(DbContextOptions options, IInMemoryBus bus)
             e.Property(s => s.ThumbnailUrl).HasMaxLength(1000);
             e.HasIndex(s => new { s.ShopId, s.ProductId }).IsUnique();
             e.HasIndex(s => new { s.ShopId, s.SoldQuantity });
+            e.HasIndex(s => s.ParentCategoryId);
+        });
+
+        modelBuilder.Entity<DailyCategoryRevenue>(e =>
+        {
+            e.HasKey(c => c.Id);
+            e.Property(c => c.Id).UseIdentityByDefaultColumn();
+            e.HasIndex(c => new { c.Date, c.ParentCategoryId }).IsUnique();
+            e.HasIndex(c => c.Date);
+            e.HasIndex(c => c.ParentCategoryId);
         });
     }
 }

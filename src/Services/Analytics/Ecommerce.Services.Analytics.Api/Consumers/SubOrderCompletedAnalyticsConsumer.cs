@@ -71,6 +71,7 @@ public class SubOrderCompletedAnalyticsConsumer(
                 PlatformDiscountAmount = msg.PlatformDiscount,
                 NetPlatformRevenue = netPlatformRevenue,
                 TotalOrders = 1,
+                TotalShippingFee = msg.ShippingFee,
                 UpdatedDate = DateTimeOffset.UtcNow
             });
         }
@@ -81,10 +82,11 @@ public class SubOrderCompletedAnalyticsConsumer(
             platformStat.PlatformDiscountAmount += msg.PlatformDiscount;
             platformStat.NetPlatformRevenue += netPlatformRevenue;
             platformStat.TotalOrders += 1;
+            platformStat.TotalShippingFee += msg.ShippingFee;
             platformStat.UpdatedDate = DateTimeOffset.UtcNow;
         }
 
-        // 3. Update ShopProductStats
+        // 3. Update ShopProductStats & DailyCategoryRevenue
         if (msg.Items != null && msg.Items.Count > 0)
         {
             var totalItemsSubTotal = msg.Items.Sum(x => (decimal)x.UnitPrice * x.Quantity);
@@ -107,6 +109,7 @@ public class SubOrderCompletedAnalyticsConsumer(
                         ProductId = item.ProductId,
                         ProductName = !string.IsNullOrWhiteSpace(item.ProductName) ? item.ProductName : $"Sản phẩm #{item.ProductId}",
                         ThumbnailUrl = item.ThumbnailUrl,
+                        ParentCategoryId = item.ParentCategoryId,
                         SoldQuantity = item.Quantity,
                         Revenue = itemRevenue,
                         UpdatedDate = DateTimeOffset.UtcNow
@@ -124,7 +127,37 @@ public class SubOrderCompletedAnalyticsConsumer(
                     {
                         prodStat.ThumbnailUrl = item.ThumbnailUrl;
                     }
+                    if (item.ParentCategoryId.HasValue)
+                    {
+                        prodStat.ParentCategoryId = item.ParentCategoryId;
+                    }
                     prodStat.UpdatedDate = DateTimeOffset.UtcNow;
+                }
+
+                // Cập nhật nhật ký doanh thu danh mục cha DailyCategoryRevenue (Chỉ theo Parent Category)
+                var parentCatId = item.ParentCategoryId ?? 0;
+                if (parentCatId > 0)
+                {
+                    var catStat = await dbContext.DailyCategoryRevenues
+                        .FirstOrDefaultAsync(c => c.Date == today && c.ParentCategoryId == parentCatId, context.CancellationToken);
+
+                    if (catStat == null)
+                    {
+                        dbContext.DailyCategoryRevenues.Add(new DailyCategoryRevenue
+                        {
+                            Date = today,
+                            ParentCategoryId = parentCatId,
+                            Revenue = itemRevenue,
+                            SoldQuantity = item.Quantity,
+                            UpdatedDate = DateTimeOffset.UtcNow
+                        });
+                    }
+                    else
+                    {
+                        catStat.Revenue += itemRevenue;
+                        catStat.SoldQuantity += item.Quantity;
+                        catStat.UpdatedDate = DateTimeOffset.UtcNow;
+                    }
                 }
             }
         }

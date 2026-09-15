@@ -3,6 +3,7 @@ using System;
 using Ecommerce.Services.Analytics.Api.Persistances;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Ecommerce.Services.Analytics.Api.Migrations
 {
     [DbContext(typeof(AnalyticsDbContext))]
-    partial class AnalyticsDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260914111646_Add_Category_Revenue_And_Shipping_Settlements")]
+    partial class Add_Category_Revenue_And_Shipping_Settlements
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -36,11 +39,24 @@ namespace Ecommerce.Services.Analytics.Api.Migrations
                     b.Property<long>("ParentCategoryId")
                         .HasColumnType("bigint");
 
+                    b.Property<string>("ParentCategoryName")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)");
+
                     b.Property<long>("Revenue")
                         .HasColumnType("bigint");
 
                     b.Property<int>("SoldQuantity")
                         .HasColumnType("integer");
+
+                    b.Property<long>("SubCategoryId")
+                        .HasColumnType("bigint");
+
+                    b.Property<string>("SubCategoryName")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)");
 
                     b.Property<DateTimeOffset>("UpdatedDate")
                         .HasColumnType("timestamp with time zone");
@@ -49,10 +65,7 @@ namespace Ecommerce.Services.Analytics.Api.Migrations
 
                     b.HasIndex("Date");
 
-                    b.HasIndex("ParentCategoryId");
-
-                    b.HasIndex("Date", "ParentCategoryId")
-                        .IsUnique();
+                    b.HasIndex("Date", "ParentCategoryId");
 
                     b.ToTable("DailyCategoryRevenues");
                 });
@@ -150,8 +163,17 @@ namespace Ecommerce.Services.Analytics.Api.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
 
+                    b.Property<long?>("CategoryId")
+                        .HasColumnType("bigint");
+
+                    b.Property<string>("CategoryName")
+                        .HasColumnType("text");
+
                     b.Property<long?>("ParentCategoryId")
                         .HasColumnType("bigint");
+
+                    b.Property<string>("ParentCategoryName")
+                        .HasColumnType("text");
 
                     b.Property<long>("ProductId")
                         .HasColumnType("bigint");

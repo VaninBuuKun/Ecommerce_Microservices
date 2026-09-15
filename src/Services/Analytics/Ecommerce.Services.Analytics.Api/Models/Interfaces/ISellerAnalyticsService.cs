@@ -9,5 +9,5 @@ public interface ISellerAnalyticsService
 {
     Task<SellerOverviewDto> GetOverviewAsync(long shopId, CancellationToken cancellationToken = default);
     Task<List<RevenueChartPointDto>> GetRevenueChartAsync(long shopId, string period = "7d", int? year = null, int? month = null, CancellationToken cancellationToken = default);
-    Task<List<TopProductDto>> GetTopProductsAsync(long shopId, int limit = 10, CancellationToken cancellationToken = default);
+    Task<List<TopProductDto>> GetTopProductsAsync(long shopId, int limit = 30, CancellationToken cancellationToken = default);
 }

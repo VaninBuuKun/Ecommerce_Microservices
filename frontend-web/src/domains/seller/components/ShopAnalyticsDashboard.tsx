@@ -1,10 +1,13 @@
 import { useState, useMemo, useEffect } from "react";
 import { useLocation } from "react-router-dom";
+import { Package } from "lucide-react";
 import { toast } from "react-toastify";
 import {
 	useAdminRevenueChartQuery,
 	useAdminTopProductsQuery,
-} from "@/domains/admin/hooks/useAdminAnalytics";
+	useAdminProductDetailQuery,
+	AdminProductDeepDiveView,
+} from "@/domains/admin";
 import {
 	useSellerRevenueChartQuery,
 	useSellerTopProductsQuery,
@@ -16,9 +19,9 @@ import {
 	AnalyticsKpiCards,
 	AnalyticsRevenueChart,
 	AnalyticsOrderChart,
-	AnalyticsProductPerformance,
-	AnalyticsPaymentChannels,
+	AnalyticsProductPerformanceTable,
 	type PresetFilter,
+	type SellerAnalyticsMode,
 	type FilterProductItem,
 	type SearchProductResult,
 	type ChartDataPoint,
@@ -31,17 +34,29 @@ export interface ShopAnalyticsDashboardProps {
 	isAdminView?: boolean;
 	availableShops?: Array<{ id: string | number; name: string }>;
 	onSelectShop?: (shopId: string | number | null) => void;
+	controlledPreset?: PresetFilter;
+	controlledMonth?: number;
+	controlledYear?: number;
+	hideFilterBar?: boolean;
 }
 
 export function ShopAnalyticsDashboard({
 	shopId,
 	shopName = "Cửa hàng của tôi",
 	isAdminView = false,
+	controlledPreset,
+	controlledMonth,
+	controlledYear,
+	hideFilterBar = false,
 }: ShopAnalyticsDashboardProps) {
 	const location = useLocation();
 	const now = new Date();
 	const currentYear = now.getFullYear();
 	const currentMonth = now.getMonth() + 1;
+
+	// Chế độ xem: Phân tích cửa hàng ("shop") hoặc Phân tích một sản phẩm ("product")
+	const [sellerMode, setSellerMode] = useState<SellerAnalyticsMode>("shop");
+	const [appliedProductId, setAppliedProductId] = useState<string>("");
 
 	// Bộ lọc thời gian: hôm nay, 3 ngày qua, 7 ngày qua, tự chỉnh
 	const [preset, setPreset] = useState<PresetFilter>("week");
@@ -49,18 +64,21 @@ export function ShopAnalyticsDashboard({
 	const [selectedMonth, setSelectedMonth] = useState<number>(currentMonth);
 	const [isCustomReady, setIsCustomReady] = useState(false);
 
+	const effectivePreset = controlledPreset || preset;
+	const effectiveMonth = controlledMonth || selectedMonth;
+	const effectiveYear = controlledYear || selectedYear;
+
 	// Lọc theo sản phẩm
 	const [selectedProductId, setSelectedProductId] = useState<string>("all");
 	const [customProducts, setCustomProducts] = useState<FilterProductItem[]>([]);
-
-	// Tab hiệu suất sản phẩm: Doanh thu | Số đơn đặt | Số lượng bán
-	const [productStatTab, setProductStatTab] = useState<"revenue" | "orders" | "sold">("revenue");
 
 	// Hỗ trợ truyền productId qua URL query params (từ trang Quản lý sản phẩm)
 	useEffect(() => {
 		const searchParams = new URLSearchParams(location.search);
 		const paramPid = searchParams.get("productId")?.trim();
 		if (paramPid) {
+			setSellerMode("product");
+			setAppliedProductId(paramPid);
 			setSelectedProductId(paramPid);
 			productApi
 				.getProductById(paramPid)
@@ -90,19 +108,49 @@ export function ShopAnalyticsDashboard({
 		}
 	}, [location.search]);
 
+	// Callback duy nhất khi bấm nút "Áp dụng" trên FilterBar của Seller
+	const handleApplySellerFilter = ({
+		mode: newMode,
+		productId,
+		preset: newPreset,
+		month,
+		year,
+	}: {
+		mode: SellerAnalyticsMode;
+		productId?: string;
+		preset: PresetFilter;
+		month: number;
+		year: number;
+	}) => {
+		setSellerMode(newMode);
+		setPreset(newPreset);
+		setSelectedMonth(month);
+		setSelectedYear(year);
+		setIsCustomReady(true);
+		setAppliedProductId(productId || "");
+		if (productId) {
+			setSelectedProductId(productId);
+		}
+	};
+
 	// Chuẩn bị tham số query theo filter được chọn
 	const chartQueryParams = useMemo(() => {
-		if (preset === "today") return { period: "today" };
-		if (preset === "3d") return { period: "3d" };
-		if (preset === "week") return { period: "7d" };
-		if (preset === "custom") {
-			return { year: selectedYear, month: selectedMonth };
+		if (effectivePreset === "today") return { period: "today" };
+		if (effectivePreset === "3d") return { period: "3d" };
+		if (effectivePreset === "week") return { period: "7d" };
+		if (effectivePreset === "custom") {
+			return { year: effectiveYear, month: effectiveMonth };
 		}
 		return { period: "7d" };
-	}, [preset, selectedYear, selectedMonth]);
+	}, [effectivePreset, effectiveYear, effectiveMonth]);
 
 	const isSingleShopSelected = Boolean(shopId);
-	const shouldFetchChart = preset !== "custom" || isCustomReady;
+	const shouldFetchChart =
+		sellerMode === "shop" &&
+		(effectivePreset !== "custom" || (controlledPreset ? true : isCustomReady));
+
+	// Phân trang sản phẩm bán chạy của Seller (2 trang, mỗi trang 15 sản phẩm)
+	const [sellerProductPage, setSellerProductPage] = useState<number>(1);
 
 	// 1. Dữ liệu khi xem Shop cụ thể (Seller hoặc Admin chọn Shop)
 	const { data: sellerChartRaw, isLoading: isSellerChartLoading } = useSellerRevenueChartQuery(
@@ -110,17 +158,25 @@ export function ShopAnalyticsDashboard({
 		shouldFetchChart ? chartQueryParams : undefined
 	);
 	const { data: sellerTopProducts = [], isLoading: isSellerTopLoading } = useSellerTopProductsQuery(
-		shopId || undefined,
-		25
+		sellerMode === "shop" ? (shopId || undefined) : undefined,
+		30
 	);
-	const { data: sellerOverview } = useSellerOverviewQuery(shopId || undefined);
+	const { data: sellerOverview } = useSellerOverviewQuery(
+		sellerMode === "shop" ? (shopId || undefined) : undefined
+	);
 
 	// 2. Dữ liệu khi Admin xem Toàn Sàn (không chọn Shop nào)
 	const { data: adminChartRaw, isLoading: isAdminChartLoading } = useAdminRevenueChartQuery(
 		!isSingleShopSelected && isAdminView && shouldFetchChart ? chartQueryParams : undefined
 	);
-	const { data: adminTopProducts = [], isLoading: isAdminTopLoading } = useAdminTopProductsQuery(
-		!isSingleShopSelected && isAdminView ? 25 : undefined
+	const { data: adminTopProductsData, isLoading: isAdminTopLoading } = useAdminTopProductsQuery(
+		!isSingleShopSelected && isAdminView ? { limit: 25 } : undefined
+	);
+
+	// 3. Dữ liệu khi xem Phân tích 1 Sản phẩm (chế độ "product" cho Seller)
+	const { data: productDetailData, isLoading: isProductDetailLoading } = useAdminProductDetailQuery(
+		sellerMode === "product" && appliedProductId ? appliedProductId : null,
+		effectivePreset === "custom" ? "custom" : effectivePreset
 	);
 
 	const isChartLoading = isSingleShopSelected ? isSellerChartLoading : isAdminChartLoading;
@@ -128,26 +184,31 @@ export function ShopAnalyticsDashboard({
 
 	// Chuẩn hóa dữ liệu biểu đồ
 	const activeChartRaw = isSingleShopSelected ? sellerChartRaw : adminChartRaw;
-	const activeTopProducts = isSingleShopSelected ? sellerTopProducts : adminTopProducts;
-
-	const chartData: ChartDataPoint[] = useMemo(() => {
-		if (!activeChartRaw?.points) return [];
-		return activeChartRaw.points.map((p: any) => ({
-			label: p.label || p.date,
-			revenue: Number(p.revenue) || 0,
-			orders: Number(p.orderCount) || 0,
-			fullDate: p.date,
-		}));
-	}, [activeChartRaw]);
+	
+	// Chuẩn hóa danh sách top products thành array an toàn (bất kể sellerTopProducts dạng mảng hay adminTopProductsData dạng PaginatedProductsData { items: [...] })
+	const activeTopProducts: any[] = useMemo(() => {
+		if (isSingleShopSelected) {
+			return Array.isArray(sellerTopProducts) ? sellerTopProducts : [];
+		}
+		if (adminTopProductsData && Array.isArray((adminTopProductsData as any).items)) {
+			return (adminTopProductsData as any).items;
+		}
+		if (Array.isArray(adminTopProductsData)) {
+			return adminTopProductsData;
+		}
+		return [];
+	}, [isSingleShopSelected, sellerTopProducts, adminTopProductsData]);
 
 	// Danh sách Top 10 sản phẩm của shop
 	const top10Products: FilterProductItem[] = useMemo(() => {
+		if (!Array.isArray(activeTopProducts)) return [];
 		return activeTopProducts.slice(0, 10).map((p: any) => ({
 			id: String(p.productId || p.id),
 			name: p.productName || p.name || `Sản phẩm #${p.productId || p.id}`,
 			revenue: Number(p.revenue) || 0,
 			soldQuantity: Number(p.soldQuantity) || 0,
 			thumbnailUrl: p.thumbnailUrl,
+			parentCategoryId: p.parentCategoryId ? Number(p.parentCategoryId) : undefined,
 		}));
 	}, [activeTopProducts]);
 
@@ -186,7 +247,53 @@ export function ShopAnalyticsDashboard({
 		toast.success(`Đã thêm và lọc theo sản phẩm: ${item.name}`);
 	};
 
-	// Tính toán KPI Tổng Doanh Thu, Số Đơn, Đã Bán
+	const chartData: ChartDataPoint[] = useMemo(() => {
+		const rawPoints: any[] = Array.isArray(activeChartRaw)
+			? activeChartRaw
+			: Array.isArray((activeChartRaw as any)?.points)
+				? (activeChartRaw as any).points
+				: [];
+
+		if (rawPoints.length === 0) return [];
+
+		return rawPoints.map((p: any) => {
+			const rawDate = String(p.date || "");
+			let shortLabel = p.label;
+			if (!shortLabel && rawDate) {
+				const parts = rawDate.split("-");
+				shortLabel = parts.length === 3 ? `${parts[2]}/${parts[1]}` : rawDate;
+			}
+
+			if (selectedProductStat) {
+				const prodSold = Number(selectedProductStat.soldQuantity) || 0;
+				const prodRev = Number(selectedProductStat.revenue) || 0;
+				if (prodSold === 0 && prodRev === 0) {
+					return {
+						label: shortLabel || rawDate,
+						revenue: 0,
+						orders: 0,
+						fullDate: rawDate,
+					};
+				}
+				const shopTotalRev = rawPoints.reduce((s: number, x: any) => s + (Number(x.revenue) || 0), 0);
+				const ratio = shopTotalRev > 0 ? Math.min(1, prodRev / shopTotalRev) : 1;
+				return {
+					label: shortLabel || rawDate,
+					revenue: Math.round((Number(p.revenue) || 0) * ratio),
+					orders: (Number(p.orderCount) || 0) > 0 && ratio > 0 ? Math.max(1, Math.round((Number(p.orderCount) || 0) * ratio)) : 0,
+					fullDate: rawDate,
+				};
+			}
+			return {
+				label: shortLabel || rawDate,
+				revenue: Number(p.revenue) || 0,
+				orders: Number(p.orderCount) || 0,
+				fullDate: rawDate,
+			};
+		});
+	}, [activeChartRaw, selectedProductStat]);
+
+	// Tính toán KPI Tổng Doanh Thu, Số Đơn, Đã Bán (Đồng nhất dữ liệu kỳ lọc và sản phẩm giữa FE & BE)
 	const totalRevenue = useMemo(() => {
 		if (selectedProductStat) {
 			return Number(selectedProductStat.revenue) || 0;
@@ -196,7 +303,8 @@ export function ShopAnalyticsDashboard({
 
 	const totalOrders = useMemo(() => {
 		if (selectedProductStat) {
-			return Math.max(1, Math.round((Number(selectedProductStat.soldQuantity) || 0) / 1.2));
+			const sold = Number(selectedProductStat.soldQuantity) || 0;
+			return sold > 0 ? Math.max(1, Math.round(sold / 1.2)) : 0;
 		}
 		return chartData.reduce((sum, p) => sum + (Number(p.orders) || 0), 0);
 	}, [chartData, selectedProductStat]);
@@ -205,8 +313,15 @@ export function ShopAnalyticsDashboard({
 		if (selectedProductStat) {
 			return Number(selectedProductStat.soldQuantity) || 0;
 		}
+		// Khi xem tất cả sản phẩm: nếu kỳ lọc hiện tại không có đơn nào (0 đơn), số sản phẩm bán trong kỳ bắt buộc phải là 0
+		if (totalOrders === 0) {
+			return 0;
+		}
+		if (!Array.isArray(activeTopProducts)) {
+			return 0;
+		}
 		const topSum = activeTopProducts.reduce((sum: number, p: any) => sum + (Number(p.soldQuantity) || 0), 0);
-		return Math.max(topSum, totalOrders);
+		return Math.max(totalOrders, topSum);
 	}, [activeTopProducts, totalOrders, selectedProductStat]);
 
 	const avgDailyRevenue = useMemo(() => {
@@ -215,27 +330,28 @@ export function ShopAnalyticsDashboard({
 	}, [totalRevenue, chartData]);
 
 	// Danh sách xếp hạng hiệu suất từng món
-	const productPerformanceList: ProductPerformanceItem[] = useMemo(() => {
+	const productPerformanceList: (ProductPerformanceItem & { parentCategoryId?: number })[] = useMemo(() => {
 		const isSpecific = selectedProductId !== "all";
 		const prods = availableFilterProducts.filter((p) => !isSpecific || p.id === selectedProductId);
 
-		const mapped = prods.map((p) => ({
-			id: p.id,
-			name: p.name,
-			revenue: Number(p.revenue) || 0,
-			orders: Math.max(1, Math.round((Number(p.soldQuantity) || 0) / 1.2)),
-			sold: Number(p.soldQuantity) || 0,
-			thumbnailUrl: p.thumbnailUrl,
-		}));
+		const mapped = prods.map((p) => {
+			const sold = Number(p.soldQuantity) || 0;
+			// Khi sản phẩm chưa có dữ liệu bán (sold === 0), số đơn đặt hàng bằng 0
+			const orders = sold > 0 ? Math.max(1, Math.round(sold / 1.2)) : 0;
 
-		if (productStatTab === "revenue") {
-			return [...mapped].sort((a, b) => b.revenue - a.revenue);
-		}
-		if (productStatTab === "orders") {
-			return [...mapped].sort((a, b) => b.orders - a.orders);
-		}
-		return [...mapped].sort((a, b) => b.sold - a.sold);
-	}, [availableFilterProducts, selectedProductId, productStatTab]);
+			return {
+				id: p.id,
+				name: p.name,
+				revenue: Number(p.revenue) || 0,
+				orders,
+				sold,
+				thumbnailUrl: p.thumbnailUrl,
+				parentCategoryId: (p as any).parentCategoryId,
+			};
+		});
+
+		return [...mapped].sort((a, b) => b.sold - a.sold || b.revenue - a.revenue);
+	}, [availableFilterProducts, selectedProductId]);
 
 	// Cấu hình kích thước SVG biểu đồ
 	const svgWidth = 700;
@@ -310,27 +426,27 @@ export function ShopAnalyticsDashboard({
 
 	// Tiêu đề của Card biểu đồ
 	const chartTitle = useMemo(() => {
-		if (preset === "custom") {
-			return `Doanh Thu Tháng ${selectedMonth}/${selectedYear}:`;
+		if (effectivePreset === "custom") {
+			return `Doanh Thu Tháng ${effectiveMonth}/${effectiveYear}:`;
 		}
-		if (preset === "today") {
+		if (effectivePreset === "today") {
 			return "Doanh Thu Hôm Nay:";
 		}
-		if (preset === "3d") {
+		if (effectivePreset === "3d") {
 			return "Doanh Thu 3 Ngày Qua:";
 		}
 		return "Doanh Thu 7 Ngày Qua:";
-	}, [preset, selectedMonth, selectedYear]);
+	}, [effectivePreset, effectiveMonth, effectiveYear]);
 
 	return (
 		<div className="space-y-6 text-left font-sans animate-in fade-in duration-300">
 			{/* Header */}
 			<div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-brand-border pb-4">
 				<div>
-					<h1 className="text-xl font-bold text-brand-dark mb-1">
-						{isAdminView ? `Thống Kê Doanh Thu: ${shopName}` : "Báo Cáo Doanh Thu & Thống Kê"}
+					<h1 className="text-4 font-black text-brand-dark uppercase tracking-wider">
+						{isAdminView ? `Thống kê doanh thu: ${shopName}` : "Báo cáo doanh thu & thống kê"}
 					</h1>
-					<p className="text-xs text-brand-muted">
+					<p className="text-[12px] text-brand-muted font-bold mt-0.5">
 						{isAdminView
 							? "Dữ liệu giám sát hiệu suất và biến động doanh số thời gian thực từ cơ sở dữ liệu"
 							: "Theo dõi chi tiết tăng trưởng doanh số, số lượng đơn hàng và hiệu suất bán hàng"}
@@ -338,88 +454,118 @@ export function ShopAnalyticsDashboard({
 				</div>
 			</div>
 
-			{/* 1. THANH BỘ LỌC (TÌM KIẾM TRÁI, BỘ LỌC PHẢI) */}
-			<AnalyticsFilterBar
-				preset={preset}
-				onPresetChange={(newPreset) => {
-					setPreset(newPreset);
-					setIsCustomReady(newPreset !== "custom");
-				}}
-				selectedProductId={selectedProductId}
-				onSelectProduct={(id) => setSelectedProductId(id)}
-				selectedProductStat={selectedProductStat}
-				top10Products={top10Products}
-				customProducts={customProducts}
-				onAddCustomProduct={handleAddCustomProduct}
-				selectedMonth={selectedMonth}
-				selectedYear={selectedYear}
-				onMonthChange={(m) => {
-					setSelectedMonth(m);
-					setIsCustomReady(false);
-				}}
-				onYearChange={(y) => {
-					setSelectedYear(y);
-					setIsCustomReady(false);
-				}}
-				isCustomReady={isCustomReady}
-				onApplyCustom={() => setIsCustomReady(true)}
-				shopId={shopId}
-			/>
-
-			{/* 2. 3 THẺ THÔNG SỐ KPI THEO MỐC THỜI GIAN ĐƯỢC CHỌN */}
-			<AnalyticsKpiCards
-				totalRevenue={totalRevenue}
-				totalOrders={totalOrders}
-				totalSoldUnits={totalSoldUnits}
-				avgDailyRevenue={avgDailyRevenue}
-				isChartLoading={isChartLoading}
-				isTopProductsLoading={isTopProductsLoading}
-				isCustomWaiting={preset === "custom" && !isCustomReady}
-				todayOrders={isSingleShopSelected ? sellerOverview?.todayOrders : undefined}
-			/>
-
-			{/* 3. BIỂU ĐỒ DOANH THU SPLINE CURVE */}
-			<AnalyticsRevenueChart
-				preset={preset}
-				chartTitle={chartTitle}
-				totalRevenue={totalRevenue}
-				selectedProductStat={selectedProductStat}
-				selectedProductId={selectedProductId}
-				selectedMonth={selectedMonth}
-				selectedYear={selectedYear}
-				isCustomReady={isCustomReady}
-				onApplyCustom={() => setIsCustomReady(true)}
-				isChartLoading={isChartLoading}
-				chartData={chartData}
-				coords={coords}
-				splinePath={splinePath}
-				areaPath={areaPath}
-				yTicks={yTicks}
-				svgWidth={svgWidth}
-				svgHeight={svgHeight}
-				paddingLeft={paddingLeft}
-				paddingRight={paddingRight}
-				paddingTop={paddingTop}
-				plotHeight={plotHeight}
-			/>
-
-			{/* 4. 2 BIỂU ĐỒ BỔ SUNG: SỐ ĐƠN ĐẶT HÀNG & HIỆU SUẤT TỪNG SẢN PHẨM */}
-			<div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-				<AnalyticsOrderChart
-					chartData={chartData}
-					totalOrders={totalOrders}
-					isChartLoading={isChartLoading}
+			{/* 1. THANH BỘ LỌC (ẨN KHI ĐƯỢC ĐIỀU KHIỂN TỪ BÊN NGOÀI BỞI ADMIN) */}
+			{!hideFilterBar && (
+				<AnalyticsFilterBar
+					mode={sellerMode}
+					onModeChange={(newMode) => {
+						setSellerMode(newMode);
+					}}
+					preset={preset}
+					selectedMonth={selectedMonth}
+					selectedYear={selectedYear}
+					activeProductId={appliedProductId}
+					onApply={handleApplySellerFilter}
+					shopId={shopId}
 				/>
-				<AnalyticsProductPerformance
-					productPerformanceList={productPerformanceList}
-					isTopProductsLoading={isTopProductsLoading}
-					productStatTab={productStatTab}
-					onTabChange={setProductStatTab}
-				/>
-			</div>
+			)}
 
-			{/* 5. KHỐI PHÂN BỔ PHƯƠNG THỨC THANH TOÁN */}
-			<AnalyticsPaymentChannels />
+			{/* NỘI DUNG HIỂN THỊ THEO CHẾ ĐỘ SELLER */}
+			{sellerMode === "product" ? (
+				appliedProductId ? (
+					<AdminProductDeepDiveView
+						data={productDetailData}
+						isLoading={isProductDetailLoading}
+						productId={appliedProductId}
+					/>
+				) : (
+					<div className="bg-white border border-brand-border rounded-md p-12 text-center shadow-xs space-y-3">
+						<Package className="w-12 h-12 text-amber-400 mx-auto" />
+						<h3 className="text-sm font-black text-brand-dark uppercase tracking-wider">
+							Chưa chọn sản phẩm để phân tích
+						</h3>
+						<p className="text-xs text-brand-muted max-w-md mx-auto">
+							Vui lòng nhập mã ID sản phẩm của cửa hàng và chọn mốc thời gian ở thanh bộ lọc phía trên, sau đó nhấn <strong className="text-brand-dark">Áp dụng</strong> để xem báo cáo chi tiết.
+						</p>
+					</div>
+				)
+			) : (
+				<>
+					{/* 2. 3 THẺ THÔNG SỐ KPI THEO MỐC THỜI GIAN ĐƯỢC CHỌN */}
+					<AnalyticsKpiCards
+						totalRevenue={totalRevenue}
+						totalOrders={totalOrders}
+						totalSoldUnits={totalSoldUnits}
+						avgDailyRevenue={avgDailyRevenue}
+						isChartLoading={isChartLoading}
+						isTopProductsLoading={isTopProductsLoading}
+						isCustomWaiting={effectivePreset === "custom" && !isCustomReady && !controlledPreset}
+						todayOrders={isSingleShopSelected ? sellerOverview?.todayOrders : undefined}
+					/>
+
+					{/* 3. BIỂU ĐỒ DOANH THU SPLINE CURVE */}
+					<AnalyticsRevenueChart
+						preset={effectivePreset}
+						chartTitle={chartTitle}
+						totalRevenue={totalRevenue}
+						selectedProductStat={selectedProductStat}
+						selectedProductId={selectedProductId}
+						selectedMonth={effectiveMonth}
+						selectedYear={effectiveYear}
+						isCustomReady={controlledPreset ? true : isCustomReady}
+						onApplyCustom={() => setIsCustomReady(true)}
+						isChartLoading={isChartLoading}
+						chartData={chartData}
+						coords={coords}
+						splinePath={splinePath}
+						areaPath={areaPath}
+						yTicks={yTicks}
+						svgWidth={svgWidth}
+						svgHeight={svgHeight}
+						paddingLeft={paddingLeft}
+						paddingRight={paddingRight}
+						paddingTop={paddingTop}
+						plotHeight={plotHeight}
+					/>
+
+					{/* 4. THỐNG KÊ SỐ ĐƠN ĐẶT HÀNG (HÀNG RIÊNG FULL-WIDTH VỚI 3 TRẠNG THÁI THỰC TẾ) */}
+					<AnalyticsOrderChart
+						chartData={chartData}
+						totalOrders={totalOrders}
+						isChartLoading={isChartLoading}
+						completedOrders={sellerOverview?.completedOrders}
+						refundedOrders={sellerOverview?.refundedOrders}
+						refundAmount={sellerOverview?.refundAmount}
+						cancelledOrders={sellerOverview?.cancelledOrders}
+					/>
+
+					{/* 5. HIỆU SUẤT TỪNG MÓN HÀNG DẠNG TABLE TOP 30 (2 TRANG, MỖI TRANG 15 SẢN PHẨM) */}
+					{!isAdminView && (() => {
+						const sellerTop30 = productPerformanceList.slice(0, 30);
+						const pagedProducts = sellerTop30.slice((sellerProductPage - 1) * 15, sellerProductPage * 15);
+						return (
+							<AnalyticsProductPerformanceTable
+								products={pagedProducts.map((p) => ({
+									id: String(p.id),
+									name: (p.name && p.name.trim()) || `Sản phẩm #${p.id}`,
+									thumbnailUrl: p.thumbnailUrl,
+									soldQuantity: Number(p.sold) || 0,
+									revenue: Number(p.revenue) || 0,
+									parentCategoryId: (p as any).parentCategoryId,
+								}))}
+								isLoading={isTopProductsLoading}
+								title="Top 30 Sản Phẩm Bán Chạy Nhất"
+								subtitle="Xếp hạng chi tiết doanh thu và số lượng tiêu thụ (Hiển thị 15 sản phẩm/trang, tối đa 2 trang)"
+								page={sellerProductPage}
+								pageSize={15}
+								totalCount={sellerTop30.length}
+								totalPages={Math.max(1, Math.ceil(sellerTop30.length / 15))}
+								onPageChange={(p) => setSellerProductPage(p)}
+							/>
+						);
+					})()}
+				</>
+			)}
 		</div>
 	);
 }

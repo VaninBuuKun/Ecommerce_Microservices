@@ -24,9 +24,10 @@ public class SellerAnalyticsController(ISellerAnalyticsService sellerAnalyticsSe
     }
 
     [HttpGet("top-products")]
-    public async Task<IActionResult> GetTopProducts(long shopId, [FromQuery] int limit = 10, CancellationToken cancellationToken = default)
+    public async Task<IActionResult> GetTopProducts(long shopId, [FromQuery] int limit = 30, CancellationToken cancellationToken = default)
     {
-        var result = await sellerAnalyticsService.GetTopProductsAsync(shopId, limit, cancellationToken);
+        var safeLimit = Math.Clamp(limit, 1, 30); // Tối đa 30 sản phẩm bán chạy nhất của shop
+        var result = await sellerAnalyticsService.GetTopProductsAsync(shopId, safeLimit, cancellationToken);
         return Ok(result);
     }
 }

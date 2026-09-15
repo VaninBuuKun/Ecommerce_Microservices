@@ -22,6 +22,7 @@ public class SubOrderCompletedEvent : IIntegrationEvent
     /// <summary>Số tiền thực nhận của người bán snapshot (VND)</summary>
     public long NetRevenue { get; init; }
     public long CustomerId { get; init; }
+    public long ShippingFee { get; init; }
     public List<SubOrderCompletedItemContract> Items { get; init; } = new();
 }
 
@@ -30,6 +31,7 @@ public class SubOrderCompletedItemContract
     public long VariantId { get; init; }
     public long ProductId { get; init; }
     public long? CategoryId { get; init; }
+    public long? ParentCategoryId { get; init; }
     public int Quantity { get; init; }
     public decimal UnitPrice { get; init; }
     public string ProductName { get; init; } = string.Empty;

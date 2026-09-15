@@ -88,6 +88,7 @@ public class ApproveRefundCommandHandler(
             await publisher.PublishAsync(new RefundApprovedEvent
             {
                 SubOrderId = subOrder.Id,
+                ShopId = subOrder.ShopId,
                 RefundRequestId = refundRequest.Id,
                 CustomerId = subOrder.CustomerId,
                 RefundAmount = refundRequest.RequestedAmount,

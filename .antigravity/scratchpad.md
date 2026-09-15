@@ -1,3 +1,149 @@
+- [x] Tách Phân Tích Sàn Thành 2 Chế Độ Riêng Biệt (Phân Tích Sàn & Phân Tích Ngành Hàng), Bảng Thống Kê Hiệu Suất Ngành Hàng Mới (Client-side Category Cache), Top 30 Sản Phẩm Ngành Hàng & Lọc Thời Gian Tùy Chỉnh:
+  - **Mục tiêu & Kết quả hoàn thành**:
+    1. **Tách Biệt 4 Chế Độ Phân Tích Admin Độc Lập Tại `AdminAnalyticsFilterBar.tsx`**:
+       - Bổ sung chế độ mới `"category"` (`Phân tích ngành hàng`) bên cạnh `"platform"` (`Phân tích sàn`), `"shop"` (`Phân tích một shop`), `"product"` (`Phân tích một sản phẩm`).
+       - **Chế độ Sàn (`platform`)**: Chỉ còn hiển thị duy nhất bộ lọc Mốc thời gian (Hôm nay, 3 ngày qua, 7 ngày qua, Tùy chỉnh Tháng/Năm) + Nút "Áp dụng" (vàng/đen). Đã loại bỏ hoàn toàn radio chọn ngành hàng khỏi chế độ sàn.
+       - **Chế độ Ngành hàng (`category`)**: Hiển thị bộ lọc Radio Check chọn danh mục cha (vòng tròn viền đen sắc nét, khi chọn tô màu xanh ngọc emerald, triệt tiêu giật layout Zero Layout Shift) + bộ lọc thời gian + Nút "Áp dụng" màu ngọc bích (`bg-emerald-600 hover:bg-emerald-700 text-white`).
+       - Nút Áp dụng của tất cả các chế độ tuân thủ cơ chế: vô hiệu hóa và làm xám ("Đã áp dụng" / "Đã phân tích") sau khi bấm, tự động sáng màu và mở khóa khi người dùng thay đổi filter hoặc chuyển tab.
+    2. **Component Thống Kê Hiệu Suất Ngành Hàng Mới (`AdminCategoryPerformanceTable.tsx`)**:
+       - Đặt tại [src/domains/admin/components/analytics/AdminCategoryPerformanceTable.tsx](file:///home/vanmuzic/Projects/Ecommerce_Microservices/frontend-web/src/domains/admin/components/analytics/AdminCategoryPerformanceTable.tsx) tuân thủ nghiêm ngặt quy tắc gom nhóm subcomponents ACO.
+       - **Tận dụng Cache Cây Danh Mục Catalog (`useCategoriesQuery()`)**: Backend chỉ cần trả về `categoryId`, Frontend tự động tra cứu tên danh mục, icon/ảnh thu nhỏ từ React Query / Redis cache `catalog:categories:tree`, loại bỏ hoàn toàn việc duplicate chuỗi tên từ backend.
+       - Hiển thị đầy đủ thông tin: Thứ hạng (#), Ngành hàng (ảnh đại diện, tên, mã định danh `#ID`), Số lượng đã bán (cái), Doanh thu (VND), Tỷ trọng sàn (%) kèm thanh tiến trình trực quan.
+       - Nút hành động **"Phân tích"**: Cho phép 1-click drill-down trực tiếp từ bảng tổng quan sàn sang chế độ phân tích chi tiết của ngành hàng đó.
+    3. **Giao Diện Chuyên Biệt Cho Phân Tích Ngành Hàng (`AdminOverviewView.tsx`)**:
+       - Thẻ tóm tắt thông tin ngành hàng: Hiển thị icon/ảnh đại diện, tên ngành hàng, mã định danh `#ID`, số lượng bán trong kỳ, doanh thu ngành, và tỷ trọng phần trăm đóng góp trên toàn sàn.
+       - **Bảng Top 30 Sản Phẩm Bán Chạy Của Ngành Hàng**: Sử dụng `AnalyticsProductPerformanceTable`, gọi API `useAdminTopProductsQuery` với `parentCategoryId`, hiển thị phân trang 2 trang x 15 sản phẩm, đầy đủ ảnh, tên, ID, doanh thu, số lượng bán và liên kết chi tiết sản phẩm.
+    4. **Backend Analytics Service Hỗ Trợ Lọc Ngành Hàng Theo Tháng/Năm (`Ecommerce.Services.Analytics.Api`)**:
+       - `IAdminAnalyticsService.cs`, `AdminAnalyticsService.cs`, `AdminAnalyticsController.cs`: Bổ sung tham số `year` và `month` cho endpoint `GET /api/analytics/admin/categories?period=...&year=&month=`, hỗ trợ lọc chính xác doanh thu và sản lượng ngành hàng theo từng tháng/năm tùy chỉnh.
+  - **Kiểm Thử & Biên Dịch**:
+    - Frontend: `npm run build` -> Vite production build succeeded in 768ms (0 errors).
+    - Backend: `dotnet build src/Services/Analytics/Ecommerce.Services.Analytics.Api` -> Build succeeded (0 errors).
+
+- [x] Sửa Triệt Để Lỗi Kẹt Nút "Đã Phân Tích", Đơn Giản Hóa Reset Filter/Tab Cho Admin & Seller Analytics, Giới Hạn Tab UserProfilePage Cho Admin (Chỉ Show Profile & Thông Báo):
+  - **Mục tiêu & Kết quả hoàn thành**:
+    1. **Đơn Giản Hóa Trạng Thái Nút Bấm "Áp Dụng" / "Phân Tích" (Reset Khi Đổi Filter, Reset Khi Đổi Tab)**:
+       - Trong [AdminAnalyticsFilterBar.tsx](file:///home/vanmuzic/Projects/Ecommerce_Microservices/frontend-web/src/domains/admin/components/analytics/AdminAnalyticsFilterBar.tsx) và [AnalyticsFilterBar.tsx](file:///home/vanmuzic/Projects/Ecommerce_Microservices/frontend-web/src/domains/seller/components/analytics/AnalyticsFilterBar.tsx):
+         - Thay thế toàn bộ logic so sánh `isFilterDirty` phức tạp bằng biến trạng thái `isApplied` tinh gọn.
+         - Sử dụng `useRef` (`lastAppliedShopIdRef`, `lastAppliedProductIdRef`) để theo dõi giá trị vừa được áp dụng.
+         - **Khi chuyển tab (chế độ thay đổi)**: Lập tức gọi `setIsApplied(false)`, nút sáng màu và bấm được bình thường theo đúng tên hành động của chế độ đó.
+         - **Khi thay đổi bất kỳ filter nào** (chọn ngành hàng, đổi mốc thời gian, đổi tháng/năm, nhập/xóa Shop ID, nhập/xóa Product ID, bấm nút X xóa nhanh): Lập tức gọi `setIsApplied(false)`.
+         - **Khi được điều hướng sang một Shop ID mới ("qua cái mới rồi")** (ví dụ click nút phân tích từ bảng Cửa hàng `/admin/shops` hoặc URL thay đổi): Nút lập tức reset về `isApplied = false`, hiện "Phân tích shop" màu tím nổi bật, chấm dứt hoàn toàn tình trạng bị kẹt chữ "Đã phân tích" khi chuyển sang shop khác.
+         - **Chặn Áp Dụng Khi Input Trống**: Nếu chưa nhập Shop ID hoặc Product ID, nút không bao giờ bị đánh dấu là "Đã phân tích" (luôn giữ nguyên text "Phân tích shop" / "Phân tích sản phẩm").
+    2. **Cô Lập Tham Số URL Theo Từng Chế Độ (`AdminOverviewView.tsx`)**:
+       - Trong `handleModeChange`: Khi chuyển sang `platform` thì xóa `shopId`, `productId`. Khi chuyển sang `shop` thì xóa `productId`, `cat`. Khi chuyển sang `product` thì xóa `shopId`, `cat`. Đảm bảo các chế độ hoàn toàn độc lập, không bị lem param của nhau.
+    3. **Giới Hạn Tab Cho Quản Trị Viên Tại `UserProfilePage.tsx`**:
+       - Tích hợp hàm kiểm tra quyền hệ thống `checkIsAdmin()` từ `@/shared/utils/authHelper`.
+       - Khi tài khoản đăng nhập là Quản trị viên (`isAdmin === true`), trang hồ sơ người dùng **CHỈ HIỂN THỊ DUY NHẤT 2 TAB**:
+         1. **Thông tin tài khoản** (`profile`)
+         2. **Thông báo** (`notifications`)
+       - Ẩn toàn bộ 4 tab người mua/bán: `Địa chỉ nhận hàng` (`addresses`), `Đơn hàng của tôi` (`orders`), `Quản lý ví` (`wallet`), và `Yêu cầu hoàn tiền` (`refunds`) trên cả thanh điều hướng Sidebar lẫn khu vực hiển thị nội dung Content.
+       - Tự động fallback/chuyển hướng về tab `profile` nếu URL hoặc route có tham số tab không thuộc phạm vi cho phép của admin.
+  - **Kiểm Thử & Biên Dịch**:
+    - Frontend: `npm run build` -> Vite build succeeded in 743ms (0 errors).
+    - Backend: `dotnet build src/Services/Analytics/Ecommerce.Services.Analytics.Api` -> 0 errors.
+
+- [x] Sửa Lỗi Top Sản Phẩm Admin (L327), Gọi API Lấy Danh Mục Thật, Radio Viền Đen Tô Xanh Zero-Shift, Chuẩn Hóa Top 30 (2 Trang x 15) Cho Admin & Seller, Backend Clamp Chống Phá Hoại & Nút Hành Động Động Theo Chế Độ:
+  - **Mục tiêu & Kết quả hoàn thành**:
+    1. **Khắc Phục Lỗi Hiển Thị & Link Sản Phẩm Tại `AdminOverviewView.tsx:L327`**:
+       - Chuẩn hóa việc map `items` từ `platformTopProductsData` và `shopProductsData`: chuyển đổi `id: String(p.id || p.productId)` và fallback tên sản phẩm `(p.name && p.name.trim()) || p.productName || $"Sản phẩm #{itemId}"`.
+       - Trong [AnalyticsProductPerformanceTable.tsx](file:///home/vanmuzic/Projects/Ecommerce_Microservices/frontend-web/src/domains/seller/components/analytics/AnalyticsProductPerformanceTable.tsx): Luôn hiển thị đầy đủ tên sản phẩm, mã định danh `#ID`, ảnh thu nhỏ và đường dẫn hợp lệ `/products/{itemId}`, triệt tiêu hoàn toàn lỗi link `/products/undefined` hoặc tên sản phẩm rỗng.
+    2. **Gọi API Danh Mục Thật Từ CSDL/Redis Thay Vì Hardcode**:
+       - Kết nối hook `useCategoriesQuery()` từ domain `@/domains/catalog` trong `AdminOverviewView.tsx`.
+       - Tự động lọc ra danh sách ngành hàng cha cấp cao nhất (`!c.parentId`), ghép thêm tùy chọn `"Tất cả ngành hàng"` (`id: "all"`) ở vị trí đầu tiên để quản trị viên lọc sản phẩm theo ngành hàng từ dữ liệu thực tế.
+    3. **Giao Diện Radio Check Tinh Gọn (Viền Đen, Tô Xanh) & Triệt Tiêu Giật Layout (Zero Layout Shift)**:
+       - Nút radio có vòng tròn ngoài viền đen sắc nét (`w-4 h-4 rounded-full border-2 border-slate-900`), khi chọn sẽ tô màu xanh (`bg-blue-600`) cùng chấm trắng nhỏ ở giữa.
+       - Cố định font weight `font-semibold text-slate-800` xuyên suốt cả 2 trạng thái (selected và unselected) trên cả radio danh mục và radio mốc thời gian, loại bỏ hoàn toàn hiện tượng nhảy vị trí / giật ngang hàng loạt ký tự khi bấm chọn.
+    4. **Chuẩn Hóa Top 30 Sản Phẩm Bán Chạy (Đúng 2 Trang, Mỗi Trang 15 Sản Phẩm) Cho Cả Admin & Seller**:
+       - Admin: `useAdminTopProductsQuery` truy vấn theo từng trang `pageSize: 15`, `totalCount: 30`, `totalPages: 2`.
+       - Seller: `useSellerTopProductsQuery` truy vấn 30 sản phẩm từ backend (`limit = 30`), sau đó phân trang trực tiếp ở client thành đúng 2 trang x 15 sản phẩm (`pagedProducts = sellerTop30.slice((sellerProductPage - 1) * 15, sellerProductPage * 15)`).
+    5. **Chống Phá Hoại Tham Số `pageSize` Phía Backend (Anti-DoS Clamping)**:
+       - Trong [AdminAnalyticsController.cs](file:///home/vanmuzic/Projects/Ecommerce_Microservices/src/Services/Analytics/Ecommerce.Services.Analytics.Api/Controllers/AdminAnalyticsController.cs) và [AdminAnalyticsService.cs](file:///home/vanmuzic/Projects/Ecommerce_Microservices/src/Services/Analytics/Ecommerce.Services.Analytics.Api/Services/AdminAnalyticsService.cs): Kẹp chặt `pageSize = Math.Clamp(pageSize, 1, 30)` cho Top sản phẩm sàn, và tối đa 50 sản phẩm cho `GetShopProducts`.
+       - Trong [SellerAnalyticsController.cs](file:///home/vanmuzic/Projects/Ecommerce_Microservices/src/Services/Analytics/Ecommerce.Services.Analytics.Api/Controllers/SellerAnalyticsController.cs) và [SellerAnalyticsService.cs](file:///home/vanmuzic/Projects/Ecommerce_Microservices/src/Services/Analytics/Ecommerce.Services.Analytics.Api/Services/SellerAnalyticsService.cs): Kẹp chặt `safeLimit = Math.Clamp(limit, 1, 30)`. Ngăn chặn hoàn toàn việc client cố ý truyền `pageSize` âm hoặc số lượng khổng lồ gây nghẽn database.
+    6. **Nút Hành Động Hiển Thị Nhãn & Màu Sắc Theo Từng Trạng Thái Chế Độ**:
+       - Chế độ Sàn (Toàn sàn & Danh mục): Nút **"Áp dụng"** kèm icon Check, phong cách màu thương hiệu `bg-brand-primary text-brand-dark`.
+       - Chế độ Shop: Nút **"Phân tích shop"** kèm icon Store, màu tím nổi bật `bg-purple-600 hover:bg-purple-700 text-white`.
+       - Chế độ Sản phẩm: Nút **"Phân tích sản phẩm"** kèm icon Package, màu hổ phách `bg-amber-600 hover:bg-amber-700 text-white`.
+    7. **Nút Áp Dụng Vô Hiệu Hóa & Làm Xám Sau Khi Bấm, Tự Động Hiện Lại Khi Thay Đổi Filter**:
+       - Bổ sung `isFilterDirty`, `isLocallyApplied`, `isButtonDisabled` cho cả [AdminAnalyticsFilterBar.tsx](file:///home/vanmuzic/Projects/Ecommerce_Microservices/frontend-web/src/domains/admin/components/analytics/AdminAnalyticsFilterBar.tsx) và [AnalyticsFilterBar.tsx](file:///home/vanmuzic/Projects/Ecommerce_Microservices/frontend-web/src/domains/seller/components/analytics/AnalyticsFilterBar.tsx).
+       - Khi bấm nút, nút lập tức chuyển sang trạng thái disabled (`cursor-not-allowed`), nền xám `bg-slate-200/80 text-slate-400 border-slate-300` và hiển thị "Đã áp dụng" / "Đã phân tích" với icon check mờ.
+       - Khi người dùng thay đổi bất kỳ filter nào (ngành hàng, mốc thời gian, tháng/năm, mã shop, mã sản phẩm), nút lập tức trở lại màu sắc rực rỡ theo mode và bấm được lại bình thường.
+    8. **Khắc Phục Triệt Để Lỗi Trùng Đè Chữ Trục X Trên Biểu Đồ (Spline Revenue Chart & Order Chart)**:
+       - Trong [AnalyticsRevenueChart.tsx](file:///home/vanmuzic/Projects/Ecommerce_Microservices/frontend-web/src/domains/seller/components/analytics/AnalyticsRevenueChart.tsx): Xây dựng hàm `shouldShowXAxisLabel(index, total)` tính toán bước nhảy thông minh (khoảng 6-7 nhãn cho 30-31 ngày, luôn hiển thị mốc đầu ngày 01 và mốc cuối ngày 30/31).
+       - Bổ sung vạch chia tick mark nối giữa trục X và nhãn ngày.
+       - Khi rê chuột vào bất kỳ ngày nào trên đường cong, tooltip vẫn hiển thị đầy đủ ngày cụ thể, số tiền và số đơn hàng.
+       - Đồng bộ hiển thị mốc ngày cách đều trên cả [AnalyticsOrderChart.tsx](file:///home/vanmuzic/Projects/Ecommerce_Microservices/frontend-web/src/domains/seller/components/analytics/AnalyticsOrderChart.tsx).
+  - **Kiểm Thử & Biên Dịch**:
+    - Backend: `dotnet build src/Services/Analytics/Ecommerce.Services.Analytics.Api` -> 0 errors.
+    - Frontend: `npm run build` -> Vite build succeeded in 849ms (0 errors).
+    - Frontend Lint: `npm run lint` -> 0 errors.
+
+- [x] Triển Khai & Tinh Gọn Phân Tích Danh Mục (Chỉ Lưu ParentCategoryId, Xóa CategoryName/ParentCategoryName/SubCategory, FE Tự Map Tên Từ Cache Cây Danh Mục), Tách Riêng Phí Ship GHN, Đếm Số Đơn Hủy/Hoàn Trả Thật, Bộ Lọc Admin 2 Tầng Kèm Pills Nằm Ngang, Bảng Hiệu Suất Sản Phẩm Full-Width Không Cột Số Đơn & Deep-Linking:
+  - **Mục tiêu & Kết quả hoàn thành**:
+    1. **Kiến Trúc Tinh Gọn Phân Tích Danh Mục (Chỉ Lưu Duy Nhất `ParentCategoryId`, Không Duplicate Tên Chuỗi)**:
+       - Loại bỏ hoàn toàn các trường thừa `CategoryId` (sub-category), `CategoryName`, `ParentCategoryName`, `SubCategoryId`, `SubCategoryName` khỏi [ShopProductStats.cs](file:///home/vanmuzic/Projects/Ecommerce_Microservices/src/Services/Analytics/Ecommerce.Services.Analytics.Api/Models/Entities/ShopProductStats.cs) và [DailyCategoryRevenue.cs](file:///home/vanmuzic/Projects/Ecommerce_Microservices/src/Services/Analytics/Ecommerce.Services.Analytics.Api/Models/Entities/DailyCategoryRevenue.cs).
+       - Chỉ lưu duy nhất mã định danh ngành hàng cha `ParentCategoryId` (long).
+       - Không lưu tên danh mục trong Analytics DB vì tên có thể bị sửa đổi trong Catalog. Frontend đã có sẵn cây danh mục trong cache (React Query `useCategoriesQuery()` từ Redis cache `catalog:categories:tree`), tự động ánh xạ `parentCategoryId` -> `categoryName` tức thì (< 0.1ms) và luôn phản ánh dữ liệu mới nhất.
+       - Tạo và áp dụng thành công EF Core Migration `Simplify_Category_Analytics_To_Parent_Only` trên database PostgreSQL `AnalyticsDb`.
+    2. **Tách Biệt Phí Vận Chuyển Bên Thứ Ba (GHN) Trong Kế Toán Sàn**:
+       - `DailyPlatformRevenue`: Bổ sung trường `TotalShippingFee`.
+       - `SubOrderCompletedAnalyticsConsumer`: Tích lũy phí ship thu hộ vào `TotalShippingFee`, tách biệt hoàn toàn dòng tiền thu hộ trả cho đơn vị vận chuyển GHN khỏi Doanh thu thuần của Sàn (`NetPlatformRevenue`) và GMV.
+    3. **Theo Dõi Trạng Thái Đơn Hàng Thực Tế (Hoàn Thành, Đã Hủy, Hoàn Trả)**:
+       - `DailyShopRevenue`: Bổ sung `CompletedOrderCount`, `CancelledOrderCount`, `RefundedOrderCount`, và `RefundAmount`.
+       - `SubOrderCancelledAnalyticsConsumer` [NEW]: Lắng nghe `SubOrderRejectedEvent` (bổ sung `ShopId`), tăng đếm `CancelledOrderCount`.
+       - `RefundApprovedAnalyticsConsumer` [NEW]: Lắng nghe `RefundApprovedEvent` (bổ sung `ShopId`), tăng đếm `RefundedOrderCount` và cộng dồn `RefundAmount`.
+       - `AnalyticsOrderChart.tsx`: Hiển thị số liệu thực tế từ backend, loại bỏ hoàn toàn các giá trị 0 hardcode.
+    4. **Bộ Lọc Admin 2 Tầng (`AdminAnalyticsFilterBar.tsx`)**:
+       - **Tầng 1**: 3 Mode Switchers (`Phân tích sàn` [Mặc định], `Phân tích một shop`, `Phân tích một sản phẩm`) + Bộ chọn thời gian (Hôm nay, 3 ngày qua, 7 ngày qua, Tự chỉnh Tháng/Năm).
+       - **Tầng 2 (Sub-filter động)**:
+         - Mode Sàn: Danh mục cha dạng **Horizontal Radio Pills** (dàn đều ngang bằng `flex-wrap`, tiết kiệm không gian chiều dọc).
+         - Mode Shop: Ô nhập chính xác Shop ID (không autocomplete) + nút "Phân tích".
+         - Mode Sản phẩm: Ô nhập URL hoặc Product ID (tự động trích xuất ID từ URL chi tiết sản phẩm, không autocomplete) + nút "Phân tích".
+    5. **Tái Cấu Trúc Toàn Diện Giao Diện Quản Trị Viên (`AdminOverviewView.tsx`)**:
+       - 4 thẻ KPI đồng bộ: `Tổng GMV`, `Doanh Thu Sàn`, `Phí Vận Chuyển Đơn Vị GHN`, `Tổng Đơn Hàng`.
+       - **Chế độ Toàn Sàn**: Biểu đồ Spline doanh thu sàn, Biểu đồ trạng thái đơn hàng, và Bảng xếp hạng Top 30 sản phẩm bán chạy nhất toàn sàn phân trang (2 trang x 15 sản phẩm).
+       - **Chế độ Shop**: Thẻ KPI shop, biểu đồ doanh thu shop, biểu đồ trạng thái đơn hàng, và bảng toàn bộ sản phẩm của shop có phân trang.
+       - **Chế độ Sản phẩm**: Giao diện `AdminProductDeepDiveView.tsx` hiển thị thẻ sản phẩm (ảnh, tên, ID, giá, tồn kho, nhãn danh mục ánh xạ từ cache), các chỉ số KPI chuyên biệt và biểu đồ xu hướng doanh thu hàng ngày.
+    6. **Deep-Linking Từ Các Trang Quản Trị Vào Analytics**:
+       - `AdminShopsView.tsx`: Nút "Phân tích" điều hướng trực tiếp sang `/admin/overview?mode=shop&shopId=${s.id}`.
+       - `AdminProductsView.tsx`: Nút "Phân tích" điều hướng trực tiếp sang `/admin/overview?mode=product&productId=${p.id}`.
+    7. **Bảng Hiệu Suất Sản Phẩm Mới (`AnalyticsProductPerformanceTable.tsx`)**:
+       - Thiết kế toàn chiều rộng (full-width), có ảnh thu nhỏ, tên sản phẩm, mã ID, huy hiệu ngành hàng cha ánh xạ từ cache, doanh thu, số lượng đã bán, và phân trang.
+       - **Tuyệt đối không có cột số đơn hàng** theo đúng yêu cầu.
+       - Áp dụng đồng bộ cho cả `ShopAnalyticsDashboard.tsx` và `AdminOverviewView.tsx`.
+     8. **Khắc Phục Lỗi Axios TypeError: target must be an object & activeTopProducts.slice is not a function**:
+        - **Lỗi 1 (Axios target must be an object)**: Trong [adminAnalyticsApi.ts](file:///home/vanmuzic/Projects/Ecommerce_Microservices/frontend-web/src/domains/admin/api/adminAnalyticsApi.ts), khi gọi API `/analytics/admin/top-products`, hàm nhận `params` có thể là số `25`. Axios yêu cầu `params` phải là một plain object. Đã chuẩn hóa: nếu là số thì chuyển thành `{ limit: params }`, đồng thời lọc bỏ `parentCategoryId === "all"` để không gây lỗi parse kiểu `long?` trên backend.
+        - **Lỗi 2 (activeTopProducts.slice is not a function)**: Backend endpoint trả về đối tượng phân trang `PaginatedProductsData { items: [...], totalCount: ... }` chứ không phải mảng trực tiếp. Trong [ShopAnalyticsDashboard.tsx](file:///home/vanmuzic/Projects/Ecommerce_Microservices/frontend-web/src/domains/seller/components/ShopAnalyticsDashboard.tsx), `activeTopProducts` lấy từ `adminTopProductsData` bị gán là một object, dẫn đến `.slice()` và `.reduce()` bị crash. Đã bọc chuẩn hóa `activeTopProducts` luôn trích xuất an toàn `(adminTopProductsData?.items || [])` và thêm `Array.isArray` guard.
+        - Ẩn bảng hiệu suất sản phẩm trùng lặp trong `ShopAnalyticsDashboard.tsx` khi `isAdminView === true` (vì `AdminOverviewView.tsx` đã tự quản lý bảng phân trang riêng).
+     9. **Chuẩn Hóa Thư Mục Subcomponents Admin (`components/analytics/`), Filter Radio Hình Tròn & Nút Áp Dụng Căn Phải Cùng**:
+        - **Nguyên tắc kiến trúc mới (Rule F trong AGENTS.md & 04_frontend_standards.md)**: Gom toàn bộ subcomponents của tính năng phân tích hệ thống vào thư mục riêng biệt [frontend-web/src/domains/admin/components/analytics/](file:///home/vanmuzic/Projects/Ecommerce_Microservices/frontend-web/src/domains/admin/components/analytics/) gồm `AdminAnalyticsFilterBar.tsx`, `AdminProductDeepDiveView.tsx`, và barrel export `index.ts`, chấm dứt việc đặt flat tràn lan tại thư mục `components/`.
+        - **Bộ Lọc Ngành Hàng (Radio Hình Tròn + Text)**: Thay thế hoàn toàn các ô hình chữ nhật màu xanh bằng nút radio hình tròn tinh gọn kèm chữ tên danh mục (`adminParentCategoryRadio`), dàn đều hàng ngang flex-wrap.
+        - **Hiển Thị Trực Tiếp Mốc Thời Gian**: Show thẳng các mốc `Hôm nay`, `3 ngày qua`, `7 ngày qua`, `Tự chỉnh` (chọn tháng/năm trực tiếp ngay cạnh dòng mốc thời gian, không ẩn giấu).
+        - **Nút "Áp Dụng" Chung Căn Phải Cùng**: Nằm ở góc phải dưới cùng hàng thời gian, cho phép chọn Category và Thời gian rồi nhấn "Áp dụng" một lần để cập nhật đồng bộ toàn bộ dữ liệu sàn. Các nút hành động ở chế độ Shop ("Xem phân tích shop") và Sản phẩm ("Soi phân tích") đều được căn phải cùng chuẩn xác.
+        - **Khử Duplicate Filter Bar**: `ShopAnalyticsDashboard.tsx` hỗ trợ `hideFilterBar={true}` và nhận `controlledPreset`, `controlledMonth`, `controlledYear` từ Admin Overview, loại bỏ hoàn toàn thanh filter thừa khi nhúng vào Admin.
+  - **Kiểm Thử & Biên Dịch**:
+    - Backend Build: `dotnet build Microservices.sln` -> Build succeeded (0 errors).
+    - Database Migration: `Simplify_Category_Analytics_To_Parent_Only` -> Đã cập nhật trên PostgreSQL `AnalyticsDb`.
+    - Frontend Build: `npm run build` -> Vite build succeeded in 714ms (0 errors).
+    - Frontend Lint: `npm run lint` -> 0 errors.
+
+- [x] Khắc Phục Lệch Dữ Liệu Analytics (Đồng Bộ Số Đơn & Sản Phẩm Đã Bán Giữa FE & BE, Sửa Bug orderCount Luôn = 1 Khi Chọn Sản Phẩm Chưa Có Lượt Bán, Đồng Bộ Typography Title & Description Theo Chuẩn text-4 / text-[12px], Xóa Khối Kênh Thanh Toán Hỗ Trợ):
+  - **Mục tiêu & Kết quả hoàn thành**:
+    1. **Đồng Nhất Số Liệu Bán Hàng Giữa FE & BE (`ShopAnalyticsDashboard.tsx`)**:
+       - Khắc phục lỗi `totalOrders === 0` nhưng `totalSoldUnits` vẫn hiển thị 5 cái (do trước đó lấy tổng tích lũy all-time từ `ShopProductStats`): Khi kỳ lọc hiện tại không phát sinh đơn hàng (`totalOrders === 0`), `totalSoldUnits` trả về 0 cái kèm phụ đề "Chưa có lượt bán" chuẩn xác và đồng nhất.
+       - Khi sản phẩm được chọn chưa có lượt bán (`soldQuantity === 0`), toàn bộ điểm trên biểu đồ `chartData` trả về 0, không hiển thị dữ liệu của các sản phẩm khác.
+    2. **Sửa Lỗi `orderCount = 1` Khi Chọn Sản Phẩm Từ CSDL Chưa Có Dữ Liệu**:
+       - Trong `totalOrders` và `productPerformanceList`: Bỏ logic ép `Math.max(1, ...)`. Khi `soldQuantity === 0`, `orders` trả về chính xác 0 đơn hàng (thay vì 1 đơn).
+       - Trong `AnalyticsProductPerformance.tsx`: Cập nhật `barPercent = 0` khi `currValue === 0` để thanh tiến độ không chiếm độ rộng giả 8%.
+    3. **Đồng Bộ Hóa Kích Thước Title & Description**:
+       - Chuẩn hóa header của `ShopAnalyticsDashboard.tsx` theo Design System chung của dự án: Title chuyển thành `text-4 font-black text-brand-dark uppercase tracking-wider`, Description chuyển thành `text-[12px] text-brand-muted font-bold mt-0.5`.
+    4. **Xóa Bỏ Hoàn Toàn Khối Kênh Thanh Toán Hỗ Trợ**:
+       - Xóa component `AnalyticsPaymentChannels` khỏi giao diện dashboard và dọn dẹp export tại barrel `src/domains/seller/components/analytics/index.ts`.
+       - Khắc phục lỗi TDZ `ReferenceError: can't access lexical declaration 'selectedProductStat' before initialization`: Đưa toàn bộ khai báo `top10Products`, `availableFilterProducts`, `selectedProductStat`, và `handleAddCustomProduct` lên trước `chartData`.
+       - Khắc phục lỗi không đổ được dữ liệu biểu đồ/KPI (`activeChartRaw.points`): Do API backend trả về trực tiếp mảng `RevenueChartPoint[]`, biểu thức kiểm tra trước đó `activeChartRaw?.points` luôn trả về `undefined` khiến `chartData` luôn rỗng (`[]`). Đã sửa cơ chế bóc tách hỗ trợ cả dạng mảng trực tiếp lẫn object chứa `.points`, định dạng nhãn ngày `DD/MM` ngắn gọn và tính toán chuẩn xác `totalSoldUnits`.
+  - **Kiểm Thử & Biên Dịch**:
+    - Frontend Build: `npm run build` -> Vite build succeeded in 773ms (0 errors).
+    - Frontend Lint: `npm run lint` -> 0 errors.
+
 - [x] Phân Quyền & Khóa Các Trang Riêng Biệt Khỏi Tài Khoản Quản Trị Viên (Admin) (RequireNonAdmin Guard Cho Seller & Customer Routes, Ẩn Cart/Wishlist/Orders Dropdown Trong Header):
   - **Mục tiêu & Kết quả hoàn thành**:
     1. **Tạo Mới Route Guard `RequireNonAdmin.tsx`**:
@@ -153,8 +299,6 @@
        - `OrdersController.cs`: Gia cố bảo mật API `GET /api/orders/customer/{customerId}`. Nếu không phải Admin, backend ép buộc lấy dữ liệu theo `UserId` trích xuất từ JWT token (`targetCustomerId = (customerId > 0 && isAdmin) ? customerId : UserId;`), ngăn chặn tuyệt đối việc người dùng xem trộm đơn hàng của tài khoản khác.
   - **Kiểm Thử & Biên Dịch**:
     - Backend: `dotnet build src/Services/Orders/Ecommerce.Services.Orders.Api/Ecommerce.Services.Orders.Api.csproj` -> Build succeeded (0 errors).
-    - Frontend: `npm run build` -> Vite build succeeded (0 errors).
-
 - [x] Snapshot ShopName & ShopLogoUrl Vào SubOrder (Orders Service), Tách Biệt Độc Lập Với Shippings & Tối Ưu Truy Vấn Chi Tiết Đơn Hàng Song Song:
   - **Mục tiêu & Kết quả hoàn thành**:
     1. **Kiến trúc Snapshot Định Danh Cửa Hàng (`Orders.Domain` & `Orders.Infrastructure`)**:
@@ -214,188 +358,3 @@
     - Backend: `dotnet build src/Services/Analytics/Ecommerce.Services.Analytics.Api/Ecommerce.Services.Analytics.Api.csproj` -> Build succeeded (0 errors).
     - Frontend: `npx tsc --noEmit` & `npm run build` -> Build succeeded (0 errors).
 
-- [x] Nâng Cấp Modal Quản Lý Tài Khoản Ngân Hàng: Bổ Sung Chức Năng Xóa Tài Khoản (Backend + Frontend), Mở Rộng Kích Thước Modal (max-w-2xl), Hiển Thị Logo Dưới Ô Chọn Kèm Checkbox Đặt Mặc Định Bên Phải:
-  - **Mục tiêu & Kết quả hoàn thành**:
-    1. **Backend Payments Service (`WalletService.cs`, `WalletController.cs`, `IWalletService.cs`)**:
-       - Triển khai phương thức `DeleteBankAccount(userId, bankAccountId)` trong `WalletService`:
-         - Kiểm tra quyền sở hữu tài khoản thuộc về ví người dùng.
-         - Ràng buộc an toàn: Không cho phép xóa tài khoản ngân hàng duy nhất (yêu cầu thêm tài khoản mới trước khi xóa).
-         - Tự động chuyển một tài khoản còn lại thành mặc định nếu tài khoản bị xóa đang là mặc định.
-       - Thêm API endpoint `DELETE /api/wallet/bank-accounts/{id:long}` trong `WalletController`.
-    2. **Frontend Web (`BankAccountManagerModal.tsx`, `WalletTab.tsx`, `orderApi.ts`, `walletApi.ts`, `useOrders.ts`)**:
-       - Thêm hàm gọi API `deleteBankAccount` trong cả `orderApi.ts` và `walletApi.ts`.
-       - Tạo hook mutation `useDeleteBankAccountMutation` với cơ chế invalidate query `["userBankAccounts"]`.
-       - Mở rộng kích thước Modal: Tăng từ `max-w-xl` lên `max-w-2xl`, tạo không gian thoáng đãng và trực quan.
-        - Tái cấu trúc Layout Form Thêm/Sửa thành 1 hàng duy nhất bên dưới các ô nhập liệu:
-          - Dưới ô select: Ô hiển thị logo ngân hàng (w-10 h-10 object-contain).
-          - Kế bên phải: Checkbox "Đặt làm mặc định".
-          - Phải cùng: Bộ nút "Hủy" và "Xác nhận".
-        - Thêm nút Xóa với icon `Trash2` (màu đỏ nhẹ rose-50, hover rose-100) kế bên nút "Sửa" cho từng dòng tài khoản trong danh sách kèm xác nhận và trạng thái `deletePending`.
-  - **Kiểm Thử & Biên Dịch**:
-    - Backend: `dotnet build Microservices.sln` -> Build succeeded (0 errors).
-    - Frontend: `npx tsc --noEmit` & `npm run build` -> Build succeeded in 1.11s (0 errors).
-
-- [x] Bổ Sung IconUrl Cho Danh Sách Ngân Hàng Hỗ Trợ Tại WalletService & Hiển Thị Logo Ngân Hàng Trong BankAccountManagerModal:
-  - **Mục tiêu & Kết quả hoàn thành**:
-    1. **Backend Payments Service (`WalletService.cs`, `WithdrawalService.cs`, `WalletController.cs`)**:
-       - Cấu trúc lại `AllowedBanks` trong `WalletService.cs` từ `HashSet<string>` thành `Dictionary<string, SupportedBankInfo>` với đầy đủ `Name`, `Code`, và `IconUrl` từ CDN VietQR (Vietcombank, Techcombank, MB Bank, ACB, BIDV, VietinBank, Agribank, Sacombank, VPBank, TPBank, VIB, HDBank).
-       - Thêm helper method `GetBankIconUrl(string? bankName)` tra cứu logo nhanh chóng theo tên ngân hàng.
-       - Cập nhật `BankAccountDto.cs` và `WithdrawalRequestDto.cs` bổ sung trường `IconUrl`.
-       - Tự động map `dto.IconUrl = GetBankIconUrl(bankAccount.BankName)` trong các hàm `AddBankAccount`, `GetBankAccounts`, `UpdateBankAccount`, `CreateWithdrawal`, `GetMyWithdrawals`, `GetAllWithdrawals`.
-       - Thêm endpoint `GET /api/wallet/supported-banks` (`[AllowAnonymous]`) trả về danh sách ngân hàng hỗ trợ kèm logo và mã code.
-    2. **Frontend Web (`BankAccountManagerModal.tsx`, `BankAccountCard.tsx`, `WithdrawRequestModal.tsx`, `wallet.types.ts`)**:
-       - `wallet.types.ts`: Bổ sung `iconUrl?: string` cho `BankAccountDto` và `WithdrawalRequestDto`.
-       - `BankAccountManagerModal.tsx`:
-         - Hiển thị logo ngân hàng (`acc.iconUrl || matchedBank?.logo`) với bo góc `rounded-md`, border chuẩn, background `bg-slate-50`, và `onError` fallback an toàn trong danh sách tài khoản.
-         - Thêm xem trước (preview thumbnail) logo ngân hàng ngay cạnh dropdown khi người dùng chọn ngân hàng lúc thêm mới hoặc chỉnh sửa tài khoản.
-       - `BankAccountCard.tsx`: Hiển thị logo ngân hàng kế bên tên ngân hàng ở thẻ "Tài khoản mặc định".
-       - `WithdrawRequestModal.tsx`: Hiển thị logo ngân hàng tại khối "Tài khoản nhận tiền mặc định" khi tạo yêu cầu rút tiền.
-  - **Kiểm Thử & Biên Dịch**:
-    - Backend: `dotnet build Microservices.sln` -> Build succeeded (0 errors).
-    - Frontend: `npx tsc --noEmit` & `npm run build` -> Build succeeded in 822ms (0 errors).
-
-- [x] Xây Dựng & Chuẩn Hóa Bộ Tiêu Chuẩn Đặt Tên Git Commit Cho Dự Án (docs/COMMIT_CONVENTION.md):
-  - **Mục tiêu & Kết quả hoàn thành**:
-    1. **Tài liệu chuẩn hóa (`docs/COMMIT_CONVENTION.md`)**:
-       - Soạn thảo bộ quy chuẩn đặt tên Git Commit toàn diện theo chuẩn **Conventional Commits v1.0.0**.
-       - Định nghĩa chi tiết cấu trúc 3 phần: `<type>(<scope>): <subject>`, `[optional body]`, `[optional footer(s)]`.
-       - Định nghĩa danh sách commit `type` (`feat`, `fix`, `refactor`, `perf`, `style`, `docs`, `test`, `chore`, `build`, `ci`, `revert`) kèm phân loại tác động Semantic Versioning.
-       - Định nghĩa danh mục `scope` cụ thể, sát sườn với kiến trúc dự án:
-         - Backend Microservices: `catalog`, `cart`, `orders`, `identity`, `sellers`, `payments`, `shippings`, `notifications`, `recommendations`, `analytics`, `gateway`, `buildingblocks`.
-         - Frontend Web: `customer-ui`, `seller-ui`, `admin-ui`, `auth-ui`, `shared-ui`, domain scopes (`domain-cart`, `domain-order`, ...).
-         - Hạ tầng & DB: `db`, `docker`, `telemetry`, `rabbitmq`.
-         - Tài liệu & Cấu hình: `docs`, `readme`, `config`.
-       - Quy tắc viết Subject: Thể mệnh lệnh (imperative mood), viết thường, không có dấu chấm câu cuối, quy tắc độ dài 50/72.
-       - Quy tắc Breaking Changes (`!` hoặc `BREAKING CHANGE:`) và liên kết issue/PR footers (`Closes #123`, `Refs #456`).
-       - Bảng so sánh commit Sai (Bad) vs Đúng (Good) kèm giải thích chi tiết.
-       - Ví dụ thực tế gắn liền với CQRS MediatR, gRPC, EF Core Migrations, và React 19 Frontend.
-       - Quy chuẩn đặt tên Git Branch: `feature/*`, `fix/*`, `refactor/*`, `perf/*`, `docs/*`, `hotfix/*`.
-       - Kèm script Bash Git Hook mẫu (`.git/hooks/commit-msg`) để tự động kiểm tra cú pháp commit trên máy lập trình viên.
-    2. **Đồng bộ tài liệu dự án**:
-       - Cập nhật [readme.md](file:///home/vanmuzic/Projects/Ecommerce_Microservices/readme.md) với mục *Documentation & Guidelines* dẫn tới `docs/COMMIT_CONVENTION.md`.
-       - Cập nhật [.agents/rules/02_coding_standards.md](file:///home/vanmuzic/Projects/Ecommerce_Microservices/.agents/rules/02_coding_standards.md) với mục quy chuẩn Git Commit & Branching.
-
-- [x] Tối Ưu Hóa Query Tổng Hợp Trong Analytics Service (Gom 6 Query Sum/Select Riêng Biệt Thành 1 Câu SQL Duy Nhất Với GroupBy(_ => 1)):
-  - **Mục tiêu & Kết quả hoàn thành**:
-    1. **Tối ưu AdminAnalyticsService (`AdminAnalyticsService.cs`)**:
-       - Trước đây: `GetOverviewAsync` thực hiện tới 7 lệnh `await` riêng biệt (1 lệnh đếm số shop qua gRPC + 5 lệnh `SumAsync` độc lập trên `DailyPlatformRevenues` + 1 lệnh `FirstOrDefaultAsync` lấy số liệu hôm nay). Dẫn đến 6 round-trip mạng tới PostgreSQL dù đều cùng truy vấn trên 1 bảng `DailyPlatformRevenues`.
-       - Sau khi tối ưu: Gom toàn bộ 6 câu query trên bảng `DailyPlatformRevenues` thành **1 câu SQL duy nhất** thông qua EF Core `GroupBy(_ => 1)`.
-       - PostgreSQL biên dịch thành 1 câu SQL `SELECT COALESCE(sum(...), 0)... COALESCE(sum(CASE WHEN "Date" = @today THEN ... ELSE 0 END), 0) FROM "DailyPlatformRevenues" GROUP BY 1`.
-       - Giảm từ 7 `await` xuống còn đúng **2 `await`** (1 gRPC đếm shop + 1 SQL query duy nhất trên AnalyticsDb), giảm 83% round-trip I/O.
-    2. **Tối ưu SellerAnalyticsService (`SellerAnalyticsService.cs`)**:
-       - Trước đây: `GetOverviewAsync` gọi 3 query riêng biệt tới `DailyShopRevenues` (`todayStat`, `monthRevenue`, `totalOrders`).
-       - Sau khi tối ưu: Gom thành 1 query `GroupBy(_ => 1)` có điều kiện (conditional sum theo `Date = today` và `Date >= monthStart`), giảm từ 4 `await` xuống còn **2 `await`**.
-  - **Kiểm Thử & Biên Dịch**:
-    - Solution Build: `dotnet build Microservices.sln` -> Build succeeded (0 errors).
-    - Đã xác thực SQL execution translation trên PostgreSQL `AnalyticsDb`.
-
-- [x] Thống Nhất Kích Thước Title & Description Cho Tất Cả Các Views Admin Theo Chuẩn AdminBannersView (text-4 / text-[12px]):
-  - **Mục tiêu & Kết quả hoàn thành**:
-    1. **Chuẩn hóa Header & Typography Toàn Bộ 14 Admin Views**:
-       - `index.css`: Bổ sung `@utility text-4 { font-size: 14px; line-height: 1.25rem; }` trong Tailwind CSS v4, đảm bảo class `text-4` tạo ra font-size 14px chuẩn xác và đồng nhất 100%.
-       - `AdminOverviewView.tsx`: Căn chỉnh lại Header đồng bộ với các view khác: Title viết hoa `text-4 font-black text-brand-dark uppercase tracking-wider` ("TỔNG QUAN & THỐNG KÊ HỆ THỐNG") và Description `text-[12px] text-brand-muted font-bold mt-0.5`.
-       - Đồng bộ toàn diện 13 Admin Views còn lại (`AdminBannersView`, `AdminCategoriesView`, `AdminKycView`, `AdminOrdersView`, `AdminPaymentMethodsView`, `AdminProductsView`, `AdminRefundsView`, `AdminShipmentsView`, `AdminShopsView`, `AdminUsersView`, `AdminVouchersView`, `AdminWalletsDashboardView`, `AdminWithdrawsView`):
-         - Title: `text-4 font-black text-brand-dark uppercase tracking-wider`
-         - Description: `text-[12px] text-brand-muted font-bold mt-0.5`
-  - **Kiểm Thử & Biên Dịch**:
-    - Frontend: `npm run build` -> Vite production build succeeded in 692ms (0 errors).
-
-- [x] Khắc Phục Triệt Để Hiện Tượng Bị Đăng Xuất Khi Restart Server (Silent Refresh Trên FE, Chống Xóa Session Do Lỗi Mạng & Chuẩn Hóa Cặp Khóa Ký/DataProtection Trên Identity Service):
-  - **Mục tiêu & Kết quả hoàn thành**:
-    1. **Frontend Auth Resilience (`AuthProvider.tsx`)**:
-       - Cơ chế **Silent Refresh** khi khởi động: Khi mở trang hoặc F5, nếu `accessToken` null hoặc hết hạn (`!isAuthenticated(token)`), `AuthProvider` chủ động gọi `authService.refresh()` để đổi lấy `accessToken` mới từ HttpOnly Cookie 7 ngày (`refresh_token`) trước khi các guard chuyển hướng đến `/login`.
-       - Bảo vệ session khi restart server / lỗi mạng: Thay thế cơ chế xóa sạch session bừa bãi khi `currentUserQuery.isError` bằng kiểm tra nghiêm ngặt `(error as any)?.response?.status === 401`. Nếu là Network Error (`ERR_CONNECTION_REFUSED` do server đang restart) hoặc 5xx, tuyệt đối **không** gọi `clearState()`, giữ nguyên session người dùng.
-    2. **Frontend Axios Interceptor (`axiosInstance.ts`) & Query Retry (`useAuth.ts`)**:
-       - `axiosInstance.ts`: Refresh promise error handler chỉ xóa session (`clearState()`) khi server từ chối xác thực bằng HTTP 401 hoặc 400. Network error trong lúc refresh sẽ không làm mất session.
-       - `useCurrentUserQuery`: Bổ sung cấu hình retry 2 lần đối với lỗi mạng / server rebooting để tự động phục hồi ngay khi backend sẵn sàng.
-    3. **Backend Cryptographic & Key Persistence (`Identity.Api`)**:
-       - `InfrastructureConfiguration.cs`: Cấu hình ASP.NET Core Data Protection cố định (`PersistKeysToFileSystem` tại `AppContext.BaseDirectory/dataprotection-keys` với `SetApplicationName("EcommerceMicroservices")`), đảm bảo payload refresh token trong bảng `PersistedGrants` của PostgreSQL luôn giải mã được qua các lần restart.
-       - Chỉ định đường dẫn cố định cho `AddDeveloperSigningCredential` tới `AppContext.BaseDirectory/tempkey.jwk` và bổ sung MSBuild item group copy `tempkey.jwk` (`PreserveNewest`) trong `Identity.Api.csproj`, tránh việc sinh khóa RSA mới làm vô hiệu hóa token cũ.
-  - **Kiểm Thử & Biên Dịch**:
-    - Backend: `dotnet build Microservices.sln` -> Build succeeded (0 errors).
-    - Frontend: `npm run build` -> Vite production build succeeded in 913ms (0 errors).
-
-- [x] Triển Khai Cơ Chế Financial Snapshot Phí Hoa Hồng Sàn Vào SubOrder & Saga, Đưa PlatformCommissionConfig Về Order Service (Triệt Tiêu gRPC Hop), Refactor SellerRevenueConsumer & Chuẩn Hóa Kế Toán Analytics:
-  - **Mục tiêu & Kết quả hoàn thành**:
-    1. **Kiến trúc Financial Snapshot & Quản Lý Phí Hoa Hồng Nội Bộ Tại Orders Service**:
-       - `PlatformCommissionConfig.cs`: Đưa thực thể cấu hình hoa hồng sàn về `Orders.Domain` và `OrderDbContext` (`OrdersDb`), loại bỏ hoàn toàn việc gọi gRPC sang Payments khi tạo đơn hàng.
-       - `AdminCommissionController.cs` (`Orders.Api`): Cung cấp API `GET /api/admin/commission` và `PUT /api/admin/commission` với CQRS MediatR (`GetPlatformCommissionQuery`, `UpdatePlatformCommissionCommand`).
-       - `CreateOrderCommandHandler.cs`: Đọc trực tiếp cấu hình hoa hồng từ repository nội bộ trong cùng Unit of Work (latency 0ms), tính toán và snapshot vào `SubOrder`.
-       - `SubOrder.cs`: Thêm 2 trường snapshot `CommissionRate` (decimal) và `CommissionFee` (long - VND) cùng computed property `NetRevenue => GrandTotal - CommissionFee`. Thêm method `SetCommission(rate, fee)`.
-       - `Order.cs`: Thêm method `SetCommission(shopId, rate, fee)`.
-       - `SubOrderSagaState.cs` & `SubOrderStateMachine.cs`: Thêm và gán `CommissionRate`, `CommissionFee` vào Saga state khi nhận `SubOrderCreatedEvent`.
-       - `CompleteSubOrderCommandHandler.cs` & `OrderJobService.cs`: Truyền trọn vẹn `CommissionRate`, `CommissionFee`, `NetRevenue` từ `SubOrder` vào `SubOrderCompletedEvent`.
-       - `GetSubOrderDetailQuery.cs` & Handler: Bổ sung `CommissionRate`, `CommissionFee`, `NetRevenue` vào DTO chi tiết đơn cho Seller xem.
-       - Dọn dẹp: Bỏ RPC `GetPlatformCommissionRate` khỏi `payment.proto`, `PaymentGrpcServer.cs`, và `PaymentClientService.cs`.
-    2. **Refactor Quyết Toán Ví Người Bán & Xóa Bỏ Dữ Liệu Thừa (`Payments.Api`)**:
-       - `SellerRevenueConsumer.cs`: Đọc trực tiếp snapshot `CommissionFee`, `CommissionRate`, `NetRevenue` từ `SubOrderCompletedEvent` để cộng `netRevenue` vào ví Shop Owner và ghi nhận `WalletTransaction`.
-       - Xóa bỏ hoàn toàn thao tác ghi và bảng `RevenueRecords` (thừa thãi, không có API nào đọc).
-       - Xóa bỏ `AdminCommissionController`, `CommissionService`, `ICommissionService`, `PlatformCommissionConfig` khỏi `Payments.Api`.
-    3. **Chuẩn Hóa Kế Toán Sàn TMĐT (`Analytics.Api`)**:
-       - `DailyPlatformRevenue.cs`: Bổ sung `TotalGmv` (tổng giá trị giao dịch), `PlatformDiscountAmount` (voucher trợ giá), `NetPlatformRevenue` (doanh thu thuần sàn = `PlatformRevenue - PlatformDiscountAmount`).
-       - `SubOrderCompletedAnalyticsConsumer.cs`: Sửa lỗi tính doanh thu sàn bằng `msg.TotalAmount`. Tách biệt rành mạch GMV toàn sàn, Doanh thu hoa hồng sàn thu được (`msg.CommissionFee`), Voucher sàn trợ giá (`msg.PlatformDiscount`), và Doanh thu thực nhận của Shop (`msg.NetRevenue`).
-       - `AdminAnalyticsDtos.cs` & `AdminAnalyticsService.cs`: Cung cấp đầy đủ chỉ số GMV, Gross Commission, Voucher Burn, và Net Commission Revenue cho Overview và Revenue Chart.
-    4. **EF Core Migrations**:
-       - `OrderDbContext`: Tạo & apply migration `Add_Commission_Snapshot_To_SubOrder` và `Add_PlatformCommissionConfig_To_Orders`.
-       - `AnalyticsDbContext`: Tạo & apply migration `Add_Platform_Financial_Metrics`.
-       - `PaymentDbContext`: Tạo & apply migration `Remove_Redundant_Commission_And_RevenueRecord` (drop bảng `RevenueRecords` và `PlatformCommissionConfigs`).
-  - **Kiểm Thử & Biên Dịch**:
-    - Solution build: `dotnet build` -> Build succeeded (0 errors).
-    - Database migrations: `dotnet ef database update` cho cả 2 DbContext thành công.
-
-- [x] Hoàn Thiện Seller Followers View, Tái Sử Dụng OrdersView Theo CustomerId, Header Bảng Chuẩn ProductTable, Bộ Lọc Thời Gian Cuốn Lịch, Triển Khai Backend Follow Shop API & Thiết Kế Lại Nút Follow Shop:
-  - **Mục tiêu & Kết quả hoàn thành**:
-    1. **SellerFollowersView (`SellerFollowersView.tsx`)**:
-       - Hiển thị ID khách hàng (`ID: #{follower.userId}`) thay vì email/username.
-       - Xóa bỏ popup Modal xem chi tiết đơn. Chuyển sang tái sử dụng trực tiếp component `OrdersView` với `customerId={selectedFollower.userId}` và nút "Quay lại người theo dõi" (`onBack={() => setSelectedFollower(null)}`).
-       - Đồng bộ style tên cột bảng (`thead tr`) thành `border-b border-brand-border bg-brand-light-soft/50 text-brand-muted font-bold text-xs` (chuẩn ProductTable).
-       - Xóa bỏ thẻ KPI "Tỷ lệ tương tác", giữ lại 2 thẻ gọn gàng: Tổng Người Theo Dõi & Mới Theo Dõi (`rounded-md`).
-       - Bổ sung bộ lọc thời gian chọn ngày trong quá khứ (cuốn lịch / `<input type="date" />`) lọc các lượt theo dõi từ ngày đã chọn đến hiện tại kèm bộ nút chọn nhanh (Tất cả, 7 ngày qua), có pagination đầy đủ.
-    2. **OrdersView (`OrdersView.tsx`)**:
-       - Đồng bộ style `thead tr` sang `bg-brand-light-soft/50 text-brand-muted font-bold text-xs`.
-       - Chuẩn hóa toàn bộ `rounded-xl` sang `rounded-md`.
-       - Nhận props `{ customerId?: number; onBack?: () => void }` và hỗ trợ URL search param `?customerId=...`.
-       - Hiển thị banner thông báo đang lọc đơn của khách hàng kèm nút "Quay lại người theo dõi" và nút "Xóa lọc".
-    3. **Backend Follow Shop API (`Sellers.Api` & `Orders.Api`)**:
-       - `FollowedShop.cs` & `Shop.cs`: Thêm Navigation Property `Shop` và `ICollection<FollowedShop> Followers`.
-       - `SellerDbContext.cs`: Thiết lập ràng buộc khóa ngoại `HasOne(f => f.Shop).WithMany(s => s.Followers).HasForeignKey(f => f.ShopId).OnDelete(DeleteBehavior.Cascade)`.
-       - **EF Core Migration**: Tạo và áp dụng migration `AddShopForeignKeyToFollowedShop` trên PostgreSQL `SellerDb`, tự động sinh Foreign Key constraint và Index trên `ShopId`.
-       - `ShopService.cs`: Tối ưu `GetFollowedShopsAsync` sử dụng Navigation Property và subquery projection `f.Shop.Followers.Count()` trong 1 query SQL duy nhất (triệt tiêu hoàn toàn N+1 và loại bỏ các bước join / dictionary thủ công).
-       - `ShopFollowersController.cs`: Cấp phép `[AllowAnonymous]` cho `CheckFollowStatus` và thêm endpoint `GET /api/shop/{shopId}/followers`, `GET /api/shop/{shopId}/followers-count`.
-       - `Orders.Api`: Cập nhật `GetSubOrdersByShopQuery`, `GetSubOrdersByShopQueryHandler`, `OrdersController` hỗ trợ lọc theo `customerId`.
-    4. **Thiết kế lại nút Follow Shop (`FollowShopButton.tsx` & `ShopProfilePublicPage.tsx`)**:
-       - Thiết kế lại với Framer Motion, hiệu ứng chuyển động, trạng thái `Đang theo dõi` (hover đổi sang `Bỏ theo dõi`), spinner `Loader2` khi đang toggle, và badge hiển thị số lượng follower.
-       - Tích hợp số lượng người theo dõi trên header của `ShopProfilePublicPage.tsx`.
-  - **Kiểm Thử & Biên Dịch**:
-    - Backend: `dotnet build Microservices.sln` -> Build succeeded (0 errors).
-    - Database Migration: `dotnet ef database update --project src/Services/Sellers/Ecommerce.Services.Sellers.Api --context SellerDbContext` -> Done.
-    - Frontend: `npm run build` & `npx tsc --noEmit` -> Build succeeded (0 errors).
-
-- [x] Nâng Cấp Toàn Diện Seller Center & Báo Cáo Thống Kê Doanh Thu (Đánh Giá Sản Phẩm Chọn Product Trước Kèm OrderId, Quản Lý Followers Kèm Lazy Order History Modal, Chat Trong Sidebar, Biểu Đồ Doanh Thu Spline Curve SVG, Filter Năm/Tháng/Hôm Nay/3 Ngày/Tuần/Sản Phẩm, Biểu Đồ Số Đơn & Hiệu Suất Từng Món, Bo Góc rounded-md, Thống Nhất Cho Cả Admin):
-  - **Mục tiêu & Yêu cầu hoàn thành**:
-    1. **Sidebar & Routing Seller (`SellerLayout.tsx`, `SellerDashboardPage.tsx`)**:
-       - Thêm liên kết trực tiếp "Trò chuyện với khách" vào sidebar với icon `CommentOutlined`, trỏ trực tiếp đến trang chat hoàn chỉnh có sẵn (`/chat?seller=true`).
-       - Bổ sung sublink "Đánh giá sản phẩm" (`/seller/dashboard/reviews`), "Người theo dõi" (`/seller/dashboard/followers`), và "Doanh thu" (`/seller/dashboard/revenue`).
-       - Thay thế `Overview` cũ bằng việc trỏ mặc định vào dashboard doanh thu & thống kê hoàn chỉnh (`RevenueView`).
-       - Chuẩn hóa breadcrumbs phản ánh chính xác từng trang chức năng.
-    2. **Quản lý Đánh giá sản phẩm (`SellerReviewsView.tsx`)**:
-       - Luồng chọn sản phẩm trước (Product-first): Hiển thị lưới sản phẩm với thumbnail, giá, điểm trung bình ⭐ và số lượng đánh giá để người bán chọn sản phẩm cần xem.
-       - Khi chọn sản phẩm: Hiển thị tóm tắt sản phẩm, phân bổ mức sao, bộ lọc theo sao (Tất cả, 5, 4, 3, 2, 1), lọc trạng thái phản hồi (Tất cả, Chưa phản hồi, Đã phản hồi), ô tìm kiếm nội dung/mã đơn.
-       - Từng đánh giá hiển thị thông tin người mua, ngày, phân loại hàng, **Mã đơn hàng liên kết (`orderId`, ví dụ: `#ORD-2026-98124`)** theo yêu cầu, ảnh đính kèm nếu có.
-       - Khu vực Phản hồi người bán: Cho phép nhập và gửi phản hồi trực tiếp, hiển thị phản hồi đã gửi. Phân trang mượt mà.
-    3. **Quản lý Khách hàng theo dõi (`SellerFollowersView.tsx`)**:
-       - Hiển thị 3 KPI thống kê: Tổng người theo dõi, Mới theo dõi (30 ngày), Tỷ lệ tương tác.
-       - Bảng danh sách followers với avatar, tên, username, ngày theo dõi, trạng thái hoạt động.
-    4. **Báo cáo Doanh thu & Thống kê nâng cao (`ShopAnalyticsDashboard.tsx`, `RevenueView.tsx`)**:
-       - Chuẩn hóa header & description đồng bộ với các trang khác trong Seller Center; **toàn bộ thẻ div/card dùng `rounded-md`**.
-       - Bộ lọc đa năng: Preset nhanh ("Hôm nay", "3 ngày qua", "Tuần này", "Tháng này"), Dropdown Năm (trục X là tháng 1->12, tự ẩn tháng chưa diễn ra), Dropdown Tháng (trục X là ngày 1->28/30/31).
-       - Dropdown lọc theo sản phẩm: "Tất cả sản phẩm" (mặc định) hoặc chọn từng sản phẩm cụ thể.
-       - **Biểu đồ Spline Curve mượt mà (Cubic Bezier SVG)**: Hiển thị tiêu đề `Doanh Thu Tháng X: [Số tiền]đ` (số tiền nổi bật đỏ/accent giống ảnh mẫu), các mốc trục Y (0, 90k, 180k, 270k, 360k...), các điểm node có hiệu ứng phát sáng hover tooltip, legend `--o-- Doanh_thu`.
-       - **Biểu đồ Thống kê Số lượng đơn đặt hàng**: Trend đơn hàng kèm phân bổ Hoàn thành / Đang giao / Đã hủy.
-       - **Biểu đồ Hiệu suất từng món hàng**: 3 tabs chuyển đổi (Doanh thu từng món, Số đơn đặt hàng từng món, Số lượng sản phẩm bán được) với thanh progress bar trực quan.
-       - Phân bổ kênh thanh toán: COD, Ví MoMo, VNPAY-QR, Ví Shop.
-       - Tích hợp Mock Data engine phong phú cho phép quan sát trực quan ngay lập tức.
-    5. **Thống nhất cho cả Admin (`AdminOverviewView.tsx`)**:
-       - Tích hợp `ShopAnalyticsDashboard` vào Admin Overview kèm dropdown chọn xem theo từng shop hoặc toàn sàn.
-  - **Kiểm Thử & Biên Dịch**:
-    - Frontend: `npm run build` $\rightarrow$ ✅ Built in 923ms (0 errors); `npx tsc --noEmit` $\rightarrow$ ✅ Clean (0 errors).
