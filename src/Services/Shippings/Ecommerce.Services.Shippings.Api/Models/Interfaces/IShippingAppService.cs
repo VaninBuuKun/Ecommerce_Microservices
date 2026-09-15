@@ -10,7 +10,7 @@ public interface IShippingAppService
 {
     Task<Result<LocationNamesDto>> GetLocationNamesAsync(long provinceId, long districtId, long wardId);
     Task<Result<List<Result<decimal>>>> CalculateBatchFeeAsync(List<CalculateFeeRequest> requests, CancellationToken cancellationToken = default);
-    Task<Result<Ecommerce.Services.Shippings.Api.Models.Entities.Shipment>> GetShipmentBySubOrderIdAsync(long subOrderId, CancellationToken cancellationToken = default);
+    Task<Result<List<Ecommerce.Services.Shippings.Api.Models.Entities.Shipment>>> GetShipmentsBySubOrderIdAsync(long subOrderId, CancellationToken cancellationToken = default);
     Task<Result<PagedShipmentsDto>> GetShipmentsPagedAsync(int page, int pageSize, string? search, CancellationToken cancellationToken = default);
 }
 

@@ -31,15 +31,27 @@ export interface LocationSummary {
 }
 
 export interface Shipment {
-	id: number;
-	orderId: number;
+	id: string | number;
+	orderId?: number;
 	subOrderId: number;
-	trackingNumber?: string;
-	carrier: string;
-	status: string;
+	customerId?: number;
+	shopId?: number;
+	carrierName?: string;
+	carrier?: string;
 	shippingFee: number;
+	status: string;
+	waybillCode?: string;
+	trackingNumber?: string;
+	senderAddress?: string;
+	recipientAddress?: string;
+	recipientName?: string;
+	recipientPhone?: string;
 	expectedDeliveryDate?: string;
-	createdAt: string;
+	isRefund?: boolean;
+	failureReason?: string;
+	trackingLogs?: string;
+	createdDate?: string;
+	createdAt?: string;
 }
 
 // Backward compatibility type aliases

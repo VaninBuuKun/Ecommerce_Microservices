@@ -208,8 +208,8 @@ export function useCompleteSubOrderMutation() {
 export function useCreateRefundMutation() {
 	const queryClient = useQueryClient();
 	return useMutation({
-		mutationFn: ({ subOrderId, reason }: { subOrderId: string; reason: string }) =>
-			orderApi.createRefund(subOrderId, reason),
+		mutationFn: ({ subOrderId, reason, medias }: { subOrderId: string; reason: string; medias?: string[] }) =>
+			orderApi.createRefund(subOrderId, reason, medias),
 		onSuccess: (_, variables) => {
 			queryClient.invalidateQueries({ queryKey: ["subOrderDetail", variables.subOrderId, false] });
 			queryClient.invalidateQueries({ queryKey: ["customerOrders"] });

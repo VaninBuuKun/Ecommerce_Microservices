@@ -15,6 +15,7 @@ import {
 	Send,
 	ArrowRight,
 	AlertCircle,
+	RotateCcw,
 } from "lucide-react";
 import { Pagination } from "@/shared/components/Pagination";
 import { toast } from "react-toastify";
@@ -34,6 +35,7 @@ export interface ShipmentItem {
 	createdDate?: string;
 	trackingLogs?: string;
 	failureReason?: string;
+	isRefund?: boolean;
 }
 
 export const isTerminalStatus = (status: string) => {
@@ -253,6 +255,8 @@ export function AdminShipmentsView() {
 	const filteredShipments = statusFilter === "All"
 		? shipments
 		: shipments.filter((s) => {
+			if (statusFilter === "Refund") return Boolean(s.isRefund);
+			if (statusFilter === "Forward") return !s.isRefund;
 			const str = String(s.status);
 			if (statusFilter === "ReadyToPick") return str === "ReadyToPick" || str === "1";
 			if (statusFilter === "InTransit") return str === "InTransit" || str === "2";
@@ -273,10 +277,11 @@ export function AdminShipmentsView() {
 	return (
 		<div className="space-y-4 text-left font-sans animate-in fade-in duration-200">
 			{/* Header */}
-			<div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 pb-2.5 border-b border-brand-border">
+			<div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-brand-border">
 				<div>
-					<h2 className="text-4 font-black text-brand-dark uppercase tracking-wider flex items-center gap-2">
-						Quản lý Vận chuyển & Webhook GHN Simulator
+					<h2 className="text-sm font-extrabold text-brand-dark uppercase tracking-wider flex items-center gap-2">
+						<Truck className="w-4 h-4 text-brand-primary" />
+						Quản lý Vận chuyển & Giả lập Webhook GHN
 					</h2>
 					<p className="text-[12px] text-brand-muted font-bold mt-0.5">
 						Theo dõi vận đơn thực tế, xem nhật ký lộ trình và mô phỏng Webhook đối tác vận chuyển GHN theo thứ tự chuẩn
@@ -345,7 +350,9 @@ export function AdminShipmentsView() {
 					onChange={(e) => setStatusFilter(e.target.value)}
 					className="h-8 px-3 bg-white border border-brand-border rounded-md text-xs focus:outline-none focus:border-brand-primary cursor-pointer font-bold text-brand-dark"
 				>
-					<option value="All">Mọi trạng thái vận đơn</option>
+					<option value="All">Mọi loại vận đơn & trạng thái</option>
+					<option value="Forward">🚚 Vận đơn giao hàng</option>
+					<option value="Refund">🔄 Vận đơn hoàn trả</option>
 					<option value="ReadyToPick">Chờ lấy hàng</option>
 					<option value="InTransit">Đang vận chuyển</option>
 					<option value="Delivered">Giao hàng thành công</option>
@@ -373,6 +380,7 @@ export function AdminShipmentsView() {
 								<tr className="bg-brand-light-soft/60 border-b border-brand-border text-[10px] font-extrabold text-brand-muted uppercase tracking-wider select-none">
 									<th className="py-3 px-3.5 w-0.15">Mã vận đơn GHN</th>
 									<th className="py-3 px-3.5 w-0.15">Đơn hàng con</th>
+									<th className="py-3 px-3.5 text-center w-28">Loại vận đơn</th>
 									<th className="py-3 px-3.5 w-1/4">Người nhận & Địa chỉ</th>
 									<th className="py-3 px-3.5 text-right w-1/6">Cước phí</th>
 									<th className="py-3 px-3.5 text-center w-45">Trạng thái</th>
@@ -407,6 +415,19 @@ export function AdminShipmentsView() {
 										</td>
 										<td className="py-3 px-3.5 font-mono font-bold text-brand-dark">
 											#{String(item.subOrderId).split("-")[0].toUpperCase()}
+										</td>
+										<td className="py-3 px-3.5 text-center">
+											{item.isRefund ? (
+												<span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[9px] font-black uppercase bg-amber-50 text-amber-800 border border-amber-300">
+													<RotateCcw className="w-2.5 h-2.5 text-amber-600" />
+													Hoàn trả
+												</span>
+											) : (
+												<span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[9px] font-black uppercase bg-slate-50 text-slate-700 border border-slate-200">
+													<Truck className="w-2.5 h-2.5 text-slate-500" />
+													Giao hàng
+												</span>
+											)}
 										</td>
 										<td className="py-3 px-3.5">
 											<p className="font-extrabold text-brand-dark">{item.recipientName || "Khách hàng"}</p>

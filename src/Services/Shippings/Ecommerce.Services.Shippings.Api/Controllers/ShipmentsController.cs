@@ -113,7 +113,7 @@ public class ShipmentsController(IShippingProvider shippingProvider) : Controlle
         [FromServices] IShippingAppService shippingAppService,
         CancellationToken cancellationToken = default)
     {
-        var result = await shippingAppService.GetShipmentBySubOrderIdAsync(subOrderId, cancellationToken);
+        var result = await shippingAppService.GetShipmentsBySubOrderIdAsync(subOrderId, cancellationToken);
         if (!result.IsSuccess)
         {
             return StatusCode(result.GetHttpStatusCode(), result.Message);
