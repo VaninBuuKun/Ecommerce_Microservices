@@ -151,8 +151,8 @@ export function AdminWithdrawsView() {
 		<div className="space-y-4 text-left font-sans animate-in fade-in duration-200">
 			<div className="flex justify-between items-center pb-2.5 border-b border-brand-border">
 				<div>
-					<h2 className="text-sm font-black text-brand-dark uppercase tracking-wide">Yêu cầu rút tiền từ ví</h2>
-					<p className="text-[10px] text-brand-muted font-bold mt-0.5">Duyệt các yêu cầu rút doanh thu về tài khoản ngân hàng của người bán</p>
+					<h2 className="text-4 font-black text-brand-dark uppercase tracking-wider">Yêu cầu rút tiền từ ví</h2>
+					<p className="text-[12px] text-brand-muted font-bold mt-0.5">Duyệt các yêu cầu rút doanh thu về tài khoản ngân hàng của người bán</p>
 				</div>
 				<div className="flex items-center gap-2">
 					<select 

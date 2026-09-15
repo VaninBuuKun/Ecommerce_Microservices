@@ -42,6 +42,8 @@ export function useCheckoutMutation() {
 		mutationFn: (data: any) => orderApi.checkout(data),
 		onSuccess: () => {
 			queryClient.invalidateQueries({ queryKey: ["cart"] });
+			queryClient.invalidateQueries({ queryKey: ["customerOrders"] });
+			queryClient.invalidateQueries({ queryKey: ["orders"] });
 		},
 	});
 }
@@ -87,11 +89,12 @@ export function useShopSubOrdersQuery(
 	shopId?: number,
 	pageNumber = 1,
 	pageSize = 5,
-	status?: string
+	status?: string,
+	customerId?: number
 ) {
 	return useQuery({
-		queryKey: ["shopSubOrders", shopId, pageNumber, pageSize, status],
-		queryFn: () => orderApi.getShopSubOrders(shopId!, pageNumber, pageSize, status),
+		queryKey: ["shopSubOrders", shopId, pageNumber, pageSize, status, customerId],
+		queryFn: () => orderApi.getShopSubOrders(shopId!, pageNumber, pageSize, status, customerId),
 		enabled: Boolean(shopId),
 	});
 }
@@ -145,7 +148,7 @@ export function useCustomerOrdersQuery(customerId?: number) {
 	return useQuery({
 		queryKey: ["customerOrders", customerId],
 		queryFn: () => orderApi.getCustomerOrders(customerId!),
-		enabled: Boolean(customerId),
+		enabled: Boolean(customerId && customerId > 0),
 	});
 }
 
@@ -270,6 +273,16 @@ export function useUpdateBankAccountMutation() {
 	});
 }
 
+export function useDeleteBankAccountMutation() {
+	const queryClient = useQueryClient();
+	return useMutation({
+		mutationFn: (id: number) => orderApi.deleteBankAccount(id),
+		onSuccess: () => {
+			queryClient.invalidateQueries({ queryKey: ["userBankAccounts"] });
+		},
+	});
+}
+
 export function useMyRefundsQuery() {
 	return useQuery({
 		queryKey: ["myRefundRequests"],
@@ -336,11 +349,9 @@ export function useAdminSubOrdersQuery(params?: {
 				});
 				return res.data?.value || res.data;
 			} catch (err) {
-				const fallbackRes = await api.get("/orders/customer/1");
-				const list = fallbackRes.data?.value || fallbackRes.data || [];
 				return {
-					items: list,
-					totalCount: list.length,
+					items: [],
+					totalCount: 0,
 					pageNumber: 1,
 					pageSize: 10,
 					totalPages: 1,

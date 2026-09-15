@@ -17,4 +17,5 @@ public class WithdrawalRequestDto
     public long? ProcessedByAdminId { get; set; }
     public DateTime? ProcessedAt { get; set; }
     public DateTimeOffset CreatedDate { get; set; }
+    public string IconUrl { get; set; } = string.Empty;
 }

@@ -5,6 +5,8 @@ using BuildingBlocks.Application.InMemoryBus;
 using BuildingBlocks.Auth;
 using BuildingBlocks.Shared.Commons;
 using BuildingBlocks.Shared.Enums;
+using BuildingBlocks.Shared.Events;
+using BuildingBlocks.Shared.InfrastructureInterfaces.Messaging;
 using BuildingBlocks.Shared.InfrastructureInterfaces.Persistence.EFCore;
 using Ecommerce.Services.Catalog.Application.Commons.Dtos.Products;
 using Ecommerce.Services.Catalog.Application.Commons.Interfaces;
@@ -21,6 +23,7 @@ public class ToggleProductStatusCommandHandler(
     IPaymentService paymentService,
     IOrderService orderService,
     ICurrentUserService currentUserService,
+    IEventPublisher eventPublisher,
     ILogger<ToggleProductStatusCommandHandler> logger,
     IMapper mapper
 ) : CommandHandler<ToggleProductStatusCommand, ProductResponse>
@@ -104,6 +107,20 @@ public class ToggleProductStatusCommandHandler(
 
             _productRepository.Update(product);
             await unitOfWork.SaveChangesAsync(cancellationToken);
+
+            try
+            {
+                await eventPublisher.PublishAsync(new ProductStatusChangedEvent
+                {
+                    ProductId = product.Id,
+                    IsActive = product.Status == ProductStatus.Active,
+                    ChangedAt = DateTime.UtcNow
+                }, cancellationToken);
+            }
+            catch (Exception pubEx)
+            {
+                logger.LogError(pubEx, "Failed to publish ProductStatusChangedEvent for product {ProductId}", product.Id);
+            }
 
             var response = mapper.Map<ProductResponse>(product);
             return Result<ProductResponse>.Success(response);

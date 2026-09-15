@@ -16,4 +16,5 @@ public record GetSubOrdersByShopQuery(
     long UserId, 
     int PageNumber = 1, 
     int PageSize = 5, 
-    string? Status = null) : IQuery<PagedOrdersResponse>;
+    string? Status = null,
+    long? CustomerId = null) : IQuery<PagedOrdersResponse>;

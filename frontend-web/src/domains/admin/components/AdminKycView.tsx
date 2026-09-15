@@ -18,6 +18,7 @@ import {
 	CreditCard,
 	Calendar,
 	Check,
+	Hourglass,
 } from "lucide-react";
 import { toast } from "react-toastify";
 import { Pagination } from "@/shared/components/Pagination";
@@ -122,7 +123,7 @@ export function AdminKycView() {
 			default:
 				return (
 					<span className="px-2 py-0.5 bg-amber-50 text-amber-700 border border-amber-200 text-[10px] font-black rounded uppercase tracking-wide inline-flex items-center gap-1">
-						<Loader2 className="w-3 h-3 animate-spin" /> Chờ duyệt
+						<Hourglass className="w-3 h-3" /> Chờ duyệt
 					</span>
 				);
 		}
@@ -133,10 +134,10 @@ export function AdminKycView() {
 			{/* Header Bar */}
 			<div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 pb-2.5 border-b border-brand-border">
 				<div>
-					<h2 className="text-sm font-black text-brand-dark uppercase tracking-wide">
+					<h2 className="text-4 font-black text-brand-dark uppercase tracking-wider">
 						Phê duyệt định danh KYC
 					</h2>
-					<p className="text-[10px] text-brand-muted font-bold mt-0.5">
+					<p className="text-[12px] text-brand-muted font-bold mt-0.5">
 						Xác thực thông tin căn cước công dân của các chủ shop để mở quyền bán hàng
 					</p>
 				</div>
@@ -180,11 +181,10 @@ export function AdminKycView() {
 							setStatusFilter(tab.value);
 							setPage(1);
 						}}
-						className={`py-3 px-4 text-xs font-extrabold border-b-2 whitespace-nowrap cursor-pointer transition-all ${
-							statusFilter === tab.value
-								? "border-brand-primary text-brand-primary-deep"
-								: "border-transparent text-brand-muted hover:text-brand-dark"
-						}`}
+						className={`py-3 px-4 text-xs font-extrabold border-b-2 whitespace-nowrap cursor-pointer transition-all ${statusFilter === tab.value
+							? "border-brand-primary text-brand-primary-deep"
+							: "border-transparent text-brand-muted hover:text-brand-dark"
+							}`}
 					>
 						{tab.label}
 					</button>

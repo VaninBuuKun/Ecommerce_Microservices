@@ -6,17 +6,23 @@ import { ShippingAddressTab } from "@/domains/address";
 import { MyOrdersTab, RefundRequestsTab } from "@/domains/order";
 import { WalletTab } from "@/domains/wallet";
 import { NotificationsTab } from "@/domains/notification";
+import { checkIsAdmin } from "@/shared/utils/authHelper";
 
 export default function UserProfilePage() {
 	const location = useLocation();
 	const navigate = useNavigate();
 	const { user, setUser } = useAuthStore();
+	const isAdmin = checkIsAdmin();
 
 	// Read tab query param, default to "profile"
 	const params = new URLSearchParams(location.search);
-	const initialTab =
+	const rawTab =
 		params.get("tab") ||
 		(location.pathname === "/orders" ? "orders" : "profile");
+	const initialTab =
+		isAdmin && rawTab !== "profile" && rawTab !== "notifications"
+			? "profile"
+			: rawTab;
 	
 	const [activeTab, setActiveTab] = useState<"profile" | "addresses" | "orders" | "wallet" | "refunds" | "notifications">(
 		initialTab as any,
@@ -24,11 +30,15 @@ export default function UserProfilePage() {
 
 	// Sync tab selection with route / params changes
 	useEffect(() => {
-		const tab =
+		const raw =
 			params.get("tab") ||
 			(location.pathname === "/orders" ? "orders" : "profile");
+		const tab =
+			isAdmin && raw !== "profile" && raw !== "notifications"
+				? "profile"
+				: raw;
 		setActiveTab(tab as any);
-	}, [location.pathname, location.search]);
+	}, [location.pathname, location.search, isAdmin]);
 
 	return (
 		<div className="max-w-6xl mx-auto px-4 py-8 font-sans text-left min-h-[75vh]">
@@ -73,62 +83,68 @@ export default function UserProfilePage() {
 							<User className={`w-4 h-4 ${activeTab === "profile" ? "text-brand-primary-deep" : "text-brand-muted"}`} />
 							<span>Thông tin tài khoản</span>
 						</button>
-						<button
-							onClick={() => {
-								setActiveTab("addresses");
-								navigate("/profile?tab=addresses");
-							}}
-							className={`w-full flex items-center gap-2.5 px-3 py-1.5 rounded-md text-xs font-bold transition-colors cursor-pointer ${
-								activeTab === "addresses"
-									? "text-brand-primary-deep bg-brand-primary/10"
-									: "text-brand-muted hover:text-brand-dark hover:bg-brand-light-soft"
-							}`}
-						>
-							<MapPin className={`w-4 h-4 ${activeTab === "addresses" ? "text-brand-primary-deep" : "text-brand-muted"}`} />
-							<span>Địa chỉ nhận hàng</span>
-						</button>
-						<button
-							onClick={() => {
-								setActiveTab("orders");
-								navigate("/profile?tab=orders");
-							}}
-							className={`w-full flex items-center gap-2.5 px-3 py-1.5 rounded-md text-xs font-bold transition-colors cursor-pointer ${
-								activeTab === "orders"
-									? "text-brand-primary-deep bg-brand-primary/10"
-									: "text-brand-muted hover:text-brand-dark hover:bg-brand-light-soft"
-							}`}
-						>
-							<Package className={`w-4 h-4 ${activeTab === "orders" ? "text-brand-primary-deep" : "text-brand-muted"}`} />
-							<span>Đơn hàng của tôi</span>
-						</button>
-						<button
-							onClick={() => {
-								setActiveTab("wallet");
-								navigate("/profile?tab=wallet");
-							}}
-							className={`w-full flex items-center gap-2.5 px-3 py-1.5 rounded-md text-xs font-bold transition-colors cursor-pointer ${
-								activeTab === "wallet"
-									? "text-brand-primary-deep bg-brand-primary/10"
-									: "text-brand-muted hover:text-brand-dark hover:bg-brand-light-soft"
-							}`}
-						>
-							<CreditCard className={`w-4 h-4 ${activeTab === "wallet" ? "text-brand-primary-deep" : "text-brand-muted"}`} />
-							<span>Quản lý ví</span>
-						</button>
-						<button
-							onClick={() => {
-								setActiveTab("refunds");
-								navigate("/profile?tab=refunds");
-							}}
-							className={`w-full flex items-center gap-2.5 px-3 py-1.5 rounded-md text-xs font-bold transition-colors cursor-pointer ${
-								activeTab === "refunds"
-									? "text-brand-primary-deep bg-brand-primary/10"
-									: "text-brand-muted hover:text-brand-dark hover:bg-brand-light-soft"
-							}`}
-						>
-							<ArrowLeftRight className={`w-4 h-4 ${activeTab === "refunds" ? "text-brand-primary-deep" : "text-brand-muted"}`} />
-							<span>Yêu cầu hoàn tiền</span>
-						</button>
+
+						{!isAdmin && (
+							<>
+								<button
+									onClick={() => {
+										setActiveTab("addresses");
+										navigate("/profile?tab=addresses");
+									}}
+									className={`w-full flex items-center gap-2.5 px-3 py-1.5 rounded-md text-xs font-bold transition-colors cursor-pointer ${
+										activeTab === "addresses"
+											? "text-brand-primary-deep bg-brand-primary/10"
+											: "text-brand-muted hover:text-brand-dark hover:bg-brand-light-soft"
+									}`}
+								>
+									<MapPin className={`w-4 h-4 ${activeTab === "addresses" ? "text-brand-primary-deep" : "text-brand-muted"}`} />
+									<span>Địa chỉ nhận hàng</span>
+								</button>
+								<button
+									onClick={() => {
+										setActiveTab("orders");
+										navigate("/profile?tab=orders");
+									}}
+									className={`w-full flex items-center gap-2.5 px-3 py-1.5 rounded-md text-xs font-bold transition-colors cursor-pointer ${
+										activeTab === "orders"
+											? "text-brand-primary-deep bg-brand-primary/10"
+											: "text-brand-muted hover:text-brand-dark hover:bg-brand-light-soft"
+									}`}
+								>
+									<Package className={`w-4 h-4 ${activeTab === "orders" ? "text-brand-primary-deep" : "text-brand-muted"}`} />
+									<span>Đơn hàng của tôi</span>
+								</button>
+								<button
+									onClick={() => {
+										setActiveTab("wallet");
+										navigate("/profile?tab=wallet");
+									}}
+									className={`w-full flex items-center gap-2.5 px-3 py-1.5 rounded-md text-xs font-bold transition-colors cursor-pointer ${
+										activeTab === "wallet"
+											? "text-brand-primary-deep bg-brand-primary/10"
+											: "text-brand-muted hover:text-brand-dark hover:bg-brand-light-soft"
+									}`}
+								>
+									<CreditCard className={`w-4 h-4 ${activeTab === "wallet" ? "text-brand-primary-deep" : "text-brand-muted"}`} />
+									<span>Quản lý ví</span>
+								</button>
+								<button
+									onClick={() => {
+										setActiveTab("refunds");
+										navigate("/profile?tab=refunds");
+									}}
+									className={`w-full flex items-center gap-2.5 px-3 py-1.5 rounded-md text-xs font-bold transition-colors cursor-pointer ${
+										activeTab === "refunds"
+											? "text-brand-primary-deep bg-brand-primary/10"
+											: "text-brand-muted hover:text-brand-dark hover:bg-brand-light-soft"
+									}`}
+								>
+									<ArrowLeftRight className={`w-4 h-4 ${activeTab === "refunds" ? "text-brand-primary-deep" : "text-brand-muted"}`} />
+									<span>Yêu cầu hoàn tiền</span>
+								</button>
+							</>
+						)}
+
 						<button
 							onClick={() => {
 								setActiveTab("notifications");
@@ -151,16 +167,16 @@ export default function UserProfilePage() {
 					{activeTab === "profile" && (
 						<AccountInfoTab user={user} setUser={setUser} />
 					)}
-					{activeTab === "addresses" && (
+					{!isAdmin && activeTab === "addresses" && (
 						<ShippingAddressTab />
 					)}
-					{activeTab === "orders" && (
+					{!isAdmin && activeTab === "orders" && (
 						<MyOrdersTab customerId={user?.id ? Number(user.id) : undefined} />
 					)}
-					{activeTab === "wallet" && (
+					{!isAdmin && activeTab === "wallet" && (
 						<WalletTab />
 					)}
-					{activeTab === "refunds" && (
+					{!isAdmin && activeTab === "refunds" && (
 						<RefundRequestsTab />
 					)}
 					{activeTab === "notifications" && (

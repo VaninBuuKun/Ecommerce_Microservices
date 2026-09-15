@@ -150,3 +150,40 @@ export interface SearchProductsResponse {
 		sortBy?: string;
 	};
 }
+
+export interface RecommendedProduct {
+	id: string;
+	shopId: number;
+	name: string;
+	price: number;
+	discountPrice: number;
+	thumbnailUrl?: string;
+	sold: number;
+	averageRating: number;
+	reviewCount: number;
+	categoryId?: number;
+	matchScore: number;
+	recommendationReason?: string;
+}
+
+export interface RecommendationResponse {
+	strategy: string;
+	items: RecommendedProduct[];
+	total: number;
+	page?: number;
+	pageSize?: number;
+	hasNext?: boolean;
+}
+
+export interface TrackProductViewRequest {
+	productId: string | number;
+	durationSeconds?: number;
+}
+
+export interface ProductViewStats {
+	productId: string | number;
+	totalViews: number;
+	viewsLast24Hours: number;
+	viewsLast7Days: number;
+}
+

@@ -1,10 +1,12 @@
 import { useState, useEffect } from "react";
-import { Loader2, RefreshCw, Search, Filter, Ban, ExternalLink } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { Loader2, RefreshCw, Search, Filter, Ban, ExternalLink, BarChart3 } from "lucide-react";
 import { toast } from "react-toastify";
 import { api } from "../../../core";
 import { Pagination } from "@/shared/components/Pagination";
 
 export function AdminShopsView() {
+	const navigate = useNavigate();
 	const [shops, setShops] = useState<any[]>([]);
 	const [loading, setLoading] = useState(true);
 	const [page, setPage] = useState(1);
@@ -72,8 +74,8 @@ export function AdminShopsView() {
 		<div className="space-y-4 text-left font-sans animate-in fade-in duration-200">
 			<div className="flex justify-between items-center pb-2.5 border-b border-brand-border">
 				<div>
-					<h2 className="text-sm font-black text-brand-dark uppercase tracking-wide">Quản lý gian hàng (Shops)</h2>
-					<p className="text-[10px] text-brand-muted font-bold mt-0.5">Danh sách các cửa hàng người bán hoạt động kinh doanh trên hệ thống</p>
+					<h2 className="text-4 font-black text-brand-dark uppercase tracking-wider">Quản lý gian hàng (Shops)</h2>
+					<p className="text-[12px] text-brand-muted font-bold mt-0.5">Danh sách các cửa hàng người bán hoạt động kinh doanh trên hệ thống</p>
 				</div>
 				<button onClick={fetchShops} className="p-1.5 text-brand-muted hover:text-brand-dark rounded hover:bg-brand-light-soft transition-colors cursor-pointer border-none bg-transparent" title="Làm mới">
 					<RefreshCw className="w-4 h-4" />
@@ -126,12 +128,12 @@ export function AdminShopsView() {
 						<table className="w-full text-xs text-left border-collapse table-fixed">
 							<thead>
 								<tr className="bg-brand-light-soft/50 border-b border-brand-border text-[10px] font-extrabold text-brand-muted uppercase tracking-wider select-none">
-									<th className="p-3 w-[26%]">Gian hàng</th>
+									<th className="p-3 w-[24%]">Gian hàng</th>
 									<th className="p-3 w-[14%]">Customer ID</th>
 									<th className="p-3 w-[28%]">Mô tả giới thiệu</th>
 									<th className="p-3 w-[12%]">Ngày tạo</th>
 									<th className="p-3 text-center w-[10%]">Trạng thái</th>
-									<th className="p-3 text-center w-[10%]">Hành động</th>
+									<th className="p-3 text-center w-[12%]">Hành động</th>
 								</tr>
 							</thead>
 							<tbody className="divide-y divide-brand-border">
@@ -190,25 +192,36 @@ export function AdminShopsView() {
 											</span>
 										</td>
 
-										{/* Ban Action Button */}
+										{/* Action Buttons: Phân tích & Khóa */}
 										<td className="p-3 text-center">
-											{s.status !== "Banned" ? (
+											<div className="flex items-center justify-center gap-1.5">
 												<button
-													onClick={() => handleBanShop(s.id, s.name)}
-													disabled={banningId === s.id}
-													className="px-2.5 py-1 bg-red-50 hover:bg-red-600 text-red-600 hover:text-white border border-red-200 hover:border-red-600 rounded-md text-[10px] font-black transition-all cursor-pointer inline-flex items-center gap-1 shadow-xs disabled:opacity-50"
-													title="Khóa gian hàng này"
+													type="button"
+													onClick={() => navigate(`/admin/overview?mode=shop&shopId=${s.id}`)}
+													className="p-1.5 text-slate-400 hover:text-amber-600 hover:bg-amber-50 rounded-md cursor-pointer transition-colors border-none bg-transparent inline-flex items-center justify-center"
+													title="Xem báo cáo phân tích gian hàng này"
 												>
-													{banningId === s.id ? (
-														<Loader2 className="w-3 h-3 animate-spin" />
-													) : (
-														<Ban className="w-3 h-3" />
-													)}
-													Khóa
+													<BarChart3 className="w-4 h-4" />
 												</button>
-											) : (
-												<span className="text-[10px] text-brand-muted font-bold italic">Đã bị khóa</span>
-											)}
+
+												{s.status !== "Banned" ? (
+													<button
+														onClick={() => handleBanShop(s.id, s.name)}
+														disabled={banningId === s.id}
+														className="px-2 py-1 bg-red-50 hover:bg-red-600 text-red-600 hover:text-white border border-red-200 hover:border-red-600 rounded-md text-[10px] font-black transition-all cursor-pointer inline-flex items-center gap-1 shadow-xs disabled:opacity-50"
+														title="Khóa gian hàng này"
+													>
+														{banningId === s.id ? (
+															<Loader2 className="w-3 h-3 animate-spin" />
+														) : (
+															<Ban className="w-3 h-3" />
+														)}
+														Khóa
+													</button>
+												) : (
+													<span className="text-[10px] text-brand-muted font-bold italic">Đã khóa</span>
+												)}
+											</div>
 										</td>
 									</tr>
 								))}

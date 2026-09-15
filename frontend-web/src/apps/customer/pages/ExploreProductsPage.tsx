@@ -160,11 +160,10 @@ export function ExploreProductsPage() {
 				{[1, 2, 3, 4, 5].map((s) => (
 					<Star
 						key={s}
-						className={`w-2.5 h-2.5 ${
-							s <= rounded
+						className={`w-2.5 h-2.5 ${s <= rounded
 								? "fill-amber-400 text-amber-400 stroke-amber-400"
 								: "fill-gray-200 text-gray-200 stroke-gray-200"
-						}`}
+							}`}
 					/>
 				))}
 			</div>
@@ -238,11 +237,10 @@ export function ExploreProductsPage() {
 					type="button"
 					key={btn}
 					onClick={() => handlePageChange(btn)}
-					className={`w-8 h-8 flex items-center justify-center text-xs font-bold rounded-md transition-colors cursor-pointer border ${
-						isActive
+					className={`w-8 h-8 flex items-center justify-center text-xs font-bold rounded-md transition-colors cursor-pointer border ${isActive
 							? "bg-brand-primary border-brand-primary text-brand-dark font-black shadow-xs"
 							: "bg-white border-brand-border/80 text-brand-dark hover:bg-slate-50"
-					}`}
+						}`}
 				>
 					{btn}
 				</button>
@@ -321,11 +319,10 @@ export function ExploreProductsPage() {
 												setSelectedSubCategoryId(isChecked ? null : subCat.id);
 												setPage(1);
 											}}
-											className={`w-full text-left px-3 py-2 rounded-md text-xs font-bold transition-all cursor-pointer border flex items-center justify-between gap-2.5 ${
-												isChecked
+											className={`w-full text-left px-3 py-2 rounded-md text-xs font-bold transition-all cursor-pointer border flex items-center justify-between gap-2.5 ${isChecked
 													? "bg-brand-primary/15 border-brand-primary text-brand-dark shadow-2xs font-extrabold"
 													: "bg-slate-50/70 border-brand-border/40 text-slate-700 hover:bg-slate-100 hover:text-brand-dark"
-											}`}
+												}`}
 										>
 											<span className="truncate">{subCat.name}</span>
 											{isChecked && <span className="w-2 h-2 rounded-full bg-brand-primary-deep shrink-0" />}
@@ -361,11 +358,10 @@ export function ExploreProductsPage() {
 											setMinRating(isChecked ? null : item.val);
 											setPage(1);
 										}}
-										className={`w-full flex items-center justify-between px-3 py-2 rounded-md text-xs font-bold cursor-pointer transition-all border text-left ${
-											isChecked
+										className={`w-full flex items-center justify-between px-3 py-2 rounded-md text-xs font-bold cursor-pointer transition-all border text-left ${isChecked
 												? "bg-brand-primary/15 border-brand-primary text-brand-dark shadow-2xs font-extrabold"
 												: "bg-slate-50/70 border-brand-border/40 text-slate-700 hover:bg-slate-100 hover:text-brand-dark"
-										}`}
+											}`}
 									>
 										<div className="flex items-center gap-2">
 											{item.val ? (
@@ -374,11 +370,10 @@ export function ExploreProductsPage() {
 														{[1, 2, 3, 4, 5].map((s) => (
 															<Star
 																key={s}
-																className={`w-3 h-3 ${
-																	s <= Math.round(item.val!)
+																className={`w-3 h-3 ${s <= Math.round(item.val!)
 																		? "fill-amber-400 text-amber-400 stroke-amber-400"
 																		: "fill-gray-200 text-gray-200 stroke-gray-200"
-																}`}
+																	}`}
 															/>
 														))}
 													</div>
@@ -484,7 +479,6 @@ export function ExploreProductsPage() {
 														p.thumbnailUrl ||
 														"https://images.unsplash.com/photo-1523275335684-37898b6baf30?auto=format&fit=crop&w=400&q=80"
 													}
-													alt={p.name}
 													className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
 												/>
 											</div>

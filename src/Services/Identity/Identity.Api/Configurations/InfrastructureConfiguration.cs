@@ -2,6 +2,7 @@ using Ecommerce.Services.Identity.Api.Config;
 using Ecommerce.Services.Identity.Api.Models.Entities;
 using Ecommerce.Services.Identity.Api.Persistances;
 using Ecommerce.Services.Identity.Api.Services;
+using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 
@@ -32,9 +33,16 @@ public static class InfrastructureConfiguration
             .AddEntityFrameworkStores<AppDbContext>() // Lưu dữ liệu vào PostgreSQL
             .AddDefaultTokenProviders();
         
+        // Cấu hình Data Protection cố định để refresh token không bị hỏng khi restart
+        var dataProtectionPath = Path.Combine(AppContext.BaseDirectory, "dataprotection-keys");
+        services.AddDataProtection()
+            .SetApplicationName("EcommerceMicroservices")
+            .PersistKeysToFileSystem(new DirectoryInfo(dataProtectionPath));
+
         // ══════════════════════════════════════════════════
         // Nó lo toàn bộ: cấp token, verify token, refresh token, revoke token...
         // ══════════════════════════════════════════════════
+        var tempKeyPath = Path.Combine(AppContext.BaseDirectory, "tempkey.jwk");
         services.AddIdentityServer(options =>
             {
                 options.Events.RaiseErrorEvents = true;
@@ -50,7 +58,7 @@ public static class InfrastructureConfiguration
                     connectionString,
                     dbOptions => dbOptions.MigrationsAssembly(typeof(Program).Assembly.GetName().Name));
             })
-            .AddDeveloperSigningCredential() // Tự sinh cặp khóa RSA (chỉ dùng trong môi trường dev)
+            .AddDeveloperSigningCredential(persistKey: true, filename: tempKeyPath) // Khóa RSA ổn định ở BaseDirectory
             .AddProfileService<ProfileService>()
             .AddResourceOwnerValidator<CustomResourceOwnerPasswordValidator>();
         
@@ -63,5 +71,7 @@ public static class InfrastructureConfiguration
         
         services.AddHttpContextAccessor();
         services.AddHttpClient();
+        
+        
     }
 }

@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, useSearchParams } from "react-router-dom";
 import {
 	RefreshCw,
 	Check,
@@ -9,6 +9,7 @@ import {
 	Loader2,
 	ChevronLeft,
 	ChevronRight,
+	User,
 } from "lucide-react";
 import { toast } from "react-toastify";
 import { useSellerStore, useSellerProfileQuery } from "@/domains/seller";
@@ -19,8 +20,17 @@ import { getOrderStatusBadge } from "../VoucherHelpers";
 import { useConfirmSubOrderMutation, usePackageReadySubOrderMutation, useRejectSubOrderMutation, useShopSubOrdersQuery } from "../../hooks/useOrders";
 import { Pagination } from "@/shared/components/Pagination";
 
-export function OrdersView() {
+interface OrdersViewProps {
+	customerId?: number;
+	onBack?: () => void;
+}
+
+export function OrdersView({ customerId: propCustomerId, onBack }: OrdersViewProps = {}) {
 	const { shopId } = useParams<{ shopId?: string }>();
+	const [searchParams, setSearchParams] = useSearchParams();
+	const urlCustomerId = searchParams.get("customerId") ? Number(searchParams.get("customerId")) : undefined;
+	const activeCustomerId = propCustomerId ?? urlCustomerId;
+
 	const { activeShop } = useSellerStore();
 	const { data: profile } = useSellerProfileQuery();
 
@@ -46,6 +56,7 @@ export function OrdersView() {
 		currentPage,
 		PAGE_SIZE,
 		statusFilter === "All" ? undefined : statusFilter,
+		activeCustomerId,
 	);
 
 	const confirmSubOrderMutation = useConfirmSubOrderMutation();
@@ -148,6 +159,7 @@ export function OrdersView() {
 	// Client-side search query match within the returned backend page
 	const backendItems = subOrdersPaged?.items || [];
 	const filteredOrders = backendItems.filter((order: any) => {
+		if (activeCustomerId && order.customerId !== activeCustomerId) return false;
 		if (!searchQuery.trim()) return true;
 		return (
 			String(order.id).toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -185,7 +197,7 @@ export function OrdersView() {
 			<div className="flex justify-between items-center pb-3 border-b border-brand-border">
 				<div>
 					<h2 className="text-sm font-bold text-brand-dark">
-						Quản lý Đơn hàng ({resolvedShop?.name})
+						Quản lý Đơn hàng
 					</h2>
 					<p className="text-[11px] text-brand-muted">
 						Xem, xác nhận và chuẩn bị hàng cho các đơn hàng nhận
@@ -198,7 +210,7 @@ export function OrdersView() {
 							refetch();
 						}}
 						disabled={isFetching}
-						className="h-8 px-3 border border-brand-border hover:bg-brand-light-soft text-brand-dark text-xs font-semibold rounded flex items-center gap-1.5 cursor-pointer disabled:opacity-60"
+						className="h-8 px-3 border border-brand-border hover:bg-brand-light-soft text-brand-dark text-xs font-semibold rounded-md flex items-center gap-1.5 cursor-pointer disabled:opacity-60"
 					>
 						<RefreshCw
 							className={`w-3.5 h-3.5 ${isFetching ? "animate-spin" : ""}`}
@@ -208,14 +220,54 @@ export function OrdersView() {
 				</div>
 			</div>
 
-			{/* Bộ lọc đơn giản */}
-			<div className="flex flex-wrap gap-2.5 p-3.5 bg-brand-light-soft border border-brand-border rounded-xl">
+			{/* Banner hiển thị khi đang lọc theo khách hàng */}
+			{activeCustomerId && (
+				<div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 p-3 bg-blue-50 border border-blue-200 rounded-md text-xs animate-in fade-in">
+					<div className="flex items-center gap-2 text-blue-900 font-medium">
+						<User className="w-4 h-4 text-blue-600 shrink-0" />
+						<span>
+							Đang lọc các đơn hàng của khách hàng: <strong className="font-mono font-bold text-blue-950">#{activeCustomerId}</strong>
+						</span>
+					</div>
+					<div className="flex items-center gap-2 shrink-0">
+						{onBack && (
+							<button
+								type="button"
+								onClick={onBack}
+								className="px-2.5 py-1.5 bg-white border border-blue-200 hover:bg-blue-100 text-blue-700 rounded-md text-xs font-bold flex items-center gap-1 cursor-pointer transition-colors shadow-2xs"
+							>
+								<ChevronLeft className="w-3.5 h-3.5" />
+								<span>Quay lại người theo dõi</span>
+							</button>
+						)}
+						<button
+							type="button"
+							onClick={() => {
+								if (propCustomerId && onBack) {
+									onBack();
+								} else {
+									const newParams = new URLSearchParams(searchParams);
+									newParams.delete("customerId");
+									setSearchParams(newParams);
+								}
+							}}
+							className="px-2.5 py-1.5 bg-white border border-slate-200 hover:bg-slate-100 text-slate-600 rounded-md text-xs font-bold flex items-center gap-1 cursor-pointer shadow-2xs"
+						>
+							<X className="w-3.5 h-3.5" />
+							<span>Xóa lọc</span>
+						</button>
+					</div>
+				</div>
+			)}
+
+			{/* Bộ lọc đơn giản (rounded-md) */}
+			<div className="flex flex-wrap gap-2.5 p-3.5 bg-brand-light-soft border border-brand-border rounded-md">
 				<input
 					type="text"
 					placeholder="Tìm nhanh trên trang này theo Mã đơn hàng..."
 					value={searchQuery}
 					onChange={(e) => setSearchQuery(e.target.value)}
-					className="h-8 px-3 bg-white border border-brand-border rounded text-xs focus:outline-none focus:border-brand-primary min-w-60"
+					className="h-8 px-3 bg-white border border-brand-border rounded-md text-xs focus:outline-none focus:border-brand-primary min-w-60"
 				/>
 				<select
 					value={statusFilter}
@@ -223,7 +275,7 @@ export function OrdersView() {
 						setStatusFilter(e.target.value);
 						setCurrentPage(1); // Reset page on filter change
 					}}
-					className="h-8 px-3 bg-white border border-brand-border rounded text-xs focus:outline-none focus:border-brand-primary cursor-pointer"
+					className="h-8 px-3 bg-white border border-brand-border rounded-md text-xs focus:outline-none focus:border-brand-primary cursor-pointer"
 				>
 					<option value="All">Mọi trạng thái</option>
 					<option value="AwaitingPayment">Chờ thanh toán</option>
@@ -239,11 +291,11 @@ export function OrdersView() {
 				</select>
 			</div>
 
-			{/* Bảng đơn hàng */}
-			<div className="border border-brand-border rounded-xl overflow-hidden bg-white shadow-sm">
+			{/* Bảng đơn hàng (rounded-md và header chuẩn giống ProductTable) */}
+			<div className="border border-brand-border rounded-md overflow-hidden bg-white shadow-xs">
 				<table className="w-full text-xs text-left">
-					<thead className="bg-brand-light-soft border-b border-brand-border text-brand-dark font-bold">
-						<tr>
+					<thead>
+						<tr className="border-b border-brand-border bg-brand-light-soft/50 text-brand-muted font-bold text-xs">
 							<th className="p-3">Mã Đơn hàng</th>
 							<th className="p-3">Ngày đặt</th>
 							<th className="p-3">Khách hàng</th>
@@ -324,18 +376,6 @@ export function OrdersView() {
 													{order.status ===
 														"Processing" && (
 															<>
-																<button
-																	onClick={() =>
-																		handleOpenPackaging(
-																			order,
-																		)
-																	}
-																	className="p-1 text-brand-primary hover:bg-brand-light-soft border border-brand-primary/40 rounded cursor-pointer transition-all inline-flex items-center gap-1 text-[10px] font-bold"
-																	title="Chuẩn bị hàng"
-																>
-																	<Package className="w-3.5 h-3.5" />
-																	Chuẩn bị hàng
-																</button>
 																<button
 																	onClick={() =>
 																		setCancelingOrderId(

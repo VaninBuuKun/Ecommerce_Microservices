@@ -21,10 +21,12 @@ import {
 	Plus,
 	Menu,
 	X,
+	MessageSquare,
 } from "lucide-react";
 import { useSellerStore, useSellerProfileQuery } from "@/domains/seller";
 import { ChatBubbleButton } from "@/shared/components";
 import { useNotifications } from "@/domains/notification";
+import { CommentOutlined, WechatFilled } from "@ant-design/icons";
 
 
 export default function SellerLayout() {
@@ -55,8 +57,8 @@ export default function SellerLayout() {
 
 	const currentDashboardSuffix = location.pathname.includes("/dashboard")
 		? location.pathname.slice(
-				location.pathname.indexOf("/dashboard") + "/dashboard".length,
-			)
+			location.pathname.indexOf("/dashboard") + "/dashboard".length,
+		)
 		: "";
 	const resolvedShop =
 		shops.find((shop: any) => Number(shop.id) === Number(shopId)) ?? activeShop ?? null;
@@ -155,9 +157,7 @@ export default function SellerLayout() {
 			{ label: "Người bán", path: sellerBasePath },
 		];
 
-		if (paths.includes("dashboard")) {
-			items.push({ label: "Tổng quan" });
-		} else if (paths.includes("products")) {
+		if (paths.includes("products")) {
 			if (paths.includes("edit")) {
 				items.push({
 					label: "Sản phẩm",
@@ -173,8 +173,22 @@ export default function SellerLayout() {
 			}
 		} else if (paths.includes("orders")) {
 			items.push({ label: "Quản lý đơn hàng" });
+		} else if (paths.includes("chat")) {
+			items.push({ label: "Trò chuyện với khách" });
+		} else if (paths.includes("reviews")) {
+			items.push({ label: "Đánh giá sản phẩm" });
+		} else if (paths.includes("followers")) {
+			items.push({ label: "Người theo dõi" });
+		} else if (paths.includes("revenue") || paths.includes("balance")) {
+			items.push({ label: "Báo cáo doanh thu" });
+		} else if (paths.includes("coupons")) {
+			items.push({ label: "Mã giảm giá" });
+		} else if (paths.includes("refunds")) {
+			items.push({ label: "Yêu cầu hoàn tiền" });
+		} else if (paths.includes("settings")) {
+			items.push({ label: "Cài đặt Shop" });
 		} else {
-			items.push({ label: "Tổng quan" });
+			items.push({ label: "Doanh thu" });
 		}
 
 		return items;
@@ -357,7 +371,7 @@ export default function SellerLayout() {
 			<div className="flex-1 flex overflow-hidden relative">
 				{/* MOBILE DRAWER BACKDROP */}
 				{!isEditProductPage && isMobileMenuOpen && (
-					<div 
+					<div
 						className="fixed inset-0 bg-brand-dark/40 backdrop-blur-xs z-40 lg:hidden"
 						onClick={() => setIsMobileMenuOpen(false)}
 					/>
@@ -365,9 +379,8 @@ export default function SellerLayout() {
 
 				{/* SIDEBAR NGƯỜI BÁN */}
 				{!isEditProductPage && (
-					<aside className={`fixed lg:static top-14 bottom-0 left-0 z-40 w-64 bg-white border-r border-brand-border flex flex-col shrink-0 overflow-y-auto p-4 select-none transition-transform duration-200 ease-in-out ${
-						isMobileMenuOpen ? "translate-x-0 shadow-2xl" : "-translate-x-full lg:translate-x-0"
-					}`}>
+					<aside className={`fixed lg:static top-14 bottom-0 left-0 z-40 w-64 bg-white border-r border-brand-border flex flex-col shrink-0 overflow-y-auto p-4 select-none transition-transform duration-200 ease-in-out ${isMobileMenuOpen ? "translate-x-0 shadow-2xl" : "-translate-x-full lg:translate-x-0"
+						}`}>
 						<nav className="space-y-1.5">
 							{/* Quản lý sản phẩm */}
 							<div>
@@ -445,6 +458,20 @@ export default function SellerLayout() {
 								)}
 							</div>
 
+							{/* Trò chuyện với khách */}
+							<div>
+								<Link
+									to="/chat?seller=true"
+									className={`w-full flex items-center gap-2.5 px-3 py-1.5 rounded text-xs font-bold transition-colors cursor-pointer ${location.pathname === "/chat"
+										? "bg-brand-primary/10 text-brand-primary-deep"
+										: "text-brand-dark hover:bg-brand-light-soft"
+										}`}
+								>
+									<CommentOutlined style={{ fontSize: '14px' }} className="text-brand-muted" />
+									<span>Trò chuyện với khách</span>
+								</Link>
+							</div>
+
 							{/* Khuyến mãi */}
 							<div>
 								<button
@@ -471,14 +498,14 @@ export default function SellerLayout() {
 										>
 											Mã giảm giá
 										</Link>
-										<Link
+										{/* <Link
 											to="/seller/dashboard/flashsale"
 											className={getSubLinkClass(
 												"/seller/dashboard/flashsale",
 											)}
 										>
 											Flash Sale
-										</Link>
+										</Link> */}
 									</div>
 								)}
 							</div>
@@ -509,14 +536,14 @@ export default function SellerLayout() {
 										>
 											Đánh giá sản phẩm
 										</Link>
-										<Link
+										{/* <Link
 											to="/seller/dashboard/qa"
 											className={getSubLinkClass(
 												"/seller/dashboard/qa",
 											)}
 										>
 											Hỏi đáp sản phẩm
-										</Link>
+										</Link> */}
 										<Link
 											to="/seller/dashboard/followers"
 											className={getSubLinkClass(
@@ -531,7 +558,7 @@ export default function SellerLayout() {
 
 							{/* Ví Người Bán */}
 							<div>
-								<button
+								{/* <button
 									onClick={() => toggleExpand("wallet")}
 									className="w-full flex items-center justify-between px-3 py-1.5 rounded text-xs font-bold text-brand-dark hover:bg-brand-light-soft cursor-pointer"
 								>
@@ -544,8 +571,8 @@ export default function SellerLayout() {
 									) : (
 										<ChevronRight className="w-3.5 h-3.5 text-brand-muted" />
 									)}
-								</button>
-								{expandedMenus.wallet && (
+								</button> */}
+								{/* {expandedMenus.wallet && (
 									<div className="pl-3 mt-1 space-y-0.5 border-l border-brand-border ml-4">
 										<Link
 											to="/seller/dashboard/balance"
@@ -572,7 +599,7 @@ export default function SellerLayout() {
 											Yêu cầu rút tiền
 										</Link>
 									</div>
-								)}
+								)} */}
 							</div>
 
 							{/* Báo cáo */}
@@ -601,7 +628,7 @@ export default function SellerLayout() {
 										>
 											Doanh thu
 										</Link>
-										<Link
+										{/* <Link
 											to="/seller/dashboard/top-products"
 											className={getSubLinkClass(
 												"/seller/dashboard/top-products",
@@ -624,7 +651,7 @@ export default function SellerLayout() {
 											)}
 										>
 											Thống kê khách hàng
-										</Link>
+										</Link> */}
 									</div>
 								)}
 							</div>

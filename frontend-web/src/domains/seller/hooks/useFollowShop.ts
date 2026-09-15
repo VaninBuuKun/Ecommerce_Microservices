@@ -24,6 +24,8 @@ export function useFollowShop(shopId?: number) {
 		onSuccess: (data, targetShopId) => {
 			queryClient.invalidateQueries({ queryKey: FOLLOWED_SHOPS_QUERY_KEY });
 			queryClient.invalidateQueries({ queryKey: ["followStatus", targetShopId] });
+			queryClient.invalidateQueries({ queryKey: ["publicShop", targetShopId] });
+			queryClient.invalidateQueries({ queryKey: ["shopFollowers", targetShopId] });
 			if (data.isFollowing) {
 				toast.success("Đã theo dõi cửa hàng thành công ✨");
 			} else {

@@ -16,6 +16,7 @@ public class CustomerOrderResponse
     public DateTimeOffset OrderDate { get; set; }
     public long ShopId { get; set; }
     public string ShopName { get; set; } = string.Empty;
+    public string? ShopLogoUrl { get; set; }
     public DateTimeOffset? LastModifiedDate { get; set; }
     
     public long PaymentMethodId { get; set; }

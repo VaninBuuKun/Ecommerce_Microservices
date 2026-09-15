@@ -1,12 +1,6 @@
 import axios from "axios";
 import { useAuthStore } from "@/domains/auth/stores/useAuthStore";
-import { authService } from "@/domains/auth/api/authApi";
-
-const API_BASE_URL = import.meta.env.VITE_API_URL
-  ? import.meta.env.VITE_API_URL
-  : import.meta.env.PROD
-    ? "/api"
-    : "http://localhost:5111/api";
+import { API_BASE_URL, refreshAccessToken } from "./tokenRefresh";
 
 export const api = axios.create({
   baseURL: API_BASE_URL,
@@ -17,13 +11,15 @@ export const api = axios.create({
   },
 });
 
-let refreshPromise: Promise<string | null> | null = null;
-
 api.interceptors.request.use(
   (config) => {
     const accessToken = useAuthStore.getState().accessToken;
     if (accessToken) {
-      config.headers.Authorization = `Bearer ${accessToken}`;
+      if (config.headers?.set) {
+        config.headers.set("Authorization", `Bearer ${accessToken}`);
+      } else if (config.headers) {
+        config.headers["Authorization"] = `Bearer ${accessToken}`;
+      }
     }
     return config;
   },
@@ -35,36 +31,33 @@ api.interceptors.response.use(
   async (error) => {
     const originalRequest = error.config;
 
+    // Khi nhận lỗi 401 Unauthorized từ server (token hết hạn):
+    // Tạm giữ request này lại, thử gọi refresh token để lấy accessToken mới rồi retry
     if (
       error.response?.status === 401 &&
+      originalRequest &&
       !originalRequest._retry &&
       !originalRequest.url?.includes("/app-auth/refresh") &&
       !originalRequest.url?.includes("/app-auth/login")
     ) {
       originalRequest._retry = true;
 
-      // Nếu đã có 1 request refresh đang chạy -> Dùng chung Promise để tránh nã song song nhiều request 500
-      if (!refreshPromise) {
-        refreshPromise = authService
-          .refresh()
-          .catch(() => {
-            useAuthStore.getState().clearState();
-            return null;
-          })
-          .finally(() => {
-            refreshPromise = null;
-          });
-      }
+      const newAccessToken = await refreshAccessToken();
 
-      const newAccessToken = await refreshPromise;
-
+      // Nếu refresh token thất bại (cookie 7 ngày đã hết hạn hoặc server từ chối)
+      // refreshAccessToken() đã tự gọi clearState() để đăng xuất an toàn
       if (!newAccessToken) {
-        useAuthStore.getState().clearState();
         return Promise.reject(error);
       }
 
-      useAuthStore.getState().setAccessToken(newAccessToken);
-      originalRequest.headers.Authorization = `Bearer ${newAccessToken}`;
+      // Gán accessToken mới vào request bị lỗi lúc nãy và gửi lại, ví dụ query products của shop nếu mất token, thì nó xin token, xin được, gửi lại rq nx vs token đó.
+      if (originalRequest.headers?.set) {
+        originalRequest.headers.set("Authorization", `Bearer ${newAccessToken}`);
+      } else if (originalRequest.headers) {
+        originalRequest.headers["Authorization"] = `Bearer ${newAccessToken}`;
+      }
+      api.defaults.headers.common["Authorization"] = `Bearer ${newAccessToken}`;
+
       return api(originalRequest);
     }
 

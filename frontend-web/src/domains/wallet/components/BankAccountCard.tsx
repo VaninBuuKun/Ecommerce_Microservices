@@ -9,7 +9,7 @@ interface BankAccountCardProps {
 
 export function BankAccountCard({ banksLoading, defaultAccount, extraAccountsCount, onManageBankClick }: BankAccountCardProps) {
 	return (
-		<div className="border border-brand-border rounded-2xl p-5 bg-white shadow-sm flex flex-col justify-between min-h-40">
+		<div className="border border-brand-border rounded-md p-5 bg-white shadow-sm flex flex-col justify-between min-h-40">
 			<div className="space-y-3">
 				<div className="flex justify-between items-center">
 					<h4 className="text-xs font-black text-brand-dark uppercase tracking-wider">Tài khoản mặc định</h4>
@@ -37,9 +37,21 @@ export function BankAccountCard({ banksLoading, defaultAccount, extraAccountsCou
 					</div>
 				) : defaultAccount ? (
 					<div className="space-y-2 text-xs">
-						<div className="flex justify-between py-1.5 border-b border-slate-100">
+						<div className="flex justify-between items-center py-1.5 border-b border-slate-100">
 							<span className="text-brand-muted font-bold">Ngân hàng</span>
-							<span className="font-black text-brand-dark uppercase">{defaultAccount.bankName}</span>
+							<div className="flex items-center gap-1.5">
+								{defaultAccount.iconUrl && (
+									<img
+										src={defaultAccount.iconUrl}
+										alt={defaultAccount.bankName}
+										className="w-9 h-9 object-contain rounded border border-brand-border bg-slate-50 p-0.5 shrink-0"
+										onError={(e) => {
+											(e.target as HTMLElement).style.display = 'none';
+										}}
+									/>
+								)}
+								<span className="font-black text-brand-dark uppercase">{defaultAccount.bankName}</span>
+							</div>
 						</div>
 						<div className="flex justify-between py-1.5 border-b border-slate-100">
 							<span className="text-brand-muted font-bold">Số tài khoản</span>
@@ -53,10 +65,6 @@ export function BankAccountCard({ banksLoading, defaultAccount, extraAccountsCou
 				) : (
 					<p className="text-xs text-brand-muted py-3">Chưa có tài khoản ngân hàng liên kết mặc định.</p>
 				)}
-			</div>
-
-			<div className="text-[10px] text-brand-muted font-bold pt-2 border-t border-slate-100">
-				Nhấn vào xem thêm để quản lý hoặc liên kết nhiều tài khoản ngân hàng khác.
 			</div>
 		</div>
 	);

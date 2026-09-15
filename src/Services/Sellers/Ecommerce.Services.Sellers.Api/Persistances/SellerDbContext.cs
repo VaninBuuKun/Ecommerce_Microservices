@@ -20,6 +20,10 @@ public class SellerDbContext(DbContextOptions<SellerDbContext> options, IInMemor
         {
             entity.HasKey(f => f.Id);
             entity.HasIndex(f => new { f.CustomerId, f.ShopId }).IsUnique();
+            entity.HasOne(f => f.Shop)
+                .WithMany(s => s.Followers)
+                .HasForeignKey(f => f.ShopId)
+                .OnDelete(DeleteBehavior.Cascade);
         });
 
 
@@ -49,14 +53,11 @@ public class SellerDbContext(DbContextOptions<SellerDbContext> options, IInMemor
             {
                 address.Property(a => a.RecipientName).HasColumnName("PickUp_RecipientName").HasMaxLength(100).IsRequired();
                 address.Property(a => a.Phone).HasColumnName("PickUp_Phone").HasMaxLength(20).IsRequired();
-                address.Property(a => a.Province).HasColumnName("PickUp_Province").HasMaxLength(100).IsRequired();
-                address.Property(a => a.District).HasColumnName("PickUp_District").HasMaxLength(100).IsRequired();
-                address.Property(a => a.Ward).HasColumnName("PickUp_Ward").HasMaxLength(100).IsRequired();
                 address.Property(a => a.AddressLine).HasColumnName("PickUp_AddressLine").HasMaxLength(255).IsRequired();
                 
                 address.Property(a => a.ProvinceId).HasColumnName("PickUp_ProvinceId").IsRequired();
                 address.Property(a => a.DistrictId).HasColumnName("PickUp_DistrictId").IsRequired();
-                address.Property(a => a.WardId).HasColumnName("PickUp_WardId").HasMaxLength(20).IsRequired();
+                address.Property(a => a.WardId).HasColumnName("PickUp_WardId").IsRequired();
             });
         });
     }

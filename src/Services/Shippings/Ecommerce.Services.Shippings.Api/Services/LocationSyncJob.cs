@@ -1,18 +1,8 @@
-using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Net.Http;
-using System.Net.Http.Json;
 using System.Text.Json.Nodes;
-using System.Threading;
-using System.Threading.Tasks;
 using Ecommerce.Services.Shippings.Api.Models.Entities;
 using Ecommerce.Services.Shippings.Api.Persistances;
+using Mapster;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Logging;
 
 namespace Ecommerce.Services.Shippings.Api.Services;
 
@@ -65,6 +55,14 @@ public class LocationSyncJob(
 
     private async Task SeedStandardLocationsFromJsonAsync(ShippingDbContext dbContext)
     {
+        var isExists = await dbContext.Provinces.AnyAsync();
+
+        if (isExists)
+        {
+            logger.LogWarning("LocationSyncJob: Province exists");
+            return;
+        }
+        
         logger.LogInformation("LocationSyncJob: Resetting existing location data in database...");
         
         // Xóa theo thứ tự ngược lại từ Ward -> District -> Province để tránh lỗi khóa ngoại (Foreign Key)

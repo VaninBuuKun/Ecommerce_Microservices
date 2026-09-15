@@ -73,6 +73,7 @@ public class SellerRejectSubOrderCommandHandler(
             await publisher.PublishAsync(new SubOrderRejectedEvent
             {
                 SubOrderId = subOrder.Id,
+                ShopId = subOrder.ShopId,
                 Reason = command.Reason,
                 RefundRequestId = refundRequestId
             }, cancellationToken);

@@ -43,9 +43,34 @@ public class CompleteSubOrderCommandHandler(
             subOrder.UpdateSubOrderStatus(SubOrderStatus.Completed);
             subOrderRepo.Update(subOrder);
 
+            var itemRepo = unitOfWork.Repository<SubOrderItem, long>();
+            var items = await itemRepo.GetAllAsync(i => i.SubOrderId == subOrder.Id, null, cancellationToken);
+
+            await publisher.PublishAsync(new SubOrderCompletedEvent
+            {
+                SubOrderId = subOrder.Id,
+                ShopId = subOrder.ShopId,
+                CustomerId = subOrder.CustomerId,
+                TotalAmount = subOrder.GrandTotal,
+                PlatformDiscount = subOrder.PlatformDiscount,
+                CommissionRate = subOrder.CommissionRate,
+                CommissionFee = subOrder.CommissionFee,
+                NetRevenue = subOrder.NetRevenue,
+                ShippingFee = subOrder.ShippingFee,
+                Items = items.Select(i => new SubOrderCompletedItemContract
+                {
+                    VariantId = i.VariantId,
+                    ProductId = i.ProductId,
+                    Quantity = i.Quantity,
+                    UnitPrice = i.UnitPrice,
+                    ProductName = i.ProductName,
+                    ThumbnailUrl = i.ThumbnailUrl
+                }).ToList()
+            }, cancellationToken);
+
             await unitOfWork.SaveChangesAsync(cancellationToken);
 
-            logger.LogInformation("SubOrder {SubOrderId} marked as Completed by customer", subOrder.Id);
+            logger.LogInformation("SubOrder {SubOrderId} marked as Completed by customer and SubOrderCompletedEvent published", subOrder.Id);
             return Result.Success();
         }
         catch (Exception ex)

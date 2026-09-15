@@ -1,16 +1,15 @@
 import { useQuery } from "@tanstack/react-query";
 import { api } from "@/core";
 import { useAuthStore } from "../stores/useAuthStore";
-import { isAuthenticated } from "@/shared/utils/authHelper";
 
 export function useCurrentUserQuery() {
 	const accessToken = useAuthStore((state) => state.accessToken);
-	const authed = !!accessToken && isAuthenticated(accessToken);
+	const authed = Boolean(accessToken);
 
 	return useQuery({
 		queryKey: ["auth", "currentUser", accessToken],
 		queryFn: async () => {
-			if (!authed) return null;
+			if (!accessToken) return null;
 			const response = await api.get("/users/me");
 			const userData = response.data?.value || response.data;
 			if (userData) {
@@ -28,7 +27,12 @@ export function useCurrentUserQuery() {
 			return userData;
 		},
 		enabled: authed,
-		retry: false,
+		retry: (failureCount, error: any) => {
+			// Không retry nếu lỗi 401 vì Axios interceptor đã xử lý refresh
+			if (error?.response?.status === 401) return false;
+			// Nếu rớt mạng hoặc server đang khởi động lại, retry tối đa 2 lần
+			return failureCount < 2;
+		},
 		staleTime: 1000 * 60 * 5,
 	});
 }

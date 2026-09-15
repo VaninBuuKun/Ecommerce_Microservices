@@ -13,6 +13,7 @@ import {
 	ShieldCheck,
 	Clock,
 	Star,
+	Store,
 } from "lucide-react";
 import {
 	useSubOrderDetailQuery,
@@ -140,12 +141,12 @@ export function CustomerOrderDetailView({
 		setShowPackageModal(true);
 	};
 
-	// 2. CONDITIONAL RENDERING AFTER ALL HOOKS
-	if (isLoading) {
+	// 2. CONDITIONAL RENDERING AFTER ALL HOOKS (Đồng thời await cả chi tiết subOrder và shipment)
+	if (isLoading || isShipmentLoading) {
 		return (
 			<div className="flex flex-col items-center justify-center py-20 text-brand-muted text-xs gap-3">
 				<Loader2 className="w-8 h-8 animate-spin text-brand-primary" />
-				Đang tải thông tin chi tiết đơn hàng...
+				Đang tải thông tin chi tiết đơn hàng và vận chuyển...
 			</div>
 		);
 	}
@@ -456,6 +457,49 @@ export function CustomerOrderDetailView({
 				</div>
 			)}
 
+			{/* Shop Info Banner */}
+			<div className="flex items-center justify-between bg-white border border-brand-border rounded-md px-4 py-3 shadow-xs">
+				<div className="flex items-center gap-3">
+					{detail.shopLogoUrl ? (
+						<img
+							src={detail.shopLogoUrl}
+							alt={detail.shopName || "Shop Logo"}
+							className="w-10 h-10 rounded-full object-cover border border-brand-border shrink-0"
+						/>
+					) : (
+						<div className="w-10 h-10 rounded-full bg-brand-primary/10 border border-brand-primary/20 flex items-center justify-center shrink-0">
+							<Store className="w-5 h-5 text-brand-primary" />
+						</div>
+					)}
+					<div className="space-y-0.5">
+						<h3 className="font-extrabold text-xs text-brand-dark flex items-center gap-2">
+							<span>{detail.shopName || `Shop #${detail.shopId}`}</span>
+							{detail.shopId && (
+								<span className="text-[10px] text-brand-muted font-normal font-mono">#{detail.shopId}</span>
+							)}
+						</h3>
+						<span className="text-[10px] text-brand-muted font-medium">Nhà bán hàng</span>
+					</div>
+				</div>
+
+				{!isSeller && detail.shopId && (
+					<button
+						type="button"
+						onClick={() => {
+							const shopName = detail.shopName || `Shop #${detail.shopId}`;
+							window.dispatchEvent(
+								new CustomEvent("open-shop-chat", {
+									detail: { shopId: detail.shopId, shopName },
+								})
+							);
+						}}
+						className="px-3 py-1.5 bg-white border border-brand-border hover:bg-brand-light-soft text-[11px] font-extrabold text-brand-dark rounded-md transition-all cursor-pointer shadow-xs flex items-center gap-1.5"
+					>
+						Chat với nhà bán
+					</button>
+				)}
+			</div>
+
 			{/* Products Table (With Dimensions Snapshot) */}
 			<div className="border border-brand-border rounded-md overflow-hidden shadow-sm bg-white">
 				<table className="w-full border-collapse text-left">
@@ -478,10 +522,19 @@ export function CustomerOrderDetailView({
 										<div className="flex gap-3">
 											<img
 												src={item.thumbnailUrl || "https://images.unsplash.com/photo-1556821840-3a63f95609a7?auto=format&fit=crop&q=80&w=150"}
-												className="w-16 h-16 object-cover rounded-md border border-brand-border shrink-0"
+												alt={item.productName}
+												className="w-16 h-16 object-cover rounded-md border border-brand-border shrink-0 cursor-pointer hover:opacity-85 transition-opacity"
+												onClick={() => {
+													if (item.productId) navigate(`/products/${item.productId}`);
+												}}
 											/>
 											<div className="space-y-1">
-												<h4 className="font-extrabold text-brand-dark text-xs leading-tight">
+												<h4 
+													className="font-extrabold text-brand-dark text-xs leading-tight cursor-pointer hover:text-brand-primary transition-colors"
+													onClick={() => {
+														if (item.productId) navigate(`/products/${item.productId}`);
+													}}
+												>
 													{item.productName}
 												</h4>
 												<span className="inline-block text-[9px] font-black text-brand-primary-deep bg-brand-primary/10 px-1.5 py-0.5 rounded uppercase">

@@ -1,21 +1,22 @@
 import { useState } from "react";
 import { Link, Outlet, useNavigate, useLocation } from "react-router-dom";
-import { 
-	ShoppingBag, 
-	Package, 
-	ArrowLeftRight, 
-	FolderTree, 
-	Users, 
-	Store, 
-	LogOut, 
-	ShieldAlert, 
-	Ticket, 
-	Wallet, 
-	Image as ImageIcon, 
-	CreditCard, 
+import {
+	ShoppingBag,
+	Package,
+	ArrowLeftRight,
+	FolderTree,
+	Users,
+	Store,
+	LogOut,
+	ShieldAlert,
+	Ticket,
+	Wallet,
+	Image as ImageIcon,
+	CreditCard,
 	Truck,
 	Menu,
-	X
+	X,
+	LayoutDashboard,
 } from "lucide-react";
 import { useAuthStore, authApi } from "@/domains/auth";
 
@@ -38,6 +39,7 @@ export default function AdminLayout() {
 	};
 
 	const navItems = [
+		{ to: "/admin/overview", label: "Tổng quan & Thống kê", icon: LayoutDashboard },
 		{ to: "/admin/products", label: "Quản lý sản phẩm", icon: ShoppingBag },
 		{ to: "/admin/banners", label: "Quản lý Banner", icon: ImageIcon },
 		{ to: "/admin/orders", label: "Quản lý đơn hàng", icon: Package },
@@ -66,7 +68,7 @@ export default function AdminLayout() {
 						{isMobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
 					</button>
 
-					<Link to="/admin" className="flex items-center gap-2">
+					<Link to="/" className="flex items-center gap-2">
 						<img
 							src="/ecommerce-icon.png"
 							alt="Logo"
@@ -114,16 +116,15 @@ export default function AdminLayout() {
 			<div className="flex-1 flex overflow-hidden relative">
 				{/* MOBILE SIDEBAR DRAWER & BACKDROP */}
 				{isMobileMenuOpen && (
-					<div 
+					<div
 						className="fixed inset-0 bg-brand-dark/40 backdrop-blur-xs z-40 lg:hidden"
 						onClick={() => setIsMobileMenuOpen(false)}
 					/>
 				)}
 
-				<aside 
-					className={`fixed lg:static top-14 bottom-0 left-0 z-40 w-64 bg-white border-r border-brand-border flex flex-col shrink-0 overflow-y-auto p-4 select-none transition-transform duration-200 ease-in-out ${
-						isMobileMenuOpen ? "translate-x-0 shadow-2xl" : "-translate-x-full lg:translate-x-0"
-					}`}
+				<aside
+					className={`fixed lg:static top-14 bottom-0 left-0 z-40 w-64 bg-white border-r border-brand-border flex flex-col shrink-0 overflow-y-auto p-4 select-none transition-transform duration-200 ease-in-out ${isMobileMenuOpen ? "translate-x-0 shadow-2xl" : "-translate-x-full lg:translate-x-0"
+						}`}
 				>
 					<div className="px-3 text-[10px] font-black text-brand-muted uppercase tracking-wider mb-2">
 						Menu hệ thống

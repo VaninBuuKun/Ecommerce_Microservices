@@ -7,6 +7,7 @@ import {
 	useBankAccountsQuery,
 	useAddBankAccountMutation,
 	useUpdateBankAccountMutation,
+	useDeleteBankAccountMutation,
 	useWalletTransactionsQuery,
 	useCreateWithdrawMutation,
 	useMyWithdrawalsQuery,
@@ -27,6 +28,7 @@ export function WalletTab() {
 	const { data: bankAccounts, isLoading: banksLoading } = useBankAccountsQuery();
 	const addBankMutation = useAddBankAccountMutation();
 	const updateBankMutation = useUpdateBankAccountMutation();
+	const deleteBankMutation = useDeleteBankAccountMutation();
 
 	const { data: transactions = [], isLoading: txLoading } = useWalletTransactionsQuery();
 	const { data: myWithdrawals = [], isLoading: withdrawsLoading } = useMyWithdrawalsQuery();
@@ -157,6 +159,22 @@ export function WalletTab() {
 		);
 	};
 
+	const handleDeleteBankAccount = (id: number) => {
+		if (!window.confirm("Bạn có chắc chắn muốn xóa tài khoản ngân hàng này khỏi ví?")) {
+			return;
+		}
+
+		deleteBankMutation.mutate(id, {
+			onSuccess: () => {
+				toast.success("Xóa tài khoản ngân hàng thành công!");
+				if (editingId === id) setEditingId(null);
+			},
+			onError: (err: any) => {
+				toast.error(err?.response?.data || "Xóa tài khoản ngân hàng thất bại.");
+			},
+		});
+	};
+
 	if (walletLoading) {
 		return (
 			<div className="flex flex-col items-center justify-center py-20 text-brand-muted text-xs gap-3 font-sans">
@@ -256,19 +274,19 @@ export function WalletTab() {
 
 			{/* PHẦN THẺ VÍ & NGÂN HÀNG CỐ ĐỊNH Ở ĐẦU */}
 			<div className="grid grid-cols-1 md:grid-cols-2 gap-4 animate-in fade-in duration-200">
-				<WalletBalanceCard 
-					wallet={wallet} 
+				<WalletBalanceCard
+					wallet={wallet}
 					onWithdrawClick={() => {
 						setWithdrawAmount("");
 						setWithdrawError("");
 						setShowWithdrawModal(true);
-					}} 
+					}}
 				/>
-				<BankAccountCard 
-					banksLoading={banksLoading} 
-					defaultAccount={defaultAccount} 
-					extraAccountsCount={extraAccountsCount} 
-					onManageBankClick={() => setShowBankModal(true)} 
+				<BankAccountCard
+					banksLoading={banksLoading}
+					defaultAccount={defaultAccount}
+					extraAccountsCount={extraAccountsCount}
+					onManageBankClick={() => setShowBankModal(true)}
 				/>
 			</div>
 
@@ -276,22 +294,20 @@ export function WalletTab() {
 			<div className="space-y-4 pt-4 border-t border-brand-border">
 				<div className="flex justify-between items-center pb-2">
 					<h3 className="text-xs font-black text-brand-dark uppercase tracking-wide">Lịch sử hoạt động ví</h3>
-					
-					<div className="flex bg-brand-light-soft/50 p-1 rounded-xl border border-brand-border shrink-0 select-none">
+
+					<div className="flex bg-brand-light-soft/50 p-1 rounded-md border border-brand-border shrink-0 select-none">
 						<button
 							onClick={() => { setActiveSubTab("withdrawals"); setWithdrawPage(1); }}
-							className={`px-3.5 py-1 rounded-lg text-[10px] font-black transition-all cursor-pointer border-none flex items-center gap-1 ${
-								activeSubTab === "withdrawals" ? "bg-brand-dark text-white shadow-xs" : "text-brand-muted hover:text-brand-dark"
-							}`}
+							className={`px-3.5 py-1 rounded-md text-[10px] font-black transition-all cursor-pointer border-none flex items-center gap-1 ${activeSubTab === "withdrawals" ? "bg-brand-dark text-white shadow-xs" : "text-brand-muted hover:text-brand-dark"
+								}`}
 						>
 							<Clock className="w-3.5 h-3.5" />
 							Yêu cầu rút tiền
 						</button>
 						<button
 							onClick={() => { setActiveSubTab("transactions"); setTxPage(1); }}
-							className={`px-3.5 py-1 rounded-lg text-[10px] font-black transition-all cursor-pointer border-none flex items-center gap-1 ${
-								activeSubTab === "transactions" ? "bg-brand-dark text-white shadow-xs" : "text-brand-muted hover:text-brand-dark"
-							}`}
+							className={`px-3.5 py-1 rounded-md text-[10px] font-black transition-all cursor-pointer border-none flex items-center gap-1 ${activeSubTab === "transactions" ? "bg-brand-dark text-white shadow-xs" : "text-brand-muted hover:text-brand-dark"
+								}`}
 						>
 							<History className="w-3.5 h-3.5" />
 							Lịch sử giao dịch
@@ -300,7 +316,7 @@ export function WalletTab() {
 				</div>
 
 				{activeSubTab === "withdrawals" ? (
-					<WithdrawRequestsTable 
+					<WithdrawRequestsTable
 						withdrawsLoading={withdrawsLoading}
 						paginatedWithdraws={paginatedWithdraws}
 						totalWithdraws={totalWithdraws}
@@ -310,7 +326,7 @@ export function WalletTab() {
 						getWithdrawStatusBadge={getWithdrawStatusBadge}
 					/>
 				) : (
-					<WalletTransactionsTable 
+					<WalletTransactionsTable
 						txLoading={txLoading}
 						paginatedTx={paginatedTx}
 						totalTx={totalTx}
@@ -323,13 +339,13 @@ export function WalletTab() {
 
 			{/* Modal Quản lý tất cả tài khoản ngân hàng */}
 			{showBankModal && (
-				<BankAccountManagerModal 
+				<BankAccountManagerModal
 					bankAccounts={bankAccounts || []}
 					showAddForm={showAddForm}
 					setShowAddForm={setShowAddForm}
 					editingId={editingId}
 					onClose={() => { setShowBankModal(false); setShowAddForm(false); cancelEditing(); }}
-					
+
 					newBankName={newBankName}
 					setNewBankName={setNewBankName}
 					newBankAccountNumber={newBankAccountNumber}
@@ -351,6 +367,8 @@ export function WalletTab() {
 					setEditIsDefault={setEditIsDefault}
 					onUpdateSubmit={handleUpdateBankAccount}
 					updatePending={updateBankMutation.isPending}
+					onDeleteSubmit={handleDeleteBankAccount}
+					deletePending={deleteBankMutation.isPending}
 					startEditing={startEditing}
 					cancelEditing={cancelEditing}
 				/>
@@ -358,7 +376,7 @@ export function WalletTab() {
 
 			{/* Modal Rút tiền */}
 			{showWithdrawModal && (
-				<WithdrawRequestModal 
+				<WithdrawRequestModal
 					onClose={() => setShowWithdrawModal(false)}
 					defaultAccount={defaultAccount}
 					onSubmit={handleWithdrawSubmit}

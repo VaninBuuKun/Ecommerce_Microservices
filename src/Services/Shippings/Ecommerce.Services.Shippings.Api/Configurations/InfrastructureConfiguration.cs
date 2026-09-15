@@ -2,6 +2,7 @@ using System.Reflection;
 using BuildingBlocks.Caching;
 using BuildingBlocks.Messaging;
 using Ecommerce.Services.Shippings.Api.Persistances;
+using Ecommerce.Services.Shippings.Api.Services;
 using MassTransit;
 using Microsoft.EntityFrameworkCore;
 
@@ -36,5 +37,7 @@ public static class InfrastructureConfiguration
         
         services.AddHttpContextAccessor();
         services.AddHttpClient();
+
+        // services.AddHostedService<LocationSyncJob>();
     }
 }

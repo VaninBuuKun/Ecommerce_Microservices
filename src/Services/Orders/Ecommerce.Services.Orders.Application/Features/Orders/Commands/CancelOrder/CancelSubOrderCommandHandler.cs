@@ -77,6 +77,7 @@ public class CancelSubOrderCommandHandler(
             await publisher.PublishAsync(new SubOrderRejectedEvent
             {
                 SubOrderId = subOrder.Id,
+                ShopId = subOrder.ShopId,
                 Reason = $"Hủy bởi khách hàng: {command.Reason}",
                 RefundRequestId = refundRequestId
             }, cancellationToken);

@@ -64,6 +64,10 @@ public class AutoCompleteOrdersBackgroundService(
 
         logger.LogInformation("Found {Count} sub-orders that have been delivered for more than 7 days. Completing them now...", ordersToComplete.Count);
 
+        var itemRepo = unitOfWork.Repository<SubOrderItem, long>();
+        var subOrderIds = ordersToComplete.Select(o => o.Id).ToList();
+        var allItems = await itemRepo.GetAllAsync(i => subOrderIds.Contains(i.SubOrderId), null, stoppingToken);
+
         foreach (var subOrder in ordersToComplete)
         {
             try
@@ -73,13 +77,29 @@ public class AutoCompleteOrdersBackgroundService(
                 subOrder.UpdateSubOrderStatus(SubOrderStatus.Completed);
                 subOrderRepo.Update(subOrder);
 
+                var orderItems = allItems.Where(i => i.SubOrderId == subOrder.Id).Select(i => new SubOrderCompletedItemContract
+                {
+                    VariantId = i.VariantId,
+                    ProductId = i.ProductId,
+                    Quantity = i.Quantity,
+                    UnitPrice = i.UnitPrice,
+                    ProductName = i.ProductName,
+                    ThumbnailUrl = i.ThumbnailUrl
+                }).ToList();
+
                 // Publish event để cộng doanh thu cho Seller ở Payment Service
                 await publisher.PublishAsync(new SubOrderCompletedEvent
                 {
                     SubOrderId = subOrder.Id,
                     ShopId = subOrder.ShopId,
+                    CustomerId = subOrder.CustomerId,
                     TotalAmount = subOrder.GrandTotal,
-                    PlatformDiscount = subOrder.PlatformDiscount  // Sàn tự bỏ ra, không ảnh hưởng seller
+                    PlatformDiscount = subOrder.PlatformDiscount,
+                    CommissionRate = subOrder.CommissionRate,
+                    CommissionFee = subOrder.CommissionFee,
+                    NetRevenue = subOrder.NetRevenue,
+                    ShippingFee = subOrder.ShippingFee,
+                    Items = orderItems
                 }, stoppingToken);
             }
             catch (Exception ex)

@@ -12,6 +12,8 @@ public class SubOrderSagaState : SagaStateMachineInstance
     public long ShopId { get; set; }
     public long CustomerId { get; set; }
     public decimal TotalAmount { get; set; }
+    public decimal CommissionRate { get; set; }
+    public long CommissionFee { get; set; }
     public DateTime CreatedDate { get; set; }
 
     public bool IsOnlinePayment { get; set; } // false nếu cod

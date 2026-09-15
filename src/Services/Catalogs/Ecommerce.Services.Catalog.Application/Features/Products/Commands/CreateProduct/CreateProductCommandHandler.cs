@@ -4,6 +4,8 @@ using BuildingBlocks.Shared.Commons;
 using BuildingBlocks.Shared.Enums;
 using BuildingBlocks.Shared.InfrastructureInterfaces.IdGenerator;
 using BuildingBlocks.Shared.InfrastructureInterfaces.Persistence.EFCore;
+using BuildingBlocks.Shared.Events;
+using BuildingBlocks.Shared.InfrastructureInterfaces.Messaging;
 using Ecommerce.Services.Catalog.Application.Commons.Dtos.Products;
 using Ecommerce.Services.Catalog.Application.Commons.Interfaces;
 using Ecommerce.Services.Catalog.Domain.Products;
@@ -17,6 +19,7 @@ public class CreateProductCommandHandler(
     ICurrentUserService currentUserService,
     ISellerService sellerService,
     ISnowflakeIdGenerator snowflakeIdGenerator,
+    IEventPublisher eventPublisher,
     ILogger<CreateProductCommandHandler> logger, 
     IMapper mapper)
     : CommandHandler<CreateProductCommand, ProductResponse>
@@ -57,6 +60,30 @@ public class CreateProductCommandHandler(
 
             _productRepository.Add(product);
             await unitOfWork.SaveChangesAsync(cancellationToken);
+
+            try
+            {
+                await eventPublisher.PublishAsync(new ProductCreatedEvent
+                {
+                    ProductId = product.Id,
+                    ShopId = product.ShopId,
+                    Name = product.Name,
+                    Description = product.Description,
+                    CategoryId = product.CategoryId,
+                    Price = product.Price,
+                    DiscountPrice = product.DiscountPrice,
+                    ThumbnailUrl = product.ThumbnailUrl,
+                    AttributesJson = product.AttributesJson,
+                    Sold = product.Sold,
+                    AverageRating = product.AverageRating,
+                    IsActive = product.Status == ProductStatus.Active,
+                    CreatedAt = DateTime.UtcNow
+                }, cancellationToken);
+            }
+            catch (Exception pubEx)
+            {
+                logger.LogError(pubEx, "Failed to publish ProductCreatedEvent for product {ProductId}", product.Id);
+            }
 
             var response = mapper.Map<ProductResponse>(product);
             return Result<ProductResponse>.Success(response);

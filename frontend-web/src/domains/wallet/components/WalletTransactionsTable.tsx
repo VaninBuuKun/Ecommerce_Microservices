@@ -19,7 +19,7 @@ export function WalletTransactionsTable({
 }: WalletTransactionsTableProps) {
 	return (
 		<div className="space-y-3 animate-in fade-in duration-200">
-			<div className="border border-brand-border rounded-2xl bg-white overflow-hidden shadow-sm">
+			<div className="border border-brand-border rounded-md bg-white overflow-hidden shadow-sm">
 				{txLoading ? (
 					<div className="flex justify-center items-center py-10 text-xs text-brand-muted gap-2">
 						<Loader2 className="w-4 h-4 animate-spin text-brand-primary" />
@@ -34,8 +34,8 @@ export function WalletTransactionsTable({
 						<thead>
 							<tr className="bg-brand-light-soft/50 border-b border-brand-border text-[10px] font-extrabold text-brand-muted uppercase tracking-wider">
 								<th className="p-3 w-1/4">Mã giao dịch</th>
-								<th className="p-3 w-1/4">Thời gian</th>
-								<th className="p-3 w-2/5">Mô tả</th>
+								<th className="p-3 w-1/5">Thời gian</th>
+								<th className="p-3 w-0.45">Mô tả</th>
 								<th className="p-3 text-right">Số tiền</th>
 							</tr>
 						</thead>
@@ -68,7 +68,7 @@ export function WalletTransactionsTable({
 						<button
 							disabled={txPage === 1}
 							onClick={() => setTxPage(txPage - 1)}
-							className="px-2.5 py-1 bg-white border border-brand-border rounded-lg hover:bg-brand-light-soft disabled:opacity-40 transition-all cursor-pointer"
+							className="px-2.5 py-1 bg-white border border-brand-border rounded-md hover:bg-brand-light-soft disabled:opacity-40 transition-all cursor-pointer"
 						>
 							Trước
 						</button>
@@ -76,9 +76,8 @@ export function WalletTransactionsTable({
 							<button
 								key={i}
 								onClick={() => setTxPage(i + 1)}
-								className={`w-7 h-7 rounded-lg transition-all cursor-pointer border-none ${
-									txPage === i + 1 ? "bg-brand-dark text-white font-mono" : "bg-transparent text-brand-muted hover:bg-brand-light-soft"
-								}`}
+								className={`w-7 h-7 rounded-md transition-all cursor-pointer border-none ${txPage === i + 1 ? "bg-brand-dark text-white font-mono" : "bg-transparent text-brand-muted hover:bg-brand-light-soft"
+									}`}
 							>
 								{i + 1}
 							</button>
@@ -86,7 +85,7 @@ export function WalletTransactionsTable({
 						<button
 							disabled={txPage >= Math.ceil(totalTx / pageSize)}
 							onClick={() => setTxPage(txPage + 1)}
-							className="px-2.5 py-1 bg-white border border-brand-border rounded-lg hover:bg-brand-light-soft disabled:opacity-40 transition-all cursor-pointer"
+							className="px-2.5 py-1 bg-white border border-brand-border rounded-md hover:bg-brand-light-soft disabled:opacity-40 transition-all cursor-pointer"
 						>
 							Sau
 						</button>

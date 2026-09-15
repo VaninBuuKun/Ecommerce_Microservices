@@ -44,10 +44,22 @@ export function WithdrawRequestModal({
 					<form onSubmit={onSubmit} className="space-y-4 text-xs">
 						<div className="bg-brand-light-soft/50 border border-brand-border rounded-xl p-3.5 space-y-2">
 							<p className="text-[10px] font-extrabold text-brand-muted uppercase">Tài khoản nhận tiền mặc định:</p>
-							<div className="font-bold text-brand-dark">
-								<p className="text-xs uppercase">{defaultAccount.bankName}</p>
-								<p className="font-mono text-[11px] text-brand-muted mt-0.5">Số tài khoản: {defaultAccount.bankAccountNumber}</p>
-								<p className="text-[11px] text-brand-muted mt-0.5">Chủ tài khoản: {defaultAccount.bankAccountHolder}</p>
+							<div className="font-bold text-brand-dark flex items-center gap-3">
+								{defaultAccount.iconUrl && (
+									<img
+										src={defaultAccount.iconUrl}
+										alt={defaultAccount.bankName}
+										className="w-10 h-10 object-contain rounded-md border border-brand-border bg-white p-1 shrink-0 shadow-xs"
+										onError={(e) => {
+											(e.target as HTMLElement).style.display = 'none';
+										}}
+									/>
+								)}
+								<div>
+									<p className="text-xs uppercase">{defaultAccount.bankName}</p>
+									<p className="font-mono text-[11px] text-brand-muted mt-0.5">Số tài khoản: {defaultAccount.bankAccountNumber}</p>
+									<p className="text-[11px] text-brand-muted mt-0.5">Chủ tài khoản: {defaultAccount.bankAccountHolder}</p>
+								</div>
 							</div>
 						</div>
 

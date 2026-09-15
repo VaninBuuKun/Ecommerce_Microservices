@@ -10,4 +10,5 @@ public class BankAccountDto
     public string BankAccountNumber { get; set; } = string.Empty;
     public string BankAccountHolder { get; set; } = string.Empty;
     public bool IsDefault { get; set; }
+    public string IconUrl { get; set; } = string.Empty;
 }

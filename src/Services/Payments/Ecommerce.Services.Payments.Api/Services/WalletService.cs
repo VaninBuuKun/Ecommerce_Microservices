@@ -19,11 +19,77 @@ public class WalletService(IEfUnitOfWork unitOfWork, IMapper mapper) : IWalletSe
     private readonly IGenericEfRepository<BankAccount, long> _bankAccountRepository = unitOfWork.Repository<BankAccount, long>();
     private readonly IGenericEfRepository<WalletTransaction, Guid> _transactionRepository = unitOfWork.Repository<WalletTransaction, Guid>();
 
-    private static readonly HashSet<string> AllowedBanks = new(StringComparer.OrdinalIgnoreCase)
+    public record SupportedBankInfo(string Name, string Code, string IconUrl);
+
+    public static readonly Dictionary<string, SupportedBankInfo> AllowedBanks =
+        new(StringComparer.OrdinalIgnoreCase)
+        {
+            ["Vietcombank"] = new(
+                "Vietcombank",
+                "VCB",
+                "https://api.vietqr.io/img/VCB.png"),
+
+            ["Techcombank"] = new(
+                "Techcombank",
+                "TCB",
+                "https://api.vietqr.io/img/TCB.png"),
+
+            ["MB Bank"] = new(
+                "MB Bank",
+                "MB",
+                "https://api.vietqr.io/img/MB.png"),
+
+            ["ACB"] = new(
+                "ACB",
+                "ACB",
+                "https://api.vietqr.io/img/ACB.png"),
+
+            ["BIDV"] = new(
+                "BIDV",
+                "BIDV",
+                "https://api.vietqr.io/img/BIDV.png"),
+
+            ["VietinBank"] = new(
+                "VietinBank",
+                "ICB",
+                "https://api.vietqr.io/img/ICB.png"),
+
+            ["Agribank"] = new(
+                "Agribank",
+                "VBA",
+                "https://api.vietqr.io/img/VBA.png"),
+
+            ["Sacombank"] = new(
+                "Sacombank",
+                "STB",
+                "https://api.vietqr.io/img/STB.png"),
+
+            ["VPBank"] = new(
+                "VPBank",
+                "VPB",
+                "https://api.vietqr.io/img/VPB.png"),
+
+            ["TPBank"] = new(
+                "TPBank",
+                "TPB",
+                "https://api.vietqr.io/img/TPB.png"),
+
+            ["VIB"] = new(
+                "VIB",
+                "VIB",
+                "https://api.vietqr.io/img/VIB.png"),
+
+            ["HDBank"] = new(
+                "HDBank",
+                "HDB",
+                "https://api.vietqr.io/img/HDB.png"),
+        };
+
+    public static string GetBankIconUrl(string? bankName)
     {
-        "Vietcombank", "Techcombank", "MB Bank", "ACB", "BIDV", 
-        "VietinBank", "Agribank", "Sacombank", "VPBank", "TPBank", "VIB", "HDBank"
-    };
+        if (string.IsNullOrWhiteSpace(bankName)) return string.Empty;
+        return AllowedBanks.TryGetValue(bankName.Trim(), out var info) ? info.IconUrl : string.Empty;
+    }
 
     private static Result ValidateBankRequest(string bankName, string accountNumber, string accountHolder)
     {
@@ -32,7 +98,7 @@ public class WalletService(IEfUnitOfWork unitOfWork, IMapper mapper) : IWalletSe
             return Result.Failure("Thông tin tài khoản ngân hàng liên kết không được để trống.", EErrorCode.ValidationErrors);
         }
 
-        if (!AllowedBanks.Contains(bankName.Trim()))
+        if (!AllowedBanks.ContainsKey(bankName.Trim()))
         {
             return Result.Failure($"Ngân hàng '{bankName}' không nằm trong danh sách hỗ trợ của hệ thống.", EErrorCode.ValidationErrors);
         }
@@ -139,6 +205,7 @@ public class WalletService(IEfUnitOfWork unitOfWork, IMapper mapper) : IWalletSe
         await unitOfWork.SaveChangesAsync();
 
         var dto = mapper.Map<BankAccountDto>(bankAccount);
+        dto.IconUrl = GetBankIconUrl(bankAccount.BankName);
         return Result<BankAccountDto>.Success(dto);
     }
 
@@ -151,7 +218,12 @@ public class WalletService(IEfUnitOfWork unitOfWork, IMapper mapper) : IWalletSe
         }
 
         var accounts = await _bankAccountRepository.GetAllAsync(b => b.WalletId == wallet.Id);
-        var dtos = mapper.Map<List<BankAccountDto>>(accounts);
+        var dtos = accounts.Select(b =>
+        {
+            var dto = mapper.Map<BankAccountDto>(b);
+            dto.IconUrl = GetBankIconUrl(b.BankName);
+            return dto;
+        }).ToList();
         return Result<List<BankAccountDto>>.Success(dtos);
     }
 
@@ -195,7 +267,46 @@ public class WalletService(IEfUnitOfWork unitOfWork, IMapper mapper) : IWalletSe
         await unitOfWork.SaveChangesAsync();
 
         var dto = mapper.Map<BankAccountDto>(bankAccount);
+        dto.IconUrl = GetBankIconUrl(bankAccount.BankName);
         return Result<BankAccountDto>.Success(dto);
+    }
+
+    public async Task<Result> DeleteBankAccount(long userId, long bankAccountId)
+    {
+        var wallet = await _walletRepository.FirstOrDefaultAsync(w => w.UserId == userId);
+        if (wallet == null)
+        {
+            return Result.Failure("Ví điện tử chưa được kích hoạt.", EErrorCode.NotFound);
+        }
+
+        var accounts = await _bankAccountRepository.GetAllAsync(b => b.WalletId == wallet.Id);
+        var bankAccount = accounts.FirstOrDefault(b => b.Id == bankAccountId);
+        if (bankAccount == null)
+        {
+            return Result.Failure("Tài khoản ngân hàng không tồn tại hoặc không thuộc ví của bạn.", EErrorCode.NotFound);
+        }
+
+        if (accounts.Count <= 1)
+        {
+            return Result.Failure("Không thể xóa tài khoản ngân hàng duy nhất. Vui lòng thêm tài khoản ngân hàng mới trước khi xóa.", EErrorCode.ValidationErrors);
+        }
+
+        bool wasDefault = bankAccount.IsDefault;
+        _bankAccountRepository.Delete(bankAccount);
+
+        // Nếu xóa tài khoản mặc định, tự động chuyển một tài khoản còn lại thành mặc định
+        if (wasDefault)
+        {
+            var nextAccount = accounts.FirstOrDefault(b => b.Id != bankAccountId);
+            if (nextAccount != null)
+            {
+                nextAccount.IsDefault = true;
+                _bankAccountRepository.Update(nextAccount);
+            }
+        }
+
+        await unitOfWork.SaveChangesAsync();
+        return Result.Success();
     }
 
     public async Task<Result<List<WalletTransactionDto>>> GetWalletTransactions(long userId)
@@ -389,5 +500,17 @@ public class WalletService(IEfUnitOfWork unitOfWork, IMapper mapper) : IWalletSe
         );
 
         return Result<SellerRevenueReportDto>.Success(report);
+    }
+
+    public Task<Result<List<SupportedBankDto>>> GetSupportedBanks()
+    {
+        var list = AllowedBanks.Values.Select(b => new SupportedBankDto
+        {
+            Name = b.Name,
+            Code = b.Code,
+            IconUrl = b.IconUrl
+        }).ToList();
+
+        return Task.FromResult(Result<List<SupportedBankDto>>.Success(list));
     }
 }

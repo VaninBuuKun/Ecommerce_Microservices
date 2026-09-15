@@ -29,9 +29,9 @@ export function isAuthenticated(token?: string | null): boolean {
 	return true;
 }
 
-export function checkIsAdmin(): boolean {
-	const token = localStorage.getItem("accessToken");
-	if (!token || !isAuthenticated(token)) return false;
+export function checkIsAdmin(customToken?: string | null): boolean {
+	const token = customToken ?? localStorage.getItem("accessToken");
+	if (!token) return false;
 	const payload = parseJwt(token);
 	if (!payload) return false;
 	const roles =

@@ -48,6 +48,7 @@ Welcome AI Agent! You are working on **Ecommerce Microservices**, an enterprise-
 - **Error Handling**: Catch errors in `useMutation` via `onError: (err: any) => { const msg = err.response?.data?.message || err.response?.data; }`.
 - **Modal Popups**: All Modal Popups MUST use `createPortal(..., document.body)` with `z-10000` to prevent layout truncation or parent stacking context issues.
 - **Form Validation**: Combine `@hookform/resolvers/zod` with `react-hook-form`. Display inline red text errors with alert icons under inputs.
+- **Feature Subcomponents Grouping Rule**: Within any domain (`src/domains/[domain]/components/`), subcomponents dedicated to a specific feature view (e.g. `analytics/`, `kyc/`, `banners/`) MUST be placed inside a dedicated feature subfolder (e.g. `components/analytics/`) with a barrel export `index.ts`, rather than dumped flatly at the root of `components/`.
 
 
 ### 3. Security & AppSettings Configuration Standard (Strict Cascading Layer)

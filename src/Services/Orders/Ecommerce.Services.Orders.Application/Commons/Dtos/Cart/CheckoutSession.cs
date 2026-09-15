@@ -19,6 +19,8 @@ public class CheckoutSession
     public long? PlatformVoucherId { get; set; }
     public Dictionary<long, string> ShopVoucherCodes { get; set; } = new();
     public Dictionary<long, long> ShopVoucherIds { get; set; } = new();
+    public Dictionary<long, string> ShopNames { get; set; } = new();
+    public Dictionary<long, string?> ShopLogoUrls { get; set; } = new();
     public decimal GrandTotal { get; set; }
     public DateTime CreatedAt { get; set; }
     public DateTime ExpiresAt { get; set; }

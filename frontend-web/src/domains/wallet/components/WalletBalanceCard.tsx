@@ -7,14 +7,14 @@ interface WalletBalanceCardProps {
 
 export function WalletBalanceCard({ wallet, onWithdrawClick }: WalletBalanceCardProps) {
 	return (
-		<div className="border border-brand-border bg-gradient-to-br from-brand-dark to-slate-800 text-white rounded-2xl p-5 shadow-md flex flex-col justify-between min-h-40 relative overflow-hidden">
+		<div className="border border-brand-border bg-gradient-to-br from-brand-dark to-slate-800 text-white rounded-md p-5 shadow-md flex flex-col justify-between min-h-40 relative overflow-hidden">
 			<div className="absolute top-[-20%] right-[-10%] w-40 h-40 bg-brand-primary/10 rounded-full blur-2xl" />
 			<div className="flex justify-between items-start">
 				<div className="space-y-1">
 					<p className="text-[10px] uppercase font-black tracking-widest text-brand-primary/80">Ví điện tử cá nhân</p>
 					<p className="text-[11px] font-bold text-slate-300">ID: #{wallet.id}</p>
 				</div>
-				<ShieldCheck className="w-6 h-6 text-brand-primary" />
+				{/* <ShieldCheck className="w-6 h-6 text-brand-primary" /> */}
 			</div>
 
 			<div className="space-y-1 pt-4 flex justify-between items-end">
@@ -27,7 +27,7 @@ export function WalletBalanceCard({ wallet, onWithdrawClick }: WalletBalanceCard
 				{!wallet.isLocked && (
 					<button
 						onClick={onWithdrawClick}
-						className="px-3.5 py-1.5 bg-brand-primary text-brand-dark rounded-xl text-xs font-black hover:bg-brand-primary-deep transition-all cursor-pointer border-none shadow-sm"
+						className="px-3.5 py-1.5 bg-brand-primary-soft/80 text-amber-100 rounded-md text-xs font-black hover:bg-brand-primary-deep transition-all cursor-pointer border-none shadow-sm"
 					>
 						Rút tiền
 					</button>

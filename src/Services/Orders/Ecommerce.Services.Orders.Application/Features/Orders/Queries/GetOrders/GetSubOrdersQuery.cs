@@ -41,11 +41,13 @@ public class GetSubOrdersQueryHandler(
             Status = o.Status.ToString(),
             OrderDate = o.CreatedDate,
             ShopId = o.ShopId,
-            ShopName = o.ShopId == 4 ? "Shop Phụ Kiện Kid Buu" : $"Cửa hàng #{o.ShopId}",
+            ShopName = !string.IsNullOrWhiteSpace(o.ShopName) ? o.ShopName : (o.ShopId == 4 ? "Shop Phụ Kiện Kid Buu" : $"Cửa hàng #{o.ShopId}"),
+            ShopLogoUrl = o.ShopLogoUrl,
             OrderItems = o.SubOrderItems.Select(item => new CustomerOrderItemDto
             {
                 OrderId = item.SubOrderId,
                 VariantId = item.VariantId,
+                ProductId = item.ProductId,
                 Quantity = item.Quantity,
                 UnitPrice = item.UnitPrice,
                 ProductName = item.ProductName,

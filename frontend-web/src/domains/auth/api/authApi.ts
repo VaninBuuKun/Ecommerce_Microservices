@@ -1,5 +1,8 @@
-import api from "@/core/api/axiosInstance"
+import { api, refreshAccessToken, authClient } from "@/core";
 import { useAuthStore } from "../stores/useAuthStore";
+import { useSellerStore } from "@/domains/seller/stores/sellerStore";
+import { useChatStore } from "@/domains/notification/stores/useChatStore";
+import { stopSignalRConnection } from "@/shared/hooks/useSignalR";
 import type { Result } from "@/core";
 
 export interface LoginPayload {
@@ -133,22 +136,40 @@ export const authService = {
   },
 
   async refresh(): Promise<string> {
-    const response = await api.post("/app-auth/refresh");
-    const data = response.data?.value || response.data;
-    const accessToken = data?.accessToken || data;
-    if (accessToken) {
-      useAuthStore.getState().setAccessToken(accessToken);
-    }
-    return accessToken;
+    const token = await refreshAccessToken();
+    return token || "";
   },
 
   async logout(): Promise<void> {
     try {
-      await api.post("/app-auth/logout");
+      await authClient.post("/app-auth/logout");
     } catch (error) {
       console.error("Lỗi khi gọi API logout trên server:", error);
     } finally {
+      // 1. Xóa tokens, user info và toàn bộ cache queryClient
       useAuthStore.getState().clearState();
+
+      // 2. Reset Seller Store
+      try {
+        useSellerStore.getState().setActiveShop(null);
+      } catch {}
+
+      // 3. Reset Chat Store & LocalStorage của Chat
+      try {
+        useChatStore.getState().setActiveRoom(null);
+        useChatStore.getState().setConversations([]);
+        useChatStore.getState().setMessages([]);
+        useChatStore.getState().setSelectedShop(null);
+        useChatStore.getState().setUnreadCount(0);
+        localStorage.removeItem("buu_chat_is_seller");
+        localStorage.removeItem("buu_chat_selected_shop");
+        localStorage.removeItem("buu_chat_active_room_id");
+      } catch {}
+
+      // 4. Dừng kết nối SignalR
+      try {
+        stopSignalRConnection();
+      } catch {}
     }
   },
 

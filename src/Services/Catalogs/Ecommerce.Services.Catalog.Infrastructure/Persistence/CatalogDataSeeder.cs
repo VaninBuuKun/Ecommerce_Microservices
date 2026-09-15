@@ -6,6 +6,7 @@ using System.Linq;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
+using BuildingBlocks.Shared.InfrastructureInterfaces.Caching;
 using BuildingBlocks.Shared.InfrastructureInterfaces.IdGenerator;
 using Ecommerce.Services.Catalog.Domain;
 using Ecommerce.Services.Catalog.Domain.Products;
@@ -17,7 +18,8 @@ namespace Ecommerce.Services.Catalog.Infrastructure.Persistence;
 public class CatalogDataSeeder(
     ProductDbContext dbContext,
     ISnowflakeIdGenerator snowflakeIdGenerator,
-    ILogger<CatalogDataSeeder> logger
+    ILogger<CatalogDataSeeder> logger,
+    ICacheService? cacheService = null
 )
 {
     private static readonly Random Rnd = new();
@@ -116,25 +118,29 @@ public class CatalogDataSeeder(
     {
         try
         {
-            // // Tăng timeout lên 180s cho phiên seed để đảm bảo an toàn tuyệt đối
-            // dbContext.Database.SetCommandTimeout(180);
-
             if (resetExisting)
             {
                 logger.LogInformation("Resetting existing Products and Variants tables...");
                 
-                await dbContext.Database.ExecuteSqlRawAsync("DELETE FROM `ProductVariantOptions`");
-                await dbContext.Database.ExecuteSqlRawAsync("DELETE FROM `ProductOptionValues`");
-                await dbContext.Database.ExecuteSqlRawAsync("DELETE FROM `ProductOptions`");
-                await dbContext.Database.ExecuteSqlRawAsync("DELETE FROM `ProductVariants`");
-                await dbContext.Database.ExecuteSqlRawAsync("DELETE FROM `ProductReviews`");
-                await dbContext.Database.ExecuteSqlRawAsync("DELETE FROM `Products`");
+                await dbContext.Database.ExecuteSqlRawAsync("DELETE FROM \"ProductVariantOptions\"");
+                await dbContext.Database.ExecuteSqlRawAsync("DELETE FROM \"ProductOptionValues\"");
+                await dbContext.Database.ExecuteSqlRawAsync("DELETE FROM \"ProductOptions\"");
+                await dbContext.Database.ExecuteSqlRawAsync("DELETE FROM \"ProductVariants\"");
+                await dbContext.Database.ExecuteSqlRawAsync("DELETE FROM \"ProductReviews\"");
+                await dbContext.Database.ExecuteSqlRawAsync("DELETE FROM \"Products\"");
             }
 
+            // 1. Luôn bảo đảm Seed đầy đủ cây danh mục 2 cấp (> 16 categories) trước
+            await SeedCategoriesAsync();
+
+            var existingCategories = await dbContext.Categories.ToListAsync();
+
+            // 2. Nếu đã có dữ liệu sản phẩm, đồng bộ CategoryId còn thiếu cho các sản phẩm hiện có
             var hasProducts = await dbContext.Products.AnyAsync();
             if (hasProducts)
             {
-                logger.LogInformation("Products table already contains data. Skipping seed.");
+                await SyncMissingProductCategoriesAsync(existingCategories);
+                logger.LogInformation("Products table already contains data. Skipping CSV re-seed.");
                 return;
             }
 
@@ -145,7 +151,6 @@ public class CatalogDataSeeder(
                 return;
             }
 
-            var existingCategories = await dbContext.Categories.ToListAsync();
             var csvFiles = Directory.GetFiles(csvDirectory, "*.csv");
 
             logger.LogInformation("Found {Count} CSV files in {Dir}. Starting seeding with Snowflake IDs...", csvFiles.Length, csvDirectory);
@@ -155,11 +160,9 @@ public class CatalogDataSeeder(
             foreach (var filePath in csvFiles)
             {
                 var fileName = Path.GetFileNameWithoutExtension(filePath);
-                var categoryId = ResolveCategoryId(fileName, existingCategories);
+                logger.LogInformation("Processing CSV file: {FileName}...", fileName);
 
-                logger.LogInformation("Processing CSV file: {FileName} (Matched CategoryId: {CategoryId})", fileName, categoryId);
-
-                var products = ParseCsvFile(filePath, categoryId, maxItemsPerFile);
+                var products = ParseCsvFile(filePath, fileName, existingCategories, maxItemsPerFile);
                 productsToInsert.AddRange(products);
             }
 
@@ -181,7 +184,82 @@ public class CatalogDataSeeder(
         }
     }
 
-    private List<Product> ParseCsvFile(string filePath, long? categoryId, int maxItems)
+    public async Task SeedCategoriesAsync()
+    {
+        var anyCategory = await dbContext.Categories.AnyAsync();
+        if (anyCategory)
+        {
+            logger.LogInformation("Categories table already contains data. Skipping category seed.");
+            return;
+        }
+
+        logger.LogInformation("Starting seeding 2-level Category tree (> 16 main categories + subcategories)...");
+
+        // 1. Chèn tất cả danh mục gốc (ParentId = null)
+        var rootEntities = new Dictionary<string, Category>();
+        foreach (var catDef in CatalogCategorySeedData.Categories)
+        {
+            var root = new Category(catDef.Name, catDef.Description, catDef.IconUrl, parentId: null);
+            dbContext.Categories.Add(root);
+            rootEntities[catDef.Name] = root;
+        }
+
+        await dbContext.SaveChangesAsync();
+        logger.LogInformation("Seeded {Count} root categories.", rootEntities.Count);
+
+        // 2. Chèn tất cả danh mục con với ParentId là Id của danh mục gốc tương ứng
+        var subCategoryCount = 0;
+        foreach (var catDef in CatalogCategorySeedData.Categories)
+        {
+            var parent = rootEntities[catDef.Name];
+            foreach (var subDef in catDef.SubCategories)
+            {
+                var sub = new Category(subDef.Name, subDef.Description, subDef.IconUrl, parentId: parent.Id);
+                dbContext.Categories.Add(sub);
+                subCategoryCount++;
+            }
+        }
+
+        await dbContext.SaveChangesAsync();
+        logger.LogInformation("Seeded {Count} subcategories across {RootCount} root categories.", subCategoryCount, rootEntities.Count);
+
+        if (cacheService != null)
+        {
+            await cacheService.RemoveAsync("catalog:categories:tree");
+            logger.LogInformation("Cleared Redis cache key 'catalog:categories:tree'.");
+        }
+    }
+
+    public async Task SyncMissingProductCategoriesAsync(List<Category> allCategories)
+    {
+        var unassignedProducts = await dbContext.Products
+            .Where(p => p.CategoryId == null)
+            .ToListAsync();
+
+        if (unassignedProducts.Count == 0) return;
+
+        logger.LogInformation("Found {Count} products without CategoryId. Mapping to matching subcategories...", unassignedProducts.Count);
+
+        int updatedCount = 0;
+        foreach (var product in unassignedProducts)
+        {
+            var matchedCatId = MatchCategoryByProductName(product.Name, allCategories);
+            if (matchedCatId.HasValue)
+            {
+                product.SetCategory(matchedCatId.Value);
+                product.RebuildSearchDocument();
+                updatedCount++;
+            }
+        }
+
+        if (updatedCount > 0)
+        {
+            await dbContext.SaveChangesAsync();
+            logger.LogInformation("Successfully mapped CategoryId for {Count}/{Total} existing products.", updatedCount, unassignedProducts.Count);
+        }
+    }
+
+    private List<Product> ParseCsvFile(string filePath, string fileName, List<Category> existingCategories, int maxItems)
     {
         var result = new List<Product>();
         var lines = File.ReadAllLines(filePath);
@@ -204,6 +282,8 @@ public class CatalogDataSeeder(
                 var name = cols[2]?.Trim().Trim('"');
                 var description = cols[3]?.Trim().Trim('"');
                 if (string.IsNullOrWhiteSpace(name) || name.Length < 3) continue;
+
+                var categoryId = ResolveCategoryId(fileName, name, existingCategories);
 
                 // Giá
                 decimal.TryParse(cols[4], NumberStyles.Any, CultureInfo.InvariantCulture, out var originalPrice);
@@ -380,7 +460,7 @@ public class CatalogDataSeeder(
         var current = Directory.GetCurrentDirectory();
         while (!string.IsNullOrEmpty(current))
         {
-            var candidate = Path.Combine(current, "src", "scripts", "seed-data", "datas");
+            var candidate = Path.Combine(current, "tiki-data");
             if (Directory.Exists(candidate)) return candidate;
 
             var parent = Directory.GetParent(current);
@@ -391,26 +471,180 @@ public class CatalogDataSeeder(
         return null;
     }
 
-    private static long? ResolveCategoryId(string fileName, List<Category> categories)
+    private static long? ResolveCategoryId(string fileName, string? productName, List<Category> categories)
     {
         if (categories == null || categories.Count == 0) return null;
 
-        var lower = fileName.ToLowerInvariant();
-        if (lower.Contains("shoe") || lower.Contains("giay"))
+        var fileLower = fileName.ToLowerInvariant();
+        var nameLower = (productName ?? string.Empty).ToLowerInvariant();
+
+        // 1. Giày dép nam
+        if (fileLower.Contains("men_shoe") || fileLower.Contains("giay_nam"))
         {
-            return categories.FirstOrDefault(c => c.Name.Contains("Giày") || c.Name.Contains("Dép"))?.Id 
-                   ?? categories.FirstOrDefault(c => c.Name.Contains("Thời trang"))?.Id;
-        }
-        if (lower.Contains("bag") || lower.Contains("backpack") || lower.Contains("suitcase") || lower.Contains("balo") || lower.Contains("tui"))
-        {
-            return categories.FirstOrDefault(c => c.Name.Contains("Túi") || c.Name.Contains("Balo") || c.Name.Contains("Ví"))?.Id 
-                   ?? categories.FirstOrDefault(c => c.Name.Contains("Phụ kiện") || c.Name.Contains("Thời trang"))?.Id;
-        }
-        if (lower.Contains("accessories") || lower.Contains("fashion"))
-        {
-            return categories.FirstOrDefault(c => c.Name.Contains("Thời trang") || c.Name.Contains("Phụ kiện"))?.Id;
+            if (nameLower.Contains("sandal") || nameLower.Contains("xăng đan"))
+                return categories.FirstOrDefault(c => c.Name == "Giày Sandal & Xăng đan nam")?.Id
+                       ?? categories.FirstOrDefault(c => c.Name.Contains("Sandal") && c.ParentId.HasValue)?.Id;
+            if (nameLower.Contains("lười") || nameLower.Contains("tây") || nameLower.Contains("oxford") || nameLower.Contains("loafer"))
+                return categories.FirstOrDefault(c => c.Name == "Giày lười Loafer & Giày tây Oxford")?.Id;
+            if (nameLower.Contains("dép") || nameLower.Contains("dep"))
+                return categories.FirstOrDefault(c => c.Name == "Dép quai ngang & Dép xỏ ngón nam")?.Id;
+            if (nameLower.Contains("boot"))
+                return categories.FirstOrDefault(c => c.Name == "Giày Boot nam & Cổ cao cá tính")?.Id;
+            return categories.FirstOrDefault(c => c.Name == "Giày thể thao & Sneaker nam")?.Id
+                   ?? categories.FirstOrDefault(c => c.Name == "Giày Dép Nam")?.Id;
         }
 
+        // 2. Giày dép nữ
+        if (fileLower.Contains("women_shoe") || fileLower.Contains("giay_nu"))
+        {
+            if (nameLower.Contains("cao gót") || nameLower.Contains("đế vuông") || nameLower.Contains("gót nhọn"))
+                return categories.FirstOrDefault(c => c.Name == "Giày cao gót & Đế vuông tôn dáng")?.Id;
+            if (nameLower.Contains("búp bê") || nameLower.Contains("mọi"))
+                return categories.FirstOrDefault(c => c.Name == "Giày búp bê & Giày mọi nữ")?.Id;
+            if (nameLower.Contains("sandal") || nameLower.Contains("xăng đan"))
+                return categories.FirstOrDefault(c => c.Name == "Giày Sandal & Xăng đan nữ")?.Id;
+            if (nameLower.Contains("dép") || nameLower.Contains("dep"))
+                return categories.FirstOrDefault(c => c.Name == "Dép thời trang & Dép bánh mì nữ")?.Id;
+            if (nameLower.Contains("boot"))
+                return categories.FirstOrDefault(c => c.Name == "Giày Boot nữ sành điệu")?.Id;
+            return categories.FirstOrDefault(c => c.Name == "Giày thể thao & Sneaker nữ")?.Id
+                   ?? categories.FirstOrDefault(c => c.Name == "Giày Dép Nữ")?.Id;
+        }
+
+        // 3. Túi ví nam
+        if (fileLower.Contains("men_bag") || fileLower.Contains("tui_nam"))
+        {
+            if (nameLower.Contains("ví") || nameLower.Contains("bóp") || nameLower.Contains("vi"))
+                return categories.FirstOrDefault(c => c.Name == "Ví tiền & Bóp da nam nữ")?.Id;
+            if (nameLower.Contains("chéo") || nameLower.Contains("bao tử") || nameLower.Contains("đeo"))
+                return categories.FirstOrDefault(c => c.Name == "Túi bao tử & Túi đeo chéo thời trang")?.Id;
+            if (nameLower.Contains("tote"))
+                return categories.FirstOrDefault(c => c.Name == "Túi vải Canvas & Túi Tote dạo phố")?.Id;
+            return categories.FirstOrDefault(c => c.Name == "Balo laptop & Balo học sinh sinh viên")?.Id
+                   ?? categories.FirstOrDefault(c => c.Name == "Túi Ví & Balo")?.Id;
+        }
+
+        // 4. Túi xách nữ
+        if (fileLower.Contains("women_bag") || fileLower.Contains("tui_nu"))
+        {
+            if (nameLower.Contains("tote") || nameLower.Contains("vải"))
+                return categories.FirstOrDefault(c => c.Name == "Túi vải Canvas & Túi Tote dạo phố")?.Id;
+            if (nameLower.Contains("ví") || nameLower.Contains("clutch") || nameLower.Contains("vi"))
+                return categories.FirstOrDefault(c => c.Name == "Ví tiền & Bóp da nam nữ")?.Id;
+            return categories.FirstOrDefault(c => c.Name == "Túi xách nữ & Túi đeo vai cao cấp")?.Id
+                   ?? categories.FirstOrDefault(c => c.Name == "Túi Ví & Balo")?.Id;
+        }
+
+        // 5. Balo & Vali
+        if (fileLower.Contains("backpack") || fileLower.Contains("suitcase") || fileLower.Contains("balo") || fileLower.Contains("vali"))
+        {
+            if (nameLower.Contains("vali"))
+                return categories.FirstOrDefault(c => c.Name == "Vali kéo du lịch & Túi hành lý")?.Id;
+            return categories.FirstOrDefault(c => c.Name == "Balo laptop & Balo học sinh sinh viên")?.Id
+                   ?? categories.FirstOrDefault(c => c.Name == "Túi Ví & Balo")?.Id;
+        }
+
+        // 6. Phụ kiện thời trang
+        if (fileLower.Contains("accessories") || fileLower.Contains("phu_kien"))
+        {
+            if (nameLower.Contains("kính") || nameLower.Contains("kinh"))
+                return categories.FirstOrDefault(c => c.Name == "Kính mát & Kính gọng thời trang")?.Id;
+            if (nameLower.Contains("đồng hồ") || nameLower.Contains("dong ho"))
+                return categories.FirstOrDefault(c => c.Name == "Đồng hồ nam lịch lãm")?.Id 
+                       ?? categories.FirstOrDefault(c => c.Name == "Đồng hồ nữ sang trọng")?.Id;
+            if (nameLower.Contains("nhẫn") || nameLower.Contains("nhan"))
+                return categories.FirstOrDefault(c => c.Name == "Nhẫn bạc & Nhẫn thời trang")?.Id;
+            if (nameLower.Contains("dây chuyền") || nameLower.Contains("vòng cổ"))
+                return categories.FirstOrDefault(c => c.Name == "Dây chuyền & Vòng cổ tinh xảo")?.Id;
+            if (nameLower.Contains("lắc") || nameLower.Contains("vòng tay"))
+                return categories.FirstOrDefault(c => c.Name == "Vòng tay, Lắc tay & Charm phong thủy")?.Id;
+            return categories.FirstOrDefault(c => c.Name == "Kính mát & Kính gọng thời trang")?.Id
+                   ?? categories.FirstOrDefault(c => c.Name == "Đồng Hồ & Trang Sức")?.Id;
+        }
+
+        return MatchCategoryByProductName(productName ?? string.Empty, categories);
+    }
+
+    private static long? MatchCategoryByProductName(string productName, List<Category> categories)
+    {
+        if (categories == null || categories.Count == 0) return null;
+
+        var name = (productName ?? string.Empty).ToLowerInvariant();
+
+        // 1. Giày dép
+        if (name.Contains("giày") || name.Contains("giay") || name.Contains("sneaker") || name.Contains("sandal") || name.Contains("dép") || name.Contains("dep") || name.Contains("boot"))
+        {
+            // Nữ
+            if (name.Contains("nữ") || name.Contains("nu") || name.Contains("cao gót") || name.Contains("búp bê"))
+            {
+                if (name.Contains("cao gót") || name.Contains("đế vuông") || name.Contains("gót"))
+                    return categories.FirstOrDefault(c => c.Name == "Giày cao gót & Đế vuông tôn dáng")?.Id;
+                if (name.Contains("búp bê") || name.Contains("mọi"))
+                    return categories.FirstOrDefault(c => c.Name == "Giày búp bê & Giày mọi nữ")?.Id;
+                if (name.Contains("sandal") || name.Contains("xăng đan"))
+                    return categories.FirstOrDefault(c => c.Name == "Giày Sandal & Xăng đan nữ")?.Id;
+                if (name.Contains("dép") || name.Contains("dep"))
+                    return categories.FirstOrDefault(c => c.Name == "Dép thời trang & Dép bánh mì nữ")?.Id;
+                if (name.Contains("boot"))
+                    return categories.FirstOrDefault(c => c.Name == "Giày Boot nữ sành điệu")?.Id;
+                return categories.FirstOrDefault(c => c.Name == "Giày thể thao & Sneaker nữ")?.Id
+                       ?? categories.FirstOrDefault(c => c.Name == "Giày Dép Nữ")?.Id;
+            }
+
+            // Nam
+            if (name.Contains("sandal") || name.Contains("xăng đan"))
+                return categories.FirstOrDefault(c => c.Name == "Giày Sandal & Xăng đan nam")?.Id;
+            if (name.Contains("lười") || name.Contains("tây") || name.Contains("oxford") || name.Contains("loafer"))
+                return categories.FirstOrDefault(c => c.Name == "Giày lười Loafer & Giày tây Oxford")?.Id;
+            if (name.Contains("dép") || name.Contains("dep"))
+                return categories.FirstOrDefault(c => c.Name == "Dép quai ngang & Dép xỏ ngón nam")?.Id;
+            if (name.Contains("boot"))
+                return categories.FirstOrDefault(c => c.Name == "Giày Boot nam & Cổ cao cá tính")?.Id;
+            return categories.FirstOrDefault(c => c.Name == "Giày thể thao & Sneaker nam")?.Id
+                   ?? categories.FirstOrDefault(c => c.Name == "Giày Dép Nam")?.Id;
+        }
+
+        // 2. Balo, Túi ví, Vali
+        if (name.Contains("balo") || name.Contains("túi") || name.Contains("tui") || name.Contains("ví") || name.Contains("vi") || name.Contains("bóp") || name.Contains("vali"))
+        {
+            if (name.Contains("vali"))
+                return categories.FirstOrDefault(c => c.Name == "Vali kéo du lịch & Túi hành lý")?.Id;
+            if (name.Contains("ví") || name.Contains("vi") || name.Contains("bóp"))
+                return categories.FirstOrDefault(c => c.Name == "Ví tiền & Bóp da nam nữ")?.Id;
+            if (name.Contains("tote") || name.Contains("vải"))
+                return categories.FirstOrDefault(c => c.Name == "Túi vải Canvas & Túi Tote dạo phố")?.Id;
+            if (name.Contains("chéo") || name.Contains("bao tử") || name.Contains("ngực"))
+                return categories.FirstOrDefault(c => c.Name == "Túi bao tử & Túi đeo chéo thời trang")?.Id;
+            if (name.Contains("nữ") || name.Contains("nu") || name.Contains("xách"))
+                return categories.FirstOrDefault(c => c.Name == "Túi xách nữ & Túi đeo vai cao cấp")?.Id;
+            return categories.FirstOrDefault(c => c.Name == "Balo laptop & Balo học sinh sinh viên")?.Id
+                   ?? categories.FirstOrDefault(c => c.Name == "Túi Ví & Balo")?.Id;
+        }
+
+        // 3. Phụ kiện & Đồng hồ
+        if (name.Contains("kính") || name.Contains("kinh"))
+            return categories.FirstOrDefault(c => c.Name == "Kính mát & Kính gọng thời trang")?.Id;
+        if (name.Contains("đồng hồ") || name.Contains("dong ho") || name.Contains("watch"))
+            return categories.FirstOrDefault(c => c.Name == "Đồng hồ nam lịch lãm")?.Id
+                   ?? categories.FirstOrDefault(c => c.Name == "Đồng hồ nữ sang trọng")?.Id;
+        if (name.Contains("nhẫn") || name.Contains("nhan"))
+            return categories.FirstOrDefault(c => c.Name == "Nhẫn bạc & Nhẫn thời trang")?.Id;
+        if (name.Contains("dây chuyền") || name.Contains("vòng cổ"))
+            return categories.FirstOrDefault(c => c.Name == "Dây chuyền & Vòng cổ tinh xảo")?.Id;
+        if (name.Contains("vòng tay") || name.Contains("lắc") || name.Contains("charm"))
+            return categories.FirstOrDefault(c => c.Name == "Vòng tay, Lắc tay & Charm phong thủy")?.Id;
+
+        // 4. Quần áo thời trang
+        if (name.Contains("áo thun") || name.Contains("polo"))
+            return categories.FirstOrDefault(c => c.Name == "Áo thun nam & Áo Polo")?.Id;
+        if (name.Contains("sơ mi") || name.Contains("so mi"))
+            return categories.FirstOrDefault(c => c.Name == "Áo sơ mi nam công sở & Dạo phố")?.Id;
+        if (name.Contains("đầm") || name.Contains("váy") || name.Contains("dam") || name.Contains("vay"))
+            return categories.FirstOrDefault(c => c.Name == "Đầm dự tiệc & Váy dạo phố nữ")?.Id;
+        if (name.Contains("quần jean") || name.Contains("jean"))
+            return categories.FirstOrDefault(c => c.Name == "Quần jean & Quần denim nam")?.Id;
+
+        // Fallback: Ưu tiên chọn subcategory bất kỳ
         return categories.FirstOrDefault(c => c.ParentId.HasValue)?.Id ?? categories.FirstOrDefault()?.Id;
     }
 }

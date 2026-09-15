@@ -21,6 +21,11 @@
   --color-brand-border-strong: #c7c7c7; /* Hairline Strong */
 }
 
+@utility text-4 {
+  font-size: 14px;
+  line-height: 1.25rem;
+}
+
 :root {
   color-scheme: light;
   background-color: var(--color-brand-light);
@@ -44,6 +49,17 @@ body {
   color: var(--color-brand-dark);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
+
+/* ==========================================================================
+   🖼️ Image Alt Text & Loading Optimization
+   - color: transparent triệt tiêu 100% việc chữ alt text bị giật hiện ra màn hình khi ảnh S3 đang tải.
+   - font-size: 0 ngăn chặn text line-height làm phình khung layout trong lúc chờ ảnh.
+   - Giữ nguyên 100% giá trị thuộc tính alt trong DOM phục vụ Google SEO & Screen Reader.
+   ========================================================================== */
+img {
+  color: transparent;
+  font-size: 0;
 }
 
 h1, h2, h3, h4, h5, h6 {

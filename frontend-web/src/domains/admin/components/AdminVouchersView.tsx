@@ -206,10 +206,10 @@ export function AdminVouchersView() {
 			{/* Standardized Header */}
 			<div className="flex justify-between items-center pb-2.5 border-b border-brand-border">
 				<div>
-					<h2 className="text-sm font-black text-brand-dark uppercase tracking-wide">
+					<h2 className="text-4 font-black text-brand-dark uppercase tracking-wider">
 						Quản lý mã giảm giá hệ thống
 					</h2>
-					<p className="text-[10px] text-brand-muted font-bold mt-0.5">
+					<p className="text-[12px] text-brand-muted font-bold mt-0.5">
 						Tạo và quản lý các mã giảm giá áp dụng toàn sàn (Platform Vouchers)
 					</p>
 				</div>

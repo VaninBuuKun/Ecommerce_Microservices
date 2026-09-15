@@ -5,6 +5,8 @@ using BuildingBlocks.Application.InMemoryBus;
 using BuildingBlocks.Auth;
 using BuildingBlocks.Shared.Commons;
 using BuildingBlocks.Shared.Enums;
+using BuildingBlocks.Shared.Events;
+using BuildingBlocks.Shared.InfrastructureInterfaces.Messaging;
 using BuildingBlocks.Shared.InfrastructureInterfaces.Persistence.EFCore;
 using Ecommerce.Services.Catalog.Application.Commons.Interfaces;
 using Ecommerce.Services.Catalog.Domain.Products;
@@ -17,6 +19,7 @@ public class DeleteProductCommandHandler(
     IOrderService orderService,
     ISellerService sellerService,
     ICurrentUserService currentUserService,
+    IEventPublisher eventPublisher,
     ILogger<DeleteProductCommandHandler> logger)
     : CommandHandler<DeleteProductCommand, Product>
 {
@@ -68,6 +71,20 @@ public class DeleteProductCommandHandler(
             // 2. Nếu tất cả đơn hàng đều đã hoàn tất/hủy (hoặc chưa từng có đơn hàng), tiến hành xóa vĩnh viễn
             _productRepository.Delete(existsProduct);
             await unitOfWork.SaveChangesAsync(cancellationToken);
+
+            try
+            {
+                await eventPublisher.PublishAsync(new ProductDeletedEvent
+                {
+                    ProductId = existsProduct.Id,
+                    ShopId = existsProduct.ShopId,
+                    DeletedAt = DateTime.UtcNow
+                }, cancellationToken);
+            }
+            catch (Exception pubEx)
+            {
+                logger.LogError(pubEx, "Failed to publish ProductDeletedEvent for product {ProductId}", existsProduct.Id);
+            }
 
             logger.LogInformation("Product {ProductId} deleted permanently", command.Id);
             return Result<Product>.Success(existsProduct);

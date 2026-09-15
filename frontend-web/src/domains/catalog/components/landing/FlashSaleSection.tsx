@@ -54,11 +54,10 @@ export function FlashSaleSection() {
 				{[1, 2, 3, 4, 5].map((s) => (
 					<Star
 						key={s}
-						className={`w-2.5 h-2.5 ${
-							s <= rounded
+						className={`w-2.5 h-2.5 ${s <= rounded
 								? "fill-amber-400 text-amber-400 stroke-amber-400"
 								: "fill-gray-200 text-gray-200 stroke-gray-200"
-						}`}
+							}`}
 					/>
 				))}
 			</div>
@@ -147,7 +146,7 @@ export function FlashSaleSection() {
 												p.thumbnailUrl ||
 												"https://images.unsplash.com/photo-1523275335684-37898b6baf30?auto=format&fit=crop&q=80&w=300"
 											}
-											alt={p.name}
+											// alt={p.name}
 											className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
 										/>
 									</div>

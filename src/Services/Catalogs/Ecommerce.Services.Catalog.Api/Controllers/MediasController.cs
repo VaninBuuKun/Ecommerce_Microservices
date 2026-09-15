@@ -10,7 +10,7 @@ namespace Ecommerce.Services.Catalog.Api.Controllers;
 public class MediasController(ISender sender) : ControllerBase
 {
     [HttpGet("upload-url")]
-    [Authorize]
+    // [Authorize]
     public async Task<IActionResult> GenerateUploadUrl([FromQuery] string fileName, [FromQuery] string contentType)
     {
         var result = await sender.Send(new GenerateUploadUrlQuery(fileName, contentType));

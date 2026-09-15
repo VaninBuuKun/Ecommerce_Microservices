@@ -1,6 +1,6 @@
-import { Star } from "lucide-react";
+import { Star, BrainCircuit } from "lucide-react";
 import { Link } from "react-router-dom";
-import { useProductsQuery } from "@/domains/catalog";
+import { useSimilarProductsQuery, useProductsQuery } from "@/domains/catalog";
 
 interface RelatedProductsProps {
 	categoryId?: number | null;
@@ -11,15 +11,28 @@ export function RelatedProducts({
 	categoryId,
 	currentProductId,
 }: RelatedProductsProps) {
-	const { data: productsData, isLoading } = useProductsQuery({
+	// 1. Fetch AI/Content-based Similar Products from Recommendation Service
+	const {
+		data: recommendationData,
+		isLoading: isRecoLoading,
+	} = useSimilarProductsQuery(currentProductId || undefined, 8);
+
+	// 2. Fallback query to Catalog if Recommendation service has no data yet
+	const { data: fallbackData, isLoading: isFallbackLoading } = useProductsQuery({
 		categoryId: categoryId || undefined,
-		limit: 10,
+		limit: 8,
 	});
 
-	const products = productsData?.items || productsData || [];
-	const relatedList = Array.isArray(products)
-		? products.filter((p: any) => p?.id !== currentProductId).slice(0, 4)
+	const recoItems = recommendationData?.items || [];
+	const fallbackItems = fallbackData?.items || fallbackData || [];
+
+	const filteredFallback = Array.isArray(fallbackItems)
+		? fallbackItems.filter((p: any) => String(p?.id) !== String(currentProductId)).slice(0, 8)
 		: [];
+
+	// Prefer recommendation service items; otherwise use catalog fallback
+	const finalProducts = recoItems.length > 0 ? recoItems : filteredFallback;
+	const isLoading = isRecoLoading && finalProducts.length === 0;
 
 	const renderStars = (rating: number = 5) => {
 		const score = rating > 0 ? rating : 5;
@@ -29,11 +42,10 @@ export function RelatedProducts({
 				{[1, 2, 3, 4, 5].map((s) => (
 					<Star
 						key={s}
-						className={`w-2.5 h-2.5 ${
-							s <= rounded
-								? "fill-amber-400 text-amber-400 stroke-amber-400"
-								: "fill-gray-200 text-gray-200 stroke-gray-200"
-						}`}
+						className={`w-2.5 h-2.5 ${s <= rounded
+							? "fill-amber-400 text-amber-400 stroke-amber-400"
+							: "fill-gray-200 text-gray-200 stroke-gray-200"
+							}`}
 					/>
 				))}
 			</div>
@@ -42,7 +54,7 @@ export function RelatedProducts({
 
 	if (isLoading) {
 		return (
-			<div className="bg-white rounded-md border border-brand-border/70 shadow-2xs p-4 text-left">
+			<div className="bg-white rounded-md border border-brand-border/70 shadow-sm p-4 text-left mb-6">
 				<div className="h-4 w-36 bg-gray-200 rounded animate-pulse mb-4" />
 				<div className="grid grid-cols-2 md:grid-cols-4 gap-3">
 					{Array.from({ length: 4 }).map((_, i) => (
@@ -56,16 +68,26 @@ export function RelatedProducts({
 		);
 	}
 
-	if (relatedList.length === 0) return null;
+	if (finalProducts.length === 0) return null;
 
 	return (
-		<div className="bg-white rounded-md border border-brand-border/70 shadow-2xs p-4 md:p-5 text-left space-y-3.5">
-			<h2 className="text-xs font-black text-brand-dark uppercase tracking-wider border-b border-brand-border/60 pb-2.5">
-				Sản phẩm tương tự
-			</h2>
+		<div className="bg-white rounded-md border border-brand-border/70 shadow-sm p-4 md:p-5 text-left space-y-3.5 mb-6">
+			<div className="flex items-center justify-between border-b border-brand-border/60 pb-2.5">
+				<div className="flex items-center gap-1.5">
+					<h2 className="text-sm font-black text-brand-dark uppercase tracking-wider">
+						SẢN PHẨM TƯƠNG TỰ
+					</h2>
+				</div>
+				{recoItems.length > 0 && (
+					<span className="text-[11px] font-extrabold bg-gradient-to-r from-violet-500/10 via-purple-500/10 to-pink-500/10 text-purple-700 border border-purple-200/80 px-2.5 py-0.5 rounded-full flex items-center gap-1.5 shadow-2xs">
+						<BrainCircuit className="w-3.5 h-3.5 text-purple-600" />
+						Gợi ý thông minh
+					</span>
+				)}
+			</div>
 
-			<div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-				{relatedList.map((item: any) => {
+			<div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+				{finalProducts.map((item: any) => {
 					const hasDiscount = item?.discountPrice && item.discountPrice > 0 && item.discountPrice < item.price;
 					const discountPercent = hasDiscount ? Math.round(((item.price - item.discountPrice) / item.price) * 100) : 0;
 					const activePrice = hasDiscount ? item.discountPrice : item.price;
@@ -117,7 +139,7 @@ export function RelatedProducts({
 								<div className="border-t border-brand-border/40 pt-1.5 space-y-0.5">
 									<div className="flex items-baseline justify-between gap-1">
 										<span className="font-extrabold text-red-600 text-sm leading-none">
-											{activePrice.toLocaleString("vi-VN")}đ
+											{Number(activePrice).toLocaleString("vi-VN")}đ
 										</span>
 										<span className="text-[10px] text-brand-muted font-medium whitespace-nowrap">
 											Đã bán {soldCount}
@@ -128,7 +150,7 @@ export function RelatedProducts({
 									<div className="h-4 flex items-center">
 										{hasDiscount ? (
 											<span className="text-[11px] text-gray-400 font-normal line-through leading-tight">
-												{item.price.toLocaleString("vi-VN")}đ
+												{Number(item.price).toLocaleString("vi-VN")}đ
 											</span>
 										) : (
 											<span className="invisible text-[11px] leading-tight select-none">0đ</span>

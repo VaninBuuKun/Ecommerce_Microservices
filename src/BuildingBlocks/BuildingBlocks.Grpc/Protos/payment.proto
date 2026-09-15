@@ -59,3 +59,4 @@ message CheckWalletResponse {
   bool is_locked = 2;
   string balance = 3;
 }
+

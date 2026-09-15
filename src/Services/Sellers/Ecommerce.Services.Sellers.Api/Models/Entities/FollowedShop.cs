@@ -9,6 +9,8 @@ public class FollowedShop : EntityTrackingBase<Guid>
     public long ShopId { get; set; }
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
+    public virtual Shop Shop { get; set; } = null!;
+
     public FollowedShop()
     {
         Id = Guid.NewGuid();

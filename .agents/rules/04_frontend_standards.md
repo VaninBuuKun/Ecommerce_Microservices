@@ -83,3 +83,7 @@ src/
   - Example: `useWalletQuery` belongs to `src/features/wallet/` or `src/shared/`, NOT inside `src/features/order/hooks/useCheckoutQueries.ts`.
 - **Actor Domain Separation**:
   - Keep Customer features (`checkout`, `catalog`), Seller Center features (`seller`), and Admin features (`admin`) strictly separated.
+
+### Rule F: Feature Subcomponents Grouping Rule
+- Within any domain (`src/domains/[domain]/components/`), subcomponents dedicated to a specific feature view (e.g., `analytics/`, `kyc/`, `banners/`) MUST be placed inside a dedicated feature subfolder (e.g., `components/analytics/`) with a barrel export `index.ts`, rather than dumped flatly at the root of `components/`.
+- Views that orchestrate subcomponents import them from `./[subfolder]` (e.g., `import { AdminAnalyticsFilterBar } from "./analytics";`).

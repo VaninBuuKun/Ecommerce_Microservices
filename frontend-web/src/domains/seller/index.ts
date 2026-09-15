@@ -7,4 +7,8 @@ export * from "./stores/sellerStore";
 export * from "./components/ShopSelectList";
 export * from "./components/ChatFloatingWidget";
 export * from "./components/FollowShopButton";
+export * from "./api/sellerAnalyticsApi";
+export * from "./hooks/useSellerAnalytics";
+export * from "./components/ShopAnalyticsDashboard";
+export * from "./components/analytics/AnalyticsProductPerformanceTable";
 

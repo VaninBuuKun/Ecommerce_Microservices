@@ -13,11 +13,16 @@ public class SubOrderDetailDto
     public long Id { get; set; }
     public long CustomerId { get; set; }
     public long ShopId { get; set; }
+    public string ShopName { get; set; } = string.Empty;
+    public string? ShopLogoUrl { get; set; }
     public decimal SubTotal { get; set; }
     public decimal ShippingFee { get; set; }
     public decimal SellerDiscount { get; set; }
     public decimal PlatformDiscount { get; set; }
     public decimal GrandTotal { get; set; }
+    public decimal CommissionRate { get; set; }
+    public long CommissionFee { get; set; }
+    public long NetRevenue { get; set; }
     public string Status { get; set; } = string.Empty;
     public bool IsOnlinePayment { get; set; }
     public DateTimeOffset CreatedDate { get; set; }

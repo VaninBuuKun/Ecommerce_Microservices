@@ -210,6 +210,8 @@ public class CalOrderGrandTotalCommandHandler(
                 PlatformVoucherId = appliedPlatformVoucherId,
                 ShopVoucherCodes = appliedShopVouchers,
                 ShopVoucherIds = appliedShopVoucherIds,
+                ShopNames = shopsShippingInfoDict.ToDictionary(k => k.Key, v => v.Value.ShopName),
+                ShopLogoUrls = shopsShippingInfoDict.ToDictionary(k => k.Key, v => (string?)v.Value.LogoUrl),
                 GrandTotal = grandTotal,
                 CreatedAt = DateTime.UtcNow,
                 ExpiresAt = DateTime.UtcNow.AddMinutes(15)

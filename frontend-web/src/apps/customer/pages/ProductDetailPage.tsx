@@ -27,12 +27,14 @@ import {
 	ProductReviewsSection,
 	WishlistButton,
 	ProductImageModal,
+	useTrackProductViewMutation,
 } from "@/domains/catalog";
 
 import { useSellerProfileQuery, usePublicShopQuery } from "@/domains/seller";
 import { useAddItemToCartMutation, useBuyNowOrReorder } from "@/domains/cart";
 import { useChatStore } from "@/domains/notification";
 import { useAuthStore, useAuthModalStore } from "@/domains/auth";
+import { useResolveLocationsQuery } from "@/domains/shipping";
 import { CommentOutlined } from "@ant-design/icons";
 import { toast } from "react-toastify";
 
@@ -45,20 +47,45 @@ export default function ProductDetailPage() {
 	const { openAuthModal } = useAuthModalStore();
 	const { data: product, isLoading, isError } = useProductByIdQuery(id);
 	const { data: shop } = usePublicShopQuery(product?.shopId ? Number(product.shopId) : undefined);
+	const trackViewMutation = useTrackProductViewMutation();
+
+	// Theo dõi lượt xem & dwell time cho hệ thống gợi ý sản phẩm
+	useEffect(() => {
+		if (!id) return;
+		const startTime = Date.now();
+
+		// Ghi nhận lượt xem sản phẩm ban đầu
+		trackViewMutation.mutate({ productId: id });
+
+		// Ghi nhận dwell time khi người dùng rời trang (nếu ở lại >= 2 giây)
+		return () => {
+			const durationSeconds = Math.round((Date.now() - startTime) / 1000);
+			if (durationSeconds >= 2) {
+				trackViewMutation.mutate({
+					productId: id,
+					durationSeconds: Math.min(durationSeconds, 3600),
+				});
+			}
+		};
+	}, [id]);
+
+	const shopWardId = Number(shop?.wardId || 0);
+	const { data: resolvedLocations } = useResolveLocationsQuery(shopWardId > 0 ? [shopWardId] : []);
 
 	const fullShopAddress = useMemo(() => {
 		if (shop) {
+			const loc = resolvedLocations?.find((l) => Number(l.wardId) === shopWardId);
 			const parts = [
 				shop.addressLine,
-				shop.ward,
-				shop.district,
-				shop.province,
+				loc?.wardName,
+				loc?.districtName,
+				loc?.provinceName,
 			].filter(Boolean);
 			if (parts.length > 0) return parts.join(", ");
 		}
 		if (product?.shopAddress) return product.shopAddress;
 		return "Chưa cập nhật";
-	}, [shop, product?.shopAddress]);
+	}, [shop, product?.shopAddress, resolvedLocations, shopWardId]);
 
 	const [activeMedia, setActiveMedia] = useState<{
 		type: "image" | "video";
@@ -610,11 +637,10 @@ export default function ProductDetailPage() {
 									{Array.from({ length: 5 }).map((_, idx) => (
 										<Star
 											key={idx}
-											className={`w-3.5 h-3.5 ${
-												idx < Math.round(product.averageRating || 0)
-													? "fill-brand-primary stroke-brand-primary"
-													: "text-gray-300 stroke-gray-300"
-											}`}
+											className={`w-3.5 h-3.5 ${idx < Math.round(product.averageRating || 0)
+												? "fill-brand-primary stroke-brand-primary"
+												: "text-gray-300 stroke-gray-300"
+												}`}
 										/>
 									))}
 								</div>
@@ -641,29 +667,29 @@ export default function ProductDetailPage() {
 						{/* Shipping Specs */}
 						{((product.weight && product.weight > 0) ||
 							(product.width && product.width > 0)) && (
-							<div className="space-y-2 text-xs border-y border-brand-border/60 py-3">
-								<div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[11px] text-brand-muted font-medium">
-									{product.weight > 0 && (
-										<span>
-											Khối lượng:{" "}
-											<strong className="text-brand-dark">
-												{product.weight}g
-											</strong>
-										</span>
-									)}
-									{product.width > 0 && (
-										<span>
-											Kích thước:{" "}
-											<strong className="text-brand-dark">
-												{product.width} x{" "}
-												{product.length} x{" "}
-												{product.height} cm
-											</strong>
-										</span>
-									)}
+								<div className="space-y-2 text-xs border-y border-brand-border/60 py-3">
+									<div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[11px] text-brand-muted font-medium">
+										{product.weight > 0 && (
+											<span>
+												Khối lượng:{" "}
+												<strong className="text-brand-dark">
+													{product.weight}g
+												</strong>
+											</span>
+										)}
+										{product.width > 0 && (
+											<span>
+												Kích thước:{" "}
+												<strong className="text-brand-dark">
+													{product.width} x{" "}
+													{product.length} x{" "}
+													{product.height} cm
+												</strong>
+											</span>
+										)}
+									</div>
 								</div>
-							</div>
-						)}
+							)}
 
 						{/* Product Options Selector Sub-component */}
 						{product.options && product.options.length > 0 && (
@@ -760,8 +786,8 @@ export default function ProductDetailPage() {
 			</div>
 
 			{/* Shop Information Card */}
-			<div className="bg-white rounded-md border border-brand-border shadow-sm p-5 mb-6 flex flex-col md:flex-row items-center justify-between gap-6 text-left">
-				<div className="flex items-center gap-4">
+			<div className="bg-white rounded-md border border-brand-border shadow-sm p-5 mb-6 flex flex-col md:flex-row max-width-[300px] items-center justify-between text-left">
+				<div className="flex items-center gap-4 max-w-150">
 					<div
 						onClick={() => navigate(`/shops/${product.shopId}`)}
 						className="w-16 h-16 rounded-md overflow-hidden bg-brand-light-soft border border-brand-border shrink-0 flex items-center justify-center cursor-pointer hover:opacity-85 transition-all shadow-2xs"

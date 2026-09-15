@@ -1,9 +1,11 @@
 import { useState } from "react";
-import { Loader2, RefreshCw, Search, Package, Store } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { Loader2, RefreshCw, Search, Package, Store, BarChart3 } from "lucide-react";
 import { useAdminProductsQuery } from "@/domains/admin";
 import { Pagination } from "@/shared/components/Pagination";
 
 export function AdminProductsView() {
+	const navigate = useNavigate();
 	const [page, setPage] = useState(1);
 	const [pageSize] = useState(10);
 	const [searchTerm, setSearchTerm] = useState("");
@@ -27,10 +29,10 @@ export function AdminProductsView() {
 			{/* Header */}
 			<div className="flex justify-between items-center pb-2.5 border-b border-brand-border">
 				<div>
-					<h2 className="text-sm font-black text-brand-dark uppercase tracking-wide">
+					<h2 className="text-4 font-black text-brand-dark uppercase tracking-wider">
 						Quản lý sản phẩm hệ thống
 					</h2>
-					<p className="text-[10px] text-brand-muted font-bold mt-0.5">
+					<p className="text-[12px] text-brand-muted font-bold mt-0.5">
 						Danh sách toàn bộ các sản phẩm của tất cả các gian hàng trên sàn
 					</p>
 				</div>
@@ -123,6 +125,7 @@ export function AdminProductsView() {
 										<th className="p-3 w-32 text-right">Giá niêm yết</th>
 										<th className="p-3 w-24 text-center">Đã bán</th>
 										<th className="p-3 w-28 text-center">Trạng thái</th>
+										<th className="p-3 w-20 text-center">Thao tác</th>
 									</tr>
 								</thead>
 								<tbody className="divide-y divide-brand-border/60">
@@ -175,6 +178,16 @@ export function AdminProductsView() {
 												>
 													{p.status === "Active" ? "Hoạt động" : "Tạm ẩn"}
 												</span>
+											</td>
+											<td className="p-3 text-center">
+												<button
+													type="button"
+													onClick={() => navigate(`/admin/overview?mode=product&productId=${p.id}`)}
+													className="p-1.5 text-gray-400 hover:text-amber-600 hover:bg-amber-50 rounded-md cursor-pointer transition-colors border-none bg-transparent inline-flex items-center justify-center"
+													title="Xem phân tích sản phẩm này"
+												>
+													<BarChart3 className="w-4 h-4" />
+												</button>
 											</td>
 										</tr>
 									))}

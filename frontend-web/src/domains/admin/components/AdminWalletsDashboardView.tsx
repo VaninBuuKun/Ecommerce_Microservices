@@ -139,8 +139,8 @@ export function AdminWalletsDashboardView() {
 			{activeTab === "transactions" && (
 				<div className="space-y-4 animate-in fade-in duration-200">
 					<div className="pb-2.5 border-b border-brand-border">
-						<h2 className="text-sm font-black text-brand-dark uppercase tracking-wide">Biến động số dư ví toàn sàn</h2>
-						<p className="text-[10px] text-brand-muted font-bold mt-0.5">Theo dõi lịch sử toàn bộ các giao dịch nạp, rút, cộng doanh thu đơn hàng và hoàn tiền của tất cả thành viên trên hệ thống</p>
+						<h2 className="text-4 font-black text-brand-dark uppercase tracking-wider">Biến động số dư ví toàn sàn</h2>
+						<p className="text-[12px] text-brand-muted font-bold mt-0.5">Theo dõi lịch sử toàn bộ các giao dịch nạp, rút, cộng doanh thu đơn hàng và hoàn tiền của tất cả thành viên trên hệ thống</p>
 					</div>
 					<div className="border border-brand-border rounded-md bg-white overflow-hidden shadow-[0_1px_3px_rgba(0,0,0,0.02)]">
 						{txLoading ? (

@@ -42,13 +42,30 @@ public class OrderJobService(
         subOrder.UpdateSubOrderStatus(SubOrderStatus.Completed);
         subOrderRepo.Update(subOrder);
 
+        var itemRepo = unitOfWork.Repository<SubOrderItem, long>();
+        var items = await itemRepo.GetAllAsync(i => i.SubOrderId == subOrderId);
+
         // Publish event để cộng doanh thu cho Seller ở Payment Service (qua EF Core Outbox)
         await publisher.PublishAsync(new SubOrderCompletedEvent
         {
             SubOrderId = subOrder.Id,
             ShopId = subOrder.ShopId,
+            CustomerId = subOrder.CustomerId,
             TotalAmount = subOrder.GrandTotal,
-            PlatformDiscount = subOrder.PlatformDiscount
+            PlatformDiscount = subOrder.PlatformDiscount,
+            CommissionRate = subOrder.CommissionRate,
+            CommissionFee = subOrder.CommissionFee,
+            NetRevenue = subOrder.NetRevenue,
+            ShippingFee = subOrder.ShippingFee,
+            Items = items.Select(i => new SubOrderCompletedItemContract
+            {
+                VariantId = i.VariantId,
+                ProductId = i.ProductId,
+                Quantity = i.Quantity,
+                UnitPrice = i.UnitPrice,
+                ProductName = i.ProductName,
+                ThumbnailUrl = i.ThumbnailUrl
+            }).ToList()
         });
 
         await unitOfWork.SaveChangesAsync();

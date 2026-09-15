@@ -4,19 +4,24 @@ using System.Threading;
 using System.Threading.Tasks;
 using BuildingBlocks.Shared.Commons;
 using BuildingBlocks.Shared.Enums;
+using BuildingBlocks.Shared.Events;
 using BuildingBlocks.Shared.InfrastructureInterfaces.IdGenerator;
+using BuildingBlocks.Shared.InfrastructureInterfaces.Messaging;
 using BuildingBlocks.Shared.InfrastructureInterfaces.Persistence.EFCore;
 using Ecommerce.Services.Catalog.Application.Commons.Interfaces;
 using Ecommerce.Services.Catalog.Application.Commons.Repositories;
 using Ecommerce.Services.Catalog.Domain;
 using MediatR;
+using Microsoft.Extensions.Logging;
 
 namespace Ecommerce.Services.Catalog.Application.Features.Reviews.Commands.CreateProductReview;
 
 public class CreateProductReviewCommandHandler(
     IEfUnitOfWork unitOfWork, 
     IProductRepository productRepository,
-    IOrderService orderService) 
+    IOrderService orderService,
+    IEventPublisher eventPublisher,
+    ILogger<CreateProductReviewCommandHandler> logger) 
     : IRequestHandler<CreateProductReviewCommand, Result<long>>
 {
     public async Task<Result<long>> Handle(CreateProductReviewCommand request, CancellationToken cancellationToken)
@@ -59,6 +64,25 @@ public class CreateProductReviewCommandHandler(
 
         // Cập nhật rating trung bình của sản phẩm
         await productRepository.UpdateProductRatingsAsync(request.ProductId, request.Rating, cancellationToken);
+
+        try
+        {
+            var updatedProduct = await productRepository.GetByIdAsync(request.ProductId, cancellationToken);
+            await eventPublisher.PublishAsync(new ProductReviewCreatedEvent
+            {
+                ReviewId = review.Id,
+                ProductId = request.ProductId,
+                UserId = request.CustomerId,
+                Rating = request.Rating,
+                NewAverageRating = updatedProduct?.AverageRating ?? request.Rating,
+                NewReviewCount = updatedProduct?.ReviewCount ?? 1,
+                CreatedAt = DateTime.UtcNow
+            }, cancellationToken);
+        }
+        catch (Exception pubEx)
+        {
+            logger.LogError(pubEx, "Failed to publish ProductReviewCreatedEvent for review {ReviewId}", review.Id);
+        }
 
         return Result<long>.Success(review.Id);
     }

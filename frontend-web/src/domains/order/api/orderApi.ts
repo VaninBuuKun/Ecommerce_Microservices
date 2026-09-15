@@ -64,13 +64,17 @@ export const orderApi = {
 		shopId: number,
 		pageNumber = 1,
 		pageSize = 5,
-		status?: string
+		status?: string,
+		customerId?: number
 	): Promise<any> => {
 		const params = new URLSearchParams();
 		params.append("pageNumber", String(pageNumber));
 		params.append("pageSize", String(pageSize));
 		if (status && status !== "All") {
 			params.append("status", status);
+		}
+		if (customerId && customerId > 0) {
+			params.append("customerId", String(customerId));
 		}
 		const response = await api.get(`/orders/shop/${shopId}/suborders?${params.toString()}`);
 		return response.data?.value || response.data;
@@ -171,6 +175,12 @@ export const orderApi = {
 	// Cập nhật tài khoản ngân hàng
 	updateBankAccount: async (id: number, data: any): Promise<any> => {
 		const response = await api.put(`/wallet/bank-accounts/${id}`, data);
+		return response.data;
+	},
+
+	// Xóa tài khoản ngân hàng liên kết
+	deleteBankAccount: async (id: number): Promise<any> => {
+		const response = await api.delete(`/wallet/bank-accounts/${id}`);
 		return response.data;
 	},
 

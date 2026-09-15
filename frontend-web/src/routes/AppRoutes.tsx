@@ -2,7 +2,7 @@ import { Routes, Route, Link } from "react-router-dom";
 import MainLayout from "../layouts/MainLayout";
 import SellerLayout from "../layouts/SellerLayout";
 import AdminLayout from "../layouts/AdminLayout";
-import { RequireAuth, RequireAdmin } from "@/shared/components";
+import { RequireAuth, RequireAdmin, RequireNonAdmin } from "@/shared/components";
 
 // Customer Apps Pages
 import LandingPage from "@/apps/customer/pages/LandingPage";
@@ -44,15 +44,24 @@ export default function AppRoutes() {
 				<Route path="users/:userId" element={<UserProfilePublicPage />} />
 				<Route path="shops/:shopId" element={<ShopProfilePublicPage />} />
 
-				{/* 2. Customer Protected Routes (Bắt buộc đăng nhập -> Chưa login thì redirect sang /login) */}
+				{/* 2. Customer Protected Routes (Bắt buộc đăng nhập) */}
 				<Route element={<RequireAuth />}>
-					<Route path="cart" element={<CartPage />} />
-					<Route path="checkout" element={<CheckoutPage />} />
-					<Route path="wishlist" element={<WishlistPage />} />
+					{/* Các trang mua sắm & yêu thích chỉ dành cho Khách hàng (Admin bị chặn) */}
+					<Route element={<RequireNonAdmin message="Tài khoản Quản trị viên không sử dụng tính năng giỏ hàng & sản phẩm yêu thích." />}>
+						<Route path="cart" element={<CartPage />} />
+						<Route path="checkout" element={<CheckoutPage />} />
+						<Route path="wishlist" element={<WishlistPage />} />
+					</Route>
+
+					{/* Quản lý đơn cá nhân: Admin chuyển hướng sang Quản trị đơn hàng toàn sàn */}
+					<Route element={<RequireNonAdmin redirectTo="/admin/orders" message="Đang chuyển hướng sang trang Quản trị đơn hàng toàn sàn..." />}>
+						<Route path="orders" element={<UserProfilePage />} />
+						<Route path="orders/:subOrderId" element={<OrderDetailPage />} />
+					</Route>
+
+					{/* Trang dùng chung cho cả Customer và Admin */}
 					<Route path="chat" element={<ChatPage />} />
 					<Route path="profile" element={<UserProfilePage />} />
-					<Route path="orders" element={<UserProfilePage />} />
-					<Route path="orders/:subOrderId" element={<OrderDetailPage />} />
 				</Route>
 
 				{/* 3. Trang 404 Not Found */}
@@ -77,18 +86,20 @@ export default function AppRoutes() {
 				/>
 			</Route>
 
-			{/* 4. Seller Protected Routes (Bắt buộc đăng nhập tài khoản) */}
+			{/* 4. Seller Protected Routes (Bắt buộc đăng nhập và chỉ dành cho Nhà Bán - Admin bị chặn) */}
 			<Route element={<RequireAuth />}>
-				<Route path="/seller" element={<SelectShopPage />} />
-				<Route path="/seller/register" element={<RegisterShopPage />} />
-				<Route
-					path="/seller/:shopId/dashboard/*"
-					element={<SellerLayout />}
-				>
-					<Route path="*" element={<SellerDashboardPage />} />
-				</Route>
-				<Route path="/seller/dashboard/*" element={<SellerLayout />}>
-					<Route path="*" element={<SellerDashboardPage />} />
+				<Route element={<RequireNonAdmin message="Tài khoản Quản trị viên không thể truy cập Kênh người bán. Vui lòng quản lý tại Trang Quản trị." />}>
+					<Route path="/seller" element={<SelectShopPage />} />
+					<Route path="/seller/register" element={<RegisterShopPage />} />
+					<Route
+						path="/seller/:shopId/dashboard/*"
+						element={<SellerLayout />}
+					>
+						<Route path="*" element={<SellerDashboardPage />} />
+					</Route>
+					<Route path="/seller/dashboard/*" element={<SellerLayout />}>
+						<Route path="*" element={<SellerDashboardPage />} />
+					</Route>
 				</Route>
 			</Route>
 

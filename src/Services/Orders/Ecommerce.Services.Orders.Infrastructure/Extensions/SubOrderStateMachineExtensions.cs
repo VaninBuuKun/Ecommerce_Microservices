@@ -73,7 +73,8 @@ public static class SubOrderStateMachineExtensions
                     VariantId = x.VariantId,
                     Quantity = x.Quantity,
                     UnitPrice = x.UnitPrice,
-                    ProductName = x.ProductName
+                    ProductName = x.ProductName,
+                    ProductImage = x.ProductImage
                 }).ToList() ?? new List<ShipmentItemData>();
 
                 return context.Init<CreateShipmentRequest>(new CreateShipmentRequest
@@ -91,7 +92,7 @@ public static class SubOrderStateMachineExtensions
                     Width = context.Message.Width,
                     Length = context.Message.Length,
                     CodAmount = context.Saga.IsOnlinePayment ? 0m : context.Saga.TotalAmount,
-                    IsReturn = false,
+                    IsRefund = false,
                     Items = shipmentItems
                 });
             });

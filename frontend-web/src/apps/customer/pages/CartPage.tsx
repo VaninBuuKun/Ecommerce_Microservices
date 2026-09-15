@@ -180,9 +180,9 @@ export default function CartPage() {
         }
 
         debounceTimers.current[itemKey] = setTimeout(() => {
-            updateQuantityMutation.mutate({ 
+            updateQuantityMutation.mutate({
                 variantId: itemKey,
-                quantity: targetQty 
+                quantity: targetQty
             });
             delete debounceTimers.current[itemKey];
         }, 350);
@@ -190,9 +190,9 @@ export default function CartPage() {
 
     const handleToggleSelect = (item: any, currentSelected: boolean) => {
         const itemKey = String(item.variantId || item.productVariantId);
-        updateSelectStateMutation.mutate({ 
+        updateSelectStateMutation.mutate({
             variantId: itemKey,
-            isSelected: !currentSelected 
+            isSelected: !currentSelected
         });
     };
 
@@ -201,9 +201,9 @@ export default function CartPage() {
         selectableItems.forEach((item: any) => {
             if (item.isSelected !== targetState) {
                 const itemKey = String(item.variantId || item.productVariantId);
-                updateSelectStateMutation.mutate({ 
+                updateSelectStateMutation.mutate({
                     variantId: itemKey,
-                    isSelected: targetState 
+                    isSelected: targetState
                 });
             }
         });
@@ -386,8 +386,8 @@ export default function CartPage() {
                                             {groupItems.map((item: any) => {
                                                 const activePrice =
                                                     item.discountPrice &&
-                                                    item.discountPrice > 0 &&
-                                                    item.discountPrice < item.unitPrice
+                                                        item.discountPrice > 0 &&
+                                                        item.discountPrice < item.unitPrice
                                                         ? item.discountPrice
                                                         : item.unitPrice;
                                                 const itemKey = String(item.variantId || item.productVariantId || item.productId);
@@ -399,13 +399,12 @@ export default function CartPage() {
                                                 return (
                                                     <div
                                                         key={itemKey}
-                                                        className={`p-3 sm:p-3.5 transition-colors ${
-                                                            isOutOfStock
+                                                        className={`p-3 sm:p-3.5 transition-colors ${isOutOfStock
                                                                 ? "bg-slate-50/80 opacity-60 grayscale-[35%]"
                                                                 : item.isSelected
                                                                     ? "bg-brand-primary/5 hover:bg-brand-primary/10"
                                                                     : "hover:bg-gray-50/30"
-                                                        }`}
+                                                            }`}
                                                     >
                                                         <div className="grid grid-cols-1 sm:grid-cols-12 gap-3 items-center">
                                                             {/* Checkbox + Product Info (6 cols) */}
@@ -414,9 +413,8 @@ export default function CartPage() {
                                                                     onClick={() => !isOutOfStock && handleToggleSelect(item, item.isSelected)}
                                                                     disabled={isOutOfStock}
                                                                     aria-label={isOutOfStock ? "Sản phẩm đã hết hàng" : "Chọn sản phẩm"}
-                                                                    className={`border-none bg-transparent p-0 flex-shrink-0 ${
-                                                                        isOutOfStock ? "cursor-not-allowed opacity-40" : "cursor-pointer"
-                                                                    }`}
+                                                                    className={`border-none bg-transparent p-0 flex-shrink-0 ${isOutOfStock ? "cursor-not-allowed opacity-40" : "cursor-pointer"
+                                                                        }`}
                                                                 >
                                                                     {item.isSelected && !isOutOfStock ? (
                                                                         <CheckSquare className="w-4 h-4 text-brand-primary fill-brand-primary/10" />
@@ -434,7 +432,6 @@ export default function CartPage() {
                                                                     {item.thumbnailUrl ? (
                                                                         <img
                                                                             src={item.thumbnailUrl}
-                                                                            alt={item.productName}
                                                                             className="w-12 h-12 object-cover rounded-md border border-brand-border/80 flex-shrink-0 shadow-xs group-hover:border-brand-primary transition-all"
                                                                         />
                                                                     ) : (

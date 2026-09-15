@@ -2,9 +2,9 @@ import { useState } from "react";
 import { Plus, Loader2 } from "lucide-react";
 import { useNavigate, useParams } from "react-router-dom";
 import { toast } from "react-toastify";
-import { 
-	useMyProductsQuery, 
-	useDeleteProductMutation, 
+import {
+	useMyProductsQuery,
+	useDeleteProductMutation,
 	useToggleProductStatusMutation,
 } from "@/domains/catalog";
 import { useSellerStore, useSellerProfileQuery } from "@/domains/seller";
@@ -99,12 +99,21 @@ export function ProductsView() {
 		});
 	};
 
+	const handleViewAnalytics = (productId: string) => {
+		const targetShopId = numericShopId || activeShop?.id;
+		if (targetShopId) {
+			navigate(`/seller/${targetShopId}/dashboard/revenue?productId=${productId}`);
+		} else {
+			navigate(`/seller/dashboard/revenue?productId=${productId}`);
+		}
+	};
+
 	return (
 		<div className="space-y-4 text-left font-sans">
 			<div className="flex justify-between items-center pb-3 border-b border-brand-border">
 				<div>
 					<h2 className="text-sm font-bold text-brand-dark">
-						Quản lý Sản phẩm
+						Quản lý sản phẩm
 					</h2>
 					<p className="text-[11px] text-brand-muted">
 						Xem, sửa đổi và theo dõi hàng tồn kho của bạn trực
@@ -145,6 +154,7 @@ export function ProductsView() {
 						products={data}
 						onEdit={handleEditProduct}
 						onDelete={handleDeleteProduct}
+						onAnalytics={handleViewAnalytics}
 						onToggleStatus={handleToggleStatus}
 						isDeleting={deleteProductMutation.isPending}
 						updatingStatusId={updatingStatusId}

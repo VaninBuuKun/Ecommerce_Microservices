@@ -267,8 +267,8 @@ export function AdminCategoriesView() {
 		<div className="space-y-4 text-left font-sans animate-in fade-in duration-200">
 			<div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 pb-2.5 border-b border-brand-border">
 				<div>
-					<h2 className="text-sm font-black text-brand-dark uppercase tracking-wide">Danh mục sản phẩm hệ thống</h2>
-					<p className="text-[10px] text-brand-muted font-bold mt-0.5">Cơ cấu cây phân cấp các ngành hàng và danh mục sản phẩm của toàn hệ thống</p>
+					<h2 className="text-4 font-black text-brand-dark uppercase tracking-wider">Danh mục sản phẩm hệ thống</h2>
+					<p className="text-[12px] text-brand-muted font-bold mt-0.5">Cơ cấu cây phân cấp các ngành hàng và danh mục sản phẩm của toàn hệ thống</p>
 				</div>
 				<div className="flex items-center gap-2 w-full sm:w-auto">
 					{/* Search Box */}

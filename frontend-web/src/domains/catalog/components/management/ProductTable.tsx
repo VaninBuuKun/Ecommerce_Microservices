@@ -6,6 +6,7 @@ interface ProductTableProps {
 	products: Product[];
 	onEdit: (id: string) => void;
 	onDelete: (id: string) => void;
+	onAnalytics?: (id: string) => void;
 	onToggleStatus?: (id: string, currentStatus: string) => void;
 	isDeleting?: boolean;
 	updatingStatusId?: string | null;
@@ -15,6 +16,7 @@ export function ProductTable({
 	products,
 	onEdit,
 	onDelete,
+	onAnalytics,
 	onToggleStatus,
 	isDeleting,
 	updatingStatusId,
@@ -64,6 +66,7 @@ export function ProductTable({
 							onToggleExpand={toggleExpand}
 							onEdit={onEdit}
 							onDelete={onDelete}
+							onAnalytics={onAnalytics}
 							onToggleStatus={onToggleStatus}
 							isDeleting={isDeleting}
 							isUpdatingStatus={updatingStatusId === product.id}
