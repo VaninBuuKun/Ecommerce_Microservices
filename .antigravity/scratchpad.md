@@ -1,29 +1,36 @@
-- [x] Tái Thiết Kế Bảng Yêu Cầu Hoàn Tiền (RefundRequestsView) Chuẩn Table + Phân Trang + Filter Mặc Định Pending, Xem Chi Tiết Đơn (CustomerOrderDetailView) & Modal Minh Chứng (Ảnh/Video), Sửa Lỗi Validation Voucher BE/FE, Vận Đơn Hoàn Trả (Return Shipment) & Xóa Mock Data:
+- [x] Sửa Lỗi GHN API "Tên hàng hoá bắt buộc" Khi Tạo Vận Đơn Hoàn Trả (Reverse Logistics), Phòng Thủ 3 Lớp & Ngăn Chặn SubOrderRejectedEvent Sai Trạng Thái:
   - **Mục tiêu & Kết quả hoàn thành**:
-    1. **Tái Thiết Kế `RefundRequestsView.tsx` Thành Bảng Chuẩn (Table View)**:
-       - Chuyển đổi toàn diện từ dạng card grid sang table chuyên nghiệp đồng bộ với `OrdersView.tsx`.
-       - Cột: Mã yêu cầu & đơn con, Khách hàng, Tiền hoàn (đỏ nổi bật), Lý do (truncate 1 dòng kèm tooltip), Bằng chứng (badge đếm tệp đính kèm), Trạng thái (`getRefundStatusBadge`), Thao tác.
-       - 3 Hành động cụ thể:
-         1. `Chi tiết đơn`: Mở trực tiếp `CustomerOrderDetailView` với `isSeller={true}`.
-         2. `Chi tiết hoàn`: Mở Modal `RefundDetailModal` (portaled `z-10000`) hiển thị đầy đủ lý do, mô tả chi tiết, đếm ngược hạn tự động xử lý, phòng trưng bày bằng chứng (hình ảnh phóng to Lightbox, video có trình phát tương tác) và ghi chú phản hồi từ Shop.
-         3. `Duyệt` & `Từ chối`: Nút hành động trực tiếp trên hàng hoặc trong modal khi trạng thái là `Pending`, mở modal nhập ghi chú gửi cho khách hàng.
-       - Bộ lọc trạng thái: Mặc định là `Pending` ("Chưa xử lý"). Hỗ trợ lọc `All`, `Approved`, `Rejected`, `Cancelled`.
-       - Tích hợp ô tìm kiếm theo từ khóa và phân trang chuẩn với `@/shared/components/Pagination`.
-    2. **Hoàn Thiện `CustomerOrderDetailView.tsx` & Trải Nghiệm Seller**:
-       - Bọc toàn bộ các modal (`showCancelModal`, `showCompleteModal`, `showNoWalletModal`) bằng `createPortal(..., document.body)` với `z-10000`.
-       - Ẩn hoàn toàn Shop Info Banner, nút Chat với shop, các thao tác của người mua (Đánh giá, Mua lại, Hủy đơn) khi `isSeller === true`.
-       - Thẻ vận chuyển hoàn trả (`returnShipment`): Hiển thị "Kho của bạn" thay vì tên shop khi người bán xem đơn hàng.
-       - Cập nhật `useOrders.ts` để làm mới query cache `["subOrderDetail"]` trên mọi trạng thái và chuẩn hóa ép kiểu `subOrderId: String(detail.id)`.
-    3. **Khắc Phục Lỗi Validation Voucher (Đơn Tối Thiểu Nhỏ Hơn Giá Trị Giảm)**:
-       - Backend: Bổ sung validation trong `CreateVoucherCommandValidator.cs` đảm bảo `MinOrderValue >= DiscountValue` (giảm cố định) và `MinOrderValue >= MaxDiscountAmount` (giảm theo %).
-       - Frontend: Thêm các quy tắc Zod `.refine()` trong `voucher.schema.ts`.
-       - Bảng Voucher Seller (`CouponsView.tsx`) & Admin (`AdminVouchersView.tsx`): Loại bỏ cột "Loại Giảm" dư thừa.
-    4. **Dọn Dẹp Mock Data & Hoàn Thiện Vận Chuyển Hoàn Trả**:
-       - `SellerFollowersView.tsx` & `SellerReviewsView.tsx`: Xóa sạch mock data, gán mảng rỗng và kết nối dữ liệu thực.
-       - `Shippings.Api`: `GetShipmentsBySubOrderIdAsync` trả về danh sách vận đơn bao gồm đơn hoàn trả `isRefund = true`.
-       - `AdminShipmentsView.tsx`: Bổ sung cột "Loại vận đơn" (`🚚 Giao hàng` vs `🔄 Hoàn trả`) và bộ lọc.
+    1. **Nguyên nhân gốc rễ**: Khi Seller duyệt hoàn tiền, [ApproveRefundCommandHandler.cs](file:///home/vanmuzic/Projects/Ecommerce_Microservices/src/Services/Orders/Ecommerce.Services.Orders.Application/Features/Orders/Commands/ApproveRefund/ApproveRefundCommandHandler.cs) bắn `CreateShipmentRequest` với `IsRefund = true` nhưng để `Items` rỗng. [CreateShipmentConsumer.cs](file:///home/vanmuzic/Projects/Ecommerce_Microservices/src/Services/Shippings/Ecommerce.Services.Shippings.Api/Consumers/CreateShipmentConsumer.cs) map sang mảng rỗng `[]` và [GhnShippingProvider.cs](file:///home/vanmuzic/Projects/Ecommerce_Microservices/src/Services/Shippings/Ecommerce.Services.Shippings.Api/Services/GhnShippingProvider.cs) gửi `items: []` lên GHN API, khiến GHN trả về lỗi 400 `"Tên hàng hoá bắt buộc"`.
+    2. **Khắc phục 3 lớp phòng thủ (Defensive Programming)**:
+       - **Lớp 1 (Publisher)**: `ApproveRefundCommandHandler` truyền đầy đủ `subOrderItems` vào `CreateShipmentRequest.Items`.
+       - **Lớp 2 (Consumer)**: `CreateShipmentConsumer` kiểm tra nếu `Items` rỗng thì tự động fallback item đại diện `$"Hàng hoàn trả - Đơn #{message.SubOrderId}"`.
+       - **Lớp 3 (Provider)**: `GhnShippingProvider` đảm bảo trường `name` trong `items` không bao giờ null/whitespace (`"Hàng hóa"` / `"Hàng hóa hoàn trả"`).
+    3. **Ngăn chặn Saga Conflict**: Nếu tạo vận đơn hoàn hàng thất bại, không bắn `SubOrderRejectedEvent` (vốn chỉ dành cho luồng tạo đơn ban đầu làm huỷ SubOrder), mà chỉ ghi log, đánh dấu `Shipment.Status = Failed` và `FailureReason`.
   - **Kiểm Thử & Biên Dịch**:
-    - Frontend: `npm run build` -> Vite production build succeeded in 781ms (0 errors).
+    - Backend: `dotnet build Microservices.sln` -> 0 errors across all 8 microservices.
+
+- [x] Tinh Gọn Scope RefundStatus (Pending, SellerApproved, SellerRejected, Cancelled), Xóa Bỏ AttemptCount (EF Migration), Khắc Phục Lệch Trạng Thái Hoàn Tiền, Nâng Cấp RefundRequestsTab Khách Hàng & Chuẩn Hóa Tiếng Việt Bảng Seller:
+  - **Mục tiêu & Kết quả hoàn thành**:
+    1. **Giảm Scope `RefundStatus.cs` & Xóa Bỏ `AttemptCount`**:
+       - Giảm phạm vi `RefundStatus` xuống còn 4 trạng thái cốt lõi xoay quanh Seller và Buyer: `Pending` (1 - Chờ duyệt), `SellerApproved` (2 - Đã chấp thuận), `SellerRejected` (3 - Đã từ chối), `Cancelled` (4 - Đã hủy). Loại bỏ hoàn toàn các trạng thái admin/dispute rườm rà.
+       - Xóa bỏ trường `AttemptCount` và logic `Resubmit` nhiều lần trong [RefundRequest.cs](file:///home/vanmuzic/Projects/Ecommerce_Microservices/src/Services/Orders/Ecommerce.Services.Orders.Domain/RefundRequest.cs) và [RefundRequestDto.cs](file:///home/vanmuzic/Projects/Ecommerce_Microservices/src/Services/Orders/Ecommerce.Services.Orders.Application/Features/Orders/Dtos/RefundRequestDto.cs).
+       - Tạo và áp dụng thành công EF Core Migration `Remove_AttemptCount_From_RefundRequest` trên database PostgreSQL `OrdersDb`.
+    2. **Khắc Phục Lệch Trạng Thái Hoàn Tiền (SellerApproved Bị Hiển Thị Nhầm Thành Từ Chối)**:
+       - Sửa lỗi trong [VoucherHelpers.tsx](file:///home/vanmuzic/Projects/Ecommerce_Microservices/frontend-web/src/domains/order/components/VoucherHelpers.tsx) và [ProfileOrderTabs.tsx](file:///home/vanmuzic/Projects/Ecommerce_Microservices/frontend-web/src/domains/order/components/ProfileOrderTabs.tsx): `SellerApproved` và `Approved` đều được map chính xác thành *"Đã duyệt hoàn tiền"* / *"Đã chấp thuận"* (xanh ngọc emerald), không còn bị rơi vào nhánh `else` hiển thị *"Shop từ chối"*.
+    3. **Tách Riêng & Nâng Cấp `RefundRequestsTab` Dành Cho Khách Hàng ([RefundRequestsTab.tsx](file:///home/vanmuzic/Projects/Ecommerce_Microservices/frontend-web/src/domains/order/components/refund/RefundRequestsTab.tsx))**:
+       - Tách hoàn toàn `RefundRequestsTab` ra khỏi `ProfileOrderTabs.tsx` thành file độc lập đặt tại `src/domains/order/components/refund/RefundRequestsTab.tsx` theo chuẩn Feature Subcomponents Grouping Rule.
+       - Re-export qua `src/domains/order/components/refund/index.ts`, `ProfileOrderTabs.tsx` và `@/domains/order`.
+       - Bổ sung 2 nút hành động:
+         - **Chi tiết đơn**: Chuyển ngay sang xem chi tiết đơn hàng qua [CustomerOrderDetailView.tsx](file:///home/vanmuzic/Projects/Ecommerce_Microservices/frontend-web/src/domains/order/components/CustomerOrderDetailView.tsx) (`isSeller={false}`).
+         - **Chi tiết hoàn**: Mở Modal chi tiết hoàn tiền (portaled `z-10000`) hiển thị đầy đủ lý do, mô tả, phòng trưng bày bằng chứng (ảnh phóng to Lightbox, video player phát trực tiếp), phản hồi từ Shop và nút rút yêu cầu nếu còn Pending.
+       - Rút gọn lý do/mô tả dài thành 1 dòng với `truncate` kèm tooltip.
+       - Thêm thanh lọc trạng thái đơn khiếu nại, mặc định là **"Tất cả trạng thái"** (`All`).
+    4. **Chuẩn Hóa Tiếng Việt & Tinh Gọn Bảng Seller ([RefundRequestsView.tsx](file:///home/vanmuzic/Projects/Ecommerce_Microservices/frontend-web/src/domains/order/components/sellerOrder/RefundRequestsView.tsx))**:
+       - Chuyển toàn bộ các tùy chọn trạng thái trong dropdown filter sang tiếng Việt thuần túy: *"Chờ xử lý (Mặc định)"*, *"Tất cả trạng thái"*, *"Đã chấp thuận"*, *"Đã từ chối"*, *"Đã hủy"*.
+       - Loại bỏ hoàn toàn khối text *"Tổng cộng: X yêu cầu"*.
+       - Bỏ tiền tố *"User "* trong cột khách hàng, chỉ hiển thị mã số `#ID` gọn gàng trên cả bảng và modal chi tiết.
+  - **Kiểm Thử & Biên Dịch**:
+    - Frontend: `npm run build` -> Vite production build succeeded in 1.12s (0 errors).
     - Backend: `dotnet build Microservices.sln` -> 0 errors across all 8 microservices.
 
 - [x] Tách Phân Tích Sàn Thành 2 Chế Độ Riêng Biệt (Phân Tích Sàn & Phân Tích Ngành Hàng), Bảng Thống Kê Hiệu Suất Ngành Hàng Mới (Client-side Category Cache), Top 30 Sản Phẩm Ngành Hàng & Lọc Thời Gian Tùy Chỉnh:

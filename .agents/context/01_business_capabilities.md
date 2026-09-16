@@ -231,21 +231,19 @@ This document provides a detailed breakdown of all implemented backend APIs, gRP
     - Chế độ Seller xem chi tiết: Ẩn hoàn toàn Shop Info Banner, nút Chat với shop, các thao tác của người mua (Đánh giá, Mua lại, Hủy đơn); đổi các nhãn shop thành "Kho của bạn" / "Voucher Shop".
     - Bọc toàn bộ các modal (`showCancelModal`, `showCompleteModal`, `showNoWalletModal`) bằng `createPortal(..., document.body)` với `z-10000`.
     - Chuẩn hóa `subOrderId` dạng chuỗi (`String(detail.id)`) và cập nhật `useCancelCustomerSubOrderMutation`, `useCompleteSubOrderMutation`, `useCreateRefundMutation` để làm mới query cache `["subOrderDetail"]`.
-  - `RefundRequestsView.tsx` [REDESIGNED]:
-    - Tái thiết kế toàn diện từ dạng lưới thẻ sang bảng chuẩn (`table`) đồng bộ với `OrdersView.tsx`.
-    - Cột dữ liệu: Mã yêu cầu & đơn con, Khách hàng, Tiền hoàn trả (đỏ đậm), Lý do (truncate 1 dòng kèm tooltip), Bằng chứng (số lượng tệp, bấm mở modal), Trạng thái (`getRefundStatusBadge`), Thao tác.
-    - 3 Hành động rõ ràng:
-      1. `Chi tiết đơn`: Mở trực tiếp `CustomerOrderDetailView` với `isSeller={true}`.
-      2. `Chi tiết hoàn`: Mở Modal chi tiết đầy đủ lý do, mô tả, đếm ngược hạn tự động xử lý, phòng trưng bày bằng chứng (hình ảnh phóng to lightbox, video có trình phát tương tác) và ghi chú phản hồi từ Shop.
-      3. `Duyệt` & `Từ chối` (chỉ hiển thị khi `Pending`): Mở Modal nhập ghi chú gửi cho khách hàng.
-    - Bộ lọc trạng thái: Mặc định là `Pending` ("Chưa xử lý"). Hỗ trợ lọc `All`, `Approved`, `Rejected`, `Cancelled`.
-    - Ô tìm kiếm nhanh và phân trang tiêu chuẩn bằng component `Pagination`.
-  - **Khắc phục lỗi Validation Voucher (Đơn tối thiểu vs Giá trị giảm)**:
-    - Backend: `CreateVoucherCommandValidator.cs` bổ sung quy tắc kiểm tra `MinOrderValue >= DiscountValue` (giảm cố định) và `MinOrderValue >= MaxDiscountAmount` (giảm theo %).
-    - Frontend: `voucher.schema.ts` bổ sung các quy tắc Zod `.refine()` tương ứng.
-  - **Tối ưu Bảng Voucher Seller & Admin**:
-    - Loại bỏ cột "Loại Giảm" dư thừa tại `CouponsView.tsx` và `AdminVouchersView.tsx` do đã có ký hiệu rõ ràng (`đ` cố định, `%` phần trăm).
-  - **Dọn dẹp Mock Data**:
-    - `SellerFollowersView.tsx`: `MOCK_FOLLOWERS = []`.
-    - `SellerReviewsView.tsx`: `MOCK_SELLER_PRODUCTS = []`, `MOCK_REVIEWS_MAP = {}`.
-    - Đảm bảo hệ thống gọi API thực tế và hiển thị trạng thái rỗng chuẩn mực.
+  - **Thu gọn phạm vi Refund & Loại bỏ AttemptCount**:
+    - `RefundStatus`: Thu gọn chỉ còn 4 trạng thái xoay quanh Người mua và Người bán: `Pending = 1`, `SellerApproved = 2`, `SellerRejected = 3`, `Cancelled = 4`. Loại bỏ hoàn toàn các trạng thái admin dispute / escalated / auto xử lý.
+    - Loại bỏ trường `AttemptCount` và logic gửi lại nhiều lần khỏi `RefundRequest` entity, DTOs và Handlers.
+    - Tạo migration EF Core `Remove_AttemptCount_From_RefundRequest` và áp dụng cập nhật schema PostgreSQL thành công.
+  - **Cải tiến Tab Yêu cầu Hoàn tiền Khách hàng (`RefundRequestsTab.tsx` / `UserProfilePage.tsx`)**:
+    - Tách độc lập thành component riêng tại [RefundRequestsTab.tsx](file:///home/vanmuzic/Projects/Ecommerce_Microservices/frontend-web/src/domains/order/components/refund/RefundRequestsTab.tsx) trong thư mục chuyên biệt `components/refund/`, tuân thủ nguyên tắc Feature Subcomponents Grouping ACO.
+    - Khắc phục lỗi lệch trạng thái: Backend trả về `SellerApproved` trước đó bị hiển thị nhầm thành "Shop từ chối", nay hiển thị chính xác "Đã duyệt hoàn tiền" (badge xanh lá).
+    - Lý do và mô tả khiếu nại được rút gọn 1 dòng kèm dấu ba chấm (`...`) và tooltip xem đầy đủ.
+    - Bổ sung bộ lọc trạng thái với giá trị mặc định là "Tất cả trạng thái (Mặc định)".
+    - Bổ sung 2 nút hành động:
+      1. `Chi tiết đơn`: Mở xem chi tiết đơn hàng con qua `CustomerOrderDetailView` (`isSeller={false}`).
+      2. `Chi tiết hoàn`: Mở Modal chi tiết hoàn tiền portal `z-10000`, hiển thị lý do, mô tả, phản hồi của shop và phòng trưng bày hình ảnh (lightbox) / video minh chứng.
+  - **Tinh chỉnh Quản lý Hoàn tiền Người bán (`RefundRequestsView.tsx`)**:
+    - Toàn bộ nhãn trong dropdown lọc trạng thái được chuyển sang tiếng Việt hoàn chỉnh ("Chờ xử lý (Mặc định)", "Tất cả trạng thái", "Đã chấp thuận", "Đã từ chối", "Đã hủy").
+    - Loại bỏ dòng text "Tổng cộng: X yêu cầu".
+    - Loại bỏ tiền tố "User " ở cột và modal thông tin khách hàng (chỉ hiển thị `#{customerId}`).

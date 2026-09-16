@@ -51,7 +51,6 @@ public class GetMyRefundsQueryHandler(
                         Description = r.Description,
                         ProofImagesJson = r.ProofImagesJson,
                         Medias = medias,
-                        AttemptCount = r.AttemptCount,
                         SellerRejectReason = r.SellerRejectReason,
                         Status = r.Status.ToString(),
                         CreatedDate = r.CreatedDate,

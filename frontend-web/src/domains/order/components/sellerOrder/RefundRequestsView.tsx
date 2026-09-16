@@ -117,8 +117,14 @@ export default function RefundRequestsView() {
 	const filteredRefunds = useMemo(() => {
 		return allRefunds.filter((req) => {
 			// Status Filter
-			if (statusFilter !== "All" && req.status !== statusFilter) {
-				return false;
+			if (statusFilter !== "All") {
+				if (statusFilter === "SellerApproved" || statusFilter === "Approved") {
+					if (req.status !== "SellerApproved" && req.status !== "Approved") return false;
+				} else if (statusFilter === "SellerRejected" || statusFilter === "Rejected") {
+					if (req.status !== "SellerRejected" && req.status !== "Rejected") return false;
+				} else if (req.status !== statusFilter) {
+					return false;
+				}
 			}
 			// Search Query Filter
 			if (!searchQuery.trim()) return true;
@@ -260,17 +266,13 @@ export default function RefundRequestsView() {
 							}}
 							className="h-8 px-3 bg-white border border-brand-border rounded-md text-xs focus:outline-none focus:border-brand-primary cursor-pointer font-bold"
 						>
-							<option value="Pending">Chưa xử lý (Mặc định)</option>
+							<option value="Pending">Chờ xử lý (Mặc định)</option>
 							<option value="All">Tất cả trạng thái</option>
-							<option value="Approved">Đã duyệt</option>
-							<option value="Rejected">Đã từ chối</option>
+							<option value="SellerApproved">Đã chấp thuận</option>
+							<option value="SellerRejected">Đã từ chối</option>
 							<option value="Cancelled">Đã hủy</option>
 						</select>
 					</div>
-				</div>
-
-				<div className="text-[11px] text-brand-muted font-bold whitespace-nowrap">
-					Tổng cộng: <span className="font-black text-brand-dark">{filteredRefunds.length}</span> yêu cầu
 				</div>
 			</div>
 
@@ -326,7 +328,7 @@ export default function RefundRequestsView() {
 											{/* Khách hàng */}
 											<td className="p-3 whitespace-nowrap">
 												<span className="font-semibold text-brand-dark">
-													User #{req.customerId}
+													#{req.customerId}
 												</span>
 											</td>
 
@@ -499,7 +501,7 @@ export default function RefundRequestsView() {
 						<div className="grid grid-cols-1 sm:grid-cols-3 gap-3 p-3 bg-brand-light-soft/60 border border-brand-border rounded-md text-xs">
 							<div>
 								<span className="text-[10px] font-bold text-brand-muted block uppercase">Khách hàng</span>
-								<p className="font-extrabold text-brand-dark">User #{selectedRefund.customerId}</p>
+								<p className="font-extrabold text-brand-dark">#{selectedRefund.customerId}</p>
 							</div>
 							<div>
 								<span className="text-[10px] font-bold text-brand-muted block uppercase">Số tiền hoàn trả</span>

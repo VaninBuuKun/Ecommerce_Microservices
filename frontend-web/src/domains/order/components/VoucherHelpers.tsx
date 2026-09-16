@@ -177,15 +177,17 @@ export function getRefundStatusBadge(status: string) {
 		case "Pending":
 			return (
 				<span className="inline-flex items-center justify-center px-2.5 py-0.5 text-[11px] font-bold text-amber-800 bg-amber-50 border border-amber-200 rounded-md leading-none shadow-2xs whitespace-nowrap">
-					Chưa xử lý
+					Chờ xử lý
 				</span>
 			);
+		case "SellerApproved":
 		case "Approved":
 			return (
 				<span className="inline-flex items-center justify-center px-2.5 py-0.5 text-[11px] font-bold text-emerald-800 bg-emerald-50 border border-emerald-200 rounded-md leading-none shadow-2xs whitespace-nowrap">
-					Đã duyệt
+					Đã chấp thuận
 				</span>
 			);
+		case "SellerRejected":
 		case "Rejected":
 			return (
 				<span className="inline-flex items-center justify-center px-2.5 py-0.5 text-[11px] font-bold text-red-800 bg-red-50 border border-red-200 rounded-md leading-none shadow-2xs whitespace-nowrap">

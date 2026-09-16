@@ -239,11 +239,14 @@ public class GhnShippingProvider(
                 height = (int)request.Height,
                 service_type_id = 2,
                 cod_amount = (int)request.CodAmount,
-                items = request.Items.Select(item => new
+                items = (request.Items != null && request.Items.Any() ? request.Items : new List<CreateWaybillItemRequest>
                 {
-                    name = item.Name,
+                    new CreateWaybillItemRequest("Hàng hóa", "ITEM", 1, 0, "")
+                }).Select(item => new
+                {
+                    name = string.IsNullOrWhiteSpace(item.Name) ? "Hàng hóa" : item.Name.Trim(),
                     code = item.Code,
-                    quantity = item.Quantity,
+                    quantity = item.Quantity > 0 ? item.Quantity : 1,
                     price = item.Price,
                     image = item.productImage
                 }).ToArray()

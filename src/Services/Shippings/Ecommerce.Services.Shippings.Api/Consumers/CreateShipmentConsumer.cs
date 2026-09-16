@@ -100,13 +100,18 @@ public class CreateShipmentConsumer(
                 codAmountForWaybill = 0m;
                 shopId = originalShipment.ShopId;
 
-                itemsForWaybill = message.Items.Select(item => new CreateWaybillItemRequest(
-                    item.ProductName,
-                    item.VariantId.ToString(),
-                    item.Quantity,
-                    (int)item.UnitPrice,
-                    item.ProductImage
-                )).ToList();
+                itemsForWaybill = message.Items != null && message.Items.Any()
+                    ? message.Items.Select(item => new CreateWaybillItemRequest(
+                        string.IsNullOrWhiteSpace(item.ProductName) ? $"Hàng hoàn trả - Đơn #{message.SubOrderId}" : item.ProductName,
+                        item.VariantId.ToString(),
+                        item.Quantity > 0 ? item.Quantity : 1,
+                        (int)item.UnitPrice,
+                        item.ProductImage
+                    )).ToList()
+                    : new List<CreateWaybillItemRequest>
+                    {
+                        new CreateWaybillItemRequest($"Hàng hoàn trả - Đơn #{message.SubOrderId}", "RETURN", 1, 0, "")
+                    };
             }
             else
             {
@@ -152,13 +157,18 @@ public class CreateShipmentConsumer(
                 codAmountForWaybill = message.CodAmount;
                 shopId = message.ShopId;
 
-                itemsForWaybill = message.Items.Select(item => new CreateWaybillItemRequest(
-                    item.ProductName,
-                    item.VariantId.ToString(),
-                    item.Quantity,
-                    (int)item.UnitPrice,
-                    item.ProductImage
-                )).ToList();
+                itemsForWaybill = message.Items != null && message.Items.Any()
+                    ? message.Items.Select(item => new CreateWaybillItemRequest(
+                        string.IsNullOrWhiteSpace(item.ProductName) ? "Hàng hóa" : item.ProductName,
+                        item.VariantId.ToString(),
+                        item.Quantity > 0 ? item.Quantity : 1,
+                        (int)item.UnitPrice,
+                        item.ProductImage
+                    )).ToList()
+                    : new List<CreateWaybillItemRequest>
+                    {
+                        new CreateWaybillItemRequest($"Hàng hóa - Đơn #{message.SubOrderId}", "ITEM", 1, 0, "")
+                    };
             }
 
             var shippingProvider = providerFactory.GetProvider("GHN"); 
@@ -224,11 +234,14 @@ public class CreateShipmentConsumer(
 
                 logger.LogError("Failed to create waybill: {Error}", waybillResult.Message);
 
-                await context.Publish<SubOrderRejectedEvent>(new SubOrderRejectedEvent
+                if (!message.IsRefund)
                 {
-                    SubOrderId = message.SubOrderId,
-                    Reason = $"Tạo vận đơn thất bại: {waybillResult.Message}"
-                });
+                    await context.Publish<SubOrderRejectedEvent>(new SubOrderRejectedEvent
+                    {
+                        SubOrderId = message.SubOrderId,
+                        Reason = $"Tạo vận đơn thất bại: {waybillResult.Message}"
+                    });
+                }
             }
         }
         catch (Exception ex)
@@ -236,11 +249,14 @@ public class CreateShipmentConsumer(
             var detailedError = ex.InnerException != null ? $"{ex.Message} -> Inner: {ex.InnerException.Message}" : ex.Message;
             logger.LogError(ex, "Unexpected error in CreateShipmentConsumer: {DetailedError}", detailedError);
             
-            await context.Publish<SubOrderRejectedEvent>(new SubOrderRejectedEvent
+            if (!message.IsRefund)
             {
-                SubOrderId = message.SubOrderId,
-                Reason = $"Lỗi hệ thống khi khởi tạo vận đơn: {detailedError}"
-            });
+                await context.Publish<SubOrderRejectedEvent>(new SubOrderRejectedEvent
+                {
+                    SubOrderId = message.SubOrderId,
+                    Reason = $"Lỗi hệ thống khi khởi tạo vận đơn: {detailedError}"
+                });
+            }
         }
     }
 }
