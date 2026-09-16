@@ -1,4 +1,4 @@
-# 🛒 Multi-Vendor Ecommerce Microservices Platform
+# 🛒 Multi-Vendor Ecommerce Microservices Platform (don't develop new features)
 
 [![.NET 9](https://img.shields.io/badge/.NET-9.0-512BD4?logo=dotnet&logoColor=white)](https://dotnet.microsoft.com/)
 [![React 19](https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=black)](https://react.dev/)
