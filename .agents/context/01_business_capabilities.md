@@ -217,3 +217,33 @@ This document provides a detailed breakdown of all implemented backend APIs, gRP
    - **Quy Tắc Đơn Giản Hóa Trạng Thái Nút Bấm Analytics**:
      - Khi thay đổi filter (ngành hàng, mốc thời gian, tháng/năm, mã shop/sản phẩm) hoặc chuyển tab (chế độ): Lập tức gọi `setIsApplied(false)`, nút sáng màu và bấm được bình thường.
      - Khi được điều hướng sang một Shop ID mới ("qua cái mới rồi") từ bảng quản lý cửa hàng: Tự động reset `isApplied = false`, chấm dứt tình trạng kẹt chữ "Đã phân tích".
+- **Return Logistics, Refund Requests Redesign & Voucher Improvements**:
+  - `Shippings.Api`:
+    - Bổ sung `GetShipmentsBySubOrderIdAsync(long subOrderId)` trả về toàn bộ danh sách vận đơn (bao gồm cả đơn giao hàng gốc và đơn vận chuyển hoàn trả `isRefund = true`).
+    - `GET /api/shipments/sub-order/{subOrderId}` trả về `List<Shipment>` sắp xếp theo thời gian mới nhất.
+    - Cập nhật `AdminShipmentsView.tsx`: Thêm cột "Loại vận đơn" phân biệt rõ ràng vận đơn giao hàng (`🚚 Giao hàng`) và hoàn trả (`🔄 Hoàn trả`) kèm bộ lọc loại vận đơn.
+  - `CustomerRefundModal` [NEW]:
+    - Tách thành Modal hoàn tiền / trả hàng độc lập tại `src/domains/order/components/refund/CustomerRefundModal.tsx`, sử dụng `createPortal(..., document.body)` với `z-10000`.
+    - Hỗ trợ tải lên tối đa 6 hình ảnh và 3 video bằng chứng minh họa qua S3/MinIO `storageService.uploadFile` kèm thanh tiến trình phần trăm và trình phát video xem trước.
+    - Áp dụng nguyên tắc hoàn tiền toàn bộ đơn hàng con (`subOrder.GrandTotal`).
+  - `CustomerOrderDetailView.tsx`:
+    - Hiển thị thẻ vận đơn hoàn trả hàng (`Kiện hàng hoàn trả về kho của bạn`) với viền hổ phách, hiển thị địa chỉ người gửi, nơi nhận và nhật ký tracking.
+    - Chế độ Seller xem chi tiết: Ẩn hoàn toàn Shop Info Banner, nút Chat với shop, các thao tác của người mua (Đánh giá, Mua lại, Hủy đơn); đổi các nhãn shop thành "Kho của bạn" / "Voucher Shop".
+    - Bọc toàn bộ các modal (`showCancelModal`, `showCompleteModal`, `showNoWalletModal`) bằng `createPortal(..., document.body)` với `z-10000`.
+    - Chuẩn hóa `subOrderId` dạng chuỗi (`String(detail.id)`) và cập nhật `useCancelCustomerSubOrderMutation`, `useCompleteSubOrderMutation`, `useCreateRefundMutation` để làm mới query cache `["subOrderDetail"]`.
+  - **Thu gọn phạm vi Refund & Loại bỏ AttemptCount**:
+    - `RefundStatus`: Thu gọn chỉ còn 4 trạng thái xoay quanh Người mua và Người bán: `Pending = 1`, `SellerApproved = 2`, `SellerRejected = 3`, `Cancelled = 4`. Loại bỏ hoàn toàn các trạng thái admin dispute / escalated / auto xử lý.
+    - Loại bỏ trường `AttemptCount` và logic gửi lại nhiều lần khỏi `RefundRequest` entity, DTOs và Handlers.
+    - Tạo migration EF Core `Remove_AttemptCount_From_RefundRequest` và áp dụng cập nhật schema PostgreSQL thành công.
+  - **Cải tiến Tab Yêu cầu Hoàn tiền Khách hàng (`RefundRequestsTab.tsx` / `UserProfilePage.tsx`)**:
+    - Tách độc lập thành component riêng tại [RefundRequestsTab.tsx](file:///home/vanmuzic/Projects/Ecommerce_Microservices/frontend-web/src/domains/order/components/refund/RefundRequestsTab.tsx) trong thư mục chuyên biệt `components/refund/`, tuân thủ nguyên tắc Feature Subcomponents Grouping ACO.
+    - Khắc phục lỗi lệch trạng thái: Backend trả về `SellerApproved` trước đó bị hiển thị nhầm thành "Shop từ chối", nay hiển thị chính xác "Đã duyệt hoàn tiền" (badge xanh lá).
+    - Lý do và mô tả khiếu nại được rút gọn 1 dòng kèm dấu ba chấm (`...`) và tooltip xem đầy đủ.
+    - Bổ sung bộ lọc trạng thái với giá trị mặc định là "Tất cả trạng thái (Mặc định)".
+    - Bổ sung 2 nút hành động:
+      1. `Chi tiết đơn`: Mở xem chi tiết đơn hàng con qua `CustomerOrderDetailView` (`isSeller={false}`).
+      2. `Chi tiết hoàn`: Mở Modal chi tiết hoàn tiền portal `z-10000`, hiển thị lý do, mô tả, phản hồi của shop và phòng trưng bày hình ảnh (lightbox) / video minh chứng.
+  - **Tinh chỉnh Quản lý Hoàn tiền Người bán (`RefundRequestsView.tsx`)**:
+    - Toàn bộ nhãn trong dropdown lọc trạng thái được chuyển sang tiếng Việt hoàn chỉnh ("Chờ xử lý (Mặc định)", "Tất cả trạng thái", "Đã chấp thuận", "Đã từ chối", "Đã hủy").
+    - Loại bỏ dòng text "Tổng cộng: X yêu cầu".
+    - Loại bỏ tiền tố "User " ở cột và modal thông tin khách hàng (chỉ hiển thị `#{customerId}`).

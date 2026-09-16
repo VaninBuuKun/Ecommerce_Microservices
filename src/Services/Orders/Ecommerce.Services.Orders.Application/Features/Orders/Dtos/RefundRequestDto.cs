@@ -18,7 +18,6 @@ public class RefundRequestDto
     public string? Description { get; set; }
     public string? ProofImagesJson { get; set; }
     public List<string> Medias { get; set; } = new();
-    public int AttemptCount { get; set; }
     public string? SellerRejectReason { get; set; }
     public string Status { get; set; } = string.Empty;
     public DateTimeOffset CreatedDate { get; set; }

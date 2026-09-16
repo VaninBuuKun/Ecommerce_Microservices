@@ -41,17 +41,19 @@ public class ShippingAppService(
         return results;
     }
 
-    public async Task<Result<Ecommerce.Services.Shippings.Api.Models.Entities.Shipment>> GetShipmentBySubOrderIdAsync(long subOrderId, CancellationToken cancellationToken = default)
+    public async Task<Result<List<Ecommerce.Services.Shippings.Api.Models.Entities.Shipment>>> GetShipmentsBySubOrderIdAsync(long subOrderId, CancellationToken cancellationToken = default)
     {
-        var shipment = await dbContext.Shipments
-            .FirstOrDefaultAsync(s => s.SubOrderId == subOrderId, cancellationToken);
+        var shipments = await dbContext.Shipments
+            .Where(s => s.SubOrderId == subOrderId)
+            .OrderByDescending(s => s.CreatedDate)
+            .ToListAsync(cancellationToken);
 
-        if (shipment == null)
+        if (shipments == null || shipments.Count == 0)
         {
-            return Result<Ecommerce.Services.Shippings.Api.Models.Entities.Shipment>.Failure("Không tìm thấy thông tin vận chuyển cho đơn hàng này.", EErrorCode.NotFound);
+            return Result<List<Ecommerce.Services.Shippings.Api.Models.Entities.Shipment>>.Failure("Không tìm thấy thông tin vận chuyển cho đơn hàng này.", EErrorCode.NotFound);
         }
 
-        return Result<Ecommerce.Services.Shippings.Api.Models.Entities.Shipment>.Success(shipment);
+        return Result<List<Ecommerce.Services.Shippings.Api.Models.Entities.Shipment>>.Success(shipments);
     }
 
     public async Task<Result<PagedShipmentsDto>> GetShipmentsPagedAsync(int page, int pageSize, string? search, CancellationToken cancellationToken = default)

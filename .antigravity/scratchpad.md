@@ -1,3 +1,38 @@
+- [x] Sửa Lỗi GHN API "Tên hàng hoá bắt buộc" Khi Tạo Vận Đơn Hoàn Trả (Reverse Logistics), Phòng Thủ 3 Lớp & Ngăn Chặn SubOrderRejectedEvent Sai Trạng Thái:
+  - **Mục tiêu & Kết quả hoàn thành**:
+    1. **Nguyên nhân gốc rễ**: Khi Seller duyệt hoàn tiền, [ApproveRefundCommandHandler.cs](file:///home/vanmuzic/Projects/Ecommerce_Microservices/src/Services/Orders/Ecommerce.Services.Orders.Application/Features/Orders/Commands/ApproveRefund/ApproveRefundCommandHandler.cs) bắn `CreateShipmentRequest` với `IsRefund = true` nhưng để `Items` rỗng. [CreateShipmentConsumer.cs](file:///home/vanmuzic/Projects/Ecommerce_Microservices/src/Services/Shippings/Ecommerce.Services.Shippings.Api/Consumers/CreateShipmentConsumer.cs) map sang mảng rỗng `[]` và [GhnShippingProvider.cs](file:///home/vanmuzic/Projects/Ecommerce_Microservices/src/Services/Shippings/Ecommerce.Services.Shippings.Api/Services/GhnShippingProvider.cs) gửi `items: []` lên GHN API, khiến GHN trả về lỗi 400 `"Tên hàng hoá bắt buộc"`.
+    2. **Khắc phục 3 lớp phòng thủ (Defensive Programming)**:
+       - **Lớp 1 (Publisher)**: `ApproveRefundCommandHandler` truyền đầy đủ `subOrderItems` vào `CreateShipmentRequest.Items`.
+       - **Lớp 2 (Consumer)**: `CreateShipmentConsumer` kiểm tra nếu `Items` rỗng thì tự động fallback item đại diện `$"Hàng hoàn trả - Đơn #{message.SubOrderId}"`.
+       - **Lớp 3 (Provider)**: `GhnShippingProvider` đảm bảo trường `name` trong `items` không bao giờ null/whitespace (`"Hàng hóa"` / `"Hàng hóa hoàn trả"`).
+    3. **Ngăn chặn Saga Conflict**: Nếu tạo vận đơn hoàn hàng thất bại, không bắn `SubOrderRejectedEvent` (vốn chỉ dành cho luồng tạo đơn ban đầu làm huỷ SubOrder), mà chỉ ghi log, đánh dấu `Shipment.Status = Failed` và `FailureReason`.
+  - **Kiểm Thử & Biên Dịch**:
+    - Backend: `dotnet build Microservices.sln` -> 0 errors across all 8 microservices.
+
+- [x] Tinh Gọn Scope RefundStatus (Pending, SellerApproved, SellerRejected, Cancelled), Xóa Bỏ AttemptCount (EF Migration), Khắc Phục Lệch Trạng Thái Hoàn Tiền, Nâng Cấp RefundRequestsTab Khách Hàng & Chuẩn Hóa Tiếng Việt Bảng Seller:
+  - **Mục tiêu & Kết quả hoàn thành**:
+    1. **Giảm Scope `RefundStatus.cs` & Xóa Bỏ `AttemptCount`**:
+       - Giảm phạm vi `RefundStatus` xuống còn 4 trạng thái cốt lõi xoay quanh Seller và Buyer: `Pending` (1 - Chờ duyệt), `SellerApproved` (2 - Đã chấp thuận), `SellerRejected` (3 - Đã từ chối), `Cancelled` (4 - Đã hủy). Loại bỏ hoàn toàn các trạng thái admin/dispute rườm rà.
+       - Xóa bỏ trường `AttemptCount` và logic `Resubmit` nhiều lần trong [RefundRequest.cs](file:///home/vanmuzic/Projects/Ecommerce_Microservices/src/Services/Orders/Ecommerce.Services.Orders.Domain/RefundRequest.cs) và [RefundRequestDto.cs](file:///home/vanmuzic/Projects/Ecommerce_Microservices/src/Services/Orders/Ecommerce.Services.Orders.Application/Features/Orders/Dtos/RefundRequestDto.cs).
+       - Tạo và áp dụng thành công EF Core Migration `Remove_AttemptCount_From_RefundRequest` trên database PostgreSQL `OrdersDb`.
+    2. **Khắc Phục Lệch Trạng Thái Hoàn Tiền (SellerApproved Bị Hiển Thị Nhầm Thành Từ Chối)**:
+       - Sửa lỗi trong [VoucherHelpers.tsx](file:///home/vanmuzic/Projects/Ecommerce_Microservices/frontend-web/src/domains/order/components/VoucherHelpers.tsx) và [ProfileOrderTabs.tsx](file:///home/vanmuzic/Projects/Ecommerce_Microservices/frontend-web/src/domains/order/components/ProfileOrderTabs.tsx): `SellerApproved` và `Approved` đều được map chính xác thành *"Đã duyệt hoàn tiền"* / *"Đã chấp thuận"* (xanh ngọc emerald), không còn bị rơi vào nhánh `else` hiển thị *"Shop từ chối"*.
+    3. **Tách Riêng & Nâng Cấp `RefundRequestsTab` Dành Cho Khách Hàng ([RefundRequestsTab.tsx](file:///home/vanmuzic/Projects/Ecommerce_Microservices/frontend-web/src/domains/order/components/refund/RefundRequestsTab.tsx))**:
+       - Tách hoàn toàn `RefundRequestsTab` ra khỏi `ProfileOrderTabs.tsx` thành file độc lập đặt tại `src/domains/order/components/refund/RefundRequestsTab.tsx` theo chuẩn Feature Subcomponents Grouping Rule.
+       - Re-export qua `src/domains/order/components/refund/index.ts`, `ProfileOrderTabs.tsx` và `@/domains/order`.
+       - Bổ sung 2 nút hành động:
+         - **Chi tiết đơn**: Chuyển ngay sang xem chi tiết đơn hàng qua [CustomerOrderDetailView.tsx](file:///home/vanmuzic/Projects/Ecommerce_Microservices/frontend-web/src/domains/order/components/CustomerOrderDetailView.tsx) (`isSeller={false}`).
+         - **Chi tiết hoàn**: Mở Modal chi tiết hoàn tiền (portaled `z-10000`) hiển thị đầy đủ lý do, mô tả, phòng trưng bày bằng chứng (ảnh phóng to Lightbox, video player phát trực tiếp), phản hồi từ Shop và nút rút yêu cầu nếu còn Pending.
+       - Rút gọn lý do/mô tả dài thành 1 dòng với `truncate` kèm tooltip.
+       - Thêm thanh lọc trạng thái đơn khiếu nại, mặc định là **"Tất cả trạng thái"** (`All`).
+    4. **Chuẩn Hóa Tiếng Việt & Tinh Gọn Bảng Seller ([RefundRequestsView.tsx](file:///home/vanmuzic/Projects/Ecommerce_Microservices/frontend-web/src/domains/order/components/sellerOrder/RefundRequestsView.tsx))**:
+       - Chuyển toàn bộ các tùy chọn trạng thái trong dropdown filter sang tiếng Việt thuần túy: *"Chờ xử lý (Mặc định)"*, *"Tất cả trạng thái"*, *"Đã chấp thuận"*, *"Đã từ chối"*, *"Đã hủy"*.
+       - Loại bỏ hoàn toàn khối text *"Tổng cộng: X yêu cầu"*.
+       - Bỏ tiền tố *"User "* trong cột khách hàng, chỉ hiển thị mã số `#ID` gọn gàng trên cả bảng và modal chi tiết.
+  - **Kiểm Thử & Biên Dịch**:
+    - Frontend: `npm run build` -> Vite production build succeeded in 1.12s (0 errors).
+    - Backend: `dotnet build Microservices.sln` -> 0 errors across all 8 microservices.
+
 - [x] Tách Phân Tích Sàn Thành 2 Chế Độ Riêng Biệt (Phân Tích Sàn & Phân Tích Ngành Hàng), Bảng Thống Kê Hiệu Suất Ngành Hàng Mới (Client-side Category Cache), Top 30 Sản Phẩm Ngành Hàng & Lọc Thời Gian Tùy Chỉnh:
   - **Mục tiêu & Kết quả hoàn thành**:
     1. **Tách Biệt 4 Chế Độ Phân Tích Admin Độc Lập Tại `AdminAnalyticsFilterBar.tsx`**:

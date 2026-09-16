@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using BuildingBlocks.Auth;
+using BuildingBlocks.Shared.InfrastructureInterfaces.InMemoryBus;
 using BuildingBlocks.Web.Controllers;
 using Ecommerce.Services.Orders.Application.Features.Orders.Commands.CreateRefund;
 using Ecommerce.Services.Orders.Application.Features.Orders.Commands.ApproveRefund;
@@ -11,13 +12,15 @@ using Ecommerce.Services.Orders.Application.Features.Orders.Commands.CancelRefun
 using Ecommerce.Services.Orders.Application.Features.Orders.Queries.GetMyRefunds;
 using Ecommerce.Services.Orders.Application.Features.Orders.Queries.GetShopRefunds;
 using Ecommerce.Services.Orders.Application.Features.Orders.Dtos;
+using MediatR;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Ecommerce.Services.Orders.Api.Controllers;
 
-[Tags("Refunds")]
-public class RefundsController(ICurrentUserService currentUserService) : CleanV1CustomController
+[ApiController]
+[Route("api/[controller]")]
+public class RefundsController(ICurrentUserService currentUserService, IInMemoryBus _sender) : ControllerBase
 {
     private long UserId => currentUserService.UserId;
 

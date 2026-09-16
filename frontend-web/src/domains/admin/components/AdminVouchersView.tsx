@@ -336,8 +336,7 @@ export function AdminVouchersView() {
 									<th className="p-3 text-left w-24">Mã Code</th>
 									<th className="p-3 text-left min-w-[130px]">Tên Voucher</th>
 									<th className="p-3 text-center w-24">Phạm Vi</th>
-									<th className="p-3 text-center w-28">Loại Giảm</th>
-									<th className="p-3 text-left min-w-[130px]">Giá Trị Giảm</th>
+									<th className="p-3 text-left min-w-[140px]">Giá Trị Giảm</th>
 									<th className="p-3 text-left w-28">Đơn Tối Thiểu</th>
 									<th className="p-3 text-left min-w-[130px]">Thời Hạn</th>
 									<th className="p-3 text-center w-28">Đã Dùng / Tối Đa</th>
@@ -361,13 +360,6 @@ export function AdminVouchersView() {
 													<Badge variant="purple">Toàn sàn</Badge>
 												) : (
 													<Badge variant="indigo">Shop #{voucher.shopId}</Badge>
-												)}
-											</td>
-											<td className="p-3 text-center">
-												{voucher.discountType === "Percentage" || voucher.discountType === 1 ? (
-													<Badge variant="blue">Phần trăm</Badge>
-												) : (
-													<Badge variant="green">Cố định</Badge>
 												)}
 											</td>
 											<td className="p-3 text-brand-dark font-extrabold whitespace-normal break-words max-w-[140px] leading-tight">

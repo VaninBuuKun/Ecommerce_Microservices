@@ -319,8 +319,7 @@ export default function CouponsView() {
 								<tr>
 									<th className="p-3 text-left min-w-[30px]">Mã Code</th>
 									<th className="p-3 text-left min-w-[130px]">Tên Voucher</th>
-									<th className="p-3 text-center w-28">Loại Giảm</th>
-									<th className="p-3 text-center w-32">Giá Trị Giảm</th>
+									<th className="p-3 text-center w-36">Giá Trị Giảm</th>
 									<th className="p-3 text-center w-32">Đơn Tối Thiểu</th>
 									<th className="p-3 text-center w-10">Thời Hạn</th>
 									<th className="p-3 text-center w-28">Đã Dùng / Tối Đa</th>
@@ -336,13 +335,6 @@ export default function CouponsView() {
 										</td>
 										<td className="p-3 text-brand-dark font-bold whitespace-normal break-words max-w-[160px] leading-tight">
 											{voucher.name || "—"}
-										</td>
-										<td className="p-3 text-center">
-											{voucher.discountType === "Percentage" || voucher.discountType === 1 ? (
-												<Badge variant="blue">Phần trăm</Badge>
-											) : (
-												<Badge variant="green">Cố định</Badge>
-											)}
 										</td>
 										<td className="p-3 text-brand-dark font-extrabold whitespace-normal break-words max-w-[140px] leading-tight text-center">
 											{voucher.discountType === "Percentage" || voucher.discountType === 1

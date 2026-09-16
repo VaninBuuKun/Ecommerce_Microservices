@@ -137,8 +137,8 @@ export const orderApi = {
 	},
 
 	// Khách hàng yêu cầu hoàn tiền
-	createRefund: async (subOrderId: string, reason: string): Promise<any> => {
-		const response = await api.post("/refunds", { subOrderId, reason });
+	createRefund: async (subOrderId: string, reason: string, medias?: string[]): Promise<any> => {
+		const response = await api.post("/refunds", { subOrderId, reason, medias });
 		return response.data;
 	},
 

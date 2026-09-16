@@ -171,3 +171,40 @@ export function getPaymentStatusLabel(status: string) {
 			return { text: "Chờ thanh toán", color: "text-amber-600 font-bold" };
 	}
 }
+
+export function getRefundStatusBadge(status: string) {
+	switch (status) {
+		case "Pending":
+			return (
+				<span className="inline-flex items-center justify-center px-2.5 py-0.5 text-[11px] font-bold text-amber-800 bg-amber-50 border border-amber-200 rounded-md leading-none shadow-2xs whitespace-nowrap">
+					Chờ xử lý
+				</span>
+			);
+		case "SellerApproved":
+		case "Approved":
+			return (
+				<span className="inline-flex items-center justify-center px-2.5 py-0.5 text-[11px] font-bold text-emerald-800 bg-emerald-50 border border-emerald-200 rounded-md leading-none shadow-2xs whitespace-nowrap">
+					Đã chấp thuận
+				</span>
+			);
+		case "SellerRejected":
+		case "Rejected":
+			return (
+				<span className="inline-flex items-center justify-center px-2.5 py-0.5 text-[11px] font-bold text-red-800 bg-red-50 border border-red-200 rounded-md leading-none shadow-2xs whitespace-nowrap">
+					Đã từ chối
+				</span>
+			);
+		case "Cancelled":
+			return (
+				<span className="inline-flex items-center justify-center px-2.5 py-0.5 text-[11px] font-bold text-slate-800 bg-slate-100 border border-slate-300 rounded-md leading-none shadow-2xs whitespace-nowrap">
+					Đã hủy
+				</span>
+			);
+		default:
+			return (
+				<span className="inline-flex items-center justify-center px-2.5 py-0.5 text-[11px] font-bold text-brand-dark bg-brand-light-soft border border-brand-border rounded-md leading-none shadow-2xs whitespace-nowrap">
+					{status || "N/A"}
+				</span>
+			);
+	}
+}

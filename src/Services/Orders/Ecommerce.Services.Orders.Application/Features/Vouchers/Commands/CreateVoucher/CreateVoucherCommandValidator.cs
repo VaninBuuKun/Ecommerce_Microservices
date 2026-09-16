@@ -35,6 +35,17 @@ public class CreateVoucherCommandValidator : AbstractValidator<CreateVoucherComm
                     .GreaterThan(0)
                     .When(x => x.voucherRequest.MaxDiscountAmount.HasValue)
                     .WithMessage("Số tiền giảm tối đa phải lớn hơn 0.");
+
+                RuleFor(x => x.voucherRequest)
+                    .Must(r => !r.MaxDiscountAmount.HasValue || r.MinOrderValue >= r.MaxDiscountAmount.Value)
+                    .WithMessage("Đơn hàng tối thiểu phải lớn hơn hoặc bằng số tiền giảm tối đa.");
+            });
+
+            When(x => x.voucherRequest.DiscountType == DiscountType.FixedAmount, () =>
+            {
+                RuleFor(x => x.voucherRequest)
+                    .Must(r => r.MinOrderValue >= r.DiscountValue)
+                    .WithMessage("Đơn hàng tối thiểu phải lớn hơn hoặc bằng giá trị giảm giá cố định.");
             });
 
             RuleFor(x => x.voucherRequest.MinOrderValue)

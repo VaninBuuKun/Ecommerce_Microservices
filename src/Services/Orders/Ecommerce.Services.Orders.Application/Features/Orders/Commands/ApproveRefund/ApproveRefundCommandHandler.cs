@@ -96,12 +96,20 @@ public class ApproveRefundCommandHandler(
                 ShopOwnerUserId = command.SellerId,
             }, cancellationToken);
 
-            // 2. Tạo vận đơn hoàn hàng (Reverse Waybill) bằng cách báo gửi yêu cầu IsReturn
+            // 2. Tạo vận đơn hoàn hàng (Reverse Waybill) bằng cách báo gửi yêu cầu IsReturn kèm danh sách mặt hàng
             await publisher.PublishAsync(new CreateShipmentRequest
             {
                 SubOrderId = subOrder.Id,
                 OrderId = subOrder.OrderId,
-                IsRefund = true
+                IsRefund = true,
+                Items = subOrderItems.Select(x => new ShipmentItemData
+                {
+                    VariantId = x.VariantId,
+                    Quantity = x.Quantity > 0 ? x.Quantity : 1,
+                    UnitPrice = x.UnitPrice,
+                    ProductName = string.IsNullOrWhiteSpace(x.ProductName) ? $"Hàng hoàn trả - Đơn #{subOrder.Id}" : x.ProductName,
+                    ProductImage = x.ThumbnailUrl ?? string.Empty
+                }).ToList()
             }, cancellationToken);
 
             if (subOrderItems.Any())

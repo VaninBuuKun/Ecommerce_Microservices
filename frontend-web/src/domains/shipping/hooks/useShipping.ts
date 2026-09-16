@@ -54,7 +54,7 @@ export function useShipmentBySubOrderQuery(subOrderId: string) {
 	return useQuery({
 		queryKey: ["shipment", "subOrder", subOrderId],
 		queryFn: () => shippingApi.getShipmentBySubOrderId(subOrderId),
-		enabled: Boolean(subOrderId && subOrderId > 0),
+		enabled: Boolean(subOrderId && subOrderId !== "0"),
 		retry: false,
 	});
 }

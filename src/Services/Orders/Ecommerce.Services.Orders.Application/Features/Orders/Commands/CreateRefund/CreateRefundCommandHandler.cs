@@ -110,7 +110,6 @@ public class CreateRefundCommandHandler(
                 RequestedAmount = refundRequest.RequestedAmount,
                 Reason = refundRequest.Reason,
                 Medias = command.Medias ?? new List<string>(),
-                AttemptCount = refundRequest.AttemptCount,
                 Status = refundRequest.Status.ToString(),
                 CreatedDate = refundRequest.CreatedDate,
                 ExpirationDate = refundRequest.ExpirationDate

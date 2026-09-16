@@ -14,7 +14,6 @@ public class RefundRequest : EntityTrackingBase<long>
     public string? Description { get; private set; }
     public string? ProofImagesJson { get; private set; }
     public decimal RequestedAmount { get; private set; }
-    public int AttemptCount { get; private set; } = 1;
     public RefundStatus Status { get; private set; } = RefundStatus.Pending;
     public string? SellerRejectReason { get; private set; }
     public DateTimeOffset ExpirationDate { get; private set; }
@@ -42,7 +41,6 @@ public class RefundRequest : EntityTrackingBase<long>
         ProofImagesJson = proofImagesJson;
         RequestedAmount = requestedAmount;
         ExpirationDate = expirationDate;
-        AttemptCount = 1;
         Status = RefundStatus.Pending;
     }
 
@@ -62,18 +60,8 @@ public class RefundRequest : EntityTrackingBase<long>
         SellerRejectReason = rejectReason;
     }
 
-    public void Resubmit(string newReason, string? newDescription, string? newProofImagesJson, decimal newAmount)
+    public void Cancel()
     {
-        if (AttemptCount >= 3)
-        {
-            throw new InvalidOperationException("Đã đạt giới hạn tối đa 3 lần gửi yêu cầu hoàn tiền.");
-        }
-        Reason = newReason;
-        Description = newDescription;
-        ProofImagesJson = newProofImagesJson;
-        RequestedAmount = newAmount;
-        AttemptCount += 1;
-        Status = RefundStatus.Pending;
-        ExpirationDate = DateTimeOffset.UtcNow.AddDays(2);
+        Status = RefundStatus.Cancelled;
     }
 }

@@ -45,6 +45,30 @@ export const voucherFormSchema = z
 			message: "Ngày kết thúc phải diễn ra sau ngày bắt đầu.",
 			path: ["endDate"],
 		}
+	)
+	.refine(
+		(data) => {
+			if (data.discountType === "FixedAmount") {
+				return (data.minOrderValue ?? 0) >= data.discountValue;
+			}
+			return true;
+		},
+		{
+			message: "Đơn hàng tối thiểu phải lớn hơn hoặc bằng giá trị giảm giá cố định.",
+			path: ["minOrderValue"],
+		}
+	)
+	.refine(
+		(data) => {
+			if (data.discountType === "Percentage" && data.maxDiscountAmount) {
+				return (data.minOrderValue ?? 0) >= data.maxDiscountAmount;
+			}
+			return true;
+		},
+		{
+			message: "Đơn hàng tối thiểu phải lớn hơn hoặc bằng số tiền giảm tối đa.",
+			path: ["minOrderValue"],
+		}
 	);
 
 export type VoucherFormData = z.infer<typeof voucherFormSchema>;

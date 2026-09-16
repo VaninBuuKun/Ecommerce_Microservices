@@ -12,6 +12,7 @@ export * from "./components/ShippingAddressCard";
 export * from "./components/VoucherHelpers";
 export * from "./components/ProfileOrderTabs";
 export * from "./components/CustomerOrderDetailView";
+export * from "./components/refund";
 
 export { OrdersView } from "./components/sellerOrder/OrdersView";
 export { default as RefundRequestsView } from "./components/sellerOrder/RefundRequestsView";

@@ -37,21 +37,34 @@ public class GetShopRefundsQueryHandler(
 
             var dtos = refunds
                 .OrderByDescending(r => r.CreatedDate)
-                .Select(r => new RefundRequestDto
+                .Select(r =>
                 {
-                    Id = r.Id,
-                    SubOrderId = r.SubOrderId,
-                    CustomerId = r.CustomerId,
-                    ShopId = r.ShopId,
-                    RequestedAmount = r.RequestedAmount,
-                    Reason = r.Reason,
-                    Description = r.Description,
-                    ProofImagesJson = r.ProofImagesJson,
-                    AttemptCount = r.AttemptCount,
-                    SellerRejectReason = r.SellerRejectReason,
-                    Status = r.Status.ToString(),
-                    CreatedDate = r.CreatedDate,
-                    ExpirationDate = r.ExpirationDate
+                    List<string> medias = new();
+                    if (!string.IsNullOrWhiteSpace(r.ProofImagesJson))
+                    {
+                        try
+                        {
+                            medias = System.Text.Json.JsonSerializer.Deserialize<List<string>>(r.ProofImagesJson) ?? new();
+                        }
+                        catch { }
+                    }
+
+                    return new RefundRequestDto
+                    {
+                        Id = r.Id,
+                        SubOrderId = r.SubOrderId,
+                        CustomerId = r.CustomerId,
+                        ShopId = r.ShopId,
+                        RequestedAmount = r.RequestedAmount,
+                        Reason = r.Reason,
+                        Description = r.Description,
+                        ProofImagesJson = r.ProofImagesJson,
+                        Medias = medias,
+                        SellerRejectReason = r.SellerRejectReason,
+                        Status = r.Status.ToString(),
+                        CreatedDate = r.CreatedDate,
+                        ExpirationDate = r.ExpirationDate
+                    };
                 }).ToList();
 
             return Result<List<RefundRequestDto>>.Success(dtos);

@@ -1,4 +1,5 @@
 import { useState, useMemo } from "react";
+import { createPortal } from "react-dom";
 import { useNavigate } from "react-router-dom";
 import {
 	Loader2,
@@ -14,12 +15,12 @@ import {
 	Clock,
 	Star,
 	Store,
+	RotateCcw,
 } from "lucide-react";
 import {
 	useSubOrderDetailQuery,
 	useCancelCustomerSubOrderMutation,
 	useCompleteSubOrderMutation,
-	useCreateRefundMutation,
 	useConfirmSubOrderMutation,
 	useRejectSubOrderMutation,
 	getOrderStatusBadge,
@@ -31,6 +32,7 @@ import { ProductReviewModal } from "@/domains/catalog";
 import { useBuyNowOrReorder } from "@/domains/cart";
 import { PackageReadyModal } from "./sellerOrder/PackageReadyModal";
 import { CancelOrderModal } from "./sellerOrder/CancelOrderModal";
+import { CustomerRefundModal } from "./refund";
 import { usePackageReadySubOrderMutation } from "../hooks/useOrders";
 import { toast } from "react-toastify";
 
@@ -54,12 +56,23 @@ export function CustomerOrderDetailView({
 
 	// 1. ALL HOOKS CALLED AT TOP LEVEL UNCONDITIONALLY (Strict Rules of Hooks)
 	const { data: detail, isLoading, refetch } = useSubOrderDetailQuery(subOrderId, isSeller);
-	const { data: shipment, isLoading: isShipmentLoading } = useShipmentBySubOrderQuery(subOrderId);
+	const { data: rawShipments, isLoading: isShipmentLoading } = useShipmentBySubOrderQuery(subOrderId);
 
-	// Customer mutations
-	const cancelMutation = useCancelCustomerSubOrderMutation();
-	const completeMutation = useCompleteSubOrderMutation();
-	const refundMutation = useCreateRefundMutation();
+	const shipments: any[] = useMemo(() => {
+		if (!rawShipments) return [];
+		if (Array.isArray(rawShipments)) return rawShipments;
+		return [rawShipments];
+	}, [rawShipments]);
+
+	const forwardShipment = useMemo(() => {
+		return shipments.find((s) => !s.isRefund) || shipments[0] || null;
+	}, [shipments]);
+
+	const returnShipment = useMemo(() => {
+		return shipments.find((s) => s.isRefund) || null;
+	}, [shipments]);
+
+	const shipment = forwardShipment;
 
 	// Seller mutations
 	const confirmSubOrderMutation = useConfirmSubOrderMutation();
@@ -169,8 +182,8 @@ export function CustomerOrderDetailView({
 
 	const orderTimeStr = detail.createdDate
 		? new Date(detail.createdDate).toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" }) +
-		  " " +
-		  new Date(detail.createdDate).toLocaleDateString("vi-VN")
+		" " +
+		new Date(detail.createdDate).toLocaleDateString("vi-VN")
 		: "N/A";
 
 	const isCod = !detail.isOnlinePayment || detail.paymentDto?.providerName?.toLowerCase() === "cod";
@@ -182,7 +195,7 @@ export function CustomerOrderDetailView({
 			return;
 		}
 		cancelMutation.mutate(
-			{ subOrderId: detail.id, reason: reason.trim() },
+			{ subOrderId: String(detail.id), reason: reason.trim() },
 			{
 				onSuccess: () => {
 					setShowCancelModal(false);
@@ -200,7 +213,7 @@ export function CustomerOrderDetailView({
 	};
 
 	const handleCompleteOrder = () => {
-		completeMutation.mutate(detail.id, {
+		completeMutation.mutate(String(detail.id), {
 			onSuccess: () => {
 				setShowCompleteModal(false);
 				setErrorMessage("");
@@ -212,36 +225,6 @@ export function CustomerOrderDetailView({
 				setErrorMessage(err?.response?.data?.message || err?.response?.data || "Đã xảy ra lỗi khi hoàn tất đơn.");
 			},
 		});
-	};
-
-	const handleRefundOrder = () => {
-		if (!reason.trim()) {
-			setErrorMessage("Vui lòng nhập lý do yêu cầu hoàn tiền.");
-			return;
-		}
-		refundMutation.mutate(
-			{ subOrderId: detail.id, reason: reason.trim() },
-			{
-				onSuccess: () => {
-					setShowRefundModal(false);
-					setReason("");
-					setErrorMessage("");
-					toast.success("Đã gửi yêu cầu trả hàng / hoàn tiền thành công!");
-					refetch();
-					onStatusUpdated?.();
-				},
-				onError: (err: any) => {
-					const errorMsg =
-						err?.response?.data?.message || err?.response?.data || "Đã xảy ra lỗi khi yêu cầu hoàn tiền.";
-					if (errorMsg.toLowerCase().includes("ví") || errorMsg.toLowerCase().includes("wallet")) {
-						setShowRefundModal(false);
-						setShowNoWalletModal(true);
-					} else {
-						setErrorMessage(errorMsg);
-					}
-				},
-			}
-		);
 	};
 
 	// Seller Handlers
@@ -397,8 +380,16 @@ export function CustomerOrderDetailView({
 						{shipment?.waybillCode && (
 							<div className="pt-1">
 								<span className="text-[10px] text-brand-muted font-bold">Mã vận đơn: </span>
-								<span className="text-[11px] font-black text-brand-primary bg-brand-primary/10 px-1.5 py-0.5 rounded">
+								<span className="text-[11px] font-black text-brand-primary bg-brand-primary/10 px-1.5 py-0.5 rounded font-mono">
 									{shipment.waybillCode}
+								</span>
+							</div>
+						)}
+						{returnShipment?.waybillCode && (
+							<div className="pt-1">
+								<span className="text-[10px] text-amber-700 font-bold">Mã vận đơn hoàn: </span>
+								<span className="text-[11px] font-black text-amber-800 bg-amber-100 border border-amber-200 px-1.5 py-0.5 rounded font-mono">
+									{returnShipment.waybillCode}
 								</span>
 							</div>
 						)}
@@ -427,7 +418,7 @@ export function CustomerOrderDetailView({
 						<Truck className="w-4 h-4 text-brand-primary" />
 						Hành trình vận chuyển đơn hàng
 						{shipment.waybillCode && (
-							<span className="text-[10px] font-black text-brand-muted lowercase">
+							<span className="text-[10px] font-black text-brand-muted lowercase font-mono">
 								(mã vận đơn: {shipment.waybillCode})
 							</span>
 						)}
@@ -457,48 +448,95 @@ export function CustomerOrderDetailView({
 				</div>
 			)}
 
-			{/* Shop Info Banner */}
-			<div className="flex items-center justify-between bg-white border border-brand-border rounded-md px-4 py-3 shadow-xs">
-				<div className="flex items-center gap-3">
-					{detail.shopLogoUrl ? (
-						<img
-							src={detail.shopLogoUrl}
-							alt={detail.shopName || "Shop Logo"}
-							className="w-10 h-10 rounded-full object-cover border border-brand-border shrink-0"
-						/>
-					) : (
-						<div className="w-10 h-10 rounded-full bg-brand-primary/10 border border-brand-primary/20 flex items-center justify-center shrink-0">
-							<Store className="w-5 h-5 text-brand-primary" />
+			{/* VẬN ĐƠN HOÀN TRẢ HÀNG (RETURN SHIPMENT TRACKING) */}
+			{returnShipment && (
+				<div className="border border-amber-300 bg-amber-50/40 rounded-md p-4 shadow-xs space-y-3">
+					<div className="flex items-center justify-between border-b border-amber-200/80 pb-2.5">
+						<div className="flex items-center gap-2">
+							<RotateCcw className="w-4 h-4 text-amber-600" />
+							<h3 className="font-black text-amber-900 text-xs uppercase tracking-wider">
+								{isSeller ? "Kiện hàng hoàn trả về kho của bạn" : `Kiện hàng hoàn về Shop ${detail.shopName || ""}`}
+							</h3>
 						</div>
-					)}
-					<div className="space-y-0.5">
-						<h3 className="font-extrabold text-xs text-brand-dark flex items-center gap-2">
-							<span>{detail.shopName || `Shop #${detail.shopId}`}</span>
-							{detail.shopId && (
-								<span className="text-[10px] text-brand-muted font-normal font-mono">#{detail.shopId}</span>
-							)}
-						</h3>
-						<span className="text-[10px] text-brand-muted font-medium">Nhà bán hàng</span>
+						<span className="px-2 py-0.5 bg-amber-100 border border-amber-300 text-amber-800 text-[10px] font-black rounded uppercase">
+							Vận chuyển hoàn trả
+						</span>
+					</div>
+
+					<div className="space-y-2 pt-1 border-t border-amber-200/60">
+						<div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+							<div className="bg-white/80 p-2.5 rounded border border-amber-200/60">
+								<span className="text-[10px] font-bold text-amber-800 block uppercase">Nơi gửi (Khách hàng)</span>
+								<p className="font-extrabold text-brand-dark text-[11px]">{returnShipment.recipientName || "Người mua"}</p>
+								<p className="text-[11px] text-brand-muted">{returnShipment.senderAddress || "Địa chỉ gửi hàng hoàn"}</p>
+							</div>
+							<div className="bg-white/80 p-2.5 rounded border border-amber-200/60">
+								<span className="text-[10px] font-bold text-amber-800 block uppercase">Nơi nhận ({isSeller ? "Kho của bạn" : "Cửa hàng"})</span>
+								<p className="font-extrabold text-brand-dark text-[11px]">{isSeller ? "Kho của bạn" : (detail.shopName || "Shop")}</p>
+								<p className="text-[11px] text-brand-muted">{returnShipment.recipientAddress || "Địa chỉ nhận kho Shop"}</p>
+							</div>
+						</div>
+
+						<div className="flex items-start gap-2.5 text-xs font-semibold pt-1">
+							<div className="w-2 h-2 rounded-full bg-amber-500 mt-1 shrink-0" />
+							<div className="space-y-0.5">
+								<p className="text-brand-dark font-extrabold flex items-center gap-2">
+									<span>Trạng thái kiện hoàn trả:</span>
+									{getShipmentStatusBadge(returnShipment.status)}
+								</p>
+								<p className="text-[12px] text-brand-muted font-normal whitespace-pre-line">
+									{returnShipment.trackingLogs || `Vận đơn hoàn trả đã được khởi tạo thành công bởi đối tác ${returnShipment.carrierName || "GHN"}. Shipper sẽ liên hệ lấy lại kiện hàng.`}
+								</p>
+							</div>
+						</div>
 					</div>
 				</div>
+			)}
 
-				{!isSeller && detail.shopId && (
-					<button
-						type="button"
-						onClick={() => {
-							const shopName = detail.shopName || `Shop #${detail.shopId}`;
-							window.dispatchEvent(
-								new CustomEvent("open-shop-chat", {
-									detail: { shopId: detail.shopId, shopName },
-								})
-							);
-						}}
-						className="px-3 py-1.5 bg-white border border-brand-border hover:bg-brand-light-soft text-[11px] font-extrabold text-brand-dark rounded-md transition-all cursor-pointer shadow-xs flex items-center gap-1.5"
-					>
-						Chat với nhà bán
-					</button>
-				)}
-			</div>
+			{/* Shop Info Banner */}
+			{!isSeller && (
+				<div className="flex items-center justify-between bg-white border border-brand-border rounded-md px-4 py-3 shadow-xs">
+					<div className="flex items-center gap-3">
+						{detail.shopLogoUrl ? (
+							<img
+								src={detail.shopLogoUrl}
+								alt={detail.shopName || "Shop Logo"}
+								className="w-10 h-10 rounded-full object-cover border border-brand-border shrink-0"
+							/>
+						) : (
+							<div className="w-10 h-10 rounded-full bg-brand-primary/10 border border-brand-primary/20 flex items-center justify-center shrink-0">
+								<Store className="w-5 h-5 text-brand-primary" />
+							</div>
+						)}
+						<div className="space-y-0.5">
+							<h3 className="font-extrabold text-xs text-brand-dark flex items-center gap-2">
+								<span>{detail.shopName || `Shop #${detail.shopId}`}</span>
+								{detail.shopId && (
+									<span className="text-[10px] text-brand-muted font-normal font-mono">#{detail.shopId}</span>
+								)}
+							</h3>
+							<span className="text-[10px] text-brand-muted font-medium">Nhà bán hàng</span>
+						</div>
+					</div>
+
+					{detail.shopId && (
+						<button
+							type="button"
+							onClick={() => {
+								const shopName = detail.shopName || `Shop #${detail.shopId}`;
+								window.dispatchEvent(
+									new CustomEvent("open-shop-chat", {
+										detail: { shopId: detail.shopId, shopName },
+									})
+								);
+							}}
+							className="px-3 py-1.5 bg-white border border-brand-border hover:bg-brand-light-soft text-[11px] font-extrabold text-brand-dark rounded-md transition-all cursor-pointer shadow-xs flex items-center gap-1.5"
+						>
+							Chat với nhà bán
+						</button>
+					)}
+				</div>
+			)}
 
 			{/* Products Table (With Dimensions Snapshot) */}
 			<div className="border border-brand-border rounded-md overflow-hidden shadow-sm bg-white">
@@ -529,7 +567,7 @@ export function CustomerOrderDetailView({
 												}}
 											/>
 											<div className="space-y-1">
-												<h4 
+												<h4
 													className="font-extrabold text-brand-dark text-xs leading-tight cursor-pointer hover:text-brand-primary transition-colors"
 													onClick={() => {
 														if (item.productId) navigate(`/products/${item.productId}`);
@@ -543,7 +581,7 @@ export function CustomerOrderDetailView({
 												{item.variantName && (
 													<p className="text-[10px] font-bold text-brand-muted">Phân loại: {item.variantName}</p>
 												)}
-												
+
 												{/* Snapshot physical dimensions
 												{(item.weightInGrams > 0 || item.length > 0) && (
 													<p className="text-[10px] font-bold text-purple-700 bg-purple-50 inline-block px-1.5 py-0.5 rounded">
@@ -570,7 +608,7 @@ export function CustomerOrderDetailView({
 																Đánh giá sản phẩm
 															</button>
 														)}
-														<button
+														{/* <button
 															type="button"
 															onClick={() => {
 																const shopName = detail.shopName || `Shop #${detail.shopId}`;
@@ -585,7 +623,7 @@ export function CustomerOrderDetailView({
 															className="px-2 py-1 bg-white border border-brand-border hover:bg-brand-light-soft text-[10px] font-black text-brand-dark rounded transition-all cursor-pointer"
 														>
 															Chat với nhà bán
-														</button>
+														</button> */}
 														<button
 															type="button"
 															onClick={async () => {
@@ -767,8 +805,8 @@ export function CustomerOrderDetailView({
 			)}
 
 			{/* Modal Hủy Đơn Hàng (Customer) */}
-			{showCancelModal && (
-				<div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-brand-dark/40 backdrop-blur-xs font-sans">
+			{showCancelModal && typeof document !== "undefined" && createPortal(
+				<div className="fixed inset-0 z-10000 flex items-center justify-center p-4 bg-brand-dark/40 backdrop-blur-xs font-sans">
 					<div className="bg-white rounded-md max-w-md w-full border border-brand-border p-5 shadow-xl space-y-4">
 						<h3 className="font-black text-brand-dark text-sm uppercase">Yêu cầu hủy đơn hàng</h3>
 						<p className="text-brand-muted text-xs leading-normal font-semibold">
@@ -800,12 +838,13 @@ export function CustomerOrderDetailView({
 							</button>
 						</div>
 					</div>
-				</div>
+				</div>,
+				document.body
 			)}
 
 			{/* Modal Xác nhận đã nhận hàng (Customer) */}
-			{showCompleteModal && (
-				<div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-brand-dark/40 backdrop-blur-xs font-sans">
+			{showCompleteModal && typeof document !== "undefined" && createPortal(
+				<div className="fixed inset-0 z-10000 flex items-center justify-center p-4 bg-brand-dark/40 backdrop-blur-xs font-sans">
 					<div className="bg-white rounded-md max-w-md w-full border border-brand-border p-5 shadow-xl space-y-4">
 						<div className="flex gap-2.5 items-start text-amber-600">
 							<AlertTriangle className="w-5 h-5 shrink-0" />
@@ -841,49 +880,29 @@ export function CustomerOrderDetailView({
 							</button>
 						</div>
 					</div>
-				</div>
+				</div>,
+				document.body
 			)}
 
 			{/* Modal Yêu cầu hoàn tiền / trả hàng (Customer) */}
 			{showRefundModal && (
-				<div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-brand-dark/40 backdrop-blur-xs font-sans">
-					<div className="bg-white rounded-md max-w-md w-full border border-brand-border p-5 shadow-xl space-y-4">
-						<h3 className="font-black text-brand-dark text-sm uppercase">Yêu cầu hoàn trả hàng & hoàn tiền</h3>
-						<p className="text-brand-muted text-xs leading-normal font-semibold">
-							Chúng tôi hỗ trợ trả hàng hoàn tiền miễn phí trong vòng 7 ngày kể từ ngày nhận hàng. Vui lòng cung cấp lý do chi tiết và bằng chứng (nếu có) để người bán duyệt yêu cầu.
-						</p>
-						<textarea
-							value={reason}
-							onChange={(e) => setReason(e.target.value)}
-							placeholder="Nhập lý do trả hàng/hoàn tiền chi tiết..."
-							rows={3}
-							className="w-full border border-brand-border rounded-md p-2.5 text-xs focus:outline-none focus:ring-1 focus:ring-brand-primary"
-						/>
-						{errorMessage && <p className="text-[10px] font-bold text-red-600">{errorMessage}</p>}
-						<div className="flex justify-end gap-2 pt-2">
-							<button
-								type="button"
-								onClick={() => { setShowRefundModal(false); setReason(""); setErrorMessage(""); }}
-								className="px-3.5 py-1.5 bg-slate-100 text-slate-700 hover:bg-slate-200 rounded-md font-bold text-xs cursor-pointer"
-							>
-								Đóng
-							</button>
-							<button
-								type="button"
-								onClick={handleRefundOrder}
-								disabled={refundMutation.isPending}
-								className="px-4 py-1.5 bg-amber-600 hover:bg-amber-700 text-white rounded-md font-black text-xs cursor-pointer disabled:opacity-50"
-							>
-								{refundMutation.isPending ? "Đang gửi..." : "Gửi yêu cầu hoàn trả"}
-							</button>
-						</div>
-					</div>
-				</div>
+				<CustomerRefundModal
+					isOpen={showRefundModal}
+					onClose={() => setShowRefundModal(false)}
+					subOrderId={detail.id}
+					grandTotal={detail.grandTotal}
+					shopName={detail.shopName}
+					onSuccess={() => {
+						refetch();
+						onStatusUpdated?.();
+					}}
+					onRequireWallet={() => setShowNoWalletModal(true)}
+				/>
 			)}
 
 			{/* Modal Yêu cầu tạo ví (Customer) */}
-			{showNoWalletModal && (
-				<div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-brand-dark/40 backdrop-blur-xs font-sans">
+			{showNoWalletModal && typeof document !== "undefined" && createPortal(
+				<div className="fixed inset-0 z-10000 flex items-center justify-center p-4 bg-brand-dark/40 backdrop-blur-xs font-sans">
 					<div className="bg-white rounded-md max-w-md w-full border border-brand-border p-5 shadow-xl space-y-4">
 						<div className="flex gap-2.5 items-start text-rose-600">
 							<AlertTriangle className="w-5 h-5 shrink-0" />
@@ -917,7 +936,8 @@ export function CustomerOrderDetailView({
 							</button>
 						</div>
 					</div>
-				</div>
+				</div>,
+				document.body
 			)}
 
 			{/* Modal Từ chối đơn hàng (Seller) */}
