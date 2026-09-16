@@ -187,9 +187,10 @@ export function useCancelCustomerSubOrderMutation() {
 	return useMutation({
 		mutationFn: ({ subOrderId, reason }: { subOrderId: string; reason: string }) =>
 			orderApi.cancelCustomerSubOrder(subOrderId, reason),
-		onSuccess: (_, variables) => {
-			queryClient.invalidateQueries({ queryKey: ["subOrderDetail", variables.subOrderId, false] });
+		onSuccess: () => {
+			queryClient.invalidateQueries({ queryKey: ["subOrderDetail"] });
 			queryClient.invalidateQueries({ queryKey: ["customerOrders"] });
+			queryClient.invalidateQueries({ queryKey: ["orders"] });
 		},
 	});
 }
@@ -198,9 +199,10 @@ export function useCompleteSubOrderMutation() {
 	const queryClient = useQueryClient();
 	return useMutation({
 		mutationFn: (subOrderId: string) => orderApi.completeSubOrder(subOrderId),
-		onSuccess: (_, subOrderId) => {
-			queryClient.invalidateQueries({ queryKey: ["subOrderDetail", subOrderId, false] });
+		onSuccess: () => {
+			queryClient.invalidateQueries({ queryKey: ["subOrderDetail"] });
 			queryClient.invalidateQueries({ queryKey: ["customerOrders"] });
+			queryClient.invalidateQueries({ queryKey: ["orders"] });
 		},
 	});
 }
@@ -210,9 +212,11 @@ export function useCreateRefundMutation() {
 	return useMutation({
 		mutationFn: ({ subOrderId, reason, medias }: { subOrderId: string; reason: string; medias?: string[] }) =>
 			orderApi.createRefund(subOrderId, reason, medias),
-		onSuccess: (_, variables) => {
-			queryClient.invalidateQueries({ queryKey: ["subOrderDetail", variables.subOrderId, false] });
+		onSuccess: () => {
+			queryClient.invalidateQueries({ queryKey: ["subOrderDetail"] });
 			queryClient.invalidateQueries({ queryKey: ["customerOrders"] });
+			queryClient.invalidateQueries({ queryKey: ["orders"] });
+			queryClient.invalidateQueries({ queryKey: ["shopRefunds"] });
 		},
 	});
 }

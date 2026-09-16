@@ -1,3 +1,31 @@
+- [x] Tái Thiết Kế Bảng Yêu Cầu Hoàn Tiền (RefundRequestsView) Chuẩn Table + Phân Trang + Filter Mặc Định Pending, Xem Chi Tiết Đơn (CustomerOrderDetailView) & Modal Minh Chứng (Ảnh/Video), Sửa Lỗi Validation Voucher BE/FE, Vận Đơn Hoàn Trả (Return Shipment) & Xóa Mock Data:
+  - **Mục tiêu & Kết quả hoàn thành**:
+    1. **Tái Thiết Kế `RefundRequestsView.tsx` Thành Bảng Chuẩn (Table View)**:
+       - Chuyển đổi toàn diện từ dạng card grid sang table chuyên nghiệp đồng bộ với `OrdersView.tsx`.
+       - Cột: Mã yêu cầu & đơn con, Khách hàng, Tiền hoàn (đỏ nổi bật), Lý do (truncate 1 dòng kèm tooltip), Bằng chứng (badge đếm tệp đính kèm), Trạng thái (`getRefundStatusBadge`), Thao tác.
+       - 3 Hành động cụ thể:
+         1. `Chi tiết đơn`: Mở trực tiếp `CustomerOrderDetailView` với `isSeller={true}`.
+         2. `Chi tiết hoàn`: Mở Modal `RefundDetailModal` (portaled `z-10000`) hiển thị đầy đủ lý do, mô tả chi tiết, đếm ngược hạn tự động xử lý, phòng trưng bày bằng chứng (hình ảnh phóng to Lightbox, video có trình phát tương tác) và ghi chú phản hồi từ Shop.
+         3. `Duyệt` & `Từ chối`: Nút hành động trực tiếp trên hàng hoặc trong modal khi trạng thái là `Pending`, mở modal nhập ghi chú gửi cho khách hàng.
+       - Bộ lọc trạng thái: Mặc định là `Pending` ("Chưa xử lý"). Hỗ trợ lọc `All`, `Approved`, `Rejected`, `Cancelled`.
+       - Tích hợp ô tìm kiếm theo từ khóa và phân trang chuẩn với `@/shared/components/Pagination`.
+    2. **Hoàn Thiện `CustomerOrderDetailView.tsx` & Trải Nghiệm Seller**:
+       - Bọc toàn bộ các modal (`showCancelModal`, `showCompleteModal`, `showNoWalletModal`) bằng `createPortal(..., document.body)` với `z-10000`.
+       - Ẩn hoàn toàn Shop Info Banner, nút Chat với shop, các thao tác của người mua (Đánh giá, Mua lại, Hủy đơn) khi `isSeller === true`.
+       - Thẻ vận chuyển hoàn trả (`returnShipment`): Hiển thị "Kho của bạn" thay vì tên shop khi người bán xem đơn hàng.
+       - Cập nhật `useOrders.ts` để làm mới query cache `["subOrderDetail"]` trên mọi trạng thái và chuẩn hóa ép kiểu `subOrderId: String(detail.id)`.
+    3. **Khắc Phục Lỗi Validation Voucher (Đơn Tối Thiểu Nhỏ Hơn Giá Trị Giảm)**:
+       - Backend: Bổ sung validation trong `CreateVoucherCommandValidator.cs` đảm bảo `MinOrderValue >= DiscountValue` (giảm cố định) và `MinOrderValue >= MaxDiscountAmount` (giảm theo %).
+       - Frontend: Thêm các quy tắc Zod `.refine()` trong `voucher.schema.ts`.
+       - Bảng Voucher Seller (`CouponsView.tsx`) & Admin (`AdminVouchersView.tsx`): Loại bỏ cột "Loại Giảm" dư thừa.
+    4. **Dọn Dẹp Mock Data & Hoàn Thiện Vận Chuyển Hoàn Trả**:
+       - `SellerFollowersView.tsx` & `SellerReviewsView.tsx`: Xóa sạch mock data, gán mảng rỗng và kết nối dữ liệu thực.
+       - `Shippings.Api`: `GetShipmentsBySubOrderIdAsync` trả về danh sách vận đơn bao gồm đơn hoàn trả `isRefund = true`.
+       - `AdminShipmentsView.tsx`: Bổ sung cột "Loại vận đơn" (`🚚 Giao hàng` vs `🔄 Hoàn trả`) và bộ lọc.
+  - **Kiểm Thử & Biên Dịch**:
+    - Frontend: `npm run build` -> Vite production build succeeded in 781ms (0 errors).
+    - Backend: `dotnet build Microservices.sln` -> 0 errors across all 8 microservices.
+
 - [x] Tách Phân Tích Sàn Thành 2 Chế Độ Riêng Biệt (Phân Tích Sàn & Phân Tích Ngành Hàng), Bảng Thống Kê Hiệu Suất Ngành Hàng Mới (Client-side Category Cache), Top 30 Sản Phẩm Ngành Hàng & Lọc Thời Gian Tùy Chỉnh:
   - **Mục tiêu & Kết quả hoàn thành**:
     1. **Tách Biệt 4 Chế Độ Phân Tích Admin Độc Lập Tại `AdminAnalyticsFilterBar.tsx`**:

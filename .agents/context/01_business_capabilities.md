@@ -217,3 +217,35 @@ This document provides a detailed breakdown of all implemented backend APIs, gRP
    - **Quy Tắc Đơn Giản Hóa Trạng Thái Nút Bấm Analytics**:
      - Khi thay đổi filter (ngành hàng, mốc thời gian, tháng/năm, mã shop/sản phẩm) hoặc chuyển tab (chế độ): Lập tức gọi `setIsApplied(false)`, nút sáng màu và bấm được bình thường.
      - Khi được điều hướng sang một Shop ID mới ("qua cái mới rồi") từ bảng quản lý cửa hàng: Tự động reset `isApplied = false`, chấm dứt tình trạng kẹt chữ "Đã phân tích".
+- **Return Logistics, Refund Requests Redesign & Voucher Improvements**:
+  - `Shippings.Api`:
+    - Bổ sung `GetShipmentsBySubOrderIdAsync(long subOrderId)` trả về toàn bộ danh sách vận đơn (bao gồm cả đơn giao hàng gốc và đơn vận chuyển hoàn trả `isRefund = true`).
+    - `GET /api/shipments/sub-order/{subOrderId}` trả về `List<Shipment>` sắp xếp theo thời gian mới nhất.
+    - Cập nhật `AdminShipmentsView.tsx`: Thêm cột "Loại vận đơn" phân biệt rõ ràng vận đơn giao hàng (`🚚 Giao hàng`) và hoàn trả (`🔄 Hoàn trả`) kèm bộ lọc loại vận đơn.
+  - `CustomerRefundModal` [NEW]:
+    - Tách thành Modal hoàn tiền / trả hàng độc lập tại `src/domains/order/components/refund/CustomerRefundModal.tsx`, sử dụng `createPortal(..., document.body)` với `z-10000`.
+    - Hỗ trợ tải lên tối đa 6 hình ảnh và 3 video bằng chứng minh họa qua S3/MinIO `storageService.uploadFile` kèm thanh tiến trình phần trăm và trình phát video xem trước.
+    - Áp dụng nguyên tắc hoàn tiền toàn bộ đơn hàng con (`subOrder.GrandTotal`).
+  - `CustomerOrderDetailView.tsx`:
+    - Hiển thị thẻ vận đơn hoàn trả hàng (`Kiện hàng hoàn trả về kho của bạn`) với viền hổ phách, hiển thị địa chỉ người gửi, nơi nhận và nhật ký tracking.
+    - Chế độ Seller xem chi tiết: Ẩn hoàn toàn Shop Info Banner, nút Chat với shop, các thao tác của người mua (Đánh giá, Mua lại, Hủy đơn); đổi các nhãn shop thành "Kho của bạn" / "Voucher Shop".
+    - Bọc toàn bộ các modal (`showCancelModal`, `showCompleteModal`, `showNoWalletModal`) bằng `createPortal(..., document.body)` với `z-10000`.
+    - Chuẩn hóa `subOrderId` dạng chuỗi (`String(detail.id)`) và cập nhật `useCancelCustomerSubOrderMutation`, `useCompleteSubOrderMutation`, `useCreateRefundMutation` để làm mới query cache `["subOrderDetail"]`.
+  - `RefundRequestsView.tsx` [REDESIGNED]:
+    - Tái thiết kế toàn diện từ dạng lưới thẻ sang bảng chuẩn (`table`) đồng bộ với `OrdersView.tsx`.
+    - Cột dữ liệu: Mã yêu cầu & đơn con, Khách hàng, Tiền hoàn trả (đỏ đậm), Lý do (truncate 1 dòng kèm tooltip), Bằng chứng (số lượng tệp, bấm mở modal), Trạng thái (`getRefundStatusBadge`), Thao tác.
+    - 3 Hành động rõ ràng:
+      1. `Chi tiết đơn`: Mở trực tiếp `CustomerOrderDetailView` với `isSeller={true}`.
+      2. `Chi tiết hoàn`: Mở Modal chi tiết đầy đủ lý do, mô tả, đếm ngược hạn tự động xử lý, phòng trưng bày bằng chứng (hình ảnh phóng to lightbox, video có trình phát tương tác) và ghi chú phản hồi từ Shop.
+      3. `Duyệt` & `Từ chối` (chỉ hiển thị khi `Pending`): Mở Modal nhập ghi chú gửi cho khách hàng.
+    - Bộ lọc trạng thái: Mặc định là `Pending` ("Chưa xử lý"). Hỗ trợ lọc `All`, `Approved`, `Rejected`, `Cancelled`.
+    - Ô tìm kiếm nhanh và phân trang tiêu chuẩn bằng component `Pagination`.
+  - **Khắc phục lỗi Validation Voucher (Đơn tối thiểu vs Giá trị giảm)**:
+    - Backend: `CreateVoucherCommandValidator.cs` bổ sung quy tắc kiểm tra `MinOrderValue >= DiscountValue` (giảm cố định) và `MinOrderValue >= MaxDiscountAmount` (giảm theo %).
+    - Frontend: `voucher.schema.ts` bổ sung các quy tắc Zod `.refine()` tương ứng.
+  - **Tối ưu Bảng Voucher Seller & Admin**:
+    - Loại bỏ cột "Loại Giảm" dư thừa tại `CouponsView.tsx` và `AdminVouchersView.tsx` do đã có ký hiệu rõ ràng (`đ` cố định, `%` phần trăm).
+  - **Dọn dẹp Mock Data**:
+    - `SellerFollowersView.tsx`: `MOCK_FOLLOWERS = []`.
+    - `SellerReviewsView.tsx`: `MOCK_SELLER_PRODUCTS = []`, `MOCK_REVIEWS_MAP = {}`.
+    - Đảm bảo hệ thống gọi API thực tế và hiển thị trạng thái rỗng chuẩn mực.

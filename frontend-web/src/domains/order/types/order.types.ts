@@ -170,3 +170,21 @@ export const SubOrderStatus = {
 
 export type SubOrderStatus =
 	(typeof SubOrderStatus)[keyof typeof SubOrderStatus];
+
+export interface RefundRequestDto {
+	id: number;
+	subOrderId: string;
+	customerId: number;
+	shopId: number;
+	requestedAmount: number;
+	refundAmount: number;
+	reason: string;
+	description?: string;
+	proofImagesJson?: string;
+	medias?: string[];
+	attemptCount?: number;
+	sellerRejectReason?: string;
+	status: "Pending" | "Approved" | "Rejected" | string;
+	createdDate: string;
+	expirationDate: string;
+}

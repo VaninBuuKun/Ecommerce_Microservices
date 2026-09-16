@@ -1,4 +1,5 @@
 import { useState, useMemo } from "react";
+import { createPortal } from "react-dom";
 import { useNavigate } from "react-router-dom";
 import {
 	Loader2,
@@ -194,7 +195,7 @@ export function CustomerOrderDetailView({
 			return;
 		}
 		cancelMutation.mutate(
-			{ subOrderId: detail.id, reason: reason.trim() },
+			{ subOrderId: String(detail.id), reason: reason.trim() },
 			{
 				onSuccess: () => {
 					setShowCancelModal(false);
@@ -212,7 +213,7 @@ export function CustomerOrderDetailView({
 	};
 
 	const handleCompleteOrder = () => {
-		completeMutation.mutate(detail.id, {
+		completeMutation.mutate(String(detail.id), {
 			onSuccess: () => {
 				setShowCompleteModal(false);
 				setErrorMessage("");
@@ -450,18 +451,15 @@ export function CustomerOrderDetailView({
 			{/* VẬN ĐƠN HOÀN TRẢ HÀNG (RETURN SHIPMENT TRACKING) */}
 			{returnShipment && (
 				<div className="border border-amber-300 bg-amber-50/40 rounded-md p-4 shadow-xs space-y-3">
-					<div className="flex items-center justify-between">
-						<h3 className="font-extrabold text-xs text-amber-900 uppercase tracking-wider flex items-center gap-1.5">
+					<div className="flex items-center justify-between border-b border-amber-200/80 pb-2.5">
+						<div className="flex items-center gap-2">
 							<RotateCcw className="w-4 h-4 text-amber-600" />
-							Vận đơn hoàn trả hàng (Return Shipment)
-							{returnShipment.waybillCode && (
-								<span className="text-[10px] font-black text-amber-800 font-mono">
-									(Mã GHN: {returnShipment.waybillCode})
-								</span>
-							)}
-						</h3>
-						<span className="px-2 py-0.5 rounded text-[9px] font-black uppercase bg-amber-100 text-amber-800 border border-amber-300">
-							Kiện hàng hoàn về Shop
+							<h3 className="font-black text-amber-900 text-xs uppercase tracking-wider">
+								{isSeller ? "Kiện hàng hoàn trả về kho của bạn" : `Kiện hàng hoàn về Shop ${detail.shopName || ""}`}
+							</h3>
+						</div>
+						<span className="px-2 py-0.5 bg-amber-100 border border-amber-300 text-amber-800 text-[10px] font-black rounded uppercase">
+							Vận chuyển hoàn trả
 						</span>
 					</div>
 
@@ -473,8 +471,8 @@ export function CustomerOrderDetailView({
 								<p className="text-[11px] text-brand-muted">{returnShipment.senderAddress || "Địa chỉ gửi hàng hoàn"}</p>
 							</div>
 							<div className="bg-white/80 p-2.5 rounded border border-amber-200/60">
-								<span className="text-[10px] font-bold text-amber-800 block uppercase">Nơi nhận (Cửa hàng)</span>
-								<p className="font-extrabold text-brand-dark text-[11px]">{detail.shopName || "Shop"}</p>
+								<span className="text-[10px] font-bold text-amber-800 block uppercase">Nơi nhận ({isSeller ? "Kho của bạn" : "Cửa hàng"})</span>
+								<p className="font-extrabold text-brand-dark text-[11px]">{isSeller ? "Kho của bạn" : (detail.shopName || "Shop")}</p>
 								<p className="text-[11px] text-brand-muted">{returnShipment.recipientAddress || "Địa chỉ nhận kho Shop"}</p>
 							</div>
 						</div>
@@ -496,47 +494,49 @@ export function CustomerOrderDetailView({
 			)}
 
 			{/* Shop Info Banner */}
-			<div className="flex items-center justify-between bg-white border border-brand-border rounded-md px-4 py-3 shadow-xs">
-				<div className="flex items-center gap-3">
-					{detail.shopLogoUrl ? (
-						<img
-							src={detail.shopLogoUrl}
-							alt={detail.shopName || "Shop Logo"}
-							className="w-10 h-10 rounded-full object-cover border border-brand-border shrink-0"
-						/>
-					) : (
-						<div className="w-10 h-10 rounded-full bg-brand-primary/10 border border-brand-primary/20 flex items-center justify-center shrink-0">
-							<Store className="w-5 h-5 text-brand-primary" />
+			{!isSeller && (
+				<div className="flex items-center justify-between bg-white border border-brand-border rounded-md px-4 py-3 shadow-xs">
+					<div className="flex items-center gap-3">
+						{detail.shopLogoUrl ? (
+							<img
+								src={detail.shopLogoUrl}
+								alt={detail.shopName || "Shop Logo"}
+								className="w-10 h-10 rounded-full object-cover border border-brand-border shrink-0"
+							/>
+						) : (
+							<div className="w-10 h-10 rounded-full bg-brand-primary/10 border border-brand-primary/20 flex items-center justify-center shrink-0">
+								<Store className="w-5 h-5 text-brand-primary" />
+							</div>
+						)}
+						<div className="space-y-0.5">
+							<h3 className="font-extrabold text-xs text-brand-dark flex items-center gap-2">
+								<span>{detail.shopName || `Shop #${detail.shopId}`}</span>
+								{detail.shopId && (
+									<span className="text-[10px] text-brand-muted font-normal font-mono">#{detail.shopId}</span>
+								)}
+							</h3>
+							<span className="text-[10px] text-brand-muted font-medium">Nhà bán hàng</span>
 						</div>
-					)}
-					<div className="space-y-0.5">
-						<h3 className="font-extrabold text-xs text-brand-dark flex items-center gap-2">
-							<span>{detail.shopName || `Shop #${detail.shopId}`}</span>
-							{detail.shopId && (
-								<span className="text-[10px] text-brand-muted font-normal font-mono">#{detail.shopId}</span>
-							)}
-						</h3>
-						<span className="text-[10px] text-brand-muted font-medium">Nhà bán hàng</span>
 					</div>
-				</div>
 
-				{!isSeller && detail.shopId && (
-					<button
-						type="button"
-						onClick={() => {
-							const shopName = detail.shopName || `Shop #${detail.shopId}`;
-							window.dispatchEvent(
-								new CustomEvent("open-shop-chat", {
-									detail: { shopId: detail.shopId, shopName },
-								})
-							);
-						}}
-						className="px-3 py-1.5 bg-white border border-brand-border hover:bg-brand-light-soft text-[11px] font-extrabold text-brand-dark rounded-md transition-all cursor-pointer shadow-xs flex items-center gap-1.5"
-					>
-						Chat với nhà bán
-					</button>
-				)}
-			</div>
+					{detail.shopId && (
+						<button
+							type="button"
+							onClick={() => {
+								const shopName = detail.shopName || `Shop #${detail.shopId}`;
+								window.dispatchEvent(
+									new CustomEvent("open-shop-chat", {
+										detail: { shopId: detail.shopId, shopName },
+									})
+								);
+							}}
+							className="px-3 py-1.5 bg-white border border-brand-border hover:bg-brand-light-soft text-[11px] font-extrabold text-brand-dark rounded-md transition-all cursor-pointer shadow-xs flex items-center gap-1.5"
+						>
+							Chat với nhà bán
+						</button>
+					)}
+				</div>
+			)}
 
 			{/* Products Table (With Dimensions Snapshot) */}
 			<div className="border border-brand-border rounded-md overflow-hidden shadow-sm bg-white">
@@ -805,8 +805,8 @@ export function CustomerOrderDetailView({
 			)}
 
 			{/* Modal Hủy Đơn Hàng (Customer) */}
-			{showCancelModal && (
-				<div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-brand-dark/40 backdrop-blur-xs font-sans">
+			{showCancelModal && typeof document !== "undefined" && createPortal(
+				<div className="fixed inset-0 z-10000 flex items-center justify-center p-4 bg-brand-dark/40 backdrop-blur-xs font-sans">
 					<div className="bg-white rounded-md max-w-md w-full border border-brand-border p-5 shadow-xl space-y-4">
 						<h3 className="font-black text-brand-dark text-sm uppercase">Yêu cầu hủy đơn hàng</h3>
 						<p className="text-brand-muted text-xs leading-normal font-semibold">
@@ -838,12 +838,13 @@ export function CustomerOrderDetailView({
 							</button>
 						</div>
 					</div>
-				</div>
+				</div>,
+				document.body
 			)}
 
 			{/* Modal Xác nhận đã nhận hàng (Customer) */}
-			{showCompleteModal && (
-				<div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-brand-dark/40 backdrop-blur-xs font-sans">
+			{showCompleteModal && typeof document !== "undefined" && createPortal(
+				<div className="fixed inset-0 z-10000 flex items-center justify-center p-4 bg-brand-dark/40 backdrop-blur-xs font-sans">
 					<div className="bg-white rounded-md max-w-md w-full border border-brand-border p-5 shadow-xl space-y-4">
 						<div className="flex gap-2.5 items-start text-amber-600">
 							<AlertTriangle className="w-5 h-5 shrink-0" />
@@ -879,7 +880,8 @@ export function CustomerOrderDetailView({
 							</button>
 						</div>
 					</div>
-				</div>
+				</div>,
+				document.body
 			)}
 
 			{/* Modal Yêu cầu hoàn tiền / trả hàng (Customer) */}
@@ -899,8 +901,8 @@ export function CustomerOrderDetailView({
 			)}
 
 			{/* Modal Yêu cầu tạo ví (Customer) */}
-			{showNoWalletModal && (
-				<div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-brand-dark/40 backdrop-blur-xs font-sans">
+			{showNoWalletModal && typeof document !== "undefined" && createPortal(
+				<div className="fixed inset-0 z-10000 flex items-center justify-center p-4 bg-brand-dark/40 backdrop-blur-xs font-sans">
 					<div className="bg-white rounded-md max-w-md w-full border border-brand-border p-5 shadow-xl space-y-4">
 						<div className="flex gap-2.5 items-start text-rose-600">
 							<AlertTriangle className="w-5 h-5 shrink-0" />
@@ -934,7 +936,8 @@ export function CustomerOrderDetailView({
 							</button>
 						</div>
 					</div>
-				</div>
+				</div>,
+				document.body
 			)}
 
 			{/* Modal Từ chối đơn hàng (Seller) */}
