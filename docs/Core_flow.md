@@ -400,55 +400,8 @@ sequenceDiagram
 
 ---
 
-## 5. Sơ Đồ Hủy Đơn Hàng & Giao Dịch Bù Trừ (Order Cancellation & Compensation)
-> **Bối cảnh**: Người mua bấm "Hủy đơn" khi đơn chưa được Shop gửi đi (trạng thái `AwaitingConfirmation` hoặc `Processing`), hoặc Người bán bấm "Từ chối đơn / Hết hàng" (`SubOrderRejectedEvent`).  
-> **Thách thức kiến trúc**: Hệ thống phân tán cần đảm bảo không bị thất thoát tiền và lệch số lượng tồn kho (Eventual Consistency).
 
-```mermaid
-sequenceDiagram
-    autonumber
-    actor Actor as 👤 Người Mua / 🏪 Người Bán
-    participant Orders as 📦 Orders.Api
-    participant Saga as 🔄 SubOrderStateMachine
-    participant RabbitMQ as 📨 RabbitMQ
-    participant Payments as 💳 Payments.Api
-    participant Catalog as 🏷️ Catalog.Api
-
-    Actor->>Orders: POST /sub-orders/{id}/cancel (Kèm lý do hủy)
-    activate Orders
-    Orders->>RabbitMQ: Publish: SubOrderRejectedEvent (SubOrderId, Reason)
-    deactivate Orders
-
-    RabbitMQ->>Saga: When(SubOrderRejected)
-    activate Saga
-    Saga->>Saga: Ghi nhận FailureReason & Chuyển trạng thái -> Cancelled
-
-    par 1. Bù trừ hoàn tiền (Nếu đã thanh toán online)
-        Saga->>RabbitMQ: Publish: RefundSubOrderBeforeDeliveredRequest
-        RabbitMQ->>Payments: Xử lý hoàn 100% tiền đơn hàng
-        Payments->>Payments: Cộng tiền vào Ví Buyer (hoặc Refund qua Cổng MoMo/VNPay)
-    and 2. Bù trừ hoàn trả tồn kho sản phẩm
-        Saga->>RabbitMQ: Publish: ReleaseStocksRequest (VariantItems)
-        RabbitMQ->>Catalog: ReleaseStocksConsumer
-        Catalog->>Catalog: Cộng lại số lượng tồn kho (Atomic Stock Increment)
-    and 3. Bù trừ Voucher đã áp dụng
-        Saga->>Orders: Hoàn lại lượt dùng Voucher (Giảm UsageCount)
-    end
-    deactivate Saga
-
-    Orders-->>Actor: Thông báo: Đơn hàng đã hủy thành công & Tiền/Kho đã hoàn tất!
-```
-**Chú thích chi tiết**:
-- **Ai thao tác**: Khách hàng (đổi ý không muốn mua nữa) hoặc Shop (phát hiện rách hàng, hết tồn kho vật lý).
-- **Điều kiện**: Chỉ được hủy khi đơn hàng chưa giao cho Shipper (`CurrentState != Shipping`).
-- **Giao dịch bù trừ (Compensating Transactions)**:
-  1. *Hoàn tiền*: `Payments.Api` nhận `RefundSubOrderBeforeDeliveredRequest`, tự động trả lại 100% giá trị đơn hàng vào Ví người mua mà không cần shop duyệt thủ công.
-  2. *Hoàn kho*: `Catalog.Api` nhận `ReleaseStocksRequest`, lập tức cộng ngược số lượng lại kệ kho.
-  3. *Hoàn voucher*: Trừ `UsageCount` của voucher để khách hàng có thể dùng lại mã ưu đãi cho lần mua sau.
-
----
-
-## 6. Sơ Đồ Giao Hàng Thất Bại & Chuyển Hoàn (Delivery Failure & Return to Sender)
+## 5. Sơ Đồ Giao Hàng Thất Bại & Chuyển Hoàn (Delivery Failure & Return to Sender)
 > **Bối cảnh**: Shipper GHN đi giao hàng nhưng khách không nghe máy, sai địa chỉ, hoặc khách từ chối nhận hàng không có lý do sau 3 lần giao.
 
 ```mermaid
@@ -484,7 +437,7 @@ sequenceDiagram
 
 ---
 
-## 7. Sơ Đồ Đánh Giá Sản Phẩm & Cập Nhật Điểm Uy Tín (Product Review & Rating)
+## 6. Sơ Đồ Đánh Giá Sản Phẩm & Cập Nhật Điểm Uy Tín (Product Review & Rating)
 > **Bối cảnh**: Sau khi đơn hàng hoàn tất (`Completed`), khách hàng chấm điểm sao, nhận xét trải nghiệm và tải ảnh chụp thực tế để chia sẻ cho cộng đồng.
 
 ```mermaid
@@ -517,7 +470,7 @@ sequenceDiagram
 
 ---
 
-## 8. Sơ Đồ Rút Tiền Từ Ví Người Bán (Seller Wallet Withdrawal Flow)
+## 7. Sơ Đồ Rút Tiền Từ Ví Người Bán (Seller Wallet Withdrawal Flow)
 > **Bối cảnh**: Doanh thu sau khi trừ phí sàn tích lũy trong Ví người bán (`Seller Wallet`). Người bán tạo lệnh rút tiền về tài khoản ngân hàng cá nhân (Vietcombank, MB, Techcombank...).
 
 ```mermaid
@@ -561,7 +514,7 @@ sequenceDiagram
 
 ---
 
-## 9. Sơ Đồ Đăng Ký Cửa Hàng & Duyệt Hồ Sơ KYC (Seller Onboarding & KYC Approval)
+## 8. Sơ Đồ Đăng Ký Cửa Hàng & Duyệt Hồ Sơ KYC (Seller Onboarding & KYC Approval)
 > **Bối cảnh**: Khách hàng thông thường muốn mở gian hàng kinh doanh trên sàn thương mại điện tử. Hệ thống yêu cầu xác minh danh tính (KYC) để phòng chống lừa đảo.
 
 ```mermaid
@@ -603,7 +556,7 @@ sequenceDiagram
 
 ---
 
-## 10. Sơ Đồ Mua Lại Đơn Hàng Nhanh (Re-order Flow)
+## 9. Sơ Đồ Mua Lại Đơn Hàng Nhanh (Re-order Flow)
 > **Bối cảnh**: Người mua muốn mua lại nhanh chóng các sản phẩm từ một đơn hàng đã từng đặt trong quá khứ mà không cần phải tìm kiếm lại từng món trên trang chủ.
 
 ```mermaid
